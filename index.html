@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>سامانه جامع بازرسی HSE خوارزمی</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap">
+<style>
+:root {
+  --bg: #f4f6f9;
+  --card-bg: #ffffff;
+  --ink: #0f172a;
+  --mu: #64748b;
+  --ln: #e2e8f0;
+  --ac: #2563eb;
+  --ac-hover: #1d4ed8;
+  --ok: #16a34a;
+  --nc: #dc2626;
+  --warn: #d97706;
+  --shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -4px rgba(0,0,0,0.02);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+}
+@media(prefers-color-scheme:dark) {
+  :root {
+    --bg: #0f172a;
+    --card-bg: #1e293b;
+    --ink: #f8fafc;
+    --mu: #94a3b8;
+    --ln: #334155;
+    --ac: #3b82f6;
+    --ac-hover: #60a5fa;
+    --ok: #22c55e;
+    --nc: #ef4444;
+    --warn: #f59e0b;
+    --shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+  }
+}
+* { box-sizing: border-box; transition: all 0.15s ease-in-out; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.7 Vazirmatn, Tahoma, sans-serif; padding: 16px 16px 100px; }
+#app { max-width: 680px; margin: auto; }
+h2 { font-size: 20px; font-weight: 800; margin: 16px 0 8px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+small { color: var(--mu); display: block; font-size: 12px; }
+
+input, select { width: 100%; font: inherit; color: var(--ink); background: var(--card-bg); border: 1.5px solid var(--ln); border-radius: 10px; padding: 10px 14px; margin-top: 8px; min-height: 46px; outline: none; }
+input:focus, select:focus { border-color: var(--ac); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+button, .btn-link { font: inherit; color: var(--ink); background: var(--card-bg); border: 1.5px solid var(--ln); border-radius: 12px; min-height: 48px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+button:hover, .btn-link:hover { background: var(--ln); }
+
+.m { display: block; width: 100%; margin-top: 10px; padding: 14px 16px; text-align: right; background: var(--card-bg); border-radius: 14px; border: 1px solid var(--ln); box-shadow: var(--shadow-sm); }
+.m:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--ac); }
+.m b { display: block; font-size: 16px; font-weight: 700; color: var(--ink); }
+.p { width: 100%; margin-top: 10px; background: var(--ac); border-color: var(--ac); color: #fff; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
+.p:hover { background: var(--ac-hover); border-color: var(--ac-hover); }
+.l { border: 0; background: none; color: var(--mu); padding: 0; min-height: auto; font-size: 13px; }
+.l:hover { color: var(--ac); background: none; }
+
+.q { background: var(--card-bg); border: 1px solid var(--ln); border-radius: 14px; padding: 16px; margin-top: 12px; box-shadow: var(--shadow-sm); }
+.q.bad { border-right: 5px solid var(--nc); border-color: var(--nc); }
+.q.good { border-right: 5px solid var(--ok); border-color: var(--ok); }
+.q p { margin: 0; font-weight: 600; font-size: 15px; }
+
+.b { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.b button { min-height: 40px; border-radius: 8px; font-size: 13px; font-weight: 600; background: var(--bg); border-color: var(--ln); }
+.b .on.ok { background: rgba(22,163,74,0.1); color: var(--ok); border-color: var(--ok); }
+.b .on.nc { background: rgba(220,38,38,0.1); color: var(--nc); border-color: var(--nc); }
+.b .on.na { background: rgba(100,116,139,0.1); color: var(--mu); border-color: var(--mu); }
+
+.ph { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.th { position: relative; width: 72px; height: 72px; border-radius: 10px; overflow: hidden; border: 1px solid var(--ln); }
+.th img { width: 100%; height: 100%; object-fit: cover; }
+.th b { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.6); color: #fff; width: 20px; height: 20px; border-radius: 50%; line-height: 20px; text-align: center; cursor: pointer; font-size: 12px; }
+.ad { border: 1.5px dashed var(--ac); color: var(--ac); background: rgba(37,99,235,0.04); padding: 0 12px; min-height: 44px; border-radius: 10px; width: 100%; }
+
+.fx { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-weight: 600; font-size: 13px; }
+.fx input[type=checkbox] { width: 20px; height: 20px; margin: 0; min-height: 0; cursor: pointer; }
+
+.meta-box { background: rgba(37,99,235,0.03); border: 1px solid rgba(37,99,235,0.15); border-radius: 12px; padding: 12px; margin-top: 12px; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.meta-box input { margin-top: 0; background: var(--card-bg); }
+
+#zm { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 99; backdrop-filter: blur(4px); }
+#zm[hidden] { display: none; }
+#zm img { max-width: 92%; max-height: 92%; border-radius: 12px; }
+
+.bg { display: inline-block; font-size: 11px; border-radius: 20px; padding: 2px 10px; margin-right: 6px; font-weight: 700; }
+.bg.g { background: rgba(22,163,74,0.15); color: var(--ok); }
+.bg.r { background: rgba(220,38,38,0.15); color: var(--nc); }
+.step { font-weight: 700; font-size: 13px; margin-top: 14px; color: var(--ac); display: flex; align-items: center; }
+
+@media print { .np { display: none !important; } body { padding: 0; background: #fff; color: #000; } }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="fi" accept="image/*" multiple hidden>
+<div id="zm" hidden></div>
+
+<script>
+const LOGO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDAgQDAwMEBAQFBgoGBgUFBgwICQcKDgwPDg4MDQ0PERYTDxAVEQ0NExoTFRcYGRkZDxIbHRsYHRYYGRj/2wBDAQQEBAYFBgsGBgsYEA0QGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBj/wAARCADqAwcDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKrobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD7+ooooAKKKKACiiigA3f/XQAAAAB4A9KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA/wD/1Cj/AOvR3/x6/wD66P8A7VAH/9k=";
+const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+
+const M = [
+  ['D', 'بازدید روزانه ایمنی', 'روزانه', '', ['کف و مسیرهای عبور تمیز، خشک و بدون مانع', 'درب و مسیر خروج اضطراری باز و آزاد', 'استفاده افراد از وسایل حفاظت فردی متناسب با کار', 'حفاظ دستگاه‌ها سالم و فعال؛ دستگاه ناایمن در حال کار نیست', 'نشتی یا ریختگی مواد شیمیایی، روغن یا آب دیده نمی‌شود', 'تابلوهای برق بسته و کابل‌ها سالم و جمع‌شده', 'کپسول‌ها و فایرباکس در جای خود و با دسترسی آزاد', 'کار پرخطر (گرم، ارتفاع، فضای بسته، برقی) با مجوز کار'], []],
+  ['S', 'ایمنی عمومی سالن', 'ماهانه', 'L14016/02', ['ابزار و تجهیزات دستی سالم', 'کانال‌ها، چاهک‌ها و بازشوها دارای درپوش و حفاظ', 'نظم و نظافت رعایت شده و پلکان‌ها ایمن', 'روشنایی و تهویه (عمومی و موضعی) کافی', 'چیدمان پایدار و مسیر لیفتراک خط‌کشی شده', 'علائم خروج اضطراری و هشدار نصب و خوانا', 'صدا در حد مجاز یا حفاظ شنوایی استفاده می‌شود', 'گردوغبار (آلومینا/نیکل) تجمع ندارد و ماسک مناسب استفاده می‌شود', 'SDS و برچسب خطر مخازن موجود؛ دوش و چشم‌شوی اضطراری سالم'], []],
+  ['E', 'ایمنی برق', 'ماهانه', '', ['تابلوها بسته، دارای کفپوش عایق، یک متر فضای آزاد و کپسول CO2', 'کابل، سیم‌سیار، دوشاخه و ابزار برقی (فرز، جوش) سالم و عایق', 'سیم‌کشی موقت یا غیراستاندارد وجود ندارد', 'ارت و کلید حفاظ جان طبق برنامه تست شده', 'قفل و برچسب (LOTO) هنگام تعمیر برق و دستگاه رعایت می‌شود'], []],
+  ['EQ', 'ایمنی تجهیزات و دستگاه‌ها (شامل سنگ سمباده)', 'ماهانه', 'L14029/01', ['حفاظ، میکروسوئیچ، دوشستی و پرده نوری سالم و فعال', 'کلید توقف اضطراری کار می‌کند', 'سنگ سمباده بدون ترک؛ حفاظ سالم؛ فاصله تکیه‌گاه حداکثر ۳ میلی‌متر', 'تهویه موضعی، شیلد صورت و PPE اپراتور مناسب', 'اپراتور آموزش دیده و سرعت مجاز سنگ درج شده', 'گرد و ضایعات دستگاه جمع‌آوری می‌شود'], []],
+  ['F', 'حریق و فایرباکس', 'ماهانه', 'L14019/01', ['کپسول‌ها شارژ، دارای مانومتر سالم و تست معتبر', 'تعداد کپسول کافی (۲ عدد به ازای هر ۱۰۰ متر مربع) و در دسترس', 'فایرباکس: درب، شیلنگ، نازل و کوپلینگ، پمپ سالم', 'سیستم اعلام حریق فعال و مسدود نشده', 'مسیر دور زدن خودروی آتش‌نشانی باز است', 'تیم اطفای حریق آموزش دیده (تاریخ آخرین آموزش ثبت شود)'], []],
+  ['W', 'انبار عمومی', 'ماهانه', '', ['ورود افراد متفرقه ممنوع و علائم هشدار نصب است', 'راهروها خالی، خط‌کشی و با عرض استاندارد؛ مسیر لیفتراک مشخص', 'پالت‌ها سالم؛ ارتفاع چیدمان و فاصله از دیوار و سقف مناسب', 'کف تمیز، خشک و دارای آبرو', 'روشنایی و تهویه سالم و کافی', 'جوندگان و پرندگان دیده نمی‌شود؛ پنجره‌ها دارای توری', 'مایعات قابل اشتعال در ظرف دربسته و انبار جدا', 'صاعقه‌گیر ساختمان سالم است'], []],
+  ['CH', 'انبار مواد شیمیایی', 'ماهانه', '', ['ظروف و مخازن دارای برچسب خطر و علائم هشدار انبار نصب', 'ظروف آسیب‌دیده یا نشتی فوراً بسته‌بندی و برچسب‌گذاری می‌شوند', 'برای نشتی، جاذب و بشکه خالی موجود است؛ کف پس از نشتی شسته می‌شود', 'ظروف اسید سولفوریک محکم بسته و بدون نشتی', 'مایعات قابل اشتعال دربسته، جدا و بدون منبع جرقه', 'مواد بسیار سمی جدا نگهداری می‌شوند', 'FIFO رعایت می‌شود و ماده تاریخ‌گذشته وجود ندارد', 'فاصله ۷۰ سانتی‌متر تا سقف و ظرفیت انبار رعایت شده', 'دما و رطوبت ثبت و در محدوده استاندارد است', 'PPE کافی و استفاده می‌شود؛ خوردن و استعمال دخانیات ممنوع'], []],
+  ['CY', 'سیلندرهای گاز و انبار آن‌ها', 'ماهانه', 'L14041', ['سیلندرها ایستاده، مهار شده و دارای کپ فولادی', 'شیر سیلندرها (حتی خالی) بسته است', 'پر و خالی و گازهای مختلف جدا؛ اکسیژن دور از استیلن، LPG و روغن', 'روغن و گریس روی شیر و رگولاتور اکسیژن/استیلن نیست', 'محل نگهداری خشک، خنک، دور از حرارت؛ علائم و SDS نصب', 'فلش‌بک، مانومتر و شیلنگ سالم؛ نشتی قبل از ورود چک می‌شود', 'تست هیدرواستاتیک (هر ۵ سال)، رنگ نوار درست و ماندن بیش از ۶ ماه ندارد', 'جابه‌جایی با گاری ایمن؛ بدون غلتاندن و بدون جرثقیل یا لیفتراک'], []],
+  ['CR', 'جرثقیل سقفی / بالابر', 'ماهانه', '', ['کارت مشخصات و گواهی سلامت معتبر دارد', 'بار مجاز (SWL) روی سازه خوانا نوشته شده', 'اپراتور آموزش دیده و دارای صلاحیت است', 'قلاب دارای زبانه؛ بکسل، اسلینگ و بست‌ها بدون عیب', 'لیمیت سوئیچ‌ها و ترمز انتهای ریل سالم', 'کسی زیر بار نیست و بار معلق رها نمی‌شود', 'برق و ارت سالم؛ چرخ‌ها دارای حفاظ؛ مسیر دسترسی ایمن'], [{key: 'eq_code', ph: 'کد / شناسه جرثقیل یا بالابر (الزامی)'}]],
+  ['FK', 'لیفتراک', 'ماهانه', '', ['راننده دارای گواهینامه ویژه و آموزش؛ لیفتراک دارای تاییدیه فنی', 'ترمز، محافظ بالای سر، صندلی و کمربند سالم؛ لاستیک مناسب', 'بوق، آینه، چراغ و آژیر دنده‌عقب سالم', 'کپسول اطفا موجود و سالم', 'سیلندر LPG مهار شده و شیر و اتصالات سالم', 'رعایت SWL و سرعت مجاز و دید راننده', 'سرویس پس از هر شیفت؛ نقص به تعمیرات اعلام می‌شود', 'پارک در محل مشخص نزدیک خروج اضطراری؛ شارژ برقی در فضای باز'], [{key: 'eq_code', ph: 'کد / پلاک لیفتراک (الزامی)'}]],
+  ['V', 'خودروها و سرویس‌ها', 'فصلی', '', ['گواهینامه راننده، معاینه فنی و کارت سلامت معتبر', 'کپسول اطفا و جعبه کمک‌های اولیه موجود', 'لاستیک، ترمز، بوق، چراغ‌ها، راهنما و آینه‌ها سالم', 'کمربند و صندلی‌ها سالم و ظرفیت رعایت شده', 'روغن‌ریزی و دود غیرعادی اگزوز ندارد', 'نظافت و سرمایش/گرمایش مناسب'], [{key: 'eq_code', ph: 'شماره پلاک / کد خودرو (الزامی)'}]],
+  ['CT', 'بازرسی پیمانکاران', 'هر پروژه', 'L14048', ['نفرات آموزش HSE دیده و از PPE استفاده می‌کنند', 'ماشین‌آلات دارای گواهی سلامت و رانندگان دارای گواهینامه ویژه', 'تجهیزات باربرداری (اسلینگ، زنجیر، تسمه) سالم', 'کار در ارتفاع ایمن (داربست، کمربند، افراد مناسب)', 'کابل‌ها، فرز و دستگاه جوش عایق و دارای دوشاخه', 'کار گرم: اطراف پاک، کپسول موجود، سیلندر دارای فلش‌بک و مانومتر', 'پرتگاه و گود دارای نرده یا نوار خطر؛ حفر چاه ایمن', 'ورود متفرقه با تابلو و نوار جلوگیری می‌شود', 'سرعت حداکثر ۲۰ کیلومتر؛ سوار کردن افراد روی رکاب/کابین ممنوع', 'پیمانکار دارای گواهی صلاحیت و کپسول در محدوده کار'], [
+    {key: 'contractor_name', ph: 'نام شرکت پیمانکار (الزامی)'},
+    {key: 'contract_no', ph: 'شماره قرارداد (الزامی)'}
+  ]],
+  ['SAN', 'اماکن بهداشتی و کمک‌های اولیه', 'ماهانه', 'L14038/01', ['رختکن: مناسب، تمیز، دارای سطل، تهویه، روشنایی، کمد و جاکفشی', 'سرویس بهداشتی: نظافت، مایع دست، آب گرم و سرد، فلاش‌تانک، تعداد کافی', 'حمام: شیر و دوش سالم، تهویه، کف سرامیکی، کلید و پریز بیرون حمام', 'آبدارخانه: کارت بهداشت، نظافت، پوشش فاضلاب، تابلو دخانیات، MSDS', 'نمازخانه: نظافت، جاکفشی، تهویه و روشنایی', 'جعبه کمک‌های اولیه کامل و بدون داروی منقضی (L14030)', 'ثبت مراجعات بهداری انجام می‌شود (L14042)'], []],
+  ['KIT', 'رستوران و آشپزخانه', 'روزانه', 'L14018', ['کارگران: ظاهر و لباس مناسب، کلاه و دستکش، کارت بهداشت معتبر', 'مواد اولیه با تایید HSE، دارای تاریخ مصرف و بسته‌بندی سالم', 'نگهداری مواد: یخچال/سردخانه دارای دماسنج و دما کنترل و تمیز', 'خودرو حمل مواد (مجاز، تمیز، راننده دارای کارت بهداشت، مناسب مواد فاسدشدنی)', 'میز، کف، دیوار، تجهیزات و ظروف تمیز و ضدعفونی شده', 'حشرات و جوندگان دیده نمی‌شود؛ ورود متفرقه و سیگار ممنوع', 'شعله گاز آبی؛ تهویه و کپسول و جعبه کمک‌های اولیه موجود', 'پسماند تفکیک؛ سبزیجات ضدعفونی؛ استفاده از غذای مانده ممنوع'], []],
+  ['ENV', 'پساب، فاضلاب و پسماند', 'ماهانه', 'L14010/01', ['پسماند تر و خشک تفکیک می‌شود', 'سطل زباله دارای درب و کیسه؛ به‌موقع تخلیه و شسته می‌شود', 'محل جمع‌آوری پسماند مانع آلودگی هوا، خاک و آب است', 'پسماند صنعتی در محل ایمن دپو و دفع تحت نظارت است', 'پسماند پزشکی جدا و با شرکت مجاز منتقل می‌شود', 'نشت سوخت یا مواد شیمیایی به شبکه فاضلاب دیده نمی‌شود', 'آشغالگیر و حوض یکنواخت‌ساز: پمپ و هوادهی کار می‌کند؛ لجن و بوی بد نیست', 'حوض ته‌نشینی بدون حباب و مواد معلق؛ محوطه محصور و پلکان دارای حفاظ', 'برنامه آنالیز و پایش پساب انجام شده است'], []]
+];
+
+const $ = s => document.querySelector(s), view = h => $('#app').innerHTML = h, esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fd = d => new Date(d).toLocaleDateString('fa-IR');
+const ft = d => new Date(d).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+let tok = localStorage.tk || '', mail = localStorage.em || '', cur, A = {}, N = {}, D = { loc: '', extra: {} };
+
+const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, A, N });
+
+async function api(p, o = {}) {
+  const r = await fetch(URL_ + '/rest/v1/' + p, { ...o, headers: { apikey: KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', Prefer: 'return=representation' } });
+  if (r.status == 401) { logout(); throw new Error('نشست کاری به پایان رسیده است. دوباره وارد شوید.'); }
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function loginV(m = '') {
+  view(`
+    <div style="max-width:380px; margin:40px auto; text-align:center;">
+      <h2 style="justify-content:center; font-size:24px; margin-bottom:20px;">ورود به سامانه HSE</h2>
+      <input id="em" type="email" dir="ltr" placeholder="ایمیل کاربر">
+      <input id="pw" type="password" dir="ltr" placeholder="رمز عبور">
+      <button class="p" data-a="login">ورود به سیستم</button>
+      <p class="e" style="color:var(--nc); margin-top:12px;">${m}</p>
+    </div>
+  `);
+}
+
+function logout() { tok = ''; localStorage.removeItem('tk'); loginV(); }
+
+async function login() {
+  try {
+    const r = await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: $('#em').value.trim(), password: $('#pw').value }) }), j = await r.json();
+    if (!r.ok) return loginV('ایمیل یا رمز عبور اشتباه است.');
+    tok = localStorage.tk = j.access_token; mail = localStorage.em = j.user.email; home();
+  } catch (e) { loginV('خطا در اتصال به سرور'); }
+}
+
+async function home() {
+  view('<p style="text-align:center; padding:40px;">در حال بارگذاری چک‌لیست‌ها...</p>');
+  let L = {};
+  try { (await api('inspections?select=module,created_at&order=created_at.desc&limit=500')).forEach(r => L[r.module] = L[r.module] || r.created_at); } catch (e) { }
+  view(`
+    <h2>بازدید و بازرسی جدید</h2>
+    <div style="margin-bottom:14px;">
+      <button class="p" data-a="history" style="background:var(--ok); border-color:var(--ok);">📋 تاریخچه کامل بازدیدها (گزارش‌های ثبت‌شده)</button>
+    </div>
+    ${M.map(m => `
+      <button class="m" data-a="open" data-k="${m[0]}">
+        <b>${m[1]}</b>
+        <small>${m[2]} ${m[3] ? ' · کد: ' + m[3] : ''} | آخرین بازدید: ${L[m[0]] ? fd(L[m[0]]) : 'ثبت نشده'}</small>
+      </button>
+    `).join('')}
+    <div style="margin-top:20px;">
+      <button class="p" data-a="finds">پیگیری و ثبت اصلاحات عدم‌انطباق‌ها</button>
+      <button class="p" style="background:var(--card-bg); color:var(--ink); border-color:var(--ln);" data-a="rep">گزارش مدیریتی و اسلایدها</button>
+      <button class="l" style="margin-top:16px; width:100%; text-align:center;" data-a="logout">خروج از حساب (${esc(mail)})</button>
+    </div>
+  `);
+}
+
+async function historyList() {
+  view('<p style="text-align:center; padding:40px;">در حال بارگذاری تاریخچه بازدیدها...</p>');
+  try {
+    const r = await api('inspections?order=created_at.desc&limit=100');
+    view(`
+      <button class="l" data-a="home">‹ بازگشت به خانه</button>
+      <h2>تاریخچه جامع بازدیدها</h2>
+      <small>لیست تمام بازرسی‌های ثبت‌شده (ایمن و دارای عدم‌انطباق)</small>
+
+      ${r.map(x => `
+        <div class="q ${x.nc > 0 ? 'bad' : 'good'}">
+          <p>${esc(nm(x.module))}</p>
+          <small style="margin-top:4px;">محل: <b>${esc(x.location)}</b> · تاریخ: ${fd(x.created_at)} ساعت ${ft(x.created_at)}</small>
+          <div style="display:flex; gap:10px; margin-top:8px; font-size:12px; font-weight:600;">
+            <span style="color:var(--ok);">مطابق: ${x.ok}</span>
+            <span style="color:var(--nc);">عدم‌انطباق: ${x.nc}</span>
+            <span style="color:var(--mu);">نامربوط: ${x.na}</span>
+          </div>
+        </div>
+      `).join('') || '<p style="margin-top:20px;">هیچ بازدیدی ثبت نشده است.</p>'}
+    `);
+  } catch (e) { alert(e.message); }
+}
+
+function form() {
+  const m = cur, extras = m[5] || [];
+  view(`
+    <button class="l" data-a="home">‹ بازگشت به لیست</button>
+    <h2>${m[1]}</h2>
+    <small>${m[2]} ${m[3] ? ' · ' + m[3] : ''}</small>
+
+    <div class="meta-box">
+      <div>
+        <label style="font-size:12px; font-weight:700;">محل / سالن / بخش (الزامی):</label>
+        <input id="loc" placeholder="مثال: سالن تولید ۱" value="${esc(D.loc)}">
+      </div>
+      ${extras.map(ex => `
+        <div>
+          <label style="font-size:12px; font-weight:700;">${ex.ph.replace('(الزامی)', '')}:</label>
+          <input data-ex="${ex.key}" placeholder="${ex.ph}" value="${esc(D.extra[ex.key] || '')}">
+        </div>
+      `).join('')}
+    </div>
+
+    ${m[4].map((q, i) => {
+      const id = m[0] + '-' + (i + 1), a = A[id];
+      return `
+        <div class="q ${a == 'nc' ? 'bad' : ''}">
+          <p>${i + 1}.${q}</p>
+          <div class="b">
+            ${[['ok', 'مطابق'], ['nc', 'عدم‌انطباق'], ['na', 'نامربوط']].map(([v, t]) => `
+              <button data-a="ans" data-id="${id}" data-v="${v}" class="${a == v ? 'on ' + v : ''}">${t}</button>
+            `).join('')}
+          </div>
+          ${a == 'nc' ? `
+            <input data-note="${id}" placeholder="شرح مشخص عدم‌انطباق (الزامی)" value="${esc(N[id])}">
+            <div class="ph">
+              ${(PH[id] || []).map((p, j) => `<span class="th"><img src="${p.u}"><b data-a="rmph" data-id="${id}" data-j="${j}">×</b></span>`).join('')}
+              ${(PH[id] || []).length < 4 ? `<button class="ad" data-a="addph" data-id="${id}">+ افزودن عکس قبل از اصلاح (الزامی)</button>` : ''}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('')}
+    <button class="p" data-a="send" style="margin-top:20px;">ثبت نهایی بازدید</button>
+  `);
+}
+
+async function send() {
+  const m = cur, loc = D.loc.trim(), extras = m[5] || [];
+  if (!loc) return alert('لطفاً محل بازدید را مشخص کنید.');
+
+  for (const ex of extras) {
+    if (!(D.extra[ex.key] || '').trim()) return alert(`لطفاً فیلد «${ex.ph}» را تکمیل کنید.`);
+  }
+
+  const ncs = m[4].map((_, i) => m[0] + '-' + (i + 1)).filter(i => A[i] == 'nc');
+  const bad = ncs.filter(i => !(N[i] || '').trim() || !(PH[i] || []).length);
+
+  if (bad.length) return alert('ثبت توضیحات و عکس برای موارد عدم‌انطباق الزامی است.\nناقص: سوال ' + bad.map(i => i.split('-')[1]).join('، '));
+
+  const sb = $('[data-a=send]'); sb.disabled = true; sb.textContent = 'در حال ذخیره‌سازی داده‌ها...';
+  const ids = m[4].map((_, i) => m[0] + '-' + (i + 1)), un = ids.filter(i => !A[i]).length;
+  if (un && !confirm(un + ' سوال بدون پاسخ باقی مانده است. ادامه می‌دهید؟')) { sb.disabled = false; sb.textContent = 'ثبت نهایی بازدید'; return; }
+
+  const c = v => ids.filter(i => A[i] == v).length;
+
+  try {
+    const [r] = await api('inspections', {
+      method: 'POST',
+      body: JSON.stringify({
+        module: m[0], location: loc, freq: m[2], total: ids.length, ok: c('ok'), nc: c('nc'), na: c('na')
+      })
+    });
+
+    const f = [];
+    for (const i of ids.filter(i => A[i] == 'nc')) {
+      let extNote = N[i] || '';
+      if (extras.length) {
+        extNote += ' | ' + extras.map(ex => `${ex.ph.replace('(الزامی)', '')}: ${D.extra[ex.key] || ''}`).join(' - ');
+      }
+      f.push({
+        inspection_id: r.id, module: m[0], location: loc, qid: i,
+        question: m[4][+i.split('-')[1] - 1], note: extNote,
+        photos_before: await Promise.all((PH[i] || []).map(p => up(p.b)))
+      });
+    }
+
+    if (f.length) await api('findings', { method: 'POST', body: JSON.stringify(f) });
+    localStorage.removeItem('draft'); ids.forEach(i => delete PH[i]);
+    alert('بازدید با موفقیت ثبت شد.');
+    home();
+  } catch (e) {
+    alert('خطا در ثبت: ' + e.message); sb.disabled = false; sb.textContent = 'ثبت نهایی بازدید';
+  }
+}
+
+const PH = {}; let FT; const fi = $('#fi');
+function shrink(f) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 1000 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+      c.width = im.width * k; c.height = im.height * k;
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(u); c.toBlob(res, 'image/jpeg', 0.75);
+    };
+    im.onerror = () => rej(new Error('فایل نامعتبر است')); im.src = u;
+  });
+}
+
+async function up(b) {
+  const p = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '' + Math.random().toString(36).slice(2)) + '.jpg';
+  const r = await fetch(URL_ + '/storage/v1/object/photos/' + p, {
+    method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'image/jpeg' }, body: b
+  });
+  if (!r.ok) throw new Error('خطا در آپلود تصویر');
+  return p;
+}
+
+const pimg = async p => {
+  const r = await fetch(URL_ + '/storage/v1/object/authenticated/photos/' + p, { headers: { apikey: KEY, Authorization: 'Bearer ' + tok } });
+  return URL.createObjectURL(await r.blob());
+};
+const li = () => document.querySelectorAll('img[data-p]').forEach(async i => { try { i.src = await pimg(i.dataset.p); } catch (e) { } });
+const th = a => (a || []).map(p => `<span class="th"><img data-a="zoom" data-p="${p}"></span>`).join('');
+const nm = k => (M.find(m => m[0] == k) || [])[1], mn = k => esc(nm(k));
+
+fi.onchange = async () => {
+  const fs = [...fi.files].slice(0, 4), y = scrollY; fi.value = ''; if (!FT) return;
+  try {
+    if (FT.m == 'addph') {
+      for (const f of fs) {
+        const a = PH[FT.id] = PH[FT.id] || [];
+        if (a.length < 4) { const b = await shrink(f); a.push({ b, u: URL.createObjectURL(b) }); }
+      }
+      form(); scrollTo(0, y);
+    } else {
+      const ps = []; for (const f of fs) ps.push(await up(await shrink(f)));
+      const [x] = await api('findings?select=photos_after&id=eq.' + FT.id);
+      await api('findings?id=eq.' + FT.id, { method: 'PATCH', body: JSON.stringify({ photos_after: [...(x.photos_after || []), ...ps] }) });
+      await finds(); scrollTo(0, y);
+    }
+  } catch (e) { alert(e.message); }
+};
+
+const bg = (t, c) => `<span class="bg ${c}">${t}</span>`;
+let FI = '';
+
+async function finds(iid) {
+  if (iid !== undefined) FI = iid;
+  view('<p style="text-align:center; padding:40px;">در حال بارگذاری عدم‌انطباق‌ها...</p>');
+  try {
+    const r = await api('findings?order=status.desc,created_at.desc&limit=200' + (FI ? '&inspection_id=eq.' + FI : ''));
+    view(`
+      <button class="l" data-a="home">‹ بازگشت</button>
+      <h2>${FI ? 'ثبت اعلان عدم‌انطباق' : 'مدیریت و پیگیری عدم‌انطباق‌ها'}</h2>
+      <small>تعداد موارد باز: ${r.filter(x => x.status == 'open').length}</small>
+
+      ${r.map(x => `
+        <div class="q ${x.status == 'open' ? 'bad' : ''}">
+          <p>${esc(x.question)}</p>
+          <small style="margin-top:4px;">${mn(x.module)} · ${esc(x.location)} ·${fd(x.created_at)}</small>
+          <p style="font-size:13px; font-weight:400; color:var(--mu); margin-top:6px;">${esc(x.note)}</p>
+          <div class="ph">${th(x.photos_before)}</div>
+
+          <div class="step">مرحله ۲: ثبت اعلان رسمی ${x.notice_at ? bg('انجام شد', 'g') : bg('در انتظار ثبت', 'r')}</div>
+          ${x.notice_at ? `
+            <label class="fx"><input type="checkbox" data-a="ntc" data-id="${x.id}" checked> کد اعلان: <b dir="ltr">${esc(x.notice_code)}</b> (${fd(x.notice_at)})</label>
+          ` : `
+            <input data-code="1" dir="ltr" placeholder="کد شناسه/اعلان صادره">
+            <label class="fx" hidden><input type="checkbox" data-a="ntc" data-id="${x.id}"> تایید ثبت اعلان</label>
+          `}
+
+          <div class="step">مرحله ۳: اقدام اصلاحی ${x.status == 'closed' ? bg('اصلاح‌شده', 'g') : bg('باز', 'r')}</div>
+          <div class="ph">${th(x.photos_after)}<button class="ad" data-a="addaf" data-id="${x.id}">+ تصویر پس از اصلاح</button></div>
+          ${(x.photos_after || []).length ? `
+            <label class="fx"><input type="checkbox" data-a="fix" data-id="${x.id}" data-pa="${x.photos_after.length}" ${x.status == 'closed' ? 'checked' : ''}> تایید انجام اقدام اصلاحی (${x.closed_at ? fd(x.closed_at) : ''})</label>
+          ` : '<small style="margin-top:6px;">برای ثبت نهایی اصلاح، بارگذاری حداقل یک عکس الزامی است.</small>'}
+        </div>
+      `).join('') || '<p style="margin-top:20px;">هیچ عدم‌انطباقی یافت نشد.</p>'}
+    `);
+    li();
+  } catch (e) { alert(e.message); }
+}
+
+const SW = 1920, SH = 1080, NAVY = '#0f172a', BLUE = '#2563eb', RED = '#ef4444', GREEN = '#22c55e', FONT = "Vazirmatn,Tahoma,sans-serif", fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]), fl = d => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(d));
+const loadImg = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = s; });
+
+function wrapText(c, t, w) {
+  const a = t.split(' '), o = []; let u = '';
+  for (const x of a) { const v = u ? u + ' ' + x : x; if (c.measureText(v).width > w && u) { o.push(u); u = x; } else u = v; }
+  if (u) o.push(u); return o;
+}
+
+function mkS() {
+  const c = document.createElement('canvas'); c.width = SW; c.height = SH;
+  const x = c.getContext('2d'); x.direction = 'rtl'; x.textAlign = 'right'; x.textBaseline = 'top'; return [c, x];
+}
+
+function frame(x, logo, n, tot, code) {
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, SW, SH);
+  if (logo) x.drawImage(logo, SW - 320, 30, 260, 260 * logo.height / logo.width);
+  x.fillStyle = BLUE; x.fillRect(0, 130, SW, 6);
+  x.fillStyle = '#64748b'; x.font = '400 24px ' + FONT;
+  x.direction = 'ltr'; x.textAlign = 'left'; x.fillText(code || '', 60, 1030);
+  x.fillText(n + ' / ' + tot, SW - 120, 1030); x.textAlign = 'right'; x.direction = 'rtl';
+}
+
+async function panel(x, px, py, pw, ph, title, color, srcs, empty) {
+  x.fillStyle = color; x.fillRect(px, py, pw, 60);
+  x.fillStyle = '#fff'; x.font = '700 28px ' + FONT; x.textAlign = 'center';
+  x.fillText(title, px + pw / 2, py + 14); x.textAlign = 'right';
+  const ay = py + 60, ah = ph - 60;
+  x.fillStyle = '#f8fafc'; x.fillRect(px, ay, pw, ah);
+  x.strokeStyle = '#e2e8f0'; x.lineWidth = 2; x.strokeRect(px, py, pw, ph);
+
+  const ims = []; for (const u of srcs.slice(0, 4)) { const i = await loadImg(u); if (i) ims.push(i); }
+  if (!ims.length) {
+    x.fillStyle = '#94a3b8'; x.font = '400 26px ' + FONT; x.textAlign = 'center';
+    x.fillText(empty, px + pw / 2, ay + ah / 2 - 13); x.textAlign = 'right'; return;
+  }
+  const g = 10, n = ims.length, cols = n == 1 ? 1 : 2, rows = Math.ceil(n / cols), cw = (pw - g * (cols + 1)) / cols, ch = (ah - g * (rows + 1)) / rows;
+  ims.forEach((im, i) => {
+    const r = Math.floor(i / cols), c = i % cols, bx = px + pw - g - (c + 1) * cw - c * g, by = ay + g + r * (ch + g), k = Math.min(cw / im.width, ch / im.height), w = im.width * k, h = im.height * k;
+    x.fillStyle = '#e2e8f0'; x.fillRect(bx, by, cw, ch);
+    x.drawImage(im, bx + (cw - w) / 2, by + (ch - h) / 2, w, h);
+  });
+}
+
+async function slides(F, R, sub, bz, all) {
+  try { await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
+  const logo = await loadImg(LOGO), cl = all.filter(x => x.status == 'closed').length, nt = all.filter(x => x.notice_at).length, tot = F.length + 2, out = [];
+
+  {
+    const [c, x] = mkS(); x.fillStyle = NAVY; x.fillRect(0, 0, SW, SH);
+    if (logo) x.drawImage(logo, SW - 360, 80, 280, 280 * logo.height / logo.width);
+    x.font = '800 68px ' + FONT; x.fillStyle = '#ffffff'; x.fillText('گزارش وضعیت بازرسی و اصلاحات HSE', SW - 100, 320);
+    x.font = '400 38px ' + FONT; x.fillStyle = '#94a3b8';
+    x.fillText(sub, SW - 100, 420);
+    x.fillText('بازه ارزیابی: ' + bz + '  |  تاریخ صدور: ' + fl(Date.now()), SW - 100, 480);
+
+    const st = (i, n, l, col) => {
+      const w = 480, bx = SW - 100 - w - i * (w + 40), by = 680;
+      x.fillStyle = '#1e293b'; x.fillRect(bx, by, w, 240);
+      x.fillStyle = col; x.fillRect(bx + w - 12, by, 12, 240);
+      x.fillStyle = '#fff'; x.font = '800 88px ' + FONT; x.textAlign = 'center';
+      x.fillText(fa(n), bx + w / 2, by + 30);
+      x.font = '400 32px ' + FONT; x.fillStyle = '#94a3b8';
+      x.fillText(l, bx + w / 2, by + 150); x.textAlign = 'right';
+    };
+    st(0, all.length, 'کل عدم‌انطباق‌ها', '#f87171');
+    st(1, cl, 'اقدام اصلاح‌شده', '#4ade80');
+    st(2, all.length - cl, 'موارد باز', '#fbbf24');
+    out.push(c.toDataURL('image/jpeg', 0.9));
+  }
+
+  {
+    const [c, x] = mkS(); frame(x, logo, 2, tot, '');
+    x.fillStyle = NAVY; x.font = '800 42px ' + FONT; x.fillText('خلاصه آمار بازرسی‌ها به تفکیک چک‌لیست', SW - 60, 160);
+    const rh = Math.min(80, Math.floor(720 / (R.length + 1))), cx = [1190, 1010, 820, 620, 440], H = ['ارزیابی', 'خطا', 'اعلان', 'اصلاح', 'مانده'];
+    let y = 250;
+
+    x.fillStyle = NAVY; x.fillRect(60, y, SW - 120, rh);
+    x.fillStyle = '#fff'; x.font = '700 26px ' + FONT; x.fillText('عنوان چک‌لیست', SW - 80, y + rh / 2 - 16);
+    x.textAlign = 'center'; H.forEach((h, i) => x.fillText(h, cx[i], y + rh / 2 - 16));
+    x.textAlign = 'right'; y += rh;
+
+    R.forEach((r, k) => {
+      if (k % 2) { x.fillStyle = '#f8fafc'; x.fillRect(60, y, SW - 120, rh); }
+      x.font = '400 28px ' + FONT; x.fillStyle = NAVY; x.fillText(r[0], SW - 80, y + rh / 2 - 18); x.textAlign = 'center';
+      [[r[1], NAVY], [r[2], NAVY], [r[4], GREEN], [r[3], GREEN], [r[2] - r[3], r[2] - r[3] ? RED : GREEN]].forEach(([v, col], i) => {
+        x.fillStyle = col; x.fillText(fa(v), cx[i], y + rh / 2 - 18);
+      });
+      x.textAlign = 'right'; y += rh;
+    });
+    out.push(c.toDataURL('image/jpeg', 0.9));
+  }
+
+  let n = 2;
+  for (const f of F) {
+    n++; const [c, x] = mkS(), m = M.find(m => m[0] == f.module) || [], q = f.qid.split('-')[1], res = a => Promise.all((a || []).map(p => pimg(p).catch(() => null))).then(l => l.filter(Boolean));
+    frame(x, logo, n, tot, m[3] || '');
+    x.fillStyle = '#64748b'; x.font = '400 26px ' + FONT; x.textAlign = 'left'; x.fillText(fl(f.created_at) + ' | ' + f.location, 60, 56); x.textAlign = 'right';
+    x.fillStyle = NAVY; x.font = '700 38px ' + FONT; let y = 160;
+    wrapText(x, `${m[1]} — بند ${fa(q)}: ${f.question}`, SW - 120).slice(0, 2).forEach(l => { x.fillText(l, SW - 60, y); y += 52; });
+    x.fillStyle = '#475569'; x.font = '400 28px ' + FONT; x.fillText('شرح عدم‌انطباق: ' + f.note, SW - 60, y + 4); y += 44;
+    x.font = '700 28px ' + FONT; x.fillStyle = f.notice_at ? GREEN : RED; x.fillText(f.notice_at ? 'کد پیگیری اعلان: ' + f.notice_code : 'بدون ثبت اعلان رسمی', SW - 60, y + 4); y += 44;
+
+    const py = Math.max(y + 14, 310), ph = 1000 - py, pw = (SW - 180) / 2;
+    await panel(x, SW - 60 - pw, py, pw, ph, 'وضعیت عدم‌انطباق (قبل)', RED, await res(f.photos_before), 'تصویری ثبت نشده');
+    await panel(x, 60, py, pw, ph, f.status == 'closed' ? 'اقدام اصلاحی (بعد) - ' + fl(f.closed_at) : 'اقدام اصلاحی (بعد)', GREEN, await res(f.photos_after), 'در انتظار اصلاح');
+    out.push(c.toDataURL('image/jpeg', 0.9));
+  }
+  return out;
+}
+
+let SL = [], RT = '';
+async function rep(d = 30, mk = '') {
+  view('<p style="text-align:center; padding:40px;">در حال تنظیم گزارش...</p>');
+  try {
+    const s = d ? new Date(Date.now() - d * 864e5).toISOString() : '1970-01-01';
+    let [I, F] = await Promise.all([
+      api('inspections?select=module&created_at=gte.' + s + '&limit=5000'),
+      api('findings?created_at=gte.' + s + '&order=status.desc,created_at.desc&limit=500')
+    ]);
+
+    if (mk) { I = I.filter(r => r.module == mk); F = F.filter(x => x.module == mk); }
+    const O = F.filter(x => x.status == 'open'), cl = F.length - O.length, nt = F.filter(x => x.notice_at).length, bz = d ? fa(d) + ' روز اخیر' : 'کل دوره', sub = mk ? nm(mk) : 'تمام بخش‌ها',
+      R = M.map(m => { const f = F.filter(x => x.module == m[0]); return [m[1], I.filter(r => r.module == m[0]).length, f.length, f.filter(x => x.status == 'closed').length, f.filter(x => x.notice_at).length]; }).filter(r => r[1] || r[2]);
+
+    RT = `گزارش بازرسی HSE — ${fl(Date.now())}\nمحدوده: ${sub} | بازه: ${bz}\nارزیابی‌ها: ${I.length} | عدم‌انطباق: ${F.length} | اصلاح‌شده: ${cl} | موارد باز: ${O.length}\n\n` +
+      R.map(r => `${r[0]}: ${r[1]} بازدید، ${r[2]} خطا، ${r[3]} اصلاح`).join('\n');
+
+    const enc = encodeURIComponent(RT);
+
+    view(`
+      <div class="np">
+        <button class="l" data-a="home">‹ بازگشت به خانه</button>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <select id="rd"><option value="7">۷ روز گذشته</option><option value="30">۳۰ روز گذشته</option><option value="90">۹۰ روز گذشته</option><option value="0">تمام سوابق</option></select>
+          <select id="rm"><option value="">تمام چک‌لیست‌ها</option>${M.map(m => `<option value="${m[0]}">${m[1]}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div id="sl"><p style="text-align:center; padding:20px;">در حال رندر تصاویر گزارش...</p></div>
+      <div class="np" style="margin-top:16px; display:grid; gap:8px;">
+        <button class="p" data-a="shr">اشتراک‌گذاری مستقیم تصاویر اسلایدها</button>
+        <button class="p" style="background:var(--card-bg); color:var(--ink);" data-a="dl">دانلود فایل تصاویر اسلایدها</button>
+        <button class="p" style="background:var(--card-bg); color:var(--ink);" onclick="print()">چاپ / خروجی PDF</button>
+        <button class="p" style="background:var(--card-bg); color:var(--ink);" data-a="cp">kپی متن خلاصه گزارش</button>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:6px;">
+          <a class="btn-link" style="background:#229ED9; color:#fff;" target="_blank" href="https://t.me/share/url?url=&text=${enc}">ارسال در تلگرام</a>
+          <a class="btn-link" style="background:#25D366; color:#fff;" target="_blank" href="https://wa.me/?text=${enc}">ارسال در واتساپ</a>
+          <a class="btn-link" style="background:#0088cc; color:#fff;" target="_blank" href="https://eitaa.com/share/url?text=${enc}">ارسال در ایتا</a>
+        </div>
+      </div>
+    `);
+
+    $('#rd').value = d; $('#rm').value = mk;
+    $('#rd').onchange = $('#rm').onchange = () => rep(+$('#rd').value, $('#rm').value);
+
+    SL = await slides(F.slice(0, 60), R, sub, bz, F);
+    if ($('#sl')) $('#sl').innerHTML = SL.map(u => `<img src="${u}" style="width:100%; border-radius:12px; margin-top:12px; box-shadow:var(--shadow);">`).join('');
+  } catch (e) { alert(e.message); }
+}
+
+$('#zm').onclick = () => $('#zm').hidden = true;
+
+document.onclick = async e => {
+  const t = e.target.closest('[data-a]'); if (!t) return;
+  const a = t.dataset.a, y = scrollY;
+  if (a == 'login') login(); else if (a == 'logout') logout(); else if (a == 'home') home(); else if (a == 'finds') finds('');
+  else if (a == 'history') historyList();
+  else if (a == 'send') send();
+  else if (a == 'open') {
+    cur = M.find(m => m[0] == t.dataset.k);
+    const d = JSON.parse(localStorage.draft || '{}');
+    if (d.k == cur[0]) { A = d.A; N = d.N; D.loc = d.loc; D.extra = d.extra || {}; }
+    else { A = {}; N = {}; D.loc = ''; D.extra = {}; }
+    form();
+  }
+  else if (a == 'ans') { A[t.dataset.id] = t.dataset.v; save(); form(); scrollTo(0, y); }
+  else if (a == 'rep') rep();
+  else if (a == 'dl') SL.forEach((u, i) => { const l = document.createElement('a'); l.href = u; l.download = 'hse-report-' + (i + 1) + '.jpg'; l.click(); });
+  else if (a == 'shr') {
+    try {
+      const fs = await Promise.all(SL.map(async (u, i) => new File([await (await fetch(u)).blob()], 'hse-report-' + (i + 1) + '.jpg', { type: 'image/jpeg' })));
+      if (navigator.canShare && navigator.canShare({ files: fs })) {
+        await navigator.share({ files: fs, title: 'گزارش بازرسی HSE', text: RT });
+      } else {
+        alert('اشتراک‌گذاری مستقیم فایل در این مرورگر پشتیبانی نمی‌شود. از دکمه دانلود استفاده کنید.');
+      }
+    } catch (e) { alert('خطا در اشتراک‌گذاری: ' + e.message); }
+  }
+  else if (a == 'zoom') { $('#zm').innerHTML = '<img src="' + t.src + '">'; $('#zm').hidden = false; }
+  else if (a == 'addph' || a == 'addaf') { FT = { id: t.dataset.id, m: a }; fi.click(); }
+  else if (a == 'rmph') { PH[t.dataset.id].splice(+t.dataset.j, 1); form(); scrollTo(0, y); }
+  else if (a == 'cp') navigator.clipboard.writeText(RT).then(() => alert('متن خلاصه گزارش کپی شد.'));
+  else if (a == 'fix') {
+    if (t.checked && !+t.dataset.pa) { t.checked = false; return alert('ثبت عکس پس از اصلاح الزام قانونی دارد.'); }
+    try {
+      await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify(t.checked ? { status: 'closed', closed_at: new Date().toISOString(), closed_by: mail } : { status: 'open', closed_at: null, closed_by: null }) });
+      await finds(); scrollTo(0, y);
+    } catch (e) { alert(e.message); finds(); }
+  }
+  else if (a == 'ntc') {
+    const c = t.checked ? (t.closest('.q').querySelector('[data-code]') || {}).value?.trim() : null;
+    if (t.checked && !c) { t.checked = false; return alert('وارد کردن کد پیگیری/اعلان الزامی است.'); }
+    try {
+      await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify(t.checked ? { notice_code: c, notice_at: new Date().toISOString(), notice_by: mail } : { notice_code: null, notice_at: null, notice_by: null }) });
+      await finds(); scrollTo(0, y);
+    } catch (e) { alert(e.message); finds(); }
+  }
+};
+
+document.oninput = e => {
+  const t = e.target;
+  if (t.dataset.code) { t.nextElementSibling.hidden = !t.value.trim(); return; }
+  if (t.id == 'loc') D.loc = t.value;
+  else if (t.dataset.ex) { D.extra = D.extra || {}; D.extra[t.dataset.ex] = t.value; }
+  else if (t.dataset.note) N[t.dataset.note] = t.value;
+  else return;
+  save();
+};
+
+tok ? home() : loginV();
+</script>
+</body>
+</html>
