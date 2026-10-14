@@ -105,6 +105,11 @@ const SB_HEADERS = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };
 const byId = id => document.getElementById(id);
 let employees = [];
 
+// شناسه‌ای که با جدول clinic_visits ارتباط دارد: اگر ستون id (uuid) وجود دارد همان، وگرنه emp_id
+function keyOf(emp) {
+    return emp.id !== undefined && emp.id !== null ? emp.id : emp.emp_id;
+}
+
 function showDebug(msg) {
     const t = byId('debugText'), b = byId('debugBox');
     if (t && b) { t.textContent = msg; b.classList.remove('hidden'); }
@@ -133,7 +138,7 @@ async function loadEmployees() {
         select.innerHTML = '<option value="">-- انتخاب پرسنل از لیست کارخانه --</option>';
         employees.forEach(emp => {
             const opt = document.createElement('option');
-            opt.value = emp.emp_id;
+            opt.value = keyOf(emp);
             opt.textContent = (emp.first_name || '') + ' ' + (emp.last_name || '') + ' (کد: ' + emp.emp_id + ' - واحد: ' + (emp.department || 'نامشخص') + ')';
             select.appendChild(opt);
         });
@@ -143,14 +148,14 @@ async function loadEmployees() {
     }
 }
 
-async function loadSummary(empId) {
-    const emp = employees.find(x => String(x.emp_id) === String(empId)) || {};
+async function loadSummary(empKey) {
+    const emp = employees.find(x => String(keyOf(x)) === String(empKey)) || {};
     byId('txtBloodType').textContent = emp.blood_type || emp.blood_group || 'ثبت‌نشده';
     byId('txtTotalVisits').textContent = '...';
     byId('txtTotalIncidents').textContent = '...';
     byId('txtTotalReferrals').textContent = '...';
     try {
-        const res = await fetch(SB_URL + '/rest/v1/clinic_visits?employee_id=eq.' + encodeURIComponent(empId) + '&select=visit_reason,is_referred', { headers: SB_HEADERS });
+        const res = await fetch(SB_URL + '/rest/v1/clinic_visits?employee_id=eq.' + encodeURIComponent(empKey) + '&select=visit_reason,is_referred', { headers: SB_HEADERS });
         const rows = await res.json();
         if (!res.ok) throw new Error(JSON.stringify(rows));
         byId('txtTotalVisits').textContent = rows.length + ' بار';
@@ -165,11 +170,11 @@ async function loadSummary(empId) {
 }
 
 byId('employeeSelect').onchange = function (e) {
-    const empId = e.target.value;
+    const empKey = e.target.value;
     byId('debugBox').classList.add('hidden');
-    byId('healthSummaryCard').classList.toggle('hidden', !empId);
-    byId('visitFormContainer').classList.toggle('hidden', !empId);
-    if (empId) loadSummary(empId);
+    byId('healthSummaryCard').classList.toggle('hidden', !empKey);
+    byId('visitFormContainer').classList.toggle('hidden', !empKey);
+    if (empKey) loadSummary(empKey);
 };
 
 byId('isReferred').onchange = function (e) {
@@ -180,15 +185,15 @@ byId('isReferred').onchange = function (e) {
 
 byId('clinicForm').onsubmit = async function (e) {
     e.preventDefault();
-    const empId = byId('employeeSelect').value;
-    if (!empId) { alert('لطفاً ابتدا یک پرسنل را از لیست انتخاب کنید.'); return; }
+    const empKey = byId('employeeSelect').value;
+    if (!empKey) { alert('لطفاً ابتدا یک پرسنل را از لیست انتخاب کنید.'); return; }
 
     const btn = byId('submitBtn');
     btn.disabled = true;
     btn.textContent = 'در حال ثبت...';
 
     const newVisit = {
-        employee_id: empId,
+        employee_id: empKey,
         visit_reason: byId('visitReason').value,
         blood_pressure: byId('bloodPressure').value.trim() || null,
         chief_complaint: byId('chiefComplaint').value.trim() || null,
@@ -208,7 +213,7 @@ byId('clinicForm').onsubmit = async function (e) {
         alert('مراجعه با موفقیت در سیستم ثبت شد.');
         byId('clinicForm').reset();
         byId('referralDestination').classList.add('hidden');
-        loadSummary(empId);
+        loadSummary(empKey);
     } catch (err) {
         showDebug(err.message);
         alert('خطا در ثبت اطلاعات: ' + err.message);
