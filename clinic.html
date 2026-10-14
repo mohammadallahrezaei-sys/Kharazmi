@@ -9,97 +9,209 @@
 <style> body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc; } </style>
 </head>
 <body class="p-4 max-w-3xl mx-auto flex flex-col min-h-screen justify-between">
-    <div>
-        <div class="flex justify-between items-center mb-6 bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
-            <div class="flex items-center gap-3">
-                <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded shadow object-contain" onerror="this.style.display='none'">
-                <div>
-                    <h1 class="text-base font-bold text-white">بهداری و سوابق پزشکی</h1>
-                    <p class="text-[11px] text-slate-400">سامانه مدیریت مراجعین و سوابق - گسترش فناوری خوارزمی</p>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors shrink-0">← بازگشت</a>
+<div>
+    <div class="flex justify-between items-center mb-6 bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
+        <div class="flex items-center gap-3">
+            <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded shadow object-contain" onerror="this.style.display='none'">
+            <div>
+                <h1 class="text-base font-bold text-white">بهداری و سوابق پزشکی</h1>
+                <p class="text-[11px] text-slate-400">سامانه مدیریت مراجعین و سوابق - گسترش فناوری خوارزمی</p>
             </div>
         </div>
+        <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors shrink-0">← بازگشت</a>
+    </div>
 
-        <div id="debugBox" class="hidden mb-4 p-4 bg-red-950/80 border border-red-500 text-red-200 rounded-2xl text-xs space-y-1">
-            <p class="font-bold">⚠️ خطای سیستم:</p>
-            <p id="debugText"></p>
-        </div>
+    <div id="debugBox" class="hidden mb-4 p-4 bg-red-950/80 border border-red-500 text-red-200 rounded-2xl text-xs space-y-1">
+        <p class="font-bold">⚠️ خطای سیستم:</p>
+        <p id="debugText" dir="ltr" class="break-all"></p>
+    </div>
 
-        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-4 space-y-3">
-            <label class="block text-xs font-bold text-slate-300">انتخاب پرسنل جهت بررسی پرونده یا ثبت ویزیت:</label>
-            <select id="employeeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
-                <option value="">-- در حال بارگذاری لیست پرسنل از دیتابیس... --</option>
-            </select>
-        </div>
+    <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-4 space-y-3">
+        <label class="block text-xs font-bold text-slate-300">انتخاب پرسنل جهت بررسی پرونده یا ثبت ویزیت:</label>
+        <select id="employeeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
+            <option value="">-- در حال بارگذاری لیست پرسنل از دیتابیس... --</option>
+        </select>
+    </div>
 
-        <div id="healthSummaryCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-4 space-y-4">
-            <h3 class="text-xs font-bold text-slate-300 border-b border-slate-700 pb-2">خلاصه پرونده سلامت و آمار سوابق</h3>
-            
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
-                    <span class="text-[10px] text-slate-400 block mb-1">گروه خونی</span>
-                    <span id="txtBloodType" class="font-bold text-white text-sm">ثبت‌نشده</span>
-                </div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
-                    <span class="text-[10px] text-slate-400 block mb-1">تعداد کل مراجعین</span>
-                    <span id="txtTotalVisits" class="font-bold text-white text-sm">0 بار</span>
-                </div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
-                    <span class="text-[10px] text-slate-400 block mb-1">حوادث ثبت‌شده</span>
-                    <span id="txtTotalIncidents" class="font-bold text-rose-400 text-sm">0 مورد</span>
-                </div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
-                    <span class="text-[10px] text-slate-400 block mb-1">اعزام‌ها</span>
-                    <span id="txtTotalReferrals" class="font-bold text-blue-400 text-sm">0 مورد</span>
-                </div>
+    <div id="healthSummaryCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-4 space-y-4">
+        <h3 class="text-xs font-bold text-slate-300 border-b border-slate-700 pb-2">خلاصه پرونده سلامت و آمار سوابق</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
+                <span class="text-[10px] text-slate-400 block mb-1">گروه خونی</span>
+                <span id="txtBloodType" class="font-bold text-white text-sm">ثبت‌نشده</span>
             </div>
-        </div>
-
-        <div id="visitFormContainer" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-10 space-y-4">
-            <h3 class="text-xs font-bold text-slate-300 border-b border-slate-700 pb-2">ثبت ویزیت یا حادثه جدید</h3>
-            
-            <form id="clinicForm" class="space-y-3">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs text-slate-300 mb-1">علت مراجعه</label>
-                        <select id="visitReason" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500">
-                            <option value="illness">بیماری عمومی / سرپایی</option>
-                            <option value="incident">حادثه شغلی</option>
-                            <option value="checkup">معاینه و کنترل دوره‌ای</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-300 mb-1">فشار خون</label>
-                        <input type="text" id="bloodPressure" placeholder="مثلاً 12/8" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs text-slate-300 mb-1">شکایت اصلی بیمار / علائم</label>
-                    <textarea id="chiefComplaint" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500" placeholder="شرح حال یا علائم..."></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-xs text-slate-300 mb-1">اقدامات / داروهای تحویلی</label>
-                    <textarea id="treatmentsGiven" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500" placeholder="داروهای تجویزشده..."></textarea>
-                </div>
-
-                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="isReferred" class="w-4 h-4 text-emerald-600 rounded bg-slate-900 border-slate-700">
-                        <span class="text-xs font-medium text-slate-300">اعزام به مرکز درمانی خارج از کارخانه</span>
-                    </label>
-                    <input type="text" id="referralDestination" placeholder="محل اعزام (بیمارستان...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-emerald-500 hidden">
-                </div>
-
-                <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition-colors shadow-md">
-                    ثبت نهایی مراجعه در سیستم
-                </button>
-            </form>
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
+                <span class="text-[10px] text-slate-400 block mb-1">تعداد کل مراجعات</span>
+                <span id="txtTotalVisits" class="font-bold text-white text-sm">0 بار</span>
+            </div>
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
+                <span class="text-[10px] text-slate-400 block mb-1">حوادث ثبت‌شده</span>
+                <span id="txtTotalIncidents" class="font-bold text-rose-400 text-sm">0 مورد</span>
+            </div>
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
+                <span class="text-[10px] text-slate-400 block mb-1">اعزام‌ها</span>
+                <span id="txtTotalReferrals" class="font-bold text-blue-400 text-sm">0 مورد</span>
+            </div>
         </div>
     </div>
 
-    <footer class="bg-slate-800/50 border-t border-slate-700 text-
+    <div id="visitFormContainer" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-10 space-y-4">
+        <h3 class="text-xs font-bold text-slate-300 border-b border-slate-700 pb-2">ثبت ویزیت یا حادثه جدید</h3>
+        <form id="clinicForm" class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">علت مراجعه</label>
+                    <select id="visitReason" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500">
+                        <option value="illness">بیماری عمومی / سرپایی</option>
+                        <option value="incident">حادثه شغلی</option>
+                        <option value="checkup">معاینه و کنترل دوره‌ای</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">فشار خون</label>
+                    <input type="text" id="bloodPressure" placeholder="مثلاً 12/8" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">شکایت اصلی بیمار / علائم</label>
+                <textarea id="chiefComplaint" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500" placeholder="شرح حال یا علائم..."></textarea>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-300 mb-1">اقدامات / داروهای تحویلی</label>
+                <textarea id="treatmentsGiven" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-emerald-500" placeholder="داروهای تجویزشده..."></textarea>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="isReferred" class="w-4 h-4 rounded bg-slate-900 border-slate-700">
+                    <span class="text-xs font-medium text-slate-300">اعزام به مرکز درمانی خارج از کارخانه</span>
+                </label>
+                <input type="text" id="referralDestination" placeholder="محل اعزام (بیمارستان...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-emerald-500 hidden">
+            </div>
+            <button type="submit" id="submitBtn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition-colors shadow-md">
+                ثبت نهایی مراجعه در سیستم
+            </button>
+        </form>
+    </div>
+</div>
+
+<footer class="bg-slate-800/50 border-t border-slate-700 text-center py-4 text-xs text-slate-400 mt-8 rounded-xl">
+    نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <span class="text-emerald-400 font-bold">محمد اله رضایی</span>
+</footer>
+
+<script>
+const URL_ = 'https://priopguwfjawybffarhd.supabase.co';
+const KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+const HEADERS = { apikey: KEY, Authorization: `Bearer ${KEY}` };
+const $ = id => document.getElementById(id);
+let employees = [];
+
+function showDebug(msg) {
+    $('debugText').textContent = msg;
+    $('debugBox').classList.remove('hidden');
+}
+
+async function loadEmployees() {
+    const select = $('employeeSelect');
+    try {
+        const res = await fetch(`${URL_}/rest/v1/employees?order=emp_id.asc&limit=500`, { headers: HEADERS });
+        const data = await res.json();
+        if (!res.ok) throw new Error(JSON.stringify(data));
+
+        employees = data;
+        if (!employees.length) {
+            select.innerHTML = '<option value="">هیچ پرسنلی در دیتابیس یافت نشد!</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="">-- انتخاب پرسنل از لیست کارخانه --</option>';
+        employees.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp.emp_id;
+            opt.textContent = `${emp.first_name || ''} ${emp.last_name || ''} (کد: ${emp.emp_id} - واحد: ${emp.department || 'نامشخص'})`;
+            select.appendChild(opt);
+        });
+    } catch (e) {
+        select.innerHTML = '<option value="">خطا در بارگذاری پرسنل</option>';
+        showDebug(e.message);
+    }
+}
+
+async function loadSummary(empId) {
+    const emp = employees.find(x => String(x.emp_id) === String(empId)) || {};
+    $('txtBloodType').textContent = emp.blood_type || emp.blood_group || 'ثبت‌نشده';
+    $('txtTotalVisits').textContent = '...';
+    $('txtTotalIncidents').textContent = '...';
+    $('txtTotalReferrals').textContent = '...';
+    try {
+        const res = await fetch(`${URL_}/rest/v1/clinic_visits?employee_id=eq.${encodeURIComponent(empId)}&select=visit_reason,is_referred`, { headers: HEADERS });
+        const rows = await res.json();
+        if (!res.ok) throw new Error(JSON.stringify(rows));
+        $('txtTotalVisits').textContent = rows.length + ' بار';
+        $('txtTotalIncidents').textContent = rows.filter(r => r.visit_reason === 'incident').length + ' مورد';
+        $('txtTotalReferrals').textContent = rows.filter(r => r.is_referred).length + ' مورد';
+    } catch (e) {
+        $('txtTotalVisits').textContent = '-';
+        $('txtTotalIncidents').textContent = '-';
+        $('txtTotalReferrals').textContent = '-';
+        showDebug('خواندن سوابق: ' + e.message);
+    }
+}
+
+$('employeeSelect').onchange = function (e) {
+    const empId = e.target.value;
+    $('debugBox').classList.add('hidden');
+    $('healthSummaryCard').classList.toggle('hidden', !empId);
+    $('visitFormContainer').classList.toggle('hidden', !empId);
+    if (empId) loadSummary(empId);
+};
+
+$('isReferred').onchange = function (e) {
+    const input = $('referralDestination');
+    input.classList.toggle('hidden', !e.target.checked);
+    if (!e.target.checked) input.value = '';
+};
+
+$('clinicForm').onsubmit = async function (e) {
+    e.preventDefault();
+    const empId = $('employeeSelect').value;
+    if (!empId) { alert('لطفاً ابتدا یک پرسنل را از لیست انتخاب کنید.'); return; }
+
+    const btn = $('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'در حال ثبت...';
+
+    const newVisit = {
+        employee_id: empId,
+        visit_reason: $('visitReason').value,
+        blood_pressure: $('bloodPressure').value.trim() || null,
+        chief_complaint: $('chiefComplaint').value.trim() || null,
+        treatments_given: $('treatmentsGiven').value.trim() || null,
+        is_referred: $('isReferred').checked,
+        referral_destination: $('referralDestination').value.trim() || null
+    };
+
+    try {
+        const res = await fetch(`${URL_}/rest/v1/clinic_visits`, {
+            method: 'POST',
+            headers: { ...HEADERS, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+            body: JSON.stringify(newVisit)
+        });
+        if (!res.ok) throw new Error(await res.text());
+
+        alert('مراجعه با موفقیت در سیستم ثبت شد.');
+        $('clinicForm').reset();
+        $('referralDestination').classList.add('hidden');
+        loadSummary(empId);
+    } catch (err) {
+        showDebug(err.message);
+        alert('خطا در ثبت اطلاعات: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'ثبت نهایی مراجعه در سیستم';
+    }
+};
+
+loadEmployees();
+</script>
+</body>
+</html>
