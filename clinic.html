@@ -13,14 +13,14 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
 .tab-on { background:#059669 !important; color:#022c22; font-weight:700; }
 </style>
 </head>
-<body class="p-4 max-w-4xl mx-auto flex flex-col min-h-screen justify-between">
+<body class="p-4 max-w-5xl mx-auto flex flex-col min-h-screen justify-between">
 <div>
     <div class="flex justify-between items-center mb-4 bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
         <div class="flex items-center gap-3">
             <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded shadow object-contain" onerror="this.style.display='none'">
             <div>
                 <h1 class="text-base font-bold text-white">بهداری و سوابق پزشکی</h1>
-                <p class="text-[11px] text-slate-400">سامانه مدیریت مراجعین و سوابق - گسترش فناوری خوارزمی</p>
+                <p class="text-[11px] text-slate-400">سامانه مدیریت مراجعین، سوابق و حوادث - گسترش فناوری خوارزمی</p>
             </div>
         </div>
         <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs shrink-0">← بازگشت</a>
@@ -31,11 +31,13 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
         <p id="debugText" dir="ltr" class="break-all"></p>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
+    <!-- منوی تب‌ها -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4 text-xs">
         <button data-tab="new" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">ثبت ویزیت جدید</button>
         <button data-tab="illness" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">بیماری‌ها</button>
         <button data-tab="incident" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">حوادث شغلی</button>
         <button data-tab="checkup" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">معاینات دوره‌ای</button>
+        <button data-tab="stats" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">گزارش و آمارهای کلان</button>
         <button data-tab="follow" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">پیگیری و ارجاعات <span id="openBadge" class="hidden mr-1 bg-rose-600 text-white rounded-full px-1.5 text-[10px]"></span></button>
     </div>
 
@@ -49,10 +51,9 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
 
         <div id="summaryCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3">
             <h3 id="sumName" class="text-sm font-bold text-white"></h3>
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-center">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-700"><span class="text-[10px] text-slate-400 block mb-1">گروه خونی</span><span id="sBlood" class="font-bold text-sm">-</span></div>
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-700"><span class="text-[10px] text-slate-400 block mb-1">کل مراجعات</span><span id="sVisits" class="font-bold text-sm">0</span></div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700"><span class="text-[10px] text-slate-400 block mb-1">حوادث</span><span id="sInc" class="font-bold text-sm text-rose-400">0</span></div>
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-700"><span class="text-[10px] text-slate-400 block mb-1">پیگیری باز</span><span id="sFol" class="font-bold text-sm text-amber-400">0</span></div>
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-700"><span class="text-[10px] text-slate-400 block mb-1">آخرین مراجعه</span><span id="sLast" class="font-bold text-xs">-</span></div>
             </div>
@@ -64,7 +65,6 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                     <label class="block text-xs text-slate-300 mb-1">علت مراجعه</label>
                     <select id="visitReason" class="fld">
                         <option value="illness">بیماری عمومی / سرپایی</option>
-                        <option value="incident">حادثه شغلی</option>
                         <option value="checkup">معاینه و کنترل دوره‌ای</option>
                     </select>
                 </div>
@@ -78,7 +78,6 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                         <div><label class="block text-[11px] text-slate-400 mb-1">دما (°C)</label><input type="number" step="0.1" id="temp" class="fld" dir="ltr" placeholder="36.8"></div>
                         <div><label class="block text-[11px] text-slate-400 mb-1">SpO2 (%)</label><input type="number" id="spo2" class="fld" dir="ltr" placeholder="98" max="100"></div>
                     </div>
-                    <p class="text-[11px] text-slate-500">فشار خون به صورت عدد مجزا (مثلاً ۱۲۰ و ۸۰) وارد شود.</p>
                 </div>
 
                 <div><label class="block text-xs text-slate-300 mb-1">شکایت اصلی / علائم</label><textarea id="complaint" rows="2" class="fld" placeholder="شرح حال یا علائم..."></textarea></div>
@@ -103,33 +102,91 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                     </div>
                 </div>
 
-                <p class="text-[11px] text-slate-500">با ثبت اعزام، استعلاجی یا فشار خون بالا (۱۴۰/۹۰ و بیشتر)، پیگیری مربوطه به‌صورت خودکار در تب «پیگیری و ارجاعات» ساخته می‌شود.</p>
                 <button type="submit" id="submitBtn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm">ثبت نهایی مراجعه در سیستم</button>
             </form>
         </div>
     </div>
 
-    <!-- لیست بیماری / حادثه / معاینه -->
+    <!-- لیست بیماری / معاینه -->
     <div id="paneList" class="hidden space-y-4">
         <div id="listStats" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center"></div>
         <input id="listSearch" class="fld py-3" placeholder="جستجو در نام، کد، واحد، تشخیص، دارو...">
         <div id="listBody" class="space-y-3 pb-6"></div>
     </div>
 
+    <!-- مدیریت حوادث شغلی (کاملاً مجزا) -->
+    <div id="paneIncident" class="hidden space-y-4">
+        <div class="flex justify-between items-center bg-slate-800 border border-slate-700 p-4 rounded-2xl">
+            <h2 class="text-sm font-bold text-white">ثبت و مدیریت تخصصی حوادث شغلی</h2>
+            <button id="toggleIncForm" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs">+ ثبت حادثه جدید</button>
+        </div>
+
+        <div id="incFormCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl">
+            <form id="incForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">پرسنل آسیب‌دیده</label>
+                    <input id="incEmp" list="empList" class="fld" placeholder="نام، کد یا واحد را تایپ کنید..." autocomplete="off" required>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div><label class="block text-xs text-slate-300 mb-1">محل دقیق وقوع حادثه</label><input id="incLoc" class="fld" placeholder="خط تولید، انبار، تعمیرگاه..." required></div>
+                    <div><label class="block text-xs text-slate-300 mb-1">شدت حادثه</label>
+                        <select id="incSev" class="fld">
+                            <option value="minor">جزئی (نیاز به کمک اولیه)</option>
+                            <option value="moderate">متوسط (درمان پزشکی)</option>
+                            <option value="severe">شدید (موجب اتلاف وقت و بستری)</option>
+                            <option value="fatal">فوتی</option>
+                        </select>
+                    </div>
+                    <div><label class="block text-xs text-slate-300 mb-1">عضو آسیب‌دیده</label><input id="incBodyPart" class="fld" placeholder="سر، دست، چشم، پا..."></div>
+                </div>
+                <div><label class="block text-xs text-slate-300 mb-1">شرح کامل واقعه</label><textarea id="incDesc" rows="3" class="fld" placeholder="شرح جزئیات نحوه وقوع حادثه..." required></textarea></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div><label class="block text-xs text-slate-300 mb-1">عمل ناامن (Unsafe Act)</label><input id="incAct" class="fld" placeholder="رفتار یا اقدام ناایمن پرسنل..."></div>
+                    <div><label class="block text-xs text-slate-300 mb-1">شرایط ناامن (Unsafe Condition)</label><input id="incCond" class="fld" placeholder="نقص تجهیزات، محیط ناامن..."></div>
+                </div>
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-3">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="incSsRep" class="w-4 h-4"><span class="text-xs text-slate-300 font-bold">گزارش شده به بیمه تامین اجتماعی؟</span></label>
+                    <div id="ssBox" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div><label class="block text-[11px] text-slate-400 mb-1">تاریخ ارسال گزارش</label><input type="date" id="incSsDate" class="fld" dir="ltr"></div>
+                        <div><label class="block text-[11px] text-slate-400 mb-1">شعبه تامین اجتماعی</label><input type="text" id="incSsBranch" class="fld" placeholder="نام شعبه..."></div>
+                    </div>
+                </div>
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-3">
+                    <p class="text-xs font-bold text-slate-300">اقدام اصلاحی و پیشگیرانه (CAPA)</p>
+                    <div><label class="block text-[11px] text-slate-400 mb-1">شرح اقدام اصلاحی</label><input type="text" id="incAction" class="fld" placeholder="اقدام جهت عدم تکرار..."></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div><label class="block text-[11px] text-slate-400 mb-1">مسئول انجام</label><input type="text" id="incOwner" class="fld" placeholder="نام مسئول..."></div>
+                        <div><label class="block text-[11px] text-slate-400 mb-1">سررسید اقدام</label><input type="date" id="incDueDate" class="fld" dir="ltr"></div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" id="incSubmit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm">ثبت حادثه در سیستم</button>
+                    <button type="button" id="incCancel" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm">انصراف</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="flex gap-2">
+            <input id="incSearch" class="fld" placeholder="جستجو در نام، کد، محل حادثه، شرح، علت...">
+        </div>
+        <div id="incBody" class="space-y-3 pb-6"></div>
+    </div>
+
+    <!-- گزارش‌ها و آمارهای کلان -->
+    <div id="paneStats" class="hidden space-y-4">
+        <div id="statsContent" class="space-y-4"></div>
+    </div>
+
     <!-- پیگیری و ارجاعات -->
     <div id="paneFollow" class="hidden space-y-4">
         <div id="fuStats" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-center"></div>
-
         <div class="flex gap-2">
             <button id="toggleFuForm" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs">+ ثبت پیگیری / ارجاع جدید</button>
         </div>
 
         <div id="fuFormCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl">
             <form id="fuForm" class="space-y-3">
-                <div>
-                    <label class="block text-xs text-slate-300 mb-1">پرسنل</label>
-                    <input id="fuEmp" list="empList" class="fld" placeholder="نام، کد یا واحد را تایپ کنید..." autocomplete="off">
-                </div>
+                <div><label class="block text-xs text-slate-300 mb-1">پرسنل</label><input id="fuEmp" list="empList" class="fld" placeholder="نام، کد یا واحد را تایپ کنید..." autocomplete="off"></div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div><label class="block text-xs text-slate-300 mb-1">نوع</label><select id="fuKind" class="fld"></select></div>
                     <div><label class="block text-xs text-slate-300 mb-1">اولویت</label><select id="fuPrio" class="fld"><option value="normal">عادی</option><option value="urgent">فوری</option></select></div>
@@ -165,7 +222,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 max-w-lg w-full space-y-3">
         <h3 class="text-sm font-bold">تکمیل پیگیری</h3>
         <p id="doneTitle" class="text-xs text-slate-400"></p>
-        <div><label class="block text-xs text-slate-300 mb-1">نتیجه / گزارش</label><textarea id="doneResult" rows="3" class="fld" placeholder="نتیجه مراجعه، نظر پزشک متخصص، پاسخ آزمایش..."></textarea></div>
+        <div><label class="block text-xs text-slate-300 mb-1">نتیجه / گزارش</label><textarea id="doneResult" rows="3" class="fld" placeholder="نتیجه مراجعه، نظر پزشک، پاسخ آزمایش..."></textarea></div>
         <div><label class="block text-xs text-slate-300 mb-1">وضعیت صلاحیت کار</label>
             <select id="doneFit" class="fld">
                 <option value="">ثبت نشود</option>
@@ -174,7 +231,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <option value="unfit">ناتوان از کار</option>
             </select>
         </div>
-        <div id="restrBox" class="hidden"><label class="block text-xs text-slate-300 mb-1">محدودیت‌ها</label><textarea id="doneRestr" rows="2" class="fld" placeholder="مثلاً: عدم کار در ارتفاع و فضای بسته"></textarea></div>
+        <div id="restrBox" class="hidden"><label class="block text-xs text-slate-300 mb-1">محدودیت‌ها</label><textarea id="doneRestr" rows="2" class="fld" placeholder="مثلاً: عدم کار در ارتفاع"></textarea></div>
         <div class="flex gap-2">
             <button id="doneOk" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm">ثبت تکمیل</button>
             <button id="doneClose" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm">انصراف</button>
@@ -201,19 +258,21 @@ const MEDS = [
  'دیازپام ۵ قرص','دیازپام آمپول','پروپرانولول قرص','کاپتوپریل قرص','آملودیپین ۵ قرص','لوزارتان ۵۰ قرص','نیتروگلیسیرین زیرزبانی','آسپرین ۸۰ قرص','سرم نرمال سالین','سرم قندی',
  'بتادین محلول','سرم شستشو','پماد هیدروکورتیزون','پماد موضعی دیکلوفناک','ژل ضدالتهاب موضعی','پماد سوختگی (سیلورسولفادیازین)','قطره چشمی کلرامفنیکل','محلول شستشوی چشم','ضدعفونی و پانسمان','اسپری ضدتورم (ایبوپروفن)','واکسن کزاز'
 ];
-const TAB_TITLE = { illness: 'بیماری‌ها', incident: 'حوادث شغلی', checkup: 'معاینات دوره‌ای' };
+
+const TAB_TITLE = { illness: 'بیماری‌ها', checkup: 'معاینات دوره‌ای' };
 const KIND = {
     referral: 'ارجاع به مرکز درمانی',
     specialist: 'ارجاع به متخصص',
     followup: 'پیگیری درمان',
     lab: 'آزمایش / پاراکلینیک',
     return_to_work: 'ارزیابی بازگشت به کار',
-    periodic: 'معاینه دوره‌ای بعدی'
+    periodic: 'معاینه دوره‌ای بعدی',
+    incident_capa: 'اقدام اصلاحی حادثه'
 };
+const SEV_TXT = { minor: 'جزئی', moderate: 'متوسط', severe: 'شدید', fatal: 'فوتی' };
 const FIT = { fit: 'مجاز به کار', fit_restricted: 'مجاز با محدودیت', unfit: 'ناتوان از کار' };
-const STATUS_TXT = { pending: 'در انتظار', overdue: 'معوق', done: 'انجام‌شده', cancelled: 'لغوشده' };
 
-let employees = [], visits = [], followups = [], meds = [], selEmp = null, tab = 'new', doneId = null;
+let employees = [], visits = [], followups = [], incidents = [], meds = [], selEmp = null, tab = 'new', doneId = null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label = e => `${e.first_name || ''} ${e.last_name || ''} (کد ${e.emp_id} - ${e.department || 'نامشخص'})`;
@@ -239,11 +298,16 @@ async function api(path, opts) {
 
 async function loadAll() {
     try {
-        employees = await api('employees?order=emp_id.asc&limit=1000');
-        $('empList').innerHTML = employees.map(e => `<option value="${esc(label(e))}"></option>`).join('');
+        employees = await api('employees?order=emp_id.asc&limit=2000');
+        const listHTML = employees.map(e => `<option value="${esc(label(e))}"></option>`).join('');
+        $('empList').innerHTML = listHTML;
         $('empInput').placeholder = employees.length ? 'نام، کد یا واحد را تایپ کنید...' : 'هیچ پرسنلی در دیتابیس یافت نشد!';
-    } catch (e) { $('empInput').placeholder = 'خطا در بارگذاری پرسنل'; showDebug('پرسنل: ' + e.message); }
+    } catch (e) { 
+        $('empInput').placeholder = 'خطا در بارگذاری پرسنل'; 
+        showDebug('بارگذاری پرسنل: ' + e.message); 
+    }
     await loadVisits();
+    await loadIncidents();
     await loadFollowups();
 }
 
@@ -252,7 +316,14 @@ async function loadVisits() {
         visits = await api('clinic_visits?order=visit_date.desc&limit=1000');
         if (selEmp) renderSummary();
         if (TAB_TITLE[tab]) renderList();
-    } catch (e) { showDebug('سوابق: ' + e.message); }
+    } catch (e) { showDebug('سوابق ویزیت: ' + e.message); }
+}
+
+async function loadIncidents() {
+    try {
+        incidents = await api('clinic_incidents?order=incident_date.desc&limit=1000');
+        if (tab === 'incident') renderIncidents();
+    } catch (e) { showDebug('حوادث شغلی: ' + e.message + ' (اگر جدول clinic_incidents ساخته نشده، کد SQL آن را اجرا کنید)'); }
 }
 
 async function loadFollowups() {
@@ -261,7 +332,7 @@ async function loadFollowups() {
         updateBadge();
         if (selEmp) renderSummary();
         if (tab === 'follow') renderFollow();
-    } catch (e) { showDebug('پیگیری‌ها: ' + e.message + ' — اگر جدول clinic_followups را نساخته‌اید، SQL مرحله ۱ را اجرا کنید.'); }
+    } catch (e) { showDebug('پیگیری‌ها: ' + e.message); }
 }
 
 function updateBadge() {
@@ -277,8 +348,13 @@ document.querySelectorAll('.tabBtn').forEach(btn => {
         document.querySelectorAll('.tabBtn').forEach(b => b.classList.remove('tab-on', 'bg-emerald-600', 'text-slate-950'));
         this.classList.add('tab-on');
         $('paneNew').classList.toggle('hidden', tab !== 'new');
-        $('paneList').classList.toggle('hidden', !TAB_TITLE[tab]);$('paneFollow').classList.toggle('hidden', tab !== 'follow');
+        $('paneList').classList.toggle('hidden', !TAB_TITLE[tab]);
+        $('paneIncident').classList.toggle('hidden', tab !== 'incident');
+        $('paneStats').classList.toggle('hidden', tab !== 'stats');
+        $('paneFollow').classList.toggle('hidden', tab !== 'follow');
         if (TAB_TITLE[tab]) renderList();
+        if (tab === 'incident') renderIncidents();
+        if (tab === 'stats') renderStats();
         if (tab === 'follow') renderFollow();
     };
 });
@@ -287,7 +363,8 @@ document.querySelector('[data-tab="new"]').click();
 /* ---------- انتخاب پرسنل و خلاصه ---------- */
 $('empInput').oninput = function () {
     selEmp = employees.find(e => label(e) === this.value) || null;
-    $('summaryCard').classList.toggle('hidden', !selEmp);$('formCard').classList.toggle('hidden', !selEmp);
+    $('summaryCard').classList.toggle('hidden', !selEmp);
+    $('formCard').classList.toggle('hidden', !selEmp);
     if (selEmp) renderSummary();
 };
 
@@ -297,7 +374,6 @@ function renderSummary() {
     $('sumName').textContent = `${selEmp.first_name || ''} ${selEmp.last_name || ''} - ${selEmp.job_title || ''} (${selEmp.department || ''})`;
     $('sBlood').textContent = selEmp.blood_type || 'ثبت‌نشده';
     $('sVisits').textContent = mine.length;
-    $('sInc').textContent = mine.filter(v => v.visit_reason === 'incident').length;
     $('sFol').textContent = openF;
     $('sLast').textContent = mine.length ? fdate(mine[0].visit_date) : '-';
 }
@@ -327,7 +403,7 @@ $('isReferred').onchange = function () {$('refDest').classList.toggle('hidden', 
     if (!this.checked) $('refDest').value = '';
 };
 
-/* ---------- ثبت ویزیت + ساخت خودکار پیگیری (اصلاح‌شده) ---------- */
+/* ---------- ثبت ویزیت + ساخت خودکار پیگیری ---------- */
 $('clinicForm').onsubmit = async function (e) {
     e.preventDefault();
     if (!selEmp) { alert('ابتدا یک پرسنل را از لیست انتخاب کنید.'); return; }
@@ -369,17 +445,8 @@ $('clinicForm').onsubmit = async function (e) {
         if (sys && (+sys >= 140 || +dia >= 90)) auto.push({ employee_id: selEmp.id, visit_id: visitId, kind: 'followup', priority: 'normal', title: 'کنترل مجدد فشار خون (' + sys + '/' + dia + ')', reason: 'فشار خون بالا در ویزیت', due_date: addDays(7) });
 
         if (auto.length) {
-            try {
-                // ارسال تکی پیگیری‌ها برای جلوگیری از خطای ناسازگاری کلیدهای Bulk Insert
-                for (const item of auto) {
-                    await api('clinic_followups', {
-                        method: 'POST',
-                        headers: Object.assign({}, JH, { Prefer: 'return=minimal' }),
-                        body: JSON.stringify(item)
-                    });
-                }
-            } catch (fe) {
-                showDebug('ویزیت ثبت شد ولی ساخت پیگیری خودکار انجام نشد: ' + fe.message);
+            for (const item of auto) {
+                await api('clinic_followups', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(item) });
             }
         }
 
@@ -391,7 +458,7 @@ $('clinicForm').onsubmit = async function (e) {
     finally { btn.disabled = false; btn.textContent = 'ثبت نهایی مراجعه در سیستم'; }
 };
 
-/* ---------- لیست بیماری / حادثه / معاینه ---------- */
+/* ---------- لیست بیماری و معاینه ---------- */
 function bpBadge(bp) {
     if (!bp) return '';
     const [s, d] = bp.split('/').map(Number);
@@ -418,10 +485,6 @@ function renderList() {
     $('listBody').innerHTML = shown.map(v => {
         const e = empById(v.employee_id) || {};
         const ms = Array.isArray(v.prescribed_meds) ? v.prescribed_meds : [];
-        const vit = [];
-        if (v.pulse_rate != null) vit.push('ضربان ' + v.pulse_rate);
-        if (v.temperature != null) vit.push('دما ' + v.temperature);
-        if (v.spo2 != null) vit.push('SpO2 ' + v.spo2 + '%');
         const line = (t, x) => x ? `<p class="text-xs text-slate-300 mt-1"><span class="text-slate-500">${t}:</span> ${esc(x)}</p>` : '';
         return `
         <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl">
@@ -435,13 +498,182 @@ function renderList() {
                     ${v.medical_leave_days ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border-amber-500/30">استعلاجی ${v.medical_leave_days} روز</span>` : ''}
                 </div>
             </div>
-            ${vit.length ? `<p class="text-[11px] text-slate-400 mt-2">${vit.join(' · ')}</p>` : ''}
             ${line('شکایت / علائم', v.chief_complaint)}${line('تشخیص', v.diagnosis)}${line('اقدامات', v.treatments_given)}
             ${ms.length ? `<div class="mt-2 flex flex-wrap gap-1.5">${ms.map(m => `<span class="text-[11px] bg-slate-900 border border-slate-700 px-2 py-1 rounded-lg">💊 ${esc(m.name)}${m.usage ? ' - ' + esc(m.usage) : ''}</span>`).join('')}</div>` : ''}
         </div>`;
     }).join('');
 }
 $('listSearch').oninput = renderList;
+
+/* ---------- مدیریت حوادث شغلی ---------- */
+$('toggleIncForm').onclick = () =>$('incFormCard').classList.toggle('hidden');
+$('incCancel').onclick = () => {$('incFormCard').classList.add('hidden'); $('incForm').reset();$('ssBox').classList.add('hidden'); };
+$('incSsRep').onchange = function() {$('ssBox').classList.toggle('hidden', !this.checked); };
+
+$('incForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const emp = employees.find(x => label(x) === $('incEmp').value);
+    if (!emp) { alert('پرسنل را از لیست پیشنهادی انتخاب کنید.'); return; }
+    
+    const body = {
+        employee_id: emp.id,
+        location: $('incLoc').value.trim(),
+        severity: $('incSev').value,
+        body_part: $('incBodyPart').value.trim() || null,
+        description: $('incDesc').value.trim(),
+        unsafe_act: $('incAct').value.trim() || null,
+        unsafe_condition: $('incCond').value.trim() || null,
+        social_security_reported: $('incSsRep').checked,
+        ss_report_date: $('incSsRep').checked ? ($('incSsDate').value || null) : null,
+        ss_branch: $('incSsRep').checked ? ($('incSsBranch').value.trim() || null) : null,
+        corrective_action: $('incAction').value.trim() || null,
+        action_owner: $('incOwner').value.trim() || null,
+        action_due_date: $('incDueDate').value || null,
+        action_status: 'pending'
+    };
+
+    const btn = $('incSubmit');
+    btn.disabled = true; btn.textContent = 'در حال ثبت...';
+    try {
+        const saved = await api('clinic_incidents', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=representation' }), body: JSON.stringify(body) });
+        
+        // اگر اقدام اصلاحی داشت، یک پیگیری خودکار بساز
+        if (body.corrective_action && body.action_due_date) {
+            await api('clinic_followups', {
+                method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }),
+                body: JSON.stringify({
+                    employee_id: emp.id,
+                    visit_id: null,
+                    kind: 'incident_capa',
+                    priority: 'urgent',
+                    title: 'اقدام اصلاحی حادثه: ' + body.corrective_action,
+                    destination: body.action_owner ? 'مسئول: ' + body.action_owner : null,
+                    reason: 'ریشه حادثه در ' + body.location,
+                    due_date: body.action_due_date
+                })
+            });
+        }
+
+        alert('حادثه شغلی با موفقیت ثبت شد.');
+        $('incForm').reset(); $('incFormCard').classList.add('hidden');$('ssBox').classList.add('hidden');
+        await loadIncidents();
+        await loadFollowups();
+    } catch (err) { showDebug(err.message); alert('خطا در ثبت حادثه: ' + err.message); }
+    finally { btn.disabled = false; btn.textContent = 'ثبت حادثه در سیستم'; }
+};
+
+function renderIncidents() {
+    const q = $('incSearch').value.trim().toLowerCase();
+    const shown = incidents.filter(i => {
+        const e = empById(i.employee_id) || {};
+        const hay = [e.first_name, e.last_name, e.emp_id, e.department, i.location, i.description, i.unsafe_act, i.unsafe_condition, i.corrective_action].join(' ').toLowerCase();
+        return !q || hay.includes(q);
+    });
+
+    if (!shown.length) { $('incBody').innerHTML = '<p class="text-center py-8 text-slate-500 text-sm">هیچ حادثه‌ای ثبت نشده است.</p>'; return; }
+
+    $('incBody').innerHTML = shown.map(i => {
+        const e = empById(i.employee_id) || {};
+        const sevColor = i.severity === 'severe' || i.severity === 'fatal' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        return `
+        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl space-y-2">
+            <div class="flex justify-between items-start gap-2 flex-wrap">
+                <div>
+                    <p class="font-bold text-sm text-white">${esc(e.first_name)} ${esc(e.last_name)} <span class="text-xs text-slate-400 font-normal">(کد ${esc(e.emp_id)} - ${esc(e.department || 'نامشخص')})</span></p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">📅 ${fdate(i.incident_date)} · 📍 محل: ${esc(i.location)} ${i.body_part ? '· عضو آسیب‌دیده: ' + esc(i.body_part) : ''}</p>
+                </div>
+                <div class="flex gap-1.5 flex-wrap">
+                    <span class="text-[11px] border px-2 py-0.5 rounded-full ${sevColor}">شدت: ${SEV_TXT[i.severity] || i.severity}</span>
+                    ${i.social_security_reported ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border-blue-500/30">گزارش تامین اجتماعی (شعبه ${esc(i.ss_branch || '-')})</span>` : ''}
+                </div>
+            </div>
+            <p class="text-xs text-slate-200 bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50"><b>شرح واقعه:</b> ${esc(i.description)}</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+                ${i.unsafe_act ? `<div class="bg-slate-900/40 p-2 rounded border border-slate-700/50 text-rose-300"><b>عمل ناامن:</b> ${esc(i.unsafe_act)}</div>` : ''}
+                ${i.unsafe_condition ? `<div class="bg-slate-900/40 p-2 rounded border border-slate-700/50 text-amber-300"><b>شرایط ناامن:</b> ${esc(i.unsafe_condition)}</div>` : ''}
+            </div>
+            ${i.corrective_action ? `
+                <div class="bg-emerald-950/20 border border-emerald-500/30 p-2.5 rounded-lg text-xs space-y-1">
+                    <p class="font-bold text-emerald-400">اقدام اصلاحی (CAPA): ${esc(i.corrective_action)}</p>
+                    <p class="text-[11px] text-slate-400">مسئول: ${esc(i.action_owner \vert{}\vert{} 'تعیین‌نشده')} · سررسید: ${i.action_due_date ? fday(i.action_due_date) : '-'}</p>
+                </div>` : ''}
+        </div>`;
+    }).join('');
+}
+$('incSearch').oninput = renderIncidents;
+
+/* ---------- گزارش‌ها و آمارهای کلان ---------- */
+function renderStats() {
+    // محاسبه آمار ماهانه و تفکیکی
+    const totalVisits = visits.length;
+    const totalIncidents = incidents.length;
+    const totalIllness = visits.filter(v => v.visit_reason === 'illness').length;
+    const totalCheckups = visits.filter(v => v.visit_reason === 'checkup').length;
+    const totalLeaves = visits.reduce((a, v) => a + (v.medical_leave_days || 0), 0);
+
+    // گروه‌بندی حوادث بر اساس واحد سازمانی
+    const deptInc = {};
+    incidents.forEach(i => {
+        const e = empById(i.employee_id) || {};
+        const d = e.department || 'نامشخص';
+        deptInc[d] = (deptInc[d] || 0) + 1;
+    });
+
+    // گروه‌بندی روند بر اساس ماه وقوع حادثه / مراجعه
+    const monthlyVisits = {};
+    visits.forEach(v => {
+        if (!v.visit_date) return;
+        const m = v.visit_date.substring(0, 7); // YYYY-MM
+        monthlyVisits[m] = (monthlyVisits[m] || 0) + 1;
+    });
+
+    const monthlyInc = {};
+    incidents.forEach(i => {
+        if (!i.incident_date) return;
+        const m = i.incident_date.substring(0, 7);
+        monthlyInc[m] = (monthlyInc[m] || 0) + 1;
+    });
+
+    const card = (t, n, c) => `<div class="bg-slate-800 border border-slate-700 p-4 rounded-xl text-center"><span class="text-xs text-slate-400 block mb-1">${t}</span><span class="font-bold text-lg ${c || 'text-white'}">${n}</span></div>`;
+
+    let html = `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        ${card('کل مراجعات بهداری', totalVisits, 'text-emerald-400')}
+        ${card('کل حوادث شغلی', totalIncidents, 'text-rose-400')}
+        ${card('مجموع روزهای استعلاجی', totalLeaves, 'text-amber-400')}
+        ${card('معاینات دوره‌ای ثبت‌شده', totalCheckups, 'text-blue-400')}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3">
+            <h3 class="text-sm font-bold text-white">حوادث شغلی به تفکیک واحد سازمانی</h3>
+            <div class="space-y-2">
+                ${Object.keys(deptInc).length ? Object.entries(deptInc).map(([d, count]) => `
+                    <div class="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-slate-700 text-xs">
+                        <span>${esc(d)}</span>
+                        <span class="font-bold text-rose-400">${count} حادثه</span>
+                    </div>`).join('') : '<p class="text-xs text-slate-500">داده‌ای ثبت نشده است.</p>'}
+            </div>
+        </div>
+
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3">
+            <h3 class="text-sm font-bold text-white">روند ماهانه مراجعات و حوادث</h3>
+            <div class="space-y-2 max-h-60 overflow-y-auto">
+                ${Object.keys(monthlyVisits).length || Object.keys(monthlyInc).length ? 
+                    Array.from(new Set([...Object.keys(monthlyVisits), ...Object.keys(monthlyInc)])).sort().reverse().map(m => `
+                    <div class="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-slate-700 text-xs">
+                        <span dir="ltr" class="font-bold text-slate-300">${m}</span>
+                        <div class="flex gap-3">
+                            <span class="text-emerald-400">مراجعات: ${monthlyVisits[m] || 0}</span>
+                            <span class="text-rose-400">حوادث: ${monthlyInc[m] || 0}</span>
+                        </div>
+                    </div>`).join('') : '<p class="text-xs text-slate-500">روندی ثبت نشده است.</p>'}
+            </div>
+        </div>
+    </div>`;
+
+    $('statsContent').innerHTML = html;
+}
 
 /* ---------- پیگیری و ارجاعات ---------- */
 $('fuKind').innerHTML = Object.entries(KIND).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
@@ -581,6 +813,7 @@ async function updateFuStatus(id, status) {
     } catch (err) { showDebug(err.message); alert('خطا: ' + err.message); }
 }
 
+// بارگذاری اولیه کل داده‌ها
 loadAll();
 </script>
 </body>
