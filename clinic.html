@@ -10,16 +10,18 @@
 </head>
 <body class="p-4 max-w-3xl mx-auto flex flex-col min-h-screen justify-between">
     <div>
-        <!-- هدر بالای صفحه -->
+        <!-- هدر بالای صفحه به همراه لوگوی خوارزمی و دکمه بازگشت -->
         <div class="flex justify-between items-center mb-6 bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-lg">🏥</div>
+                <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded shadow object-contain" onerror="this.style.display='none'">
                 <div>
                     <h1 class="text-base font-bold text-white">بهداری و سوابق پزشکی</h1>
-                    <p class="text-[11px] text-slate-400">مدیریت مراجعین، هشدارهای دارویی و حوادث شغلی</p>
+                    <p class="text-[11px] text-slate-400">سامانه مدیریت مراجعین و سوابق - گسترش فناوری خوارزمی</p>
                 </div>
             </div>
-            <a href="index.html" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-300 hover:bg-slate-700">← بازگشت</a>
+            <div class="flex gap-2">
+                <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors shrink-0">← بازگشت</a>
+            </div>
         </div>
 
         <!-- باکس نمایش خطاهای احتمالی دیتابیس -->
@@ -111,8 +113,8 @@
         </div>
     </div>
 
-    <!-- فوتر سامانه -->
-    <footer class="bg-slate-800/50 border-t border-slate-700 text-center py-4 text-xs text-slate-400 mt-8">
+    <!-- فوتر سامانه با ذکر نام طراح -->
+    <footer class="bg-slate-800/50 border-t border-slate-700 text-center py-4 text-xs text-slate-400 mt-8 rounded-xl">
         نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <span class="text-emerald-400 font-bold">محمد اله رضایی</span>
     </footer>
 
@@ -126,7 +128,6 @@ function showDebug(msg) {
     box.classList.remove('hidden');
 }
 
-// بارگذاری لیست پرسنل با تست کامل خطاهای شبکه و دیتابیس
 async function loadEmployees() {
     const select = document.getElementById('employeeSelect');
     try {
@@ -149,7 +150,6 @@ async function loadEmployees() {
         select.innerHTML = '<option value="">-- انتخاب پرسنل (کلیک کنید) --</option>';
         employeesList.forEach(emp => {
             const opt = document.createElement('option');
-            // در جدول شما ممکن است id به نام emp_id یا id باشد، هر دو را تست می‌کنیم
             opt.value = emp.id || emp.emp_id; 
             opt.textContent = `${emp.first_name || ''} ${emp.last_name || ''} (کد: ${emp.emp_id || emp.id || '-'} - واحد: ${emp.department || '-'})`;
             select.appendChild(opt);
@@ -160,118 +160,5 @@ async function loadEmployees() {
     }
 }
 
-// انتخاب پرسنل و دریافت خلاصه وضعیت از RPC
 document.getElementById('employeeSelect').onchange = async (e) => {
-    const empId = e.target.value;
-    const summaryCard = document.getElementById('healthSummaryCard');
-    const formContainer = document.getElementById('visitFormContainer');
-
-    if (!empId) {
-        summaryCard.classList.add('hidden');
-        formContainer.classList.add('hidden');
-        return;
-    }
-
-    try {
-        const res = await fetch(`${URL_}/rest/v1/rpc/get_employee_health_summary`, {
-            method: 'POST',
-            headers: {
-                apikey: KEY,
-                Authorization: `Bearer ${KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ target_employee_id: empId })
-        });
-
-        if (!res.ok) throw new Error(await res.text());
-
-        const data = await res.json();
-
-        document.getElementById('txtBloodType').textContent = data.profile?.blood_type || 'ثبت‌نشده';
-        document.getElementById('txtTotalVisits').textContent = (data.stats?.total_visits || 0) + ' بار';
-        document.getElementById('txtTotalIncidents').textContent = (data.stats?.total_incidents || 0) + ' مورد';
-        document.getElementById('txtTotalReferrals').textContent = (data.stats?.total_referrals || 0) + ' مورد';
-
-        const alertBox = document.getElementById('alertBox');
-        const alertList = document.getElementById('alertList');
-        alertList.innerHTML = '';
-        let hasAlerts = false;
-
-        if (data.profile?.banned_medications && data.profile.banned_medications.length > 0) {
-            alertList.innerHTML += `<li><strong>داروهای ممنوعه:</strong> ${data.profile.banned_medications.join(', ')}</li>`;
-            hasAlerts = true;
-        }
-        if (data.profile?.allergies && data.profile.allergies.length > 0) {
-            alertList.innerHTML += `<li><strong>حساسیت‌ها:</strong> ${data.profile.allergies.join(', ')}</li>`;
-            hasAlerts = true;
-        }
-        if (data.profile?.work_restrictions && data.profile.work_restrictions.length > 0) {
-            alertList.innerHTML += `<li><strong>محدودیت‌های شغلی:</strong> ${data.profile.work_restrictions.join(', ')}</li>`;
-            hasAlerts = true;
-        }
-
-        if (hasAlerts) {
-            alertBox.classList.remove('hidden');
-        } else {
-            alertBox.classList.add('hidden');
-        }
-
-        summaryCard.classList.remove('hidden');
-        formContainer.classList.remove('hidden');
-    } catch (err) {
-        showDebug('خطا در دریافت خلاصه پرونده پزشکی: ' + err.message);
-    }
-};
-
-document.getElementById('isReferred').onchange = (e) => {
-    const refInput = document.getElementById('referralDestination');
-    if (e.target.checked) {
-        refInput.classList.remove('hidden');
-    } else {
-        refInput.classList.add('hidden');
-        refInput.value = '';
-    }
-};
-
-document.getElementById('clinicForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const empId = document.getElementById('employeeSelect').value;
-    if (!empId) return;
-
-    const newVisit = {
-        employee_id: empId,
-        visit_reason: document.getElementById('visitReason').value,
-        blood_pressure: document.getElementById('bloodPressure').value,
-        chief_complaint: document.getElementById('chiefComplaint').value,
-        treatments_given: document.getElementById('treatmentsGiven').value,
-        is_referred: document.getElementById('isReferred').checked,
-        referral_destination: document.getElementById('referralDestination').value || null
-    };
-
-    try {
-        const res = await fetch(`${URL_}/rest/v1/clinic_visits`, {
-            method: 'POST',
-            headers: {
-                apikey: KEY,
-                Authorization: `Bearer ${KEY}`,
-                'Content-Type': 'application/json',
-                Prefer: 'return=representation'
-            },
-            body: JSON.stringify(newVisit)
-        });
-
-        if (!res.ok) throw new Error(await res.text());
-
-        alert('مراجعه با موفقیت در سیستم ثبت شد.');
-        document.getElementById('clinicForm').reset();
-        document.getElementById('referralDestination').classList.add('hidden');
-        document.getElementById('employeeSelect').onchange({ target: { value: empId } });
-    } catch (err) {
-        alert('خطا در ثبت اطلاعات: ' + err.message);
-    }
-};
-
-loadEmployees();
-</script>
-</body>
-</html>
+    const emp
