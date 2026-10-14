@@ -14,31 +14,91 @@
             <h1 class="text-xl font-bold">بانک پرسنل کارخانه</h1>
             <p class="text-xs text-slate-400">مدیریت و اطلاعات پرسنل متصل به Supabase</p>
         </div>
-        <a href="index.html" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-300 hover:bg-slate-700">← بازگشت</a>
+        <div class="flex gap-2">
+            <button onclick="toggleModal(true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs transition-colors shadow-md">
+                + ثبت پرسنل جدید
+            </button>
+            <a href="index.html" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-300 hover:bg-slate-700">← بازگشت</a>
+        </div>
     </div>
 
+    <!-- فیلد جستجو -->
     <div class="mb-4">
         <input id="search" type="text" placeholder="جستجو بر اساس نام، شماره پرسنلی یا واحد..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
     </div>
 
+    <!-- لیست پرسنل -->
     <div id="list" class="space-y-3">
         <p class="text-center py-8 text-slate-400 text-sm">در حال بارگذاری اطلاعات پرسنل...</p>
     </div>
 
+    <!-- مودال (پنجره) ثبت پرسنل جدید -->
+    <div id="addModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden backdrop-blur-sm">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <h2 class="text-lg font-bold text-white mb-4">فرم ثبت پرسنل جدید</h2>
+            
+            <form id="empForm" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">شماره پرسنلی (الزامی)</label>
+                        <input type="text" id="p_id" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">کد ملی</label>
+                        <input type="text" id="p_national" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">نام (الزامی)</label>
+                        <input type="text" id="p_first" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">نام خانوادگی (الزامی)</label>
+                        <input type="text" id="p_last" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">واحد خدمت / بخش</label>
+                        <input type="text" id="p_dept" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none" placeholder="مثلا: تولید DRI">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">عنوان سمت شغلی</label>
+                        <input type="text" id="p_job" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none" placeholder="مثلا: اپراتور">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">تلفن همراه</label>
+                    <input type="text" id="p_phone" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none" placeholder="09xxxxxxxxx">
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition-colors">ثبت و ذخیره در دیتابیس</button>
+                    <button type="button" onclick="toggleModal(false)" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-sm transition-colors">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 <script>
 const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+let allEmployees = [];
 
 async function loadEmployees() {
     try {
-        const res = await fetch(`${URL_}/rest/v1/employees?order=emp_id.asc&limit=300`, {
+        const res = await fetch(`${URL_}/rest/v1/employees?order=emp_id.asc&limit=500`, {
             headers: { apikey: KEY, Authorization: `Bearer ${KEY}` }
         });
-        const data = await res.json();
-        render(data);
+        allEmployees = await res.json();
+        render(allEmployees);
 
         document.getElementById('search').oninput = (e) => {
             const q = e.target.value.toLowerCase();
-            const filtered = data.filter(item => 
+            const filtered = allEmployees.filter(item => 
                 (item.first_name + ' ' + item.last_name).toLowerCase().includes(q) ||
                 String(item.emp_id).toLowerCase().includes(q) ||
                 String(item.department).toLowerCase().includes(q) ||
@@ -47,28 +107,4 @@ async function loadEmployees() {
             render(filtered);
         };
     } catch (e) {
-        document.getElementById('list').innerHTML = '<p class="text-center text-red-400 text-sm">خطا در برقراری ارتباط با پایگاه داده</p>';
-    }
-}
-
-function render(arr) {
-    const el = document.getElementById('list');
-    if (!arr.length) {
-        el.innerHTML = '<p class="text-center py-6 text-slate-500 text-sm">موردی یافت نشد.</p>';
-        return;
-    }
-    el.innerHTML = arr.map(x => `
-        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex justify-between items-center shadow-sm">
-            <div>
-                <p class="font-bold text-sm">${x.first_name} خانگی ${x.last_name} <span class="text-xs text-slate-400 font-normal">(${x.emp_id})</span></p>
-                <p class="text-xs text-slate-400 mt-1">واحد: <span class="text-slate-200 font-semibold">${x.department || 'نامشخص'}</span> · سمت: ${x.job_title || '-'}</p>
-            </div>
-            <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full" dir="ltr">${x.phone_mobile || 'بدون شماره'}</span>
-        </div>
-    `).join('');
-}
-
-loadEmployees();
-</script>
-</body>
-</html>
+        document.getElementById('list').innerHTML = '<p class="text-center text-red-400 text-sm">خطا در برقراری ارتباط با پایگاه داده</
