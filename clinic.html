@@ -183,3 +183,48 @@ document.getElementById('clinicForm').onsubmit = async (e) => {
     e.preventDefault();
     const empId = document.getElementById('employeeSelect').value;
     if (!empId) return alert('لطفاً ابتدا یک پرسنل را
+<script>
+const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+
+async function testConnection() {
+    const select = document.getElementById('employeeSelect');
+    try {
+        console.log("در حال ارسال درخواست به Supabase...");
+        const res = await fetch(`${URL_}/rest/v1/employees?select=*`, {
+            headers: { 
+                apikey: KEY, 
+                Authorization: `Bearer ${KEY}` 
+            }
+        });
+        
+        console.log("وضعیت پاسخ سرور:", res.status);
+        const text = await res.text();
+        console.log("متن پاسخ دریافتی:", text);
+
+        if (!res.ok) {
+            throw new Error(`خطای سرور: ${res.status} - ${text}`);
+        }
+
+        const data = JSON.parse(text);
+        if (data.length === 0) {
+            select.innerHTML = '<option value="">جدول employees خالی است!</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="">-- پرسنل با موفقیت لود شدند (انتخاب کنید) --</option>';
+        data.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp.emp_id; 
+            opt.textContent = `${emp.first_name} ${emp.last_name} (${emp.emp_id})`;
+            select.appendChild(opt);
+        });
+
+    } catch (err) {
+        console.error("خطای کامل:", err);
+        select.innerHTML = '<option value="">خطا در دریافت اطلاعات</option>';
+        alert("خطا رخ داد: " + err.message);
+    }
+}
+
+testConnection();
+</script>
