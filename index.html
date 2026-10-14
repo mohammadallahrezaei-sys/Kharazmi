@@ -1,99 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نرم‌افزار جامع HSE - سیستم مدیریت ایمنی، بهداشت و محیط زیست</title>
-    <!-- Tailwind CSS برای طراحی مدرن و ریسپانسیو -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- فونت وزیرمتن برای زیبایی متن‌های فارسی -->
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
-    <style>
-        body { font-family: 'Vazirmatn', sans-serif; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap">
+<script src="https://cdn.tailwindcss.com"></script>
+<style> body { font-family: 'Vazirmatn', sans-serif; } </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="max-w-md w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl text-center">
+        <div class="bg-emerald-500 text-slate-950 w-16 h-16 mx-auto rounded-2xl flex items-center justify-center font-black text-2xl mb-4 shadow-lg shadow-emerald-500/20">HSE</div>
+        <h1 class="text-2xl font-black text-white mb-1">نرم‌افزار جامع HSE</h1>
+        <p class="text-xs text-slate-400 mb-6">سامانه یکپارچه مدیریت ایمنی، بهداشت و تجهیزات</p>
 
-    <!-- هدر اصلی سامانه -->
-    <header class="bg-slate-800 border-b border-slate-700 shadow-md">
-        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
-            <div class="flex items-center space-x-3 space-x-reverse mb-3 md:mb-0">
-                <div class="bg-emerald-500 text-slate-950 p-2.5 rounded-xl font-black text-xl shadow-lg shadow-emerald-500/20">HSE</div>
-                <div>
-                    <h1 class="text-xl font-bold tracking-wide text-white">نرم‌افزار جامع HSE</h1>
-                    <p class="text-xs text-slate-400">سامانه یکپارچه مدیریت ایمنی، بهداشت حرفه‌ای و محیط زیست</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-2 space-x-reverse">
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                    متصل به پایگاه داده ابری (Supabase)
-                </span>
-            </div>
+        <div class="space-y-3">
+            <a href="checklists.html" class="block w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-colors shadow-md text-center">
+                📋 ماژول چک‌لیست‌ها و بازرسی
+            </a>
+            <a href="employees.html" class="block w-full py-3.5 px-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors text-center">
+                👥 ماژول بانک پرسنل (Supabase)
+            </a>
+            <a href="incidents.html" class="block w-full py-3.5 px-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors text-center">
+                ⚠️ ماژول حوادث و رویدادها
+            </a>
         </div>
-    </header>
-
-    <!-- محتوای اصلی و ماژول‌ها -->
-    <main class="container mx-auto px-4 py-8 flex-grow">
-        
-        <!-- خوش‌آمدگویی و آمار کلی -->
-        <div class="mb-8 bg-gradient-to-r from-slate-800 to-slate-800/60 border border-slate-700/80 rounded-2xl p-6 shadow-xl">
-            <h2 class="text-2xl font-black text-white mb-2">داشبورد مدیریت کارخانه</h2>
-            <p class="text-slate-300 text-sm leading-relaxed">
-                از طریق ماژول‌های زیر می‌توانید به بخش‌های مختلف ایمنی، بهداشت، بررسی پرسنل و چک‌لیست‌های تخصصی دسترسی داشته باشید.
-            </p>
-        </div>
-
-        <!-- گرید ماژول‌های اصلی سامانه -->
-        <h3 class="text-lg font-bold text-slate-200 mb-4 flex items-center">
-            <svg class="w-5 h-5 ml-2 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-            ماژول‌های عملیاتی سامانه
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-            <!-- ماژول ۱: چک‌لیست‌های ایمنی -->
-            <div class="bg-slate-800 border border-slate-700 hover:border-emerald-500/50 transition-all rounded-2xl p-6 shadow-lg flex flex-col justify-between group">
-                <div>
-                    <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-emerald-500 group-hover:text-slate-950 transition-colors">
-                        ✓
-                    </div>
-                    <h4 class="text-lg font-bold text-white mb-2">ماژول چک‌لیست‌ها</h4>
-                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
-                        مدیریت و ثبت بازرسی‌های روزانه، مجوزهای کار (PTW)، ایمنی تجهیزات تحت فشار، جرثقیل و انبارها.
-                    </p>
-                </div>
-                <div>
-                    <!-- اتصال به صفحه واقعی چک‌لیست‌ها -->
-                    <a href="checklists.html" class="block w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-center rounded-xl transition-colors shadow-md shadow-emerald-600/20">
-                        ورود به چک‌لیست‌ها
-                    </a>
-                </div>
-            </div>
-
-            <!-- ماژول ۲: بانک پرسنل و سلامت -->
-            <div class="bg-slate-800 border border-slate-700 hover:border-blue-500/50 transition-all rounded-2xl p-6 shadow-lg flex flex-col justify-between group">
-                <div>
-                    <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-blue-500 group-hover:text-slate-950 transition-colors">
-                        👥
-                    </div>
-                    <h4 class="text-lg font-bold text-white mb-2">بانک پرسنل و پرونده سلامت</h4>
-                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
-                        مدیریت اطلاعات پرسنل کارخانه، واحد خدمت، معاینات بدو استخدام و سوابق پزشکی متصل به Supabase.
-                    </p>
-                </div>
-                <div>
-                    <!-- اتصال به صفحه مدیریت پرسنل یا بخش مربوطه -->
-                    <a href="employees.html" class="block w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-center rounded-xl transition-colors shadow-md shadow-blue-600/20">
-                        مدیریت پرسنل
-                    </a>
-                </div>
-            </div>
-
-            <!-- ماژول ۳: حوادث و رویدادها -->
-            <div class="bg-slate-800 border border-slate-700 hover:border-amber-500/50 transition-all rounded-2xl p-6 shadow-lg flex flex-col justify-between group">
-                <div>
-                    <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
-                        ⚠️
-                    </div>
-                    <h4 class="text-lg font-bold text-white mb-2">گزارش حواد
+        <p class="text-[11px] text-slate-500 mt-6">طراحی‌شده برای مدیریت صنعتی - نسخه ماژولار</p>
+    </div>
+</body>
+</html>
