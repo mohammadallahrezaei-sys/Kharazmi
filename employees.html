@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>بانک پرسنل - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap">
+<script src="https://cdn.tailwindcss.com"></script>
+<style> body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc; } </style>
+</head>
+<body class="p-4 max-w-2xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-xl font-bold">بانک پرسنل کارخانه</h1>
+            <p class="text-xs text-slate-400">مدیریت و اطلاعات پرسنل متصل به Supabase</p>
+        </div>
+        <a href="index.html" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-300 hover:bg-slate-700">← بازگشت</a>
+    </div>
+
+    <div class="mb-4">
+        <input id="search" type="text" placeholder="جستجو بر اساس نام، شماره پرسنلی یا واحد..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
+    </div>
+
+    <div id="list" class="space-y-3">
+        <p class="text-center py-8 text-slate-400 text-sm">در حال بارگذاری اطلاعات پرسنل...</p>
+    </div>
+
+<script>
+const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+
+async function loadEmployees() {
+    try {
+        const res = await fetch(`${URL_}/rest/v1/employees?order=emp_id.asc&limit=300`, {
+            headers: { apikey: KEY, Authorization: `Bearer ${KEY}` }
+        });
+        const data = await res.json();
+        render(data);
+
+        document.getElementById('search').oninput = (e) => {
+            const q = e.target.value.toLowerCase();
+            const filtered = data.filter(item => 
+                (item.first_name + ' ' + item.last_name).toLowerCase().includes(q) ||
+                String(item.emp_id).toLowerCase().includes(q) ||
+                String(item.department).toLowerCase().includes(q) ||
+                String(item.job_title).toLowerCase().includes(q)
+            );
+            render(filtered);
+        };
+    } catch (e) {
+        document.getElementById('list').innerHTML = '<p class="text-center text-red-400 text-sm">خطا در برقراری ارتباط با پایگاه داده</p>';
+    }
+}
+
+function render(arr) {
+    const el = document.getElementById('list');
+    if (!arr.length) {
+        el.innerHTML = '<p class="text-center py-6 text-slate-500 text-sm">موردی یافت نشد.</p>';
+        return;
+    }
+    el.innerHTML = arr.map(x => `
+        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex justify-between items-center shadow-sm">
+            <div>
+                <p class="font-bold text-sm">${x.first_name} خانگی ${x.last_name} <span class="text-xs text-slate-400 font-normal">(${x.emp_id})</span></p>
+                <p class="text-xs text-slate-400 mt-1">واحد: <span class="text-slate-200 font-semibold">${x.department || 'نامشخص'}</span> · سمت: ${x.job_title || '-'}</p>
+            </div>
+            <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full" dir="ltr">${x.phone_mobile || 'بدون شماره'}</span>
+        </div>
+    `).join('');
+}
+
+loadEmployees();
+</script>
+</body>
+</html>
