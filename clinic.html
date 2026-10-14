@@ -270,11 +270,24 @@ function updateBadge() {
     $('openBadge').classList.toggle('hidden', !n);
 }
 
+/* ---------- تب‌ها و ناوبری ---------- */
+document.querySelectorAll('.tabBtn').forEach(btn => {
+    btn.onclick = function() {
+        tab = this.dataset.tab;
+        document.querySelectorAll('.tabBtn').forEach(b => b.classList.remove('tab-on', 'bg-emerald-600', 'text-slate-950'));
+        this.classList.add('tab-on');
+        $('paneNew').classList.toggle('hidden', tab !== 'new');
+        $('paneList').classList.toggle('hidden', !TAB_TITLE[tab]);$('paneFollow').classList.toggle('hidden', tab !== 'follow');
+        if (TAB_TITLE[tab]) renderList();
+        if (tab === 'follow') renderFollow();
+    };
+});
+document.querySelector('[data-tab="new"]').click();
+
 /* ---------- انتخاب پرسنل و خلاصه ---------- */
 $('empInput').oninput = function () {
     selEmp = employees.find(e => label(e) === this.value) || null;
-    $('summaryCard').classList.toggle('hidden', !selEmp);
-    $('formCard').classList.toggle('hidden', !selEmp);
+    $('summaryCard').classList.toggle('hidden', !selEmp);$('formCard').classList.toggle('hidden', !selEmp);
     if (selEmp) renderSummary();
 };
 
@@ -308,20 +321,18 @@ function renderMeds() {
             <button type="button" data-del="${i}" class="text-rose-400 text-xs px-2">حذف</button>
         </div>`).join('');
 }
-$('medList').addEventListener('input', e => { if (e.target.dataset.i !== undefined) meds[e.target.dataset.i].usage = e.target.value; });
-$('medList').addEventListener('click', e => { if (e.target.dataset.del !== undefined) { meds.splice(+e.target.dataset.del, 1); renderMeds(); } });
+$('medList').addEventListener('input', e => { if (e.target.dataset.i !== undefined) meds[e.target.dataset.i].usage = e.target.value; });$('medList').addEventListener('click', e => { if (e.target.dataset.del !== undefined) { meds.splice(+e.target.dataset.del, 1); renderMeds(); } });
 
-$('isReferred').onchange = function () {
-    $('refDest').classList.toggle('hidden', !this.checked);
+$('isReferred').onchange = function () {$('refDest').classList.toggle('hidden', !this.checked);
     if (!this.checked) $('refDest').value = '';
 };
 
-/* ---------- ثبت ویزیت + ساخت خودکار پیگیری ---------- */
+/* ---------- ثبت ویزیت + ساخت خودکار پیگیری (اصلاح‌شده) ---------- */
 $('clinicForm').onsubmit = async function (e) {
     e.preventDefault();
     if (!selEmp) { alert('ابتدا یک پرسنل را از لیست انتخاب کنید.'); return; }
 
-    const sys = $('bpSys').value, dia = $('bpDia').value;
+    const sys = $('bpSys').value, dia =$('bpDia').value;
     if ((sys && !dia) || (!sys && dia)) { alert('فشار بالا و پایین هر دو باید وارد شوند.'); return; }
     if (sys && (+sys <= +dia)) { alert('فشار بالا باید از فشار پایین بیشتر باشد.'); return; }
     if ($('isReferred').checked && !$('refDest').value.trim()) { alert('محل اعزام را وارد کنید.'); return; }
@@ -358,12 +369,22 @@ $('clinicForm').onsubmit = async function (e) {
         if (sys && (+sys >= 140 || +dia >= 90)) auto.push({ employee_id: selEmp.id, visit_id: visitId, kind: 'followup', priority: 'normal', title: 'کنترل مجدد فشار خون (' + sys + '/' + dia + ')', reason: 'فشار خون بالا در ویزیت', due_date: addDays(7) });
 
         if (auto.length) {
-            try { await api('clinic_followups', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(auto) }); }
-            catch (fe) { showDebug('ویزیت ثبت شد ولی ساخت پیگیری خودکار انجام نشد: ' + fe.message); }
+            try {
+                // ارسال تکی پیگیری‌ها برای جلوگیری از خطای ناسازگاری کلیدهای Bulk Insert
+                for (const item of auto) {
+                    await api('clinic_followups', {
+                        method: 'POST',
+                        headers: Object.assign({}, JH, { Prefer: 'return=minimal' }),
+                        body: JSON.stringify(item)
+                    });
+                }
+            } catch (fe) {
+                showDebug('ویزیت ثبت شد ولی ساخت پیگیری خودکار انجام نشد: ' + fe.message);
+            }
         }
 
         alert('مراجعه با موفقیت ثبت شد.' + (auto.length ? '\n' + auto.length + ' پیگیری خودکار ایجاد شد.' : ''));
-        $('clinicForm').reset(); meds = []; renderMeds(); $('refDest').classList.add('hidden');
+        $('clinicForm').reset(); meds = []; renderMeds();$('refDest').classList.add('hidden');
         await loadVisits();
         await loadFollowups();
     } catch (err) { showDebug(err.message); alert('خطا در ثبت اطلاعات: ' + err.message); }
@@ -426,8 +447,7 @@ $('listSearch').oninput = renderList;
 $('fuKind').innerHTML = Object.entries(KIND).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
 $('fuFKind').innerHTML = '<option value="">همه انواع</option>' + Object.entries(KIND).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
 
-$('toggleFuForm').onclick = () => $('fuFormCard').classList.toggle('hidden');
-$('fuCancel').onclick = () => { $('fuFormCard').classList.add('hidden'); $('fuForm').reset(); };
+$('toggleFuForm').onclick = () => $('fuFormCard').classList.toggle('hidden');$('fuCancel').onclick = () => { $('fuFormCard').classList.add('hidden');$('fuForm').reset(); };
 
 $('fuForm').onsubmit = async function (e) {
     e.preventDefault();
@@ -439,19 +459,19 @@ $('fuForm').onsubmit = async function (e) {
         await api('clinic_followups', {
             method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }),
             body: JSON.stringify({
-                employee_id: emp.id, kind: $('fuKind').value, priority: $('fuPrio').value,
-                title: $('fuTitle').value.trim(), destination: $('fuDest').value.trim() || null,
-                reason: $('fuReason').value.trim() || null, due_date: $('fuDue').value || null
+                employee_id: emp.id, kind: $('fuKind').value, priority:$('fuPrio').value,
+                title: $('fuTitle').value.trim(), destination:$('fuDest').value.trim() || null,
+                reason: $('fuReason').value.trim() \vert{}\vert{} null, due_date:$('fuDue').value || null
             })
         });
-        $('fuForm').reset(); $('fuFormCard').classList.add('hidden');
+        $('fuForm').reset();$('fuFormCard').classList.add('hidden');
         await loadFollowups();
     } catch (err) { showDebug(err.message); alert('خطا در ثبت: ' + err.message); }
     finally { btn.disabled = false; btn.textContent = 'ثبت'; }
 };
 
 function renderFollow() {
-    const fs = $('fuFStatus').value, fk = $('fuFKind').value, q = $('fuSearch').value.trim().toLowerCase();
+    const fs = $('fuFStatus').value, fk = $('fuFKind').value, q =$('fuSearch').value.trim().toLowerCase();
     const st = f => effStatus(f);
     const open = followups.filter(f => ['pending', 'overdue'].includes(st(f)));
     const soon = open.filter(f => f.due_date && daysDiff(f.due_date) >= 0 && daysDiff(f.due_date) <= 7).length;
@@ -472,7 +492,6 @@ function renderFollow() {
         }
         return true;
     });
-    // فوری‌ها و معوق‌ها اول
     shown.sort((a, b) => ((st(b) === 'overdue') - (st(a) === 'overdue')) || ((b.priority === 'urgent') - (a.priority === 'urgent')));
 
     if (!shown.length) { $('fuBody').innerHTML = '<p class="text-center py-8 text-slate-500 text-sm">موردی یافت نشد.</p>'; return; }
@@ -480,87 +499,87 @@ function renderFollow() {
     $('fuBody').innerHTML = shown.map(f => {
         const e = empById(f.employee_id) || {};
         const s = st(f);
-        const sCls = { pending: 'bg-slate-500/10 text-slate-300 border-slate-500/30', overdue: 'bg-rose-500/10 text-rose-400 border-rose-500/30', done: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', cancelled: 'bg-slate-600/10 text-slate-500 border-slate-600/30' }[s];
-        let due = '';
-        if (f.due_date) {
-            const d = daysDiff(f.due_date);
-            const rel = s === 'overdue' ? `${Math.abs(d)} روز تأخیر` : (d === 0 ? 'امروز' : (d > 0 ? `${d} روز دیگر` : ''));
-            due = `<p class="text-[11px] text-slate-400 mt-1">سررسید: ${fday(f.due_date)}${(['pending', 'overdue'].includes(s) && rel) ? ' · <span class="' + (s === 'overdue' ? 'text-rose-400' : 'text-amber-400') + '">' + rel + '</span>' : ''}</p>`;
-        }
-        const line = (t, x) => x ? `<p class="text-xs text-slate-300 mt-1"><span class="text-slate-500">${t}:</span> ${esc(x)}</p>` : '';
+        const isUrgent = f.priority === 'urgent';
+        let badge = '<span class="text-[10px] border px-2 py-0.5 rounded-full bg-slate-900 border-slate-700 text-slate-400">در انتظار</span>';
+        if (s === 'overdue') badge = '<span class="text-[10px] border px-2 py-0.5 rounded-full bg-rose-500/10 border-rose-500/30 text-rose-400">معوق</span>';
+        else if (s === 'done') badge = '<span class="text-[10px] border px-2 py-0.5 rounded-full bg-emerald-500/10 border-emerald-500/30 text-emerald-400">انجام‌شده</span>';
+        else if (s === 'cancelled') badge = '<span class="text-[10px] border px-2 py-0.5 rounded-full bg-slate-700/50 border-slate-600 text-slate-400">لغوشده</span>';
+
         return `
-        <div class="bg-slate-800 border ${s === 'overdue' ? 'border-rose-500/50' : 'border-slate-700'} p-4 rounded-xl">
+        <div class="bg-slate-800 border ${s === 'overdue' ? 'border-rose-500/50' : 'border-slate-700'} p-4 rounded-xl space-y-2">
             <div class="flex justify-between items-start gap-2 flex-wrap">
                 <div>
-                    <p class="font-bold text-sm">${esc(e.first_name)} ${esc(e.last_name)} <span class="text-xs text-slate-400 font-normal">(کد ${esc(e.emp_id)} - ${esc(e.department || 'نامشخص')})</span></p>
-                    <p class="text-sm mt-1">${esc(f.title)}</p>
+                    <p class="font-bold text-sm text-white">${esc(e.first_name)} ${esc(e.last_name)} <span class="text-xs text-slate-400 font-normal">(کد ${esc(e.emp_id)} - ${esc(e.department || 'نامشخص')})</span></p>
+                    <p class="text-xs font-bold text-emerald-400 mt-1">${esc(f.title)} <span class="text-[11px] font-normal text-slate-400">(${KIND[f.kind] || f.kind})</span></p>
                 </div>
-                <div class="flex gap-1.5 flex-wrap">
-                    <span class="text-[11px] border px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border-blue-500/30">${KIND[f.kind] || esc(f.kind)}</span>
-                    ${f.priority === 'urgent' ? '<span class="text-[11px] border px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border-rose-500/30">فوری</span>' : ''}
-                    <span class="text-[11px] border px-2 py-0.5 rounded-full ${sCls}">${STATUS_TXT[s]}</span>
+                <div class="flex gap-1.5 items-center flex-wrap">
+                    ${isUrgent ? '<span class="text-[10px] border px-2 py-0.5 rounded-full bg-rose-500/10 border-rose-500/30 text-rose-400 font-bold">فوری</span>' : ''}
+                    ${badge}
                 </div>
             </div>
-            ${due}${line('مقصد', f.destination)}${line('دلیل', f.reason)}
-            ${s === 'done' ? `<div class="mt-2 p-2 bg-slate-900 rounded-lg border border-slate-700">
-                ${line('نتیجه', f.result_notes)}
-                ${f.fitness ? `<p class="text-xs mt-1"><span class="text-slate-500">صلاحیت کار:</span> <span class="${f.fitness === 'fit' ? 'text-emerald-400' : (f.fitness === 'unfit' ? 'text-rose-400' : 'text-amber-400')} font-bold">${FIT[f.fitness]}</span></p>` : ''}
-                ${line('محدودیت‌ها', f.restrictions)}
-                <p class="text-[11px] text-slate-500 mt-1">تکمیل: ${fdate(f.completed_at)}</p></div>` : ''}
-            ${['pending', 'overdue'].includes(s) ? `<div class="flex gap-2 mt-3">
-                <button data-done="${f.id}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-lg text-xs">تکمیل</button>
-                <button data-cancel="${f.id}" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs">لغو</button></div>` : ''}
+            <div class="text-[11px] text-slate-400 flex gap-4 flex-wrap">
+                <span>📅 سررسید: ${f.due_date ? fday(f.due_date) : 'تعیین‌نشده'}</span>
+                ${f.destination ? `<span>🏥 مقصد: ${esc(f.destination)}</span>` : ''}
+            </div>
+            ${f.reason ? `<p class="text-xs text-slate-300 bg-slate-900/60 p-2 rounded-lg border border-slate-700/50">توضیحات: ${esc(f.reason)}</p>` : ''}
+            ${f.result_notes ? `<p class="text-xs text-emerald-300 bg-emerald-950/30 p-2 rounded-lg border border-emerald-500/30">نتیجه: ${esc(f.result_notes)}${f.fitness_status ? '· ' + (FIT[f.fitness_status] || f.fitness_status) : ''}</p>` : ''}
+            ${['pending', 'overdue'].includes(s) ? `
+                <div class="flex gap-2 pt-1">
+                    <button onclick="openDoneModal('${f.id}', '${esc(f.title)}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs">تکمیل پیگیری</button>
+                    <button onclick="updateFuStatus('${f.id}', 'cancelled')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-xs">لغو</button>
+                </div>` : ''}
         </div>`;
     }).join('');
 }
-['fuFStatus', 'fuFKind'].forEach(id => $(id).onchange = renderFollow);
+
+$('fuFStatus').onchange = renderFollow;
+$('fuFKind').onchange = renderFollow;
 $('fuSearch').oninput = renderFollow;
 
-async function patchFollow(id, data) {
-    await api('clinic_followups?id=eq.' + id, { method: 'PATCH', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(data) });
-    await loadFollowups();
+/* ---------- مودال تکمیل پیگیری ---------- */
+function openDoneModal(id, title) {
+    doneId = id;
+    $('doneTitle').textContent = 'پیگیری: ' + title;
+    $('doneResult').value = '';
+    $('doneFit').value = '';$('doneRestr').value = '';
+    $('restrBox').classList.add('hidden');$('doneModal').classList.remove('hidden');
 }
+$('doneClose').onclick = () => {$('doneModal').classList.add('hidden'); doneId = null; };
+$('doneFit').onchange = function() {$('restrBox').classList.toggle('hidden', this.value !== 'fit_restricted'); };
 
-$('fuBody').addEventListener('click', async e => {
-    const d = e.target.dataset;
-    if (d.done) {
-        doneId = d.done;
-        const f = followups.find(x => x.id === doneId);
-        $('doneTitle').textContent = f ? f.title : '';
-        $('doneResult').value = ''; $('doneFit').value = ''; $('doneRestr').value = ''; $('restrBox').classList.add('hidden');
-        $('doneModal').classList.remove('hidden');
-    }
-    if (d.cancel && confirm('این پیگیری لغو شود؟')) {
-        try { await patchFollow(d.cancel, { status: 'cancelled' }); } catch (err) { showDebug(err.message); }
-    }
-});
-
-$('doneFit').onchange = function () { $('restrBox').classList.toggle('hidden', this.value !== 'fit_restricted' && this.value !== 'unfit'); };
-$('doneClose').onclick = () => $('doneModal').classList.add('hidden');
-$('doneOk').onclick = async () => {
+$('doneOk').onclick = async function() {
     if (!doneId) return;
+    const notes = $('doneResult').value.trim();
+    if (!notes) { alert('لطفاً نتیجه یا گزارش پیگیری را وارد کنید.'); return; }
+    const fit = $('doneFit').value;
+    const restr = $('doneRestr').value.trim();
+
     try {
-        await patchFollow(doneId, {
-            status: 'done', completed_at: new Date().toISOString(),
-            result_notes: $('doneResult').value.trim() || null,
-            fitness: $('doneFit').value || null,
-            restrictions: $('doneRestr').value.trim() || null
+        await api('clinic_followups?id=eq.' + doneId, {
+            method: 'PATCH', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }),
+            body: JSON.stringify({
+                status: 'done',
+                result_notes: notes + (restr ? ' (محدودیت: ' + restr + ')' : ''),
+                fitness_status: fit || null,
+                completed_at: new Date().toISOString()
+            })
         });
-        $('doneModal').classList.add('hidden'); doneId = null;
-    } catch (err) { showDebug(err.message); alert('خطا: ' + err.message); }
+        $('doneModal').classList.add('hidden');
+        doneId = null;
+        await loadFollowups();
+    } catch (err) { showDebug(err.message); alert('خطا در ثبت تکمیل: ' + err.message); }
 };
 
-/* ---------- تب‌ها ---------- */
-document.querySelectorAll('.tabBtn').forEach(b => b.onclick = () => {
-    tab = b.dataset.tab;
-    document.querySelectorAll('.tabBtn').forEach(x => x.classList.toggle('tab-on', x === b));
-    $('paneNew').classList.toggle('hidden', tab !== 'new');
-    $('paneList').classList.toggle('hidden', !TAB_TITLE[tab]);
-    $('paneFollow').classList.toggle('hidden', tab !== 'follow');
-    if (TAB_TITLE[tab]) renderList();
-    if (tab === 'follow') renderFollow();
-});
-document.querySelector('[data-tab="new"]').classList.add('tab-on');
+async function updateFuStatus(id, status) {
+    if (!confirm('آیا از تغییر وضعیت این مورد اطمینان دارید؟')) return;
+    try {
+        await api('clinic_followups?id=eq.' + id, {
+            method: 'PATCH', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }),
+            body: JSON.stringify({ status })
+        });
+        await loadFollowups();
+    } catch (err) { showDebug(err.message); alert('خطا: ' + err.message); }
+}
 
 loadAll();
 </script>
