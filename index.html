@@ -36,7 +36,7 @@
             </a>
         </div>
 
-        <!-- ویجت جدید خلاصه وضعیت حوادث و بهداری -->
+        <!-- ویجت خلاصه وضعیت حوادث و بهداری -->
         <div id="clinicAlertWidget" class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all">
             <div class="flex items-center space-x-3 space-x-reverse">
                 <div id="clinicAlertIcon" class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400">
@@ -52,6 +52,22 @@
             </a>
         </div>
 
+        <!-- ویجت جدید خلاصه سوابق انضباطی و اخطارها -->
+        <div id="ekhtarAlertWidget" class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div id="ekhtarAlertIcon" class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400">
+                    ⚠️
+                </div>
+                <div>
+                    <h3 id="ekhtarAlertTitle" class="text-sm font-bold text-white">سوابق انضباطی و اخطارها</h3>
+                    <p id="ekhtarAlertDesc" class="text-xs text-slate-400">در حال بارگذاری آمار انضباطی...</p>
+                </div>
+            </div>
+            <a href="ekhtar.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors font-medium">
+                مدیریت
+            </a>
+        </div>
+
         <!-- ماژول‌های اصلی سامانه -->
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-3">
             <h2 class="text-sm font-bold text-slate-300 mb-2">ماژول‌های عملیاتی</h2>
@@ -63,6 +79,11 @@
             <!-- ماژول بهداری و حوادث شغلی -->
             <a href="clinic.html" class="block w-full py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-sm">
                 🏥 ماژول بهداری و سوابق پزشکی
+            </a>
+
+            <!-- ماژول اخطار و انضباطی -->
+            <a href="ekhtar.html" class="block w-full py-3 px-4 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-sm">
+                ⚠️ ماژول سوابق انضباطی و اخطارها
             </a>
 
             <a href="employees.html" class="block w-full py-3 px-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors text-center text-sm">
@@ -111,7 +132,6 @@ async function checkOpenFindings() {
 
 async function checkClinicSummary() {
     try {
-        // دریافت حوادث و پیگیری‌های باز
         const [incRes, fuRes] = await Promise.all([
             fetch(`${URL_}/rest/v1/clinic_incidents?select=id,severity`, { headers }),
             fetch(`${URL_}/rest/v1/clinic_followups?status=in.(pending,overdue)&select=id`, { headers })
@@ -147,8 +167,39 @@ async function checkClinicSummary() {
     }
 }
 
+async function checkEkhtarSummary() {
+    try {
+        const res = await fetch(`${URL_}/rest/v1/ekhtars?select=record_type`, { headers });
+        const data = await res.json();
+        const total = Array.isArray(data) ? data.length : 0;
+        const ekhtars = Array.isArray(data) ? data.filter(x => x.record_type === 'اخطار کتبی').length : 0;
+
+        const widget = document.getElementById('ekhtarAlertWidget');
+        const icon = document.getElementById('ekhtarAlertIcon');
+        const title = document.getElementById('ekhtarAlertTitle');
+        const desc = document.getElementById('ekhtarAlertDesc');
+
+        if (ekhtars > 0) {
+            widget.className = "bg-amber-950/40 border border-amber-500/40 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all";
+            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-amber-500/20 text-amber-400";
+            icon.innerHTML = "⚠️";
+            title.innerHTML = `سوابق انضباطی: ${total} مورد ثبت‌شده`;
+            desc.innerHTML = `${ekhtars} اخطار کتبی و تذکر ثبت شده است.`;
+        } else {
+            widget.className = "bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all";
+            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400";
+            icon.innerHTML = "✓";
+            title.innerHTML = `مجموع سوابق انضباطی: ${total}`;
+            desc.innerHTML = "وضعیت انضباطی پرسنل پایدار است.";
+        }
+    } catch (e) {
+        document.getElementById('ekhtarAlertDesc').innerHTML = "آماده‌به‌کار (بخش انضباطی)";
+    }
+}
+
 checkOpenFindings();
 checkClinicSummary();
+checkEkhtarSummary();
 </script>
 </body>
 </html>
