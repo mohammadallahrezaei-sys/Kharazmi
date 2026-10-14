@@ -122,7 +122,7 @@ function loginV(m = '') {
   view(`
     <div style="max-width:380px; margin:40px auto; text-align:center;">
       <div class="mb-4 flex justify-center">
-        <img src="logo.png" alt="گسترش فناوری خوارزمی" class="w-20 h-auto rounded-lg shadow" onerror="this.style.display='none'">
+        <img src="logo.png" alt="گسترش فناوری خوارزمی" class="w-16 h-auto rounded-lg shadow" onerror="this.style.display='none'">
       </div>
       <h2 style="justify-content:center; font-size:24px; margin-bottom:20px;">ورود به ماژول چک‌لیست‌ها</h2>
       <input id="em" type="email" dir="ltr" placeholder="ایمیل کاربر">
@@ -150,13 +150,13 @@ async function home() {
   view(`
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;" class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
       <div class="flex items-center gap-3">
-        <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded shadow" onerror="this.style.display='none'">
+        <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded shadow object-contain" onerror="this.style.display='none'">
         <div>
           <h2 style="margin:0;" class="text-base">ماژول چک‌لیست‌های ایمنی</h2>
           <small>بازرسی‌های تخصصی کارخانه</small>
         </div>
       </div>
-      <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors">← بازگشت</a>
+      <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors shrink-0">← بازگشت</a>
     </div>
     <div style="margin-bottom:14px;">
       <button class="p" data-a="history" style="background:var(--ok); border-color:var(--ok); color:#fff;">📋 تاریخچه کامل بازدیدها (گزارش‌های ثبت‌شده)</button>
@@ -180,7 +180,10 @@ async function historyList() {
   try {
     const r = await api('inspections?order=created_at.desc&limit=100');
     view(`
-      <button class="l" data-a="home">‹ بازگشت به لیست چک‌لیست‌ها</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
+        <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors">← داشبورد اصلی</a>
+      </div>
       <h2>تاریخچه جامع بازدیدها</h2>
       <small>لیست تمام بازرسی‌های ثبت‌شده (ایمن و دارای عدم‌انطباق)</small>
 
@@ -202,7 +205,10 @@ async function historyList() {
 function form() {
   const m = cur, extras = m[5] || [];
   view(`
-    <button class="l" data-a="home">‹ بازگشت به لیست</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
+      <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors">← داشبورد اصلی</a>
+    </div>
     <h2>${m[1]}</h2>
     <small>${m[2]} ${m[3] ? ' · ' + m[3] : ''}</small>
 
@@ -350,7 +356,10 @@ async function finds(iid) {
   try {
     const r = await api('findings?order=status.desc,created_at.desc&limit=200' + (FI ? '&inspection_id=eq.' + FI : ''));
     view(`
-      <button class="l" data-a="home">‹ بازگشت به لیست</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
+        <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors">← داشبورد اصلی</a>
+      </div>
       <h2>${FI ? 'ثبت اعلان عدم‌انطباق' : 'مدیریت و پیگیری عدم‌انطباق‌ها'}</h2>
       <small>تعداد موارد باز: ${r.filter(x => x.status == 'open').length}</small>
 
@@ -513,7 +522,10 @@ async function rep(d = 30, mk = '') {
 
     view(`
       <div class="np">
-        <button class="l" data-a="home">‹ بازگشت به لیست</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
+          <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors">← داشبورد اصلی</a>
+        </div>
         <div style="display:flex; gap:8px; margin-top:8px;">
           <select id="rd"><option value="7">۷ روز گذشته</option><option value="30">۳۰ روز گذشته</option><option value="90">۹۰ روز گذشته</option><option value="0">تمام سوابق</option></select>
           <select id="rm"><option value="">تمام چک‌لیست‌ها</option>${M.map(m => `<option value="${m[0]}">${m[1]}</option>`).join('')}</select>
