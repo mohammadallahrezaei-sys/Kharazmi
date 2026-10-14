@@ -1,241 +1,57 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ماژول بهداری و حوادث - سیستم جامع HSE</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Client CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Vazirmatn Font -->
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
-    <style>
-        body { font-family: 'Vazirmatn', sans-serif; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>بهداری و سوابق پزشکی - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap">
+<script src="https://cdn.tailwindcss.com"></script>
+<style> body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc; } </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-
-    <!-- منوی ناوبری بالا (هماهنگ با ایندکس) -->
-    <header class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-gray-800">🏥 ماژول بهداری و سوابق پزشکی پرسنل</h1>
-            <a href="index.html" class="text-blue-600 hover:text-blue-800 text-sm font-medium">← بازگشت به داشبورد اصلی</a>
+<body class="p-4 max-w-3xl mx-auto flex flex-col min-h-screen justify-between">
+    <div>
+        <!-- هدر بالای صفحه -->
+        <div class="flex justify-between items-center mb-6 bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-lg">🏥</div>
+                <div>
+                    <h1 class="text-base font-bold text-white">بهداری و سوابق پزشکی</h1>
+                    <p class="text-[11px] text-slate-400">مدیریت مراجعین، هشدارهای دارویی و حوادث شغلی</p>
+                </div>
+            </div>
+            <a href="index.html" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-300 hover:bg-slate-700">← بازگشت</a>
         </div>
-    </header>
 
-    <main class="max-w-5xl mx-auto p-6 mt-6">
-        
-        <!-- بخش انتخاب پرسنل -->
-        <div class="bg-white p-6 rounded-xl shadow-md mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">انتخاب پرسنل برای بررسی پرونده یا ثبت ویزیت:</label>
-            <select id="employeeSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                <option value="">-- در حال بارگذاری لیست پرسنل از جدول employees... --</option>
+        <!-- انتخاب پرسنل -->
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-4 space-y-3">
+            <label class="block text-xs font-bold text-slate-300">انتخاب پرسنل جهت بررسی پرونده یا ثبت ویزیت:</label>
+            <select id="employeeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
+                <option value="">-- در حال بارگذاری لیست پرسنل... --</option>
             </select>
         </div>
 
-        <!-- بخش نمایش خلاصه وضعیت و هشدارهای پزشکی (به صورت داینامیک ظاهر می‌شود) -->
-        <div id="healthSummaryCard" class="hidden bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-md">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">خلاصه پرونده سلامت و هشدارهای پزشکی</h3>
+        <!-- بخش نمایش خلاصه وضعیت و هشدارهای پزشکی (مخفی تا انتخاب فرد) -->
+        <div id="healthSummaryCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-4 space-y-4">
+            <h3 class="text-xs font-bold text-slate-300 border-b border-slate-700 pb-2">خلاصه پرونده سلامت و آمار سوابق</h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <div class="bg-gray-50 p-3 rounded-lg border">
-                    <span class="text-xs text-gray-500 block">گروه خونی</span>
-                    <span id="txtBloodType" class="font-bold text-gray-800">-</span>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
+                    <span class="text-[10px] text-slate-400 block mb-1">گروه خونی</span>
+                    <span id="txtBloodType" class="font-bold text-white text-sm">-</span>
                 </div>
-                <div class="bg-gray-50 p-3 rounded-lg border">
-                    <span class="text-xs text-gray-500 block">تعداد کل مراجعین</span>
-                    <span id="txtTotalVisits" class="font-bold text-gray-800">0 بار</span>
+                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
+                    <span class="text-[10px] text-slate-400 block mb-1">تعداد کل مراجعین</span>
+                    <span id="txtTotalVisits" class="font-bold text-white text-sm">0 بار</span>
                 </div>
-                <div class="bg-gray-50 p-3 rounded-lg border">
-                    <span class="text-xs text-gray-500 block">مجموع حوادث ثبت‌شده</span>
-                    <span id="txtTotalIncidents" class="font-bold text-red-600">0 مورد</span>
+                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
+                    <span class="text-[10px] text-slate-400 block mb-1">حوادث ثبت‌شده</span>
+                    <span id="txtTotalIncidents" class="font-bold text-rose-400 text-sm">0 مورد</span>
                 </div>
-                <div class="bg-gray-50 p-3 rounded-lg border">
-                    <span class="text-xs text-gray-500 block">تعداد اعزام‌ها</span>
-                    <span id="txtTotalReferrals" class="font-bold text-blue-600">0 مورد</span>
+                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
+                    <span class="text-[10px] text-slate-400 block mb-1">اعزام‌ها</span>
+                    <span id="txtTotalReferrals" class="font-bold text-blue-400 text-sm">0 مورد</span>
                 </div>
             </div>
 
-            <!-- باکس هشدارهای دارویی و حساسیت‌ها (باکس قرمز) -->
-            <div id="alertBox" class="hidden bg-red-50 border-r-4 border-red-500 p-4 rounded-lg text-red-700">
-                <p class="font-bold flex items-center gap-2">⚠️ هشدارهای مهم پزشکی و دارویی:</p>
-                <ul id="alertList" class="list-disc list-inside mt-2 text-sm space-y-1"></ul>
-            </div>
-        </div>
-
-        <!-- فرم ثبت ویزیت یا حادثه جدید -->
-        <div id="visitFormContainer" class="hidden bg-white p-6 rounded-xl shadow-md">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">ثبت ویزیت یا حادثه جدید</h3>
-            
-            <form id="clinicForm" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">علت مراجعه</label>
-                        <select id="visitReason" class="w-full p-2.5 border rounded-lg">
-                            <option value="illness">بیماری عمومی / سرپایی</option>
-                            <option value="incident">حادثه شغلی</option>
-                            <option value="checkup">معاینه و کنترل دوره‌ای</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">فشار خون</label>
-                        <input type="text" id="bloodPressure" placeholder="مثلاً 12/8" class="w-full p-2.5 border rounded-lg">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">شکایت اصلی بیمار / علائم</label>
-                    <textarea id="chiefComplaint" rows="2" class="w-full p-2.5 border rounded-lg" placeholder="توضیح علائم یا شرح حال..."></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">اقدامات / داروهای تحویلی</label>
-                    <textarea id="treatmentsGiven" rows="2" class="w-full p-2.5 border rounded-lg" placeholder="نام دارو یا اقدامات انجام‌شده..."></textarea>
-                </div>
-
-                <div class="flex items-center gap-4 bg-gray-50 p-4 rounded-lg">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="isReferred" class="w-4 h-4 text-blue-600 rounded">
-                        <span class="text-sm font-medium text-gray-700">اعزام به مرکز درمانی خارج از کارخانه</span>
-                    </label>
-                    <input type="text" id="referralDestination" placeholder="محل اعزام (بیمارستان...)" class="p-2 border rounded-lg flex-1 text-sm hidden">
-                </div>
-
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium p-3 rounded-lg transition">
-                    ثبت نهایی مراجعه در سیستم
-                </button>
-            </form>
-        </div>
-
-    </main>
-
-    <!-- اسکریپت‌های اتصال به Supabase و منطق صفحه -->
-    <script>
-        // تنظیمات اتصال به سوپابیس (اطلاعات پروژه شما)
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        const employeeSelect = document.getElementById('employeeSelect');
-        const healthSummaryCard = document.getElementById('healthSummaryCard');
-        const visitFormContainer = document.getElementById('visitFormContainer');
-        const isReferredCheckbox = document.getElementById('isReferred');
-        const referralInput = document.getElementById('referralDestination');
-
-        // ۱. لود لیست پرسنل از جدول employees در هنگام بارگذاری صفحه
-        async function loadEmployees() {
-            const { data, error } = await _supabase.from('employees').select('id, first_name, last_name, personnel_code');
-            
-            if (error) {
-                console.error('خطا در دریافت لیست پرسنل:', error.message);
-                employeeSelect.innerHTML = '<option value="">خطا در بارگذاری پرسنل</option>';
-                return;
-            }
-
-            employeeSelect.innerHTML = '<option value="">-- لطفاً پرسنل را انتخاب کنید --</option>';
-            data.forEach(emp => {
-                const opt = document.createElement('option');
-                opt.value = emp.id;
-                opt.textContent = `${emp.first_name || ''} ${emp.last_name || ''} ${emp.personnel_code ? `(کد: ${emp.personnel_code})` : ''}`;
-                employeeSelect.appendChild(opt);
-            });
-        }
-
-        // ۲. با تغییر انتخاب پرسنل، فراخوانی تابع RPC در سوپابیس برای دریافت خلاصه وضعیت
-        employeeSelect.addEventListener('change', async (e) => {
-            const employeeId = e.target.value;
-            if (!employeeId) {
-                healthSummaryCard.classList.add('hidden');
-                visitFormContainer.classList.add('hidden');
-                return;
-            }
-
-            // فراخوانی تابع RPC که قبلاً در سوپابیس ساختیم
-            const { data, error } = await _supabase.rpc('get_employee_health_summary', {
-                target_employee_id: employeeId
-            });
-
-            if (error) {
-                alert('خطا در دریافت اطلاعات پزشکی: ' + error.message);
-                return;
-            }
-
-            // پر کردن مقادیر در کارت خلاصه وضعیت
-            document.getElementById('txtBloodType').textContent = data.profile?.blood_type || 'ثبت‌نشده';
-            document.getElementById('txtTotalVisits').textContent = (data.stats?.total_visits || 0) + ' بار';
-            document.getElementById('txtTotalIncidents').textContent = (data.stats?.total_incidents || 0) + ' مورد';
-            document.getElementById('txtTotalReferrals').textContent = (data.stats?.total_referrals || 0) + ' مورد';
-
-            // مدیریت باکس هشدارهای دارویی و ممنوعه
-            const alertBox = document.getElementById('alertBox');
-            const alertList = document.getElementById('alertList');
-            alertList.innerHTML = '';
-
-            let hasAlerts = false;
-            if (data.profile?.banned_medications && data.profile.banned_medications.length > 0) {
-                alertList.innerHTML += `<li><strong>داروهای ممنوعه:</strong> ${data.profile.banned_medications.join(', ')}</li>`;
-                hasAlerts = true;
-            }
-            if (data.profile?.allergies && data.profile.allergies.length > 0) {
-                alertList.innerHTML += `<li><strong>حساسیت‌ها:</strong> ${data.profile.allergies.join(', ')}</li>`;
-                hasAlerts = true;
-            }
-            if (data.profile?.work_restrictions && data.profile.work_restrictions.length > 0) {
-                alertList.innerHTML += `<li><strong>محدودیت‌های شغلی:</strong> ${data.profile.work_restrictions.join(', ')}</li>`;
-                hasAlerts = true;
-            }
-
-            if (hasAlerts) {
-                alertBox.classList.remove('hidden');
-            } else {
-                alertBox.classList.add('hidden');
-            }
-
-            healthSummaryCard.classList.remove('hidden');
-            visitFormContainer.classList.remove('hidden');
-        });
-
-        // نمایش یا مخفی کردن فیلد محل اعزام
-        isReferredCheckbox.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                referralInput.classList.remove('hidden');
-            } else {
-                referralInput.classList.add('hidden');
-                referralInput.value = '';
-            }
-        });
-
-        // ۳. ثبت فرم ویزیت در جدول clinic_visits
-        document.getElementById('clinicForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const employeeId = employeeSelect.value;
-
-            const visitPayload = {
-                employee_id: employeeId,
-                visit_reason: document.getElementById('visitReason').value,
-                blood_pressure: document.getElementById('bloodPressure').value,
-                chief_complaint: document.getElementById('chiefComplaint').value,
-                treatments_given: document.getElementById('treatmentsGiven').value,
-                is_referred: isReferredCheckbox.checked,
-                referral_destination: referralInput.value || null
-            };
-
-            const { error } = await _supabase.from('clinic_visits').insert([visitPayload]);
-
-            if (error) {
-                alert('خطا در ثبت اطلاعات: ' + error.message);
-            } else {
-                alert('مراجعه با موفقیت در سیستم ثبت شد.');
-                document.getElementById('clinicForm').reset();
-                referralInput.classList.add('hidden');
-                // رفرش کردن اطلاعات خلاصه
-                employeeSelect.dispatchEvent(new Event('change'));
-            }
-        });
-
-        // اجرای اولیه لود پرسنل هنگام باز شدن صفحه
-        loadEmployees();
-    </script>
-</body>
-</html>
+            <!-- باکس هشدارهای دارویی و ممنوعه (در صورت وجود) -->
+            <div id="alertBox" class="hidden bg-rose-950/40
