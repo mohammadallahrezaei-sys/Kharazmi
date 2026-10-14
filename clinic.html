@@ -24,9 +24,9 @@
             </div>
         </div>
 
-        <!-- باکس نمایش خطاهای احتمالی دیتابیس -->
+        <!-- باکس نمایش خطا -->
         <div id="debugBox" class="hidden mb-4 p-4 bg-red-950/80 border border-red-500 text-red-200 rounded-2xl text-xs space-y-1">
-            <p class="font-bold">⚠️ خطای اتصال به دیتابیس:</p>
+            <p class="font-bold">⚠️ خطای سیستم:</p>
             <p id="debugText"></p>
         </div>
 
@@ -34,18 +34,18 @@
         <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-4 space-y-3">
             <label class="block text-xs font-bold text-slate-300">انتخاب پرسنل جهت بررسی پرونده یا ثبت ویزیت:</label>
             <select id="employeeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
-                <option value="">-- در حال ارتباط با دیتابیس و دریافت پرسنل... --</option>
+                <option value="">-- در حال بارگذاری لیست پرسنل از دیتابیس... --</option>
             </select>
         </div>
 
-        <!-- بخش نمایش خلاصه وضعیت و هشدارهای پزشکی (مخفی تا انتخاب فرد) -->
+        <!-- بخش نمایش خلاصه وضعیت (مخفی تا انتخاب فرد) -->
         <div id="healthSummaryCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md mb-4 space-y-4">
             <h3 class="text-xs font-bold text-slate-300 border-b border-slate-700 pb-2">خلاصه پرونده سلامت و آمار سوابق</h3>
             
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
                     <span class="text-[10px] text-slate-400 block mb-1">گروه خونی</span>
-                    <span id="txtBloodType" class="font-bold text-white text-sm">-</span>
+                    <span id="txtBloodType" class="font-bold text-white text-sm">ثبت‌نشده</span>
                 </div>
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
                     <span class="text-[10px] text-slate-400 block mb-1">تعداد کل مراجعین</span>
@@ -59,12 +59,6 @@
                     <span class="text-[10px] text-slate-400 block mb-1">اعزام‌ها</span>
                     <span id="txtTotalReferrals" class="font-bold text-blue-400 text-sm">0 مورد</span>
                 </div>
-            </div>
-
-            <!-- باکس هشدارهای دارویی و ممنوعه -->
-            <div id="alertBox" class="hidden bg-rose-950/40 border border-rose-500/40 p-4 rounded-xl text-rose-300 text-xs space-y-1">
-                <p class="font-bold mb-1">⚠️ هشدارهای مهم پزشکی و دارویی:</p>
-                <ul id="alertList" class="list-disc list-inside space-y-1"></ul>
             </div>
         </div>
 
@@ -131,27 +125,27 @@ function showDebug(msg) {
 async function loadEmployees() {
     const select = document.getElementById('employeeSelect');
     try {
-        const res = await fetch(`${URL_}/rest/v1/employees?select=*`, {
-            headers: { apikey: KEY, Authorization: `Bearer ${KEY}` }
+        const res = await fetch(`${URL_}/rest/v1/employees?select=emp_id,first_name,last_name,department&order=emp_id.asc`, {
+            headers: { 
+                apikey: KEY, 
+                Authorization: `Bearer ${KEY}` 
+            }
         });
         
-        const textData = await res.text();
-        if (!res.ok) {
-            throw new Error(`خطای سرور (${res.status}): ${textData}`);
-        }
+        if (!res.ok) throw new Error(await res.text());
 
-        const employeesList = JSON.parse(textData);
+        const employeesList = await res.json();
         
-        if (!employeesList.length) {
-            select.innerHTML = '<option value="">جدول پرسنل خالی است یا داده‌ای ندارد!</option>';
+        if (!employeesList || !employeesList.length) {
+            select.innerHTML = '<option value="">هیچ پرسنلی در جدول یافت نشد!</option>';
             return;
         }
 
-        select.innerHTML = '<option value="">-- انتخاب پرسنل (کلیک کنید) --</option>';
+        select.innerHTML = '<option value="">-- انتخاب پرسنل از لیست کارخانه (کلیک کنید) --</option>';
         employeesList.forEach(emp => {
             const opt = document.createElement('option');
-            opt.value = emp.id || emp.emp_id; 
-            opt.textContent = `${emp.first_name || ''} ${emp.last_name || ''} (کد: ${emp.emp_id || emp.id || '-'} - واحد: ${emp.department || '-'})`;
+            opt.value = emp.emp_id; 
+            opt.textContent = `${emp.first_name || ''} ${emp.last_name || ''} (کد پرسنلی: ${emp.emp_id} - واحد: ${emp.department || 'نامشخص'})`;
             select.appendChild(opt);
         });
     } catch (e) {
@@ -160,5 +154,20 @@ async function loadEmployees() {
     }
 }
 
-document.getElementById('employeeSelect').onchange = async (e) => {
-    const emp
+document.getElementById('employeeSelect').onchange = (e) => {
+    const empId = e.target.value;
+    const summaryCard = document.getElementById('healthSummaryCard');
+    const formContainer = document.getElementById('visitFormContainer');
+
+    if (!empId) {
+        summaryCard.classList.add('hidden');
+        formContainer.classList.add('hidden');
+        return;
+    }
+
+    summaryCard.classList.remove('hidden');
+    formContainer.classList.remove('hidden');
+};
+
+document.getElementById('isReferred').onchange = (e) => {
+    const
