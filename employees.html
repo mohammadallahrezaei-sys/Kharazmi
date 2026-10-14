@@ -8,29 +8,40 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style> body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc; } </style>
 </head>
-<body class="p-4 max-w-2xl mx-auto">
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-xl font-bold">بانک پرسنل کارخانه</h1>
-            <p class="text-xs text-slate-400">مدیریت و اطلاعات پرسنل متصل به Supabase</p>
+<body class="p-4 max-w-2xl mx-auto flex flex-col min-h-screen justify-between">
+    <div>
+        <div class="flex justify-between items-center mb-6 bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
+            <div class="flex items-center gap-3">
+                <!-- لوگوی خوارزمی -->
+                <img src="data:image/jpeg;base64,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*keFvhxp8N94t8Q6foNpLIIY5b6cR+Y5GQqg8seCcc8Cu/CYvEYSqqlKTa7bpr0sfD8X8K8McX5ZLJZpThWlJ2nVpUpVIt7ShOUbxs7PRpNWbVj8KviX8GPG3wevLK18ZeHrrw/c3sbTW0V2UDSIpAYgKSeNw6+teeV+2nxI/YQ+DXxe0a20+98I/8InqEThk1fwxHHZ3aDDZRjtKODu53qSCCRyBj4n+Jn/BJr4veHryV/Cmq6F4x0wsWjMdy1tdouPuusvy7icY2u3UmvrMNm2FrPlqS5Jdr6P5n8l8V+BPG3DlWdbL8O8whd2nQ/iqP9uDtK70V4qSXd6n5yUV2HxN+EHjP4Ma5/Y3jPw7eaFe7iyrcqNkqr8pdGHDJsIBUke9cbXuwkpxUoO6fVbH45i8HicvryljaEqNWLspyi4yTW6acao*uns07p6MKKKKs5gooooAKKKKACu3+Enwh8XfGnxlY+GfB2j3GrajdyLHuRD5cCk4M0r4wiL3J/yK6D4Ffs/eN/2jPHtp4X8FaNPqEzuv2q72lbaxt9wVppo87gq7h8oJZj8qgk4r9v/ANnv9nDwf+zd8Pbbw3oEf2m7kIn1TWJkAmvrlsbpD6LwAq5woAAHGT5mYZjRwt4wfNPsunqfpec8a5Rw0nTqSTxdde7TV2ov+9JK0fRNSfnZpM9Y+EPw9g+FXwy8M+DbeZrhdHsYrUyuclnCgu2fTcTj2rt6KK+FlJyk5PdfqNfa4LCUstw1LCUFaFKMYRWrtGKSWp//2Q==" class="w-10 h-auto rounded shadow" alt="لوگوی خوارزمی">
+                <div>
+                    <h1 class="text-base font-bold text-white">بانک پرسنل کارخانه</h1>
+                    <p class="text-[11px] text-slate-400">سامانه مدیریت پرسنل - گسترش فناوری خوارزمی</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleModal(true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs transition-colors shadow-md">
+                    + ثبت پرسنل جدید
+                </button>
+                <a href="index.html" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-300 hover:bg-slate-700">← بازگشت</a>
+            </div>
         </div>
-        <div class="flex gap-2">
-            <button onclick="toggleModal(true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs transition-colors shadow-md">
-                + ثبت پرسنل جدید
-            </button>
-            <a href="index.html" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-300 hover:bg-slate-700">← بازگشت</a>
+
+        <!-- فیلد جستجو -->
+        <div class="mb-4">
+            <input id="search" type="text" placeholder="جستجو بر اساس نام، شماره پرسنلی یا واحد..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
+        </div>
+
+        <!-- لیست پرسنل -->
+        <div id="list" class="space-y-3 pb-10">
+            <p class="text-center py-8 text-slate-400 text-sm">در حال بارگذاری اطلاعات پرسنل...</p>
         </div>
     </div>
 
-    <!-- فیلد جستجو -->
-    <div class="mb-4">
-        <input id="search" type="text" placeholder="جستجو بر اساس نام، شماره پرسنلی یا واحد..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
-    </div>
-
-    <!-- لیست پرسنل -->
-    <div id="list" class="space-y-3">
-        <p class="text-center py-8 text-slate-400 text-sm">در حال بارگذاری اطلاعات پرسنل...</p>
-    </div>
+    <!-- فوتر سامانه -->
+    <footer class="bg-slate-800/50 border-t border-slate-700 text-center py-4 text-xs text-slate-400 mt-8">
+        نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <span class="text-emerald-400 font-bold">محمد اله رضایی</span>
+    </footer>
 
     <!-- مودال (پنجره) ثبت پرسنل جدید -->
     <div id="addModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden backdrop-blur-sm">
@@ -107,4 +118,72 @@ async function loadEmployees() {
             render(filtered);
         };
     } catch (e) {
-        document.getElementById('list').innerHTML = '<p class="text-center text-red-400 text-sm">خطا در برقراری ارتباط با پایگاه داده</
+        document.getElementById('list').innerHTML = '<p class="text-center text-red-400 text-sm">خطا در برقراری ارتباط با پایگاه داده</p>';
+    }
+}
+
+function render(arr) {
+    const el = document.getElementById('list');
+    if (!arr.length) {
+        el.innerHTML = '<p class="text-center py-6 text-slate-500 text-sm">موردی یافت نشد.</p>';
+        return;
+    }
+    el.innerHTML = arr.map(x => `
+        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex justify-between items-center shadow-sm">
+            <div>
+                <p class="font-bold text-sm">${x.first_name || ''} ${x.last_name || ''} <span class="text-xs text-slate-400 font-normal">(${x.emp_id})</span></p>
+                <p class="text-xs text-slate-400 mt-1">واحد: <span class="text-slate-200 font-semibold">${x.department || 'نامشخص'}</span> · سمت: ${x.job_title || '-'}</p>
+            </div>
+            <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full" dir="ltr">${x.phone_mobile || 'بدون شماره'}</span>
+        </div>
+    `).join('');
+}
+
+function toggleModal(show) {
+    const modal = document.getElementById('addModal');
+    if (show) {
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+        document.getElementById('empForm').reset();
+    }
+}
+
+document.getElementById('empForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const newEmp = {
+        emp_id: document.getElementById('p_id').value.trim(),
+        national_id: document.getElementById('p_national').value.trim(),
+        first_name: document.getElementById('p_first').value.trim(),
+        last_name: document.getElementById('p_last').value.trim(),
+        department: document.getElementById('p_dept').value.trim(),
+        job_title: document.getElementById('p_job').value.trim(),
+        phone_mobile: document.getElementById('p_phone').value.trim()
+    };
+
+    try {
+        const res = await fetch(`${URL_}/rest/v1/employees`, {
+            method: 'POST',
+            headers: {
+                apikey: KEY,
+                Authorization: `Bearer ${KEY}`,
+                'Content-Type': 'application/json',
+                Prefer: 'return=representation'
+            },
+            body: JSON.stringify(newEmp)
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+
+        alert('پرسنل جدید با موفقیت در دیتابیس ثبت شد.');
+        toggleModal(false);
+        loadEmployees();
+    } catch (err) {
+        alert('خطا در ثبت پرسنل: ' + err.message);
+    }
+};
+
+loadEmployees();
+</script>
+</body>
+</html>
