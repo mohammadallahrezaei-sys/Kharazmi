@@ -36,6 +36,22 @@
             </a>
         </div>
 
+        <!-- ویجت جدید خلاصه وضعیت حوادث و بهداری -->
+        <div id="clinicAlertWidget" class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div id="clinicAlertIcon" class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400">
+                    🏥
+                </div>
+                <div>
+                    <h3 id="clinicAlertTitle" class="text-sm font-bold text-white">وضعیت بهداری و حوادث</h3>
+                    <p id="clinicAlertDesc" class="text-xs text-slate-400">در حال دریافت آمار بهداری...</p>
+                </div>
+            </div>
+            <a href="clinic.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors font-medium">
+                مدیریت
+            </a>
+        </div>
+
         <!-- ماژول‌های اصلی سامانه -->
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-3">
             <h2 class="text-sm font-bold text-slate-300 mb-2">ماژول‌های عملیاتی</h2>
@@ -44,7 +60,7 @@
                 📋 ماژول چک‌لیست‌ها و بازرسی
             </a>
             
-            <!-- ماژول جدید بهداری و حوادث شغلی -->
+            <!-- ماژول بهداری و حوادث شغلی -->
             <a href="clinic.html" class="block w-full py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-sm">
                 🏥 ماژول بهداری و سوابق پزشکی
             </a>
@@ -62,12 +78,11 @@
 
 <script>
 const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
 async function checkOpenFindings() {
     try {
-        const res = await fetch(`${URL_}/rest/v1/findings?status=eq.open&select=id`, {
-            headers: { apikey: KEY, Authorization: `Bearer ${KEY}` }
-        });
+        const res = await fetch(`${URL_}/rest/v1/findings?status=eq.open&select=id`, { headers });
         const data = await res.json();
         const count = data.length || 0;
 
@@ -94,7 +109,46 @@ async function checkOpenFindings() {
     }
 }
 
+async function checkClinicSummary() {
+    try {
+        // دریافت حوادث و پیگیری‌های باز
+        const [incRes, fuRes] = await Promise.all([
+            fetch(`${URL_}/rest/v1/clinic_incidents?select=id,severity`, { headers }),
+            fetch(`${URL_}/rest/v1/clinic_followups?status=in.(pending,overdue)&select=id`, { headers })
+        ]);
+        
+        const incidents = await incRes.json();
+        const followups = await fuRes.json();
+
+        const incCount = Array.isArray(incidents) ? incidents.length : 0;
+        const fuCount = Array.isArray(followups) ? followups.length : 0;
+        const severeInc = Array.isArray(incidents) ? incidents.filter(i => ['severe', 'fatal'].includes(i.severity)).length : 0;
+
+        const widget = document.getElementById('clinicAlertWidget');
+        const icon = document.getElementById('clinicAlertIcon');
+        const title = document.getElementById('clinicAlertTitle');
+        const desc = document.getElementById('clinicAlertDesc');
+
+        if (severeInc > 0 || fuCount > 0) {
+            widget.className = "bg-amber-950/40 border border-amber-500/40 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all";
+            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-amber-500/20 text-amber-400";
+            icon.innerHTML = "🏥";
+            title.innerHTML = `حوادث: ${incCount} مورد | پیگیری باز: ${fuCount}`;
+            desc.innerHTML = severeInc > 0 ? `⚠️ ${severeInc} حادثه شدید ثبت شده است` : "نیازمند رسیدگی به ارجاعات و پیگیری‌ها";
+        } else {
+            widget.className = "bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all";
+            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400";
+            icon.innerHTML = "🏥";
+            title.innerHTML = `مجموع حوادث ثبت‌شده: ${incCount}`;
+            desc.innerHTML = "وضعیت مراجعات و پیگیری‌های بهداری پایدار است.";
+        }
+    } catch (e) {
+        document.getElementById('clinicAlertDesc').innerHTML = "آماده‌به‌کار (بخش بهداری)";
+    }
+}
+
 checkOpenFindings();
+checkClinicSummary();
 </script>
 </body>
 </html>
