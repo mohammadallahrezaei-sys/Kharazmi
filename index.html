@@ -57,6 +57,7 @@ button:hover, .btn-link:hover { background: var(--ln); }
 
 .q { background: var(--card-bg); border: 1px solid var(--ln); border-radius: 14px; padding: 16px; margin-top: 12px; box-shadow: var(--shadow-sm); }
 .q.bad { border-right: 5px solid var(--nc); border-color: var(--nc); }
+.q.good { border-right: 5px solid var(--ok); border-color: var(--ok); }
 .q p { margin: 0; font-weight: 600; font-size: 15px; }
 
 .b { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
@@ -96,7 +97,7 @@ button:hover, .btn-link:hover { background: var(--ln); }
 <div id="zm" hidden></div>
 
 <script>
-const LOGO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDAgQDAwMEBAQFBgoGBgUFBgwICQcKDgwPDg4MDQ0PERYTDxAVEQ0NExoTFRcYGRkZDxIbHRsYHRYYGRj/2wBDAQQEBAYFBgsGBgsYEA0QGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBj/wAARCADqAwcDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKrobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD7+ooooAKKKKACiiigA3f/XQAAAAB4A9KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA/wD/1Cj/AOvR3/x6/wD66P8A7VAH/9k=";
+const LOGO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDAgQDAwMEBAQFBgoGBgUFBgwICQcKDgwPDg4MDQ0PERYTDxAVEQ0NExoTFRcYGRkZDxIbHRsYHRYYGRj/2wBDAQQEBAYFBgsGBgsYEA0QGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBj/wAARCADqAwcDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKrobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAHRAPwD7+ooooAKKKKACiiigA3f/XQAAAAB4A9KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA/wD/1Cj/AOvR3/x6/wD66P8A7VAH/9k=";
 const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 
 const M = [
@@ -122,6 +123,7 @@ const M = [
 
 const $ = s => document.querySelector(s), view = h => $('#app').innerHTML = h, esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fd = d => new Date(d).toLocaleDateString('fa-IR');
+const ft = d => new Date(d).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
 let tok = localStorage.tk || '', mail = localStorage.em || '', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
 const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, A, N });
@@ -168,11 +170,36 @@ async function home() {
       </button>
     `).join('')}
     <div style="margin-top:20px;">
+      <button class="p" data-a="history">تاریخچه کامل بازدیدها (گزارش‌های ثبت‌شده)</button>
       <button class="p" data-a="finds">پیگیری و ثبت اصلاحات عدم‌انطباق‌ها</button>
       <button class="p" style="background:var(--card-bg); color:var(--ink); border-color:var(--ln);" data-a="rep">گزارش مدیریتی و اسلایدها</button>
       <button class="l" style="margin-top:16px; width:100%; text-align:center;" data-a="logout">خروج از حساب (${esc(mail)})</button>
     </div>
   `);
+}
+
+async function historyList() {
+  view('<p style="text-align:center; padding:40px;">در حال بارگذاری تاریخچه بازدیدها...</p>');
+  try {
+    const r = await api('inspections?order=created_at.desc&limit=100');
+    view(`
+      <button class="l" data-a="home">‹ بازگشت به خانه</button>
+      <h2>تاریخچه جامع بازدیدها</h2>
+      <small>لیست تمام بازرسی‌های ثبت‌شده (ایمن و دارای عدم‌انطباق)</small>
+
+      ${r.map(x => `
+        <div class="q ${x.nc > 0 ? 'bad' : 'good'}">
+          <p>${esc(nm(x.module))}</p>
+          <small style="margin-top:4px;">محل: <b>${esc(x.location)}</b> · تاریخ: ${fd(x.created_at)} ساعت ${ft(x.created_at)}</small>
+          <div style="display:flex; gap:10px; margin-top:8px; font-size:12px; font-weight:600;">
+            <span style="color:var(--ok);">مطابق: ${x.ok}</span>
+            <span style="color:var(--nc);">عدم‌انطباق: ${x.nc}</span>
+            <span style="color:var(--mu);">نامربوط: ${x.na}</span>
+          </div>
+        </div>
+      `).join('') || '<p style="margin-top:20px;">هیچ بازدیدی ثبت نشده است.</p>'}
+    `);
+  } catch (e) { alert(e.message); }
 }
 
 function form() {
@@ -262,7 +289,7 @@ async function send() {
     if (f.length) await api('findings', { method: 'POST', body: JSON.stringify(f) });
     localStorage.removeItem('draft'); ids.forEach(i => delete PH[i]);
     alert('بازدید با موفقیت ثبت شد.');
-    f.length ? finds(r.id) : home();
+    home();
   } catch (e) {
     alert('خطا در ثبت: ' + e.message); sb.disabled = false; sb.textContent = 'ثبت نهایی بازدید';
   }
@@ -523,6 +550,7 @@ document.onclick = async e => {
   const t = e.target.closest('[data-a]'); if (!t) return;
   const a = t.dataset.a, y = scrollY;
   if (a == 'login') login(); else if (a == 'logout') logout(); else if (a == 'home') home(); else if (a == 'finds') finds('');
+  else if (a == 'history') historyList();
   else if (a == 'send') send();
   else if (a == 'open') {
     cur = M.find(m => m[0] == t.dataset.k);
