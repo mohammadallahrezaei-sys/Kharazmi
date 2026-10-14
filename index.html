@@ -52,7 +52,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-            <!-- ماژول ۱: چک‌لیست‌های ایمنی (مورد درخواست) -->
+            <!-- ماژول ۱: چک‌لیست‌های ایمنی -->
             <div class="bg-slate-800 border border-slate-700 hover:border-emerald-500/50 transition-all rounded-2xl p-6 shadow-lg flex flex-col justify-between group">
                 <div>
                     <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-emerald-500 group-hover:text-slate-950 transition-colors">
@@ -63,8 +63,9 @@
                         مدیریت و ثبت بازرسی‌های روزانه، مجوزهای کار (PTW)، ایمنی تجهیزات تحت فشار، جرثقیل و انبارها.
                     </p>
                 </div>
-                <div class="space-y-2">
-                    <a href="#checklists" onclick="alert('ماژول چک‌لیست‌های تخصصی فعال شد')" class="block w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-center rounded-xl transition-colors shadow-md shadow-emerald-600/20">
+                <div>
+                    <!-- اتصال به صفحه واقعی چک‌لیست‌ها -->
+                    <a href="checklists.html" class="block w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-center rounded-xl transition-colors shadow-md shadow-emerald-600/20">
                         ورود به چک‌لیست‌ها
                     </a>
                 </div>
@@ -78,11 +79,12 @@
                     </div>
                     <h4 class="text-lg font-bold text-white mb-2">بانک پرسنل و پرونده سلامت</h4>
                     <p class="text-slate-400 text-sm leading-relaxed mb-6">
-                        مدیریت اطلاعات ۲۴۷ نفر پرسنل کارخانه، واحد خدمت، معاینات بدو استخدام و سوابق پزشکی.
+                        مدیریت اطلاعات پرسنل کارخانه، واحد خدمت، معاینات بدو استخدام و سوابق پزشکی متصل به Supabase.
                     </p>
                 </div>
                 <div>
-                    <a href="#employees" onclick="alert('بخش بانک پرسنل متصل به پایگاه داده Supabase است')" class="block w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-center rounded-xl transition-colors shadow-md shadow-blue-600/20">
+                    <!-- اتصال به صفحه مدیریت پرسنل یا بخش مربوطه -->
+                    <a href="employees.html" class="block w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-center rounded-xl transition-colors shadow-md shadow-blue-600/20">
                         مدیریت پرسنل
                     </a>
                 </div>
@@ -94,26 +96,4 @@
                     <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center font-bold text-xl mb-4 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
                         ⚠️
                     </div>
-                    <h4 class="text-lg font-bold text-white mb-2">گزارش حوادث و شبه‌حادثه</h4>
-                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
-                        ثبت فوری رخدادها، تحلیل علل ریشه‌ای (RCA)، و اقدامات اصلاحی پیشگیرانه در محیط کار.
-                    </p>
-                </div>
-                <div>
-                    <a href="#incidents" onclick="alert('بخش گزارش حوادث آماده بهره‌برداری است')" class="block w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-center rounded-xl transition-colors shadow-md shadow-amber-600/20">
-                        ثبت حادثه / شبه‌حادثه
-                    </a>
-                </div>
-            </div>
-
-        </div>
-
-    </main>
-
-    <!-- فوتر سامانه -->
-    <footer class="bg-slate-800/50 border-t border-slate-700 text-center py-4 text-xs text-slate-500">
-        نرم‌افزار جامع HSE &copy; 2026 - طراحی‌شده برای مدیریت ایمنی صنعتی
-    </footer>
-
-</body>
-</html>
+                    <h4 class="text-lg font-bold text-white mb-2">گزارش حواد
