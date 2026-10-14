@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماژول چک‌لیست‌های ایمنی - نرم‌افزار جامع HSE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style> body { font-family: 'Vazirmatn', sans-serif; } </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- هدر بخش چک‌لیست -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-lg font-bold text-white flex items-center">
+                <span class="bg-emerald-500 text-slate-950 px-2 py-1 rounded-lg ml-2 text-sm">چک‌لیست</span>
+                بازرسی‌های ایمنی و مجوزهای کار (PTW)
+            </h1>
+            <a href="index.html" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm transition-colors">
+                ← بازگشت به داشبورد اصلی
+            </a>
+        </div>
+    </header>
+
+    <!-- محتوای چک‌لیست‌ها -->
+    <main class="container mx-auto px-4 py-8 flex-grow">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl max-w-4xl mx-auto">
+            <h2 class="text-xl font-bold text-emerald-400 mb-4">فرم ثبت بازرسی روزانه تجهیزات</h2>
+            
+            <form id="checklistForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">عنوان چک‌لیست / تجهیز مورد بازرسی</label>
+                    <input type="text" id="chkTitle" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500" placeholder="مثلا: جرثقیل سقفی سالن تولید DRI">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-slate-300 mb-1">نام بازرس / مسئول HSE</label>
+                        <input type="text" id="chkInspector" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500" placeholder="نام و نام خانوادگی">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-300 mb-1">وضعیت ایمنی</label>
+                        <select id="chkStatus" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500">
+                            <option value="تایید شده">تایید شده (ایمن)</option>
+                            <option value="دارای نقص جزئی">دارای نقص جزئی (نیازمند پیگیری)</option>
+                            <option value="مردود / خطرناک">مردود / توقف کار فوری</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm text-slate-300 mb-1">توضیحات و اقدامات اصلاحی</label>
+                    <textarea id="chkDesc" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-emerald-500" placeholder="شرح ایرادات مشاهده شده..."></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-colors shadow-lg shadow-emerald-600/20">
+                    ثبت و ذخیره چک‌لیست
+                </button>
+            </form>
+        </div>
+    </main>
+
+</body>
+</html>
