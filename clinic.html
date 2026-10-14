@@ -170,4 +170,16 @@ document.getElementById('employeeSelect').onchange = (e) => {
 };
 
 document.getElementById('isReferred').onchange = (e) => {
-    const
+    const refInput = document.getElementById('referralDestination');
+    if (e.target.checked) {
+        refInput.classList.remove('hidden');
+    } else {
+        refInput.classList.add('hidden');
+        refInput.value = '';
+    }
+};
+
+document.getElementById('clinicForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const empId = document.getElementById('employeeSelect').value;
+    if (!empId) return alert('لطفاً ابتدا یک پرسنل را
