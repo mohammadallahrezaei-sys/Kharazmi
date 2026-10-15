@@ -102,7 +102,7 @@ body div#app { display: flex; flex-direction: column; }
 .top-grid .p { margin:0; min-height:50px; font-size:13px; padding:8px; text-align:center; }
 .m { display:block; width:100%; text-align:right; padding:14px 16px; margin-top:10px; border-radius:14px; background:var(--card-bg); border:1.5px solid var(--ln); }
 
-@media print { .np { display: none !important; } body { padding: 0; background: #fff; color: #000; } .row, .kp div, .ins, .q { background: #fff !important; color: #000 !important; border-color: #cbd5e1 !important; box-shadow: none !important; } .kp b, .row .t, .sec, h2, h3 { color: #000 !important; } small { color: #475569 !important; } }
+@media print { .np { display: none !important; } body { padding: 0; background: #fff; color: #000; } }
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -664,11 +664,11 @@ function mkS() {
 
 function frame(x, logo, n, tot, code) {
   x.fillStyle = '#ffffff'; x.fillRect(0, 0, SW, SH);
-  if (logo) { const lw = Math.min(260, 90 * logo.width / logo.height), lh = lw * logo.height / logo.width; x.drawImage(logo, SW - 60 - lw, 20, lw, lh); }
+  if (logo) x.drawImage(logo, SW - 320, 30, 260, 260 * logo.height / logo.width);
   x.fillStyle = BLUE; x.fillRect(0, 130, SW, 6);
   x.fillStyle = '#64748b'; x.font = '400 24px ' + FONT;
   x.direction = 'ltr'; x.textAlign = 'left'; x.fillText(code || '', 60, 1030);
-  x.fillText(fa(n) + ' / ' + fa(tot), SW - 160, 1030); x.textAlign = 'right'; x.direction = 'rtl';
+  x.fillText(n + ' / ' + tot, SW - 120, 1030); x.textAlign = 'right'; x.direction = 'rtl';
 }
 
 async function panel(x, px, py, pw, ph, title, color, srcs, empty) {
@@ -692,515 +692,121 @@ async function panel(x, px, py, pw, ph, title, color, srcs, empty) {
   });
 }
 
-let RPD = 30, RA = null;
+let RPD = 30;
 const MAXS = 60;
-const GREY = '#64748b', LINE = '#e2e8f0', BGS = '#f1f5f9', AMB = '#f59e0b';
 const sev_ = x => x.severity || dsev(x.question || '');
 const od_ = x => x.due_date ? new Date(x.due_date + 'T23:59:59') < Date.now() : (Date.now() - new Date(x.created_at)) / 864e5 > 14;
-const fld = d => d ? fl(d) : '—';
+
+function summarySlide(logo, n, tot, S) {
+  const [c, x] = mkS();
+  frame(x, logo, n, tot, 'SUMMARY');
+  x.fillStyle = NAVY; x.font = '800 44px ' + FONT;
+  x.fillText('خلاصه مدیریتی وضعیت HSE', SW - 60, 170);
+  x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
+  x.fillText('بازه: ' + S.bz + '  |  ' + fa(S.insCount) + ' بازدید ثبت‌شده', SW - 60, 230);
+  const kp = [
+    [fa(S.rate) + '٪', 'نرخ انطباق بازدیدها', S.rate >= 85 ? GREEN : RED],
+    [fa(S.hi), 'باز با شدت زیاد/بحرانی', RED],
+    [fa(S.overdue), 'گذشته از مهلت اصلاح', '#f59e0b'],
+    [fa(S.noNotice), 'باز بدون اعلان رسمی', '#f59e0b']
+  ], w = 420, g = 40;
+  kp.forEach(([v, l, col], i) => {
+    const bx = SW - 60 - w - i * (w + g), by = 280;
+    x.fillStyle = '#f1f5f9'; x.fillRect(bx, by, w, 170);
+    x.fillStyle = col; x.fillRect(bx + w - 10, by, 10, 170);
+    x.fillStyle = NAVY; x.font = '800 64px ' + FONT; x.textAlign = 'center'; x.fillText(v, bx + w / 2, by + 20);
+    x.font = '400 26px ' + FONT; x.fillStyle = '#64748b'; x.fillText(l, bx + w / 2, by + 115); x.textAlign = 'right';
+  });
+  const list = (title, rows, px, col) => {
+    const pw = 880;
+    x.fillStyle = col; x.fillRect(px, 490, pw, 56);
+    x.fillStyle = '#fff'; x.font = '700 28px ' + FONT; x.textAlign = 'center'; x.fillText(title, px + pw / 2, 502); x.textAlign = 'right';
+    if (!rows.length) { x.fillStyle = '#94a3b8'; x.font = '400 26px ' + FONT; x.textAlign = 'center'; x.fillText('داده‌ای نیست', px + pw / 2, 600); x.textAlign = 'right'; return; }
+    const mx = Math.max(1, ...rows.map(r => r[1]));
+    rows.forEach((r, k) => {
+      const y = 570 + k * 88;
+      x.fillStyle = NAVY; x.font = '600 28px ' + FONT; x.fillText(r[0], px + pw - 20, y);
+      x.direction = 'ltr'; x.textAlign = 'left'; x.fillText(fa(r[1]), px + 20, y); x.textAlign = 'right'; x.direction = 'rtl';
+      x.fillStyle = '#e2e8f0'; x.fillRect(px + 20, y + 46, pw - 40, 10);
+      const bw = (pw - 40) * r[1] / mx; x.fillStyle = col; x.fillRect(px + pw - 20 - bw, y + 46, bw, 10);
+    });
+  };
+  list('محل‌های دارای بیشترین عدم‌انطباق باز', S.topLocs, SW - 60 - 880, RED);
+  list('دسته‌های پرتکرار عدم‌انطباق در بازه', S.topCats, 60, BLUE);
+  return c.toDataURL('image/jpeg', 0.9);
+}
+
+async function slides(F, sub, bz, S) {
+  try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
+  const logo = await loadImg('logo.png'), cl = F.filter(x => x.status == 'closed').length, tot = F.length + 2, out = [];
+  {
+    const [c, x] = mkS(); x.fillStyle = NAVY; x.fillRect(0, 0, SW, SH);
+    if (logo) x.drawImage(logo, SW - 360, 80, 280, 280 * logo.height / logo.width);
+    x.font = '800 68px ' + FONT; x.fillStyle = '#ffffff'; x.fillText('گزارش وضعیت بازرسی و اصلاحات HSE', SW - 100, 320);
+    x.font = '400 38px ' + FONT; x.fillStyle = '#94a3b8';
+    x.fillText(sub, SW - 100, 420);
+    x.fillText('بازه ارزیابی: ' + bz + '  |  تاریخ صدور: ' + fl(Date.now()), SW - 100, 480);
+    const st = (i, n, l, col) => {
+      const w = 480, bx = SW - 100 - w - i * (w + 40), by = 680;
+      x.fillStyle = '#1e293b'; x.fillRect(bx, by, w, 240);
+      x.fillStyle = col; x.fillRect(bx + w - 12, by, 12, 240);
+      x.fillStyle = '#fff'; x.font = '800 88px ' + FONT; x.textAlign = 'center';
+      x.fillText(fa(n), bx + w / 2, by + 30);
+      x.font = '400 32px ' + FONT; x.fillStyle = '#94a3b8';
+      x.fillText(l, bx + w / 2, by + 150); x.textAlign = 'right';
+    };
+    st(0, S.totalPeriod, 'کل عدم‌انطباق‌های بازه', '#f87171');
+    st(1, cl, 'اقدام اصلاح‌شده', '#4ade80');
+    st(2, S.totalPeriod - cl, 'موارد باز', '#fbbf24');
+    out.push(c.toDataURL('image/jpeg', 0.9));
+  }
+  out.push(summarySlide(logo, 2, tot, S));
+  for (let i = 0; i < F.length; i++) {
+    const f = F[i], [c, x] = mkS();
+    frame(x, logo, i + 3, tot, f.module + '-' + f.qid);
+    x.fillStyle = NAVY; x.font = '800 36px ' + FONT;
+    const qLines = wrapText(x, f.question, SW - 120);
+    qLines.forEach((l, idx) => x.fillText(l, SW - 60, 180 + idx * 46));
+    x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
+    x.fillText('محل: ' + f.location + '  |  تاریخ ثبت: ' + fl(f.created_at) + (f.responsible ? '  |  مسئول پیگیری: ' + f.responsible : ''), SW - 60, 180 + qLines.length * 46 + 10);
+    const pw = (SW - 140) / 2, ph = 620, py = 320;
+    const bp = (await Promise.all((f.photos_before || []).slice(0, 4).map(photoSrc))).filter(Boolean);
+    const ap = (await Promise.all((f.photos_after || []).slice(0, 4).map(photoSrc))).filter(Boolean);
+    await panel(x, 60, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
+    await panel(x, pw + 80, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی', GREEN, ap, 'اقدام اصلاحی انجام نشده است');
+    [...bp, ...ap].forEach(u => URL.revokeObjectURL(u));
+    out.push(c.toDataURL('image/jpeg', 0.9));
+    if ($('#slides-progress')) $('#slides-progress').textContent = 'در حال تولید اسلایدها... ' + fa(i + 1) + ' از ' + fa(F.length);
+  }
+  return out;
+}
+
 const periodStart = d => d ? new Date(Date.now() - d * 864e5).toISOString() : '1970-01-01T00:00:00.000Z';
 const periodLabel = d => d ? fa(d) + ' روز گذشته' : 'تمام سوابق';
-const avgOf = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;
-const dayDiff = (a, b) => Math.max(0, Math.round((new Date(b) - new Date(a)) / 864e5));
-const shortQ = (q, n = 60) => { q = String(q || ''); return q.length > n ? q.slice(0, n) + '…' : q; };
 
-/* ================= تحلیل داده‌ها ================= */
-async function analyze(d) {
-  const s = periodStart(d);
-  const FS = 'module,location,qid,question,note,status,created_at,closed_at,notice_at,notice_code,severity,category,root_cause,due_date,responsible,photos_before,photos_after';
-  const [P, OF, CL, I, LI] = await Promise.all([
-    api('findings?select=' + FS + '&created_at=gte.' + s + '&order=created_at.desc&limit=1000'),
-    api('findings?select=' + FS + '&status=eq.open&limit=1000'),
-    api('findings?select=' + FS + '&status=eq.closed&closed_at=gte.' + s + '&order=closed_at.desc&limit=1000'),
-    api('inspections?select=module,location,ok,nc,na,created_at,inspector,shift&created_at=gte.' + s + '&order=created_at.desc&limit=1000'),
-    api('inspections?select=module,created_at&order=created_at.desc&limit=1000')
-  ]);
-  const now = Date.now(), days = t => Math.floor((now - new Date(t)) / 864e5);
-  const ctg = x => x.category || cat(x.module, x.question || '');
-  const ok = I.reduce((a, r) => a + r.ok, 0), nc = I.reduce((a, r) => a + r.nc, 0), rate = pct(ok, ok + nc);
-
-  const closedP = P.filter(x => x.status == 'closed').length, closeRate = pct(closedP, P.length);
-  const cd = CL.filter(x => x.closed_at);
-  const avgClose = cd.length ? Math.round(avgOf(cd.map(x => dayDiff(x.created_at, x.closed_at)))) : null;
-  const withDue = cd.filter(x => x.due_date), onTime = withDue.filter(x => new Date(x.closed_at) <= new Date(x.due_date + 'T23:59:59')).length;
-  const slaPct = withDue.length ? pct(onTime, withDue.length) : null;
-  const avgBySev = [4, 3, 2, 1].map(v => { const a = cd.filter(x => sev_(x) == v).map(x => dayDiff(x.created_at, x.closed_at)); return { v, n: a.length, avg: a.length ? Math.round(avgOf(a)) : null }; });
-  const rcRows = cnt(cd.filter(x => x.root_cause), x => x.root_cause);
-
-  const hi = OF.filter(x => sev_(x) >= 3).length, crit = OF.filter(x => sev_(x) == 4).length, overdue = OF.filter(od_).length, noNotice = OF.filter(x => !x.notice_at).length;
-  const ag = [OF.filter(x => days(x.created_at) <= 7).length, OF.filter(x => { const k = days(x.created_at); return k > 7 && k <= 30; }).length, OF.filter(x => days(x.created_at) > 30).length];
-  const sevRows = [4, 3, 2, 1].map(v => [SEVN[v], OF.filter(x => sev_(x) == v).length]);
-
-  const cg = {};
-  P.forEach(x => { const k = ctg(x), o = cg[k] = cg[k] || { t: 0, c: 0 }; o.t++; if (x.status == 'closed') o.c++; });
-  const catRows = Object.entries(cg).map(([k, o]) => [k, o.t, o.c]).sort((a, b) => b[1] - a[1]);
-
-  const L = {}; LOCS.forEach(k => L[k] = { n: 0, nc: 0, risk: 0, open: 0, hi: 0 });
-  I.forEach(r => { const k = nl(r.location), o = L[k] = L[k] || { n: 0, nc: 0, risk: 0, open: 0, hi: 0 }; o.n++; o.nc += r.nc; });
-  OF.forEach(x => { const k = nl(x.location), o = L[k] = L[k] || { n: 0, nc: 0, risk: 0, open: 0, hi: 0 }; o.open++; if (sev_(x) >= 3) o.hi++; o.risk += sev_(x) * 2 + (od_(x) ? 3 : 0); });
-  const LA = Object.entries(L).map(([k, o]) => ({ k, ...o, score: o.risk + o.nc }));
-  const locRows = LA.filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 8);
-  const unv = LA.filter(x => LOCS.includes(x.k) && !x.n).length;
-
-  const last = {}; LI.forEach(r => last[r.module] = last[r.module] || r.created_at);
-  const modAll = M.map(m => {
-    const ii = I.filter(r => r.module == m[0]), n_ = ii.reduce((a, r) => a + r.nc, 0), o_ = ii.reduce((a, r) => a + r.ok, 0), fq = FQ[m[2]], ds = last[m[0]] ? days(last[m[0]]) : null;
-    return { name: m[1], cnt: ii.length, nc: n_, ok: o_, r: pct(n_, n_ + o_), ds, late: ds === null ? 999 : (fq ? ds - fq : -1) };
-  });
-  const modRows = modAll.filter(x => x.cnt).sort((a, b) => b.r - a.r).slice(0, 8);
-  const lateList = modAll.filter(x => x.late > 0).sort((a, b) => b.late - a.late);
-
-  const W = d ? Math.min(12, Math.ceil(d / 7)) : 12, tw = Array.from({ length: W }, () => ({ ok: 0, nc: 0 }));
-  I.forEach(r => { const w = Math.floor(days(r.created_at) / 7); if (w < W) { tw[w].ok += r.ok; tw[w].nc += r.nc; } });
-  const trend = tw.map((t, i) => ({ i, tot: t.ok + t.nc, p: pct(t.nc, t.nc + t.ok), l: i ? fa(i) + ' هفته پیش' : 'هفته جاری' })).reverse();
-  let trendDir = null;
-  const tt = trend.filter(t => t.tot);
-  if (tt.length >= 4) { const h = Math.floor(tt.length / 2), a1 = avgOf(tt.slice(0, h).map(t => t.p)), a2 = avgOf(tt.slice(h).map(t => t.p)); trendDir = a2 - a1 > 3 ? 'up' : a1 - a2 > 3 ? 'down' : 'flat'; }
-
-  const shRows = SHIFTS.map(h => { const ii = I.filter(r => r.shift == h), n_ = ii.reduce((a, r) => a + r.nc, 0), o_ = ii.reduce((a, r) => a + r.ok, 0); return [h, pct(n_, n_ + o_), ii.length]; });
-
-  const rg = {};
-  OF.forEach(x => { const k = (x.responsible || '').trim() || 'بدون مسئول مشخص', o = rg[k] = rg[k] || { n: 0, od: 0 }; o.n++; if (od_(x)) o.od++; });
-  const respRows = Object.entries(rg).map(([k, o]) => [k, o.n, o.od]).sort((a, b) => b[1] - a[1] || b[2] - a[2]);
-
-  const RC = {};
-  P.forEach(x => { const k = x.module + '|' + x.qid, o = RC[k] = RC[k] || { q: x.question, c: 0, locs: new Set() }; o.c++; o.locs.add(nl(x.location)); });
-  const recur = Object.values(RC).filter(o => o.c > 1).sort((a, b) => b.c - a.c).slice(0, 6);
-
-  const R = { d, bz: periodLabel(d), I, P, OF, CL, ok, nc, rate, insCount: I.length, closedP, closeRate, avgClose, slaPct, avgBySev, rcRows, hi, crit, overdue, noNotice, ag, sevRows, catRows, locRows, unv, modRows, lateList, trend, trendDir, shRows, respRows, recur };
-
-  /* ---- تحلیل متنی ---- */
-  const ins = [];
-  ins.push(I.length
-    ? [rate < 85 ? 1 : 0, `نرخ انطباق بازدیدها در این بازه ${fa(rate)}٪ است و ${rate >= 85 ? 'از هدف ۸۵٪ بالاتر است' : 'کمتر از هدف ۸۵٪ است'}؛ ${fa(nc)} مورد عدم‌انطباق از ${fa(ok + nc)} مورد ارزیابی‌شده ثبت شده است.`]
-    : [0, 'در این بازه هیچ بازدیدی ثبت نشده است.']);
-  ins.push([0, `${fa(P.length)} عدم‌انطباق در بازه ثبت شده که ${fa(closedP)} مورد (${fa(closeRate)}٪) آن اصلاح و بسته شده است.`]);
-  if (OF.length) ins.push([hi || overdue ? 1 : 0, `در مجموع ${fa(OF.length)} مورد هنوز باز است؛ ${fa(hi)} مورد شدت زیاد یا بحرانی دارند و ${fa(overdue)} مورد از مهلت اصلاح گذشته‌اند.`]);
-  if (avgClose !== null) ins.push([slaPct !== null && slaPct < 70 ? 1 : 0, `میانگین زمان اصلاح ${fa(avgClose)} روز است${slaPct !== null ? ` و ${fa(slaPct)}٪ اقدامات در مهلت مقرر بسته شده‌اند` : ''}.`]);
-  if (catRows[0]) ins.push([0, `بیشترین عدم‌انطباق‌ها در دسته «${catRows[0][0]}» ثبت شده است (${fa(catRows[0][1])} مورد، ${fa(pct(catRows[0][1], P.length))}٪ از کل).`]);
-  if (locRows[0]) ins.push([1, `پرریسک‌ترین محل «${locRows[0].k}» است (${fa(locRows[0].open)} مورد باز، ${fa(locRows[0].hi)} مورد با شدت زیاد/بحرانی).`]);
-  if (trendDir) ins.push([trendDir == 'up' ? 1 : 0, `روند هفتگی درصد عدم‌انطباق نسبت به ابتدای بازه ${trendDir == 'up' ? 'صعودی (نامطلوب)' : trendDir == 'down' ? 'نزولی (مطلوب)' : 'تقریباً ثابت'} است.`]);
-  if (recur[0]) ins.push([0, `مشکل تکراری: «${shortQ(recur[0].q, 70)}» ${fa(recur[0].c)} بار در ${fa(recur[0].locs.size)} محل ثبت شده و نیازمند اصلاح سیستمی است.`]);
-  R.ins = ins;
-
-  const rec = [];
-  if (hi) rec.push([1, `${fa(hi)} عدم‌انطباق باز با شدت زیاد یا بحرانی در اولویت اول است؛ برای هر مورد مسئول، مهلت و اقدام موقت ایمن‌سازی تعیین و ظرف چند روز آینده گزارش شود.`]);
-  if (overdue) rec.push([1, `برای ${fa(overdue)} مورد گذشته از مهلت، جلسه پیگیری هفتگی با مسئولین برگزار و تاریخ جدید یا دلیل تأخیر ثبت شود.`]);
-  if (ag[2]) rec.push([1, `${fa(ag[2])} مورد بیش از ۳۰ روز باز مانده است؛ به مدیریت ارشد ارجاع شود تا منابع لازم (بودجه، تأمین یا نیروی تخصصی) تخصیص یابد.`]);
-  if (noNotice) rec.push([2, `برای ${fa(noNotice)} عدم‌انطباق باز، اعلان رسمی صادر و کد آن در سامانه ثبت شود.`]);
-  if (catRows[0]) rec.push([2, `در دسته «${catRows[0][0]}» که بیشترین تعداد عدم‌انطباق را دارد، آموزش یا ممیزی هدفمند برنامه‌ریزی شود.`]);
-  if (locRows[0]) rec.push([2, `در «${locRows[0].k}» بازدید تکمیلی و بررسی علت‌های ریشه‌ای انجام شود${locRows[1] ? `؛ سپس «${locRows[1].k}»` : ''}.`]);
-  if (recur[0]) rec.push([2, `مورد تکراری «${shortQ(recur[0].q, 50)}» با اقدام اصلاحی سیستمی (رویه، آموزش یا تغییر تجهیز) رفع شود، نه فقط اصلاح موردی.`]);
-  if (rcRows[0]) rec.push([3, `علت ریشه‌ای غالب در اقدامات بسته‌شده «${rcRows[0][0]}» است (${fa(rcRows[0][1])} مورد)؛ اقدام پیشگیرانه متناسب با آن تعریف شود.`]);
-  if (lateList[0]) rec.push([3, `${fa(lateList.length)} چک‌لیست از برنامه بازدید عقب است؛ بیشترین تأخیر برای «${lateList[0].name}» است. زمان‌بندی بازدیدها و مسئول هر کدام مشخص شود.`]);
-  const shw = [...shRows].filter(r => r[2]).sort((a, b) => b[1] - a[1])[0];
-  if (shw && shw[1] > rate && shRows.filter(r => r[2]).length > 1) rec.push([3, `نرخ عدم‌انطباق در شیفت «${shw[0]}» بالاتر از سایر شیفت‌هاست؛ نظارت و آموزش این شیفت تقویت شود.`]);
-  if (unv) rec.push([3, `${fa(unv)} محل در این بازه هیچ بازدیدی نداشته است؛ در برنامه بازدید آینده گنجانده شوند.`]);
-  if (!rec.length) rec.push([3, 'وضعیت فعلی نیاز به اقدام ویژه‌ای ندارد؛ بازدیدهای دوره‌ای طبق برنامه ادامه یابد.']);
-  R.recs = rec.sort((a, b) => a[0] - b[0]);
-  return R;
-}
-
-/* ================= ابزارهای ترسیم ================= */
-function fit(x, t, mw) {
-  t = String(t ?? '');
-  if (x.measureText(t).width <= mw) return t;
-  while (t.length > 1 && x.measureText(t + '…').width > mw) t = t.slice(0, -1);
-  return t + '…';
-}
-
-function pg(logo, n, tot, code, title, sub) {
-  const [c, x] = mkS();
-  frame(x, logo, n, tot, code);
-  x.fillStyle = NAVY; x.font = '800 44px ' + FONT; x.fillText(title, SW - 60, 150);
-  x.fillStyle = GREY; x.font = '400 24px ' + FONT; x.fillText(sub, SW - 60, 208);
-  return [c, x];
-}
-
-function tile(x, bx, by, w, h, v, l, col) {
-  x.fillStyle = BGS; x.fillRect(bx, by, w, h);
-  x.fillStyle = col; x.fillRect(bx + w - 10, by, 10, h);
-  x.textAlign = 'center'; x.fillStyle = NAVY; x.font = '800 ' + Math.round(h * .38) + 'px ' + FONT; x.fillText(v, bx + (w - 10) / 2, by + h * .08);
-  x.font = '400 24px ' + FONT; x.fillStyle = GREY; x.fillText(l, bx + (w - 10) / 2, by + h * .64); x.textAlign = 'right';
-}
-
-function hdr(x, px, py, pw, t, col) {
-  x.fillStyle = col; x.fillRect(px, py, pw, 52);
-  x.fillStyle = '#fff'; x.font = '700 26px ' + FONT; x.textAlign = 'center'; x.fillText(fit(x, t, pw - 30), px + pw / 2, py + 10); x.textAlign = 'right';
-}
-
-function emptyMsg(x, px, py, pw, t) {
-  x.fillStyle = '#94a3b8'; x.font = '400 26px ' + FONT; x.textAlign = 'center'; x.fillText(t || 'داده‌ای برای این بخش ثبت نشده است', px + pw / 2, py + 30); x.textAlign = 'right';
-}
-
-/* rows: [برچسب، عدد برای طول نوار، متن مقدار] */
-function bars(x, rows, px, py, pw, rh, colf) {
-  if (!rows.length) return emptyMsg(x, px, py, pw);
-  const mx = Math.max(1, ...rows.map(r => r[1]));
-  rows.forEach((r, k) => {
-    const y = py + k * rh;
-    x.font = '600 24px ' + FONT; const vt = fit(x, r[2] ?? fa(r[1]), pw * .55), vw = x.measureText(vt).width;
-    x.fillStyle = GREY; x.textAlign = 'left'; x.fillText(vt, px, y + 2); x.textAlign = 'right';
-    x.fillStyle = NAVY; x.font = '600 26px ' + FONT; x.fillText(fit(x, r[0], pw - vw - 40), px + pw, y);
-    x.fillStyle = LINE; x.fillRect(px, y + 40, pw, 14);
-    const bw = pw * r[1] / mx;
-    x.fillStyle = colf ? colf(r, k) : BLUE; x.fillRect(px + pw - bw, y + 40, bw, 14);
-  });
-}
-
-/* rows: [برچسب، کل، اصلاح‌شده] */
-function stackBars(x, rows, px, py, pw, rh) {
-  if (!rows.length) return emptyMsg(x, px, py, pw);
-  const mx = Math.max(1, ...rows.map(r => r[1]));
-  rows.forEach((r, k) => {
-    const y = py + k * rh;
-    x.fillStyle = NAVY; x.font = '600 26px ' + FONT; x.fillText(fit(x, r[0], pw * .6), px + pw, y);
-    x.fillStyle = GREY; x.font = '600 24px ' + FONT; x.textAlign = 'left'; x.fillText(fa(r[2]) + ' از ' + fa(r[1]) + ' اصلاح‌شده', px, y + 2); x.textAlign = 'right';
-    x.fillStyle = LINE; x.fillRect(px, y + 40, pw, 14);
-    const tw = pw * r[1] / mx, cw = r[1] ? tw * r[2] / r[1] : 0;
-    x.fillStyle = RED; x.fillRect(px + pw - tw, y + 40, tw, 14);
-    x.fillStyle = GREEN; x.fillRect(px + pw - cw, y + 40, cw, 14);
-  });
-}
-
-function bullets(x, items, px, py, pw, font, lh, maxY) {
-  x.font = font; let y = py;
-  for (const [t, col] of items) {
-    const lines = wrapText(x, t, pw - 34);
-    if (y + lines.length * lh > maxY) break;
-    x.fillStyle = col || BLUE; x.fillRect(px + pw - 14, y + lh * .3, 12, 12);
-    x.fillStyle = NAVY; lines.forEach((l, i) => x.fillText(l, px + pw - 34, y + i * lh));
-    y += lines.length * lh + 14;
-  }
-  return y;
-}
-
-function notePanel(x, px, py, pw, ph, items) {
-  hdr(x, px, py, pw, 'برداشت تحلیلی', BLUE);
-  x.fillStyle = '#f8fafc'; x.fillRect(px, py + 52, pw, ph - 52);
-  x.strokeStyle = LINE; x.lineWidth = 2; x.strokeRect(px, py, pw, ph);
-  if (!items.length) items = [['مورد قابل‌توجهی برای گزارش وجود ندارد.', '#94a3b8']];
-  bullets(x, items, px + 20, py + 74, pw - 40, '500 26px ' + FONT, 38, py + ph - 10);
-}
-
-/* cols: [{h, w}] از راست به چپ؛ rows: آرایه‌ای از متن یا [متن، رنگ] */
-function table(x, cols, rows, px, py, pw, rh) {
-  x.fillStyle = NAVY; x.fillRect(px, py, pw, 48);
-  let cx = px + pw; const pos = cols.map(c => { const o = { x: cx, w: pw * c.w }; cx -= o.w; return o; });
-  x.fillStyle = '#fff'; x.font = '700 22px ' + FONT;
-  cols.forEach((c, i) => x.fillText(c.h, pos[i].x - 14, py + 10));
-  if (!rows.length) { x.fillStyle = '#f8fafc'; x.fillRect(px, py + 48, pw, 80); emptyMsg(x, px, py + 66, pw, 'موردی برای نمایش وجود ندارد'); }
-  rows.forEach((r, k) => {
-    const y = py + 48 + k * rh;
-    x.fillStyle = k % 2 ? '#ffffff' : '#f8fafc'; x.fillRect(px, y, pw, rh);
-    x.font = '400 22px ' + FONT;
-    r.forEach((v, i) => {
-      const t = Array.isArray(v) ? v[0] : v;
-      x.fillStyle = Array.isArray(v) ? v[1] : NAVY;
-      x.fillText(fit(x, t, pos[i].w - 28), pos[i].x - 14, y + rh / 2 - 13);
-    });
-  });
-  x.strokeStyle = LINE; x.lineWidth = 2; x.strokeRect(px, py, pw, 48 + Math.max(rows.length * rh, rows.length ? 0 : 80));
-}
-
-function trendChart(x, tr, px, py, pw, ph, target) {
-  const mxv = Math.max(target * 1.6, ...tr.map(t => t.p), 10), base = py + ph - 50, ch = ph - 110, slot = pw / tr.length;
-  x.strokeStyle = LINE; x.lineWidth = 2; x.beginPath(); x.moveTo(px, base); x.lineTo(px + pw, base); x.stroke();
-  tr.forEach((t, i) => {
-    const bx = px + pw - (i + 1) * slot + slot * .18, bw = slot * .64, bh = t.tot ? Math.max(4, ch * t.p / mxv) : 4;
-    x.fillStyle = !t.tot ? '#cbd5e1' : (t.p > target ? RED : GREEN); x.fillRect(bx, base - bh, bw, bh);
-    x.textAlign = 'center'; x.fillStyle = NAVY; x.font = '700 22px ' + FONT; x.fillText(t.tot ? fa(t.p) + '٪' : '—', bx + bw / 2, base - bh - 34);
-    x.fillStyle = GREY; x.font = '400 20px ' + FONT; x.fillText(t.l, bx + bw / 2, base + 12); x.textAlign = 'right';
-  });
-  const ty = base - ch * target / mxv;
-  x.setLineDash([12, 8]); x.strokeStyle = RED; x.lineWidth = 3; x.beginPath(); x.moveTo(px, ty); x.lineTo(px + pw, ty); x.stroke(); x.setLineDash([]);
-  x.fillStyle = RED; x.font = '600 22px ' + FONT; x.textAlign = 'left'; x.fillText('سقف مطلوب عدم‌انطباق: ' + fa(target) + '٪', px + 8, ty - 32); x.textAlign = 'right';
-}
-
-/* ================= اسلایدها ================= */
-function coverSlide(logo, R, sub) {
-  const [c, x] = mkS(); x.fillStyle = NAVY; x.fillRect(0, 0, SW, SH);
-  if (logo) x.drawImage(logo, SW - 360, 80, 280, 280 * logo.height / logo.width);
-  x.font = '800 68px ' + FONT; x.fillStyle = '#ffffff'; x.fillText('گزارش مدیریتی وضعیت بازرسی و اصلاحات HSE', SW - 100, 320);
-  x.font = '400 38px ' + FONT; x.fillStyle = '#94a3b8';
-  x.fillText(sub, SW - 100, 420);
-  x.fillText('بازه ارزیابی: ' + R.bz + '  |  تاریخ صدور: ' + fl(Date.now()), SW - 100, 480);
-  const st = (i, n, l, col) => {
-    const w = 480, bx = SW - 100 - w - i * (w + 40), by = 680;
-    x.fillStyle = '#1e293b'; x.fillRect(bx, by, w, 240);
-    x.fillStyle = col; x.fillRect(bx + w - 12, by, 12, 240);
-    x.fillStyle = '#fff'; x.font = '800 88px ' + FONT; x.textAlign = 'center';
-    x.fillText(fa(n), bx + w / 2, by + 30);
-    x.font = '400 32px ' + FONT; x.fillStyle = '#94a3b8';
-    x.fillText(l, bx + w / 2, by + 150); x.textAlign = 'right';
-  };
-  st(0, R.P.length, 'عدم‌انطباق ثبت‌شده در بازه', '#f87171');
-  st(1, R.closedP, 'اقدام اصلاح‌شده', '#4ade80');
-  st(2, R.OF.length, 'کل موارد باز (تا امروز)', '#fbbf24');
-  return c.toDataURL('image/jpeg', 0.9);
-}
-
-function buildPages(R, logo) {
-  const pages = [], add = fn => pages.push(fn), J = c => c.toDataURL('image/jpeg', 0.9);
-  const sub = 'بازه: ' + R.bz;
-
-  /* ۱) خلاصه مدیریتی */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'EXEC', 'خلاصه مدیریتی و تحلیل کلی', sub + '  |  ' + fa(R.insCount) + ' بازدید  |  ' + fa(R.P.length) + ' عدم‌انطباق ثبت‌شده');
-    const w = 435, g = 20, h = 130;
-    const T1 = [[fa(R.rate) + '٪', 'نرخ انطباق بازدیدها', R.rate >= 85 ? GREEN : RED], [fa(R.OF.length), 'کل عدم‌انطباق‌های باز', AMB], [fa(R.hi), 'باز با شدت زیاد/بحرانی', RED], [fa(R.overdue), 'گذشته از مهلت اصلاح', RED]];
-    const T2 = [[R.avgClose === null ? '—' : fa(R.avgClose) + ' روز', 'میانگین زمان اصلاح', BLUE], [R.slaPct === null ? '—' : fa(R.slaPct) + '٪', 'اصلاح در مهلت مقرر', R.slaPct === null || R.slaPct >= 80 ? GREEN : AMB], [fa(R.closeRate) + '٪', 'نرخ اصلاح موارد بازه', R.closeRate >= 70 ? GREEN : AMB], [fa(R.noNotice), 'باز بدون اعلان رسمی', AMB]];
-    [T1, T2].forEach((row, ri) => row.forEach(([v, l, col], i) => tile(x, SW - 60 - w - i * (w + g), 262 + ri * (h + 20), w, h, v, l, col)));
-    hdr(x, 60, 575, 1800, 'تحلیل و نتایج کلیدی', NAVY);
-    bullets(x, R.ins.slice(0, 7).map(([hh, t]) => [t, hh ? RED : BLUE]), 80, 650, 1760, '500 27px ' + FONT, 38, 1010);
-    return J(c);
-  });
-
-  /* ۲) شدت و سن موارد باز */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'OPEN', 'وضعیت عدم‌انطباق‌های باز: شدت و سن', 'همه موارد باز تا امروز (مستقل از بازه)  |  مجموع: ' + fa(R.OF.length) + ' مورد');
-    hdr(x, SW - 60 - 880, 262, 880, 'توزیع شدت موارد باز', RED);
-    bars(x, R.sevRows.map(r => [r[0], r[1], fa(r[1]) + ' مورد']), SW - 60 - 860, 340, 840, 84, (r, k) => SEVC[4 - k]);
-    hdr(x, 60, 262, 880, 'سن موارد باز', AMB);
-    bars(x, [['حداکثر ۷ روز', R.ag[0]], ['۸ تا ۳۰ روز', R.ag[1]], ['بیش از ۳۰ روز', R.ag[2]], ['گذشته از مهلت اصلاح', R.overdue]].map(r => [r[0], r[1], fa(r[1]) + ' مورد']), 80, 340, 840, 84, (r, k) => [GREEN, AMB, RED, RED][k]);
-    const it = [];
-    if (R.OF.length) {
-      it.push([`${fa(pct(R.hi, R.OF.length))}٪ از موارد باز (${fa(R.hi)} مورد) شدت زیاد یا بحرانی دارند و باید در اولویت پیگیری قرار گیرند.`, R.hi ? RED : BLUE]);
-      if (R.ag[2]) it.push([`${fa(R.ag[2])} مورد بیش از ۳۰ روز است که باز مانده و باید به مدیریت ارجاع شود.`, RED]);
-      if (R.overdue) it.push([`${fa(R.overdue)} مورد (${fa(pct(R.overdue, R.OF.length))}٪ از موارد باز) از مهلت اصلاح گذشته‌اند؛ برای هر مورد مسئول و تاریخ جدید مشخص شود.`, RED]);
-      if (R.noNotice) it.push([`${fa(R.noNotice)} مورد باز هنوز اعلان رسمی ندارد.`, AMB]);
-    } else it.push(['هیچ عدم‌انطباق بازی وجود ندارد.', GREEN]);
-    notePanel(x, 60, 700, 1800, 310, it);
-    return J(c);
-  });
-
-  /* ۳) دسته‌بندی */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'CAT', 'تحلیل دسته‌بندی عدم‌انطباق‌ها', sub + '  |  ' + fa(R.P.length) + ' مورد');
-    hdr(x, 760, 262, 1100, 'تعداد به تفکیک دسته (سبز: اصلاح‌شده، قرمز: باز)', BLUE);
-    stackBars(x, R.catRows.slice(0, 7), 780, 345, 1060, 92);
-    const it = [];
-    if (R.catRows[0]) it.push([`دسته «${R.catRows[0][0]}» با ${fa(R.catRows[0][1])} مورد (${fa(pct(R.catRows[0][1], R.P.length))}٪) بیشترین سهم را دارد و اولویت آموزش یا ممیزی هدفمند است.`, RED]);
-    const slow = R.catRows.filter(r => r[1] >= 2).sort((a, b) => pct(a[2], a[1]) - pct(b[2], b[1]))[0];
-    if (slow && slow[2] < slow[1]) it.push([`کمترین نرخ اصلاح مربوط به «${slow[0]}» است (${fa(pct(slow[2], slow[1]))}٪ اصلاح‌شده).`, AMB]);
-    const top3 = R.catRows.slice(0, 3).reduce((a, r) => a + r[1], 0);
-    if (R.catRows.length > 3) it.push([`سه دسته اول ${fa(pct(top3, R.P.length))}٪ کل موارد را تشکیل می‌دهند؛ تمرکز بر آن‌ها بیشترین اثر را دارد.`, BLUE]);
-    notePanel(x, 60, 262, 660, 750, it);
-    return J(c);
-  });
-
-  /* ۴) محل‌های پرریسک */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'LOC', 'تحلیل ریسک به تفکیک محل', 'امتیاز ریسک = شدت موارد باز + مهلت‌گذشته + عدم‌انطباق‌های بازه');
-    hdr(x, 760, 262, 1100, 'پرریسک‌ترین محل‌ها (امتیاز ریسک)', RED);
-    const mx = Math.max(1, ...R.locRows.map(r => r.score));
-    bars(x, R.locRows.map(r => [r.k, r.score, fa(r.open) + ' باز · ' + fa(r.hi) + ' شدت بالا · ' + fa(r.nc) + ' عدم‌انطباق']), 780, 345, 1060, 80, r => r[1] >= mx * .6 ? RED : AMB);
-    const it = [];
-    if (R.locRows[0]) it.push([`«${R.locRows[0].k}» پرریسک‌ترین محل است (امتیاز ${fa(R.locRows[0].score)}).`, RED]);
-    const wh = R.locRows.filter(r => r.hi).length;
-    if (wh) it.push([`${fa(wh)} محل دارای مورد باز با شدت زیاد/بحرانی است.`, RED]);
-    if (R.unv) it.push([`${fa(R.unv)} محل از فهرست محل‌ها در این بازه هیچ بازدیدی نداشته است.`, AMB]);
-    if (!R.locRows.length) it.push(['هیچ محلی امتیاز ریسک مثبت ندارد.', GREEN]);
-    notePanel(x, 60, 262, 660, 750, it);
-    return J(c);
-  });
-
-  /* ۵) عملکرد چک‌لیست‌ها */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'MOD', 'عملکرد چک‌لیست‌ها: نرخ عدم‌انطباق', sub);
-    hdr(x, 760, 262, 1100, 'درصد عدم‌انطباق در هر چک‌لیست', BLUE);
-    bars(x, R.modRows.map(r => [r.name, r.r, fa(r.r) + '٪ · ' + fa(r.cnt) + ' بازدید']), 780, 345, 1060, 80, r => r[1] > 15 ? RED : GREEN);
-    const it = [];
-    if (R.modRows[0]) it.push([`بالاترین نرخ عدم‌انطباق در چک‌لیست «${R.modRows[0].name}» است (${fa(R.modRows[0].r)}٪).`, R.modRows[0].r > 15 ? RED : BLUE]);
-    const bad = R.modRows.filter(r => r.r > 15).length;
-    if (bad) it.push([`${fa(bad)} چک‌لیست از سقف مطلوب ۱۵٪ عدم‌انطباق بالاترند.`, AMB]);
-    const nv = R.lateList.filter(r => r.ds === null).length;
-    if (nv) it.push([`${fa(nv)} چک‌لیست هرگز بازدید نشده است.`, RED]);
-    if (!R.modRows.length) it.push(['در این بازه بازدیدی برای تحلیل ثبت نشده است.', '#94a3b8']);
-    notePanel(x, 60, 262, 660, 750, it);
-    return J(c);
-  });
-
-  /* ۶) روند */
-  if (R.trend.length >= 3) add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'TREND', 'روند هفتگی درصد عدم‌انطباق', 'قدیمی‌ترین هفته در سمت راست؛ خط قرمز: سقف مطلوب ' + fa(15) + '٪');
-    trendChart(x, R.trend, 100, 262, 1720, 520, 15);
-    const it = [];
-    const tt = R.trend.filter(t => t.tot);
-    if (R.trendDir) it.push([`روند در مقایسه نیمه اول و دوم بازه ${R.trendDir == 'up' ? 'صعودی و نگران‌کننده' : R.trendDir == 'down' ? 'نزولی و مطلوب' : 'تقریباً ثابت'} است.`, R.trendDir == 'up' ? RED : R.trendDir == 'down' ? GREEN : BLUE]);
-    if (tt.length) { const w = [...tt].sort((a, b) => b.p - a.p)[0]; it.push([`بدترین هفته «${w.l}» با ${fa(w.p)}٪ عدم‌انطباق بوده است.`, AMB]); }
-    const emp = R.trend.filter(t => !t.tot).length;
-    if (emp) it.push([`در ${fa(emp)} هفته هیچ بازدیدی ثبت نشده است؛ پیوستگی بازدیدها حفظ شود.`, AMB]);
-    notePanel(x, 60, 800, 1800, 210, it);
-    return J(c);
-  });
-
-  /* ۷) عملکرد اصلاح */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'FIX', 'عملکرد اقدامات اصلاحی', 'اقدامات بسته‌شده در بازه: ' + fa(R.CL.length) + ' مورد');
-    const w = 580, g = 30;
-    tile(x, SW - 60 - w, 262, w, 130, R.avgClose === null ? '—' : fa(R.avgClose) + ' روز', 'میانگین زمان اصلاح', BLUE);
-    tile(x, SW - 60 - 2 * w - g, 262, w, 130, R.slaPct === null ? '—' : fa(R.slaPct) + '٪', 'اصلاح در مهلت مقرر', R.slaPct === null || R.slaPct >= 80 ? GREEN : AMB);
-    tile(x, SW - 60 - 3 * w - 2 * g, 262, w, 130, fa(R.closeRate) + '٪', 'نرخ اصلاح موارد ثبت‌شده در بازه', R.closeRate >= 70 ? GREEN : AMB);
-    hdr(x, SW - 60 - 880, 420, 880, 'علت‌های ریشه‌ای اقدامات بسته‌شده', BLUE);
-    bars(x, R.rcRows.slice(0, 6).map(r => [r[0], r[1], fa(r[1]) + ' مورد']), SW - 60 - 860, 495, 840, 66, () => BLUE);
-    hdr(x, 60, 420, 880, 'میانگین زمان اصلاح بر حسب شدت', AMB);
-    bars(x, R.avgBySev.map(r => [SEVN[r.v], r.avg === null ? 0 : r.avg, r.avg === null ? 'داده‌ای نیست' : fa(r.avg) + ' روز (هدف ' + fa(SLA[r.v]) + ')']), 80, 495, 840, 66, r => SEVC[[4, 3, 2, 1][R.avgBySev.findIndex(a => SEVN[a.v] == r[0])]]);
-    const it = [];
-    const sl = R.avgBySev.filter(a => a.avg !== null && a.avg > SLA[a.v]);
-    if (sl.length) it.push([`میانگین زمان اصلاح برای شدت «${sl.map(a => SEVN[a.v]).join('، ')}» از مهلت مقرر بیشتر است.`, RED]);
-    if (R.rcRows[0]) it.push([`علت ریشه‌ای غالب: «${R.rcRows[0][0]}» (${fa(pct(R.rcRows[0][1], R.rcRows.reduce((a, r) => a + r[1], 0)))}٪ از اقدامات بسته‌شده).`, BLUE]);
-    if (R.slaPct !== null && R.slaPct < 70) it.push([`فقط ${fa(R.slaPct)}٪ اصلاحات در مهلت انجام شده است؛ فرایند پیگیری و یادآوری تقویت شود.`, RED]);
-    if (!R.CL.length) it.push(['در این بازه اقدام اصلاحی بسته‌شده‌ای ثبت نشده است.', '#94a3b8']);
-    bullets(x, it, 60, 910, 1800, '500 26px ' + FONT, 36, 1010);
-    return J(c);
-  });
-
-  /* ۸) مسئولین و مشکلات تکراری */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'RESP', 'بار کاری مسئولین و مشکلات تکراری', 'موارد باز به تفکیک مسئول پیگیری؛ مشکلات تکراری در بازه');
-    hdr(x, SW - 60 - 880, 262, 880, 'موارد باز به تفکیک مسئول', RED);
-    bars(x, R.respRows.slice(0, 5).map(r => [r[0], r[1], fa(r[1]) + ' باز · ' + fa(r[2]) + ' گذشته از مهلت']), SW - 60 - 860, 340, 840, 80, r => r[1] >= Math.max(1, R.respRows[0] ? R.respRows[0][1] : 1) * .6 ? RED : AMB);
-    hdr(x, 60, 262, 880, 'مشکلات تکراری (بیش از یک بار ثبت‌شده)', AMB);
-    bars(x, R.recur.slice(0, 5).map(r => [shortQ(r.q, 48), r.c, fa(r.c) + ' بار · ' + fa(r.locs.size) + ' محل']), 80, 340, 840, 80, () => AMB);
-    const it = [];
-    if (R.respRows[0]) it.push([`بیشترین موارد باز نزد «${R.respRows[0][0]}» است (${fa(R.respRows[0][1])} مورد).`, R.respRows[0][2] ? RED : BLUE]);
-    const un = R.respRows.find(r => r[0].startsWith('بدون مسئول'));
-    if (un) it.push([`${fa(un[1])} مورد باز مسئول مشخصی ندارد؛ تعیین مسئول الزامی است.`, RED]);
-    if (R.recur[0]) it.push([`تکرار مشکل نشان‌دهنده ضعف اقدام اصلاحی سیستمی است؛ علت ریشه‌ای ${fa(R.recur.length)} مورد تکراری بررسی شود.`, AMB]);
-    if (!it.length) it.push(['موردی برای گزارش وجود ندارد.', GREEN]);
-    notePanel(x, 60, 770, 1800, 240, it);
-    return J(c);
-  });
-
-  /* ۹) پوشش بازدید */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'COV', 'پوشش بازدیدها و برنامه‌ریزی', 'تأخیر نسبت به دوره تعریف‌شده هر چک‌لیست؛ مقایسه شیفت‌ها');
-    hdr(x, SW - 60 - 880, 262, 880, 'چک‌لیست‌های عقب‌افتاده از برنامه', RED);
-    bars(x, R.lateList.slice(0, 5).map(r => [r.name, Math.min(r.late, 180), r.ds === null ? 'هرگز بازدید نشده' : fa(r.late) + ' روز تأخیر']), SW - 60 - 860, 340, 840, 80, r => r[1] >= 90 ? RED : AMB);
-    hdr(x, 60, 262, 880, 'درصد عدم‌انطباق به تفکیک شیفت', BLUE);
-    bars(x, R.shRows.map(r => [r[0], r[1], r[2] ? fa(r[1]) + '٪ · ' + fa(r[2]) + ' بازدید' : 'بازدیدی ثبت نشده']), 80, 340, 840, 80, r => r[1] > 15 ? RED : GREEN);
-    const it = [];
-    it.push([R.lateList.length ? `${fa(R.lateList.length)} چک‌لیست از برنامه بازدید عقب است؛ بیشترین تأخیر: «${R.lateList[0].name}».` : 'همه چک‌لیست‌ها طبق برنامه بازدید شده‌اند.', R.lateList.length ? RED : GREEN]);
-    const sh = R.shRows.filter(r => r[2]);
-    if (sh.length > 1) { const w = [...sh].sort((a, b) => b[1] - a[1])[0]; it.push([`بالاترین نرخ عدم‌انطباق در شیفت «${w[0]}» (${fa(w[1])}٪) است.`, w[1] > 15 ? AMB : BLUE]); }
-    if (R.unv) it.push([`${fa(R.unv)} محل در این بازه بازدید نشده است.`, AMB]);
-    notePanel(x, 60, 770, 1800, 240, it);
-    return J(c);
-  });
-
-  /* ۱۰) فهرست اقدامات انجام‌شده با تاریخ اصلاح */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'DONE', 'فهرست اقدامات اصلاحی انجام‌شده', 'جدیدترین اصلاحات بسته‌شده در بازه (به ترتیب تاریخ اصلاح)  |  ' + fa(R.CL.length) + ' مورد');
-    const rows = R.CL.slice(0, 12).map(f => [shortQ(f.question, 70), f.location, fld(f.created_at), [fld(f.closed_at), '#15803d'], fa(dayDiff(f.created_at, f.closed_at)) + ' روز']);
-    table(x, [{ h: 'مورد عدم‌انطباق', w: .38 }, { h: 'محل', w: .22 }, { h: 'تاریخ ثبت', w: .14 }, { h: 'تاریخ اصلاح', w: .14 }, { h: 'مدت اصلاح', w: .12 }], rows, 60, 262, 1800, 52);
-    return J(c);
-  });
-
-  /* ۱۱) فهرست موارد باز */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'TODO', 'فهرست موارد باز نیازمند پیگیری', 'مرتب‌شده بر اساس مهلت گذشته و شدت  |  مجموع موارد باز: ' + fa(R.OF.length));
-    const o = [...R.OF].sort((a, b) => (od_(b) ? 1 : 0) - (od_(a) ? 1 : 0) || sev_(b) - sev_(a) || new Date(a.created_at) - new Date(b.created_at)).slice(0, 12);
-    const rows = o.map(f => [shortQ(f.question, 60), f.location, [SEVN[sev_(f)], SEVC[sev_(f)]], f.responsible || 'تعیین نشده', fld(f.due_date), od_(f) ? ['گذشته از مهلت', '#dc2626'] : ['در مهلت', '#15803d']]);
-    table(x, [{ h: 'مورد عدم‌انطباق', w: .33 }, { h: 'محل', w: .2 }, { h: 'شدت', w: .08 }, { h: 'مسئول پیگیری', w: .15 }, { h: 'مهلت اصلاح', w: .13 }, { h: 'وضعیت', w: .11 }], rows, 60, 262, 1800, 52);
-    return J(c);
-  });
-
-  /* ۱۲) اقدامات پیشنهادی */
-  add((n, tot) => {
-    const [c, x] = pg(logo, n, tot, 'REC', 'جمع‌بندی و اقدامات پیشنهادی', 'اولویت‌بندی خودکار بر اساس داده‌های ثبت‌شده در سامانه');
-    R.recs.slice(0, 7).forEach(([pri, t], k) => {
-      const y = 262 + k * 108, col = pri == 1 ? RED : pri == 2 ? AMB : BLUE, tag = pri == 1 ? 'فوری' : pri == 2 ? 'مهم' : 'بهبود';
-      x.fillStyle = BGS; x.fillRect(60, y, 1800, 96);
-      x.fillStyle = col; x.fillRect(SW - 70, y, 10, 96);
-      x.fillStyle = col; x.beginPath(); x.arc(SW - 120, y + 48, 26, 0, Math.PI * 2); x.fill();
-      x.fillStyle = '#fff'; x.font = '800 28px ' + FONT; x.textAlign = 'center'; x.fillText(fa(k + 1), SW - 120, y + 30); x.textAlign = 'right';
-      x.fillStyle = col; x.font = '700 24px ' + FONT; x.textAlign = 'left'; x.fillText(tag, 90, y + 32); x.textAlign = 'right';
-      x.fillStyle = NAVY; x.font = '500 27px ' + FONT;
-      const lines = wrapText(x, t, 1500).slice(0, 2), y0 = y + (96 - lines.length * 38) / 2 + 2;
-      lines.forEach((l, i) => x.fillText(l, SW - 170, y0 + i * 38));
-    });
-    return J(c);
-  });
-  return pages;
-}
-
-async function findingSlide(logo, f, n, tot) {
-  const [c, x] = mkS();
-  frame(x, logo, n, tot, String(f.qid || '').startsWith(f.module + '-') ? f.qid : f.module + '-' + f.qid);
-  const closed = f.status == 'closed', s_ = sev_(f), over = !closed && od_(f);
-  x.fillStyle = NAVY; x.font = '800 36px ' + FONT;
-  const qLines = wrapText(x, f.question, 1480).slice(0, 2);
-  qLines.forEach((l, i) => x.fillText(l, SW - 60, 160 + i * 46));
-  const bc = closed ? GREEN : over ? RED : AMB, bt = closed ? 'اصلاح‌شده' : over ? 'گذشته از مهلت' : 'باز';
-  x.fillStyle = bc; x.fillRect(60, 158, 280, 56);
-  x.fillStyle = '#fff'; x.font = '700 28px ' + FONT; x.textAlign = 'center'; x.fillText(bt, 200, 168); x.textAlign = 'right';
-  const my = 160 + qLines.length * 46 + 6;
-  x.font = '400 24px ' + FONT; x.fillStyle = GREY;
-  x.fillText('محل: ' + f.location + '  |  تاریخ ثبت: ' + fld(f.created_at) + '  |  چک‌لیست: ' + (nm(f.module) || f.module), SW - 60, my);
-  const note = (f.note || '').trim();
-  if (note) x.fillText(fit(x, 'شرح: ' + note, 1800), SW - 60, my + 34);
-  const pw = (SW - 140) / 2, ph = 585, py = 345;
-  const bp = (await Promise.all((f.photos_before || []).slice(0, 4).map(photoSrc))).filter(Boolean);
-  const ap = (await Promise.all((f.photos_after || []).slice(0, 4).map(photoSrc))).filter(Boolean);
-  /* چینش فارسی: قبل از اصلاح سمت راست، بعد از اصلاح سمت چپ */
-  await panel(x, pw + 80, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
-  await panel(x, 60, py, pw, ph, closed ? 'پس از اصلاح  |  تاریخ اصلاح: ' + fld(f.closed_at) : 'وضعیت پس از اصلاح', closed ? GREEN : AMB, ap, closed ? 'تصویری ثبت نشده است' : 'اقدام اصلاحی هنوز انجام نشده است');
-  [...bp, ...ap].forEach(u => URL.revokeObjectURL(u));
-  x.fillStyle = BGS; x.fillRect(60, 938, SW - 120, 80);
-  x.fillStyle = NAVY; x.font = '500 24px ' + FONT;
-  x.fillText('شدت: ' + SEVN[s_] + '  |  مسئول پیگیری: ' + (f.responsible || 'تعیین نشده') + '  |  مهلت اصلاح: ' + fld(f.due_date), SW - 80, 946);
-  x.fillText('اعلان رسمی: ' + (f.notice_code || 'ثبت نشده') + '  |  علت ریشه‌ای: ' + (f.root_cause || 'ثبت نشده') + (closed && f.closed_at ? '  |  مدت اصلاح: ' + fa(dayDiff(f.created_at, f.closed_at)) + ' روز' : ''), SW - 80, 982);
-  return c.toDataURL('image/jpeg', 0.9);
-}
-
-/* ================= صفحه گزارش مدیریتی ================= */
 async function renderManagementReport() {
-  view('<p style="text-align:center; padding:40px;">در حال تحلیل داده‌ها و آماده‌سازی گزارش مدیریتی...</p>');
+  view('<p style="text-align:center; padding:40px;">در حال آماده‌سازی گزارش مدیریتی...</p>');
   try {
-    const R = RA = await analyze(RPD);
-    const sec = t => `<div class="sec">${t}</div>`;
-    const lvl = h => h ? '' : ' style="background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:#bfdbfe"';
-    const kp = [[fa(R.rate) + '٪', 'نرخ انطباق', R.rate >= 85 ? 'var(--ok)' : 'var(--nc)'], [fa(R.P.length), 'عدم‌انطباق ثبت‌شده', 'var(--ink)'], [fa(R.closedP), 'اصلاح‌شده (بازه)', 'var(--ok)'], [fa(R.OF.length), 'کل موارد باز', 'var(--nc)'], [fa(R.hi), 'باز با شدت زیاد/بحرانی', 'var(--nc)'], [fa(R.overdue), 'گذشته از مهلت', 'var(--warn)'], [R.avgClose === null ? '—' : fa(R.avgClose) + ' روز', 'میانگین زمان اصلاح', 'var(--ink)'], [R.slaPct === null ? '—' : fa(R.slaPct) + '٪', 'اصلاح در مهلت', 'var(--ink)']];
+    const allFindings = await api('findings?select=status&created_at=gte.' + periodStart(RPD) + '&limit=1000');
     view(`
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;" class="np">
         <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
         <a href="index.html" class="back">← داشبورد اصلی</a>
       </div>
-      <h2>📑 گزارش مدیریتی و تحلیل وضعیت HSE</h2>
-      <small>بازه: ${R.bz} · تاریخ گزارش: ${fl(Date.now())}</small>
+      <h2>📑 گزارش مدیریتی و اسلایدهای ارزیابی</h2>
+      <small>خلاصه وضعیت ایمنی و مستندات بازرسی کارخانه</small>
       <select id="rp" class="np">${[[7, '۷ روز گذشته'], [30, '۳۰ روز گذشته'], [90, '۹۰ روز گذشته'], [0, 'تمام سوابق']].map(([v, t]) => `<option value="${v}" ${RPD == v ? 'selected' : ''}>${t}</option>`).join('')}</select>
-      <div class="kp">${kp.map(([v, l, col]) => `<div><b style="color:${col}">${v}</b><small>${l}</small></div>`).join('')}</div>
+      <div class="row" style="margin-top:16px;">
+        <div class="t"><span>تعداد عدم‌انطباق‌های ثبت‌شده در بازه</span><span>${fa(allFindings.length)} مورد</span></div>
+        <div class="t" style="margin-top:8px;"><span>موارد اصلاح‌شده و بسته شده</span><span style="color:var(--ok);">${fa(allFindings.filter(x => x.status == 'closed').length)} مورد</span></div>
+        <div class="t" style="margin-top:8px;"><span>موارد باز و نیازمند پیگیری</span><span style="color:var(--nc);">${fa(allFindings.filter(x => x.status == 'open').length)} مورد</span></div>
+      </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" class="np">
         <button class="p" onclick="window.print()" style="background:var(--card-bg); color:var(--ink); border:1.5px solid var(--ln); margin:0;">🖨️ چاپ مستقیم گزارش</button>
         <button class="p" data-a="gen-slides" style="background:#6366f1; border-color:#6366f1; color:#fff; margin:0;">🎬 تولید و دانلود اسلایدها</button>
       </div>
-      <small class="np" style="margin-top:8px;">اسلایدها شامل خلاصه مدیریتی، ۱۱ اسلاید تحلیلی و حداکثر ${fa(MAXS)} اسلاید عدم‌انطباق (قبل در سمت راست، بعد از اصلاح در سمت چپ همراه با تاریخ اصلاح) است.</small>
+      <small class="np" style="margin-top:8px;">برای جلوگیری از سنگین شدن مرورگر، حداکثر ${fa(MAXS)} اسلاید عدم‌انطباق تولید می‌شود (ابتدا موارد باز و با شدت بالاتر).</small>
       <div id="slides-container" style="margin-top:20px;"></div>
-
-      ${sec('🧠 تحلیل و نتایج کلیدی')}
-      ${R.ins.map(([h, t]) => `<div class="ins ${h ? 'hi' : ''}"${lvl(h)}>${t}</div>`).join('')}
-
-      ${sec('✅ اقدامات پیشنهادی (به ترتیب اولویت)')}
-      ${R.recs.map(([pri, t]) => `<div class="row"><span class="bg ${pri == 1 ? 'r' : 'g'}">${pri == 1 ? 'فوری' : pri == 2 ? 'مهم' : 'بهبود'}</span> ${esc(t)}</div>`).join('')}
-
-      ${sec('🔥 محل‌های پرریسک')}
-      ${bl(R.locRows.map(r => [r.k, r.score]), 'var(--nc)', ' امتیاز')}
-
-      ${sec('🗂️ دسته‌های پرتکرار عدم‌انطباق')}
-      ${bl(R.catRows.slice(0, 7).map(r => [r[0], r[1]]), 'var(--ac)', ' مورد')}
-
-      ${sec('📋 درصد عدم‌انطباق چک‌لیست‌ها')}
-      ${bl(R.modRows.map(r => [r.name, r.r]), 'var(--warn)', '٪')}
-
-      ${sec('🔎 علت‌های ریشه‌ای اقدامات بسته‌شده')}
-      ${bl(R.rcRows.slice(0, 6), '#6366f1', ' مورد')}
-
-      ${sec('👤 موارد باز به تفکیک مسئول')}
-      ${bl(R.respRows.slice(0, 7).map(r => [r[0], r[1]]), 'var(--nc)', ' مورد')}
-
-      ${sec('🛠️ آخرین اقدامات اصلاحی (با تاریخ اصلاح)')}
-      ${R.CL.slice(0, 10).map(f => `<div class="row"><div class="t"><span>${esc(shortQ(f.question, 80))}</span><span style="color:var(--ok);">اصلاح: ${fld(f.closed_at)}</span></div><small>${mn(f.module)} · ${esc(f.location)} · ثبت: ${fld(f.created_at)} · مدت اصلاح: ${fa(dayDiff(f.created_at, f.closed_at))} روز</small></div>`).join('') || '<div class="row">اقدام اصلاحی بسته‌شده‌ای در این بازه ثبت نشده است.</div>'}
     `);
   } catch (e) { alert('خطا در بارگذاری گزارش: ' + e.message); }
 }
@@ -1210,16 +816,24 @@ async function genSlides() {
   box.innerHTML = '<p id="slides-progress" style="text-align:center;">در حال تولید اسلایدها...</p>';
   btn.disabled = true;
   try {
-    const R = RA && RA.d === RPD ? RA : (RA = await analyze(RPD));
-    try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
-    const logo = await loadImg('logo.png'), pages = buildPages(R, logo);
-    const F = [...R.P].sort((a, b) => (a.status == 'open' ? 0 : 1) - (b.status == 'open' ? 0 : 1) || sev_(b) - sev_(a) || new Date(b.created_at) - new Date(a.created_at)).slice(0, MAXS);
-    const tot = 1 + pages.length + F.length, out = [coverSlide(logo, R, 'گزارش عملکرد کارخانه')], tick = async k => { const p = $('#slides-progress'); if (p) p.textContent = 'در حال تولید اسلایدها... ' + fa(k) + ' از ' + fa(tot); await new Promise(r => setTimeout(r, 0)); };
-    for (let i = 0; i < pages.length; i++) { out.push(pages[i](i + 2, tot)); await tick(out.length); }
-    for (let i = 0; i < F.length; i++) { out.push(await findingSlide(logo, F[i], 2 + pages.length + i, tot)); await tick(out.length); }
+    const s = periodStart(RPD), FS = 'module,location,qid,question,status,created_at,closed_at,notice_at,severity,category,responsible,due_date,photos_before,photos_after';
+    const [P, OF, I] = await Promise.all([
+      api('findings?select=' + FS + '&created_at=gte.' + s + '&order=created_at.desc&limit=1000'),
+      api('findings?select=' + FS + '&status=eq.open&limit=1000'),
+      api('inspections?select=ok,nc&created_at=gte.' + s + '&limit=1000')
+    ]);
+    const ok = I.reduce((a, r) => a + r.ok, 0), nc = I.reduce((a, r) => a + r.nc, 0);
+    const S = {
+      bz: periodLabel(RPD), totalPeriod: P.length, insCount: I.length, rate: pct(ok, ok + nc),
+      hi: OF.filter(x => sev_(x) >= 3).length, overdue: OF.filter(od_).length, noNotice: OF.filter(x => !x.notice_at).length,
+      topLocs: cnt(OF, x => nl(x.location)).slice(0, 5),
+      topCats: cnt(P, x => x.category || cat(x.module, x.question || '')).slice(0, 5)
+    };
+    const F = [...P].sort((a, b) => (a.status == 'open' ? 0 : 1) - (b.status == 'open' ? 0 : 1) || sev_(b) - sev_(a) || new Date(b.created_at) - new Date(a.created_at)).slice(0, MAXS);
+    const imgs = await slides(F, 'گزارش عملکرد کارخانه', S.bz, S);
     box.innerHTML = '<h3 style="margin-bottom:10px;">اسلایدهای تولیدشده:</h3>' +
-      (R.P.length > MAXS ? `<small style="margin-bottom:10px;">از ${fa(R.P.length)} مورد، ${fa(MAXS)} مورد اول (ابتدا موارد باز و شدت بالاتر) نمایش داده شده است.</small>` : '') +
-      out.map((src, idx) => `<div style="margin-bottom:15px;"><img src="${src}" style="width:100%; border-radius:8px; border:1px solid var(--ln);"><a href="${src}" download="slide-${idx + 1}.jpg" class="p" style="display:block; text-align:center; text-decoration:none; margin-top:6px;">📥 دانلود اسلاید ${fa(idx + 1)}</a></div>`).join('');
+      (P.length > MAXS ? `<small style="margin-bottom:10px;">از ${fa(P.length)} مورد، ${fa(MAXS)} مورد اول نمایش داده شده است.</small>` : '') +
+      imgs.map((src, idx) => `<div style="margin-bottom:15px;"><img src="${src}" style="width:100%; border-radius:8px; border:1px solid var(--ln);"><a href="${src}" download="slide-${idx + 1}.jpg" class="p" style="display:block; text-align:center; text-decoration:none; margin-top:6px;">📥 دانلود اسلاید ${fa(idx + 1)}</a></div>`).join('');
   } catch (e) { box.innerHTML = ''; alert('خطا در تولید اسلایدها: ' + e.message); }
   btn.disabled = false;
 }
