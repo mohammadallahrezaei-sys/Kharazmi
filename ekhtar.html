@@ -13,23 +13,31 @@
 body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc; }
 .fld { width:100%; background:#0f172a; border:1px solid #334155; border-radius:.75rem; padding:.5rem .75rem; color:#fff; font-size:.875rem; outline:none; }
 .fld:focus { border-color:#10b981; }
+
+/* استایل مخصوص چاپ فرم اخطار */
+@media print {
+    body * { visibility: hidden; }
+    #printSection, #printSection * { visibility: visible; }
+    #printSection { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; padding: 20px; font-family: 'Vazirmatn', sans-serif; }
+    .no-print { display: none !important; }
+}
 </style>
 </head>
 <body class="p-4 max-w-6xl mx-auto flex flex-col min-h-screen justify-between">
-<div class="space-y-4">
+<div class="space-y-4 no-print">
     <!-- هدر صفحه -->
     <div class="flex justify-between items-center bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-emerald-950 border border-emerald-700 rounded-xl flex items-center justify-center text-emerald-400 font-bold">⚠️</div>
             <div>
                 <h1 class="text-base font-bold text-white">مدیریت سوابق انضباطی، اخطار و تشویق</h1>
-                <p class="text-[11px] text-slate-400">سامانه جامع HSE - ثبت، جستجو و گزارش‌گیری پیشرفته سوابق پرسنل</p>
+                <p class="text-[11px] text-slate-400">سامانه جامع HSE - ثبت، جستجو، صدور فرم و گزارش‌گیری پیشرفته</p>
             </div>
         </div>
         <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs shrink-0">← بازگشت به منو</a>
     </div>
 
-    <!-- کارت‌های آماری کلیدی -->
+    <!-- کارت‌های آماری کلی سامانه -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl text-center">
             <span class="text-xs text-slate-400 block mb-1">کل سوابق ثبت‌شده</span>
@@ -46,6 +54,28 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
         <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl text-center">
             <span class="text-xs text-emerald-400 block mb-1">تشویق‌ها</span>
             <span id="statTashvig" class="text-xl font-extrabold text-emerald-400">0</span>
+        </div>
+    </div>
+
+    <!-- کارت خلاصه مشخصات و آمار سوابق فرد انتخاب شده -->
+    <div id="empSummaryCard" class="hidden bg-slate-800 border border-emerald-500/40 p-4 rounded-2xl space-y-3">
+        <div class="flex justify-between items-center">
+            <h3 id="empSummaryName" class="text-sm font-bold text-emerald-400"></h3>
+            <span id="empSummaryDept" class="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-lg"></span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center text-xs">
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                <span class="text-slate-400 block mb-0.5">اخطار کتبی</span>
+                <span id="empEkhtarCount" class="font-extrabold text-rose-400 text-sm">0</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                <span class="text-slate-400 block mb-0.5">تذکر شفاهی</span>
+                <span id="empTazakorCount" class="font-extrabold text-amber-400 text-sm">0</span>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+                <span class="text-slate-400 block mb-0.5">تشویق</span>
+                <span id="empTashvigCount" class="font-extrabold text-emerald-400 text-sm">0</span>
+            </div>
         </div>
     </div>
 
@@ -135,7 +165,48 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
     </div>
 </div>
 
-<footer class="text-center text-[11px] text-slate-500 py-4 mt-8">
+<!-- قالب مخفی جهت چاپ فرم رسمی ابلاغیه -->
+<div id="printSection" class="hidden">
+    <div style="border: 2px solid #000; padding: 25px; border-radius: 12px; max-width: 800px; margin: 0 auto; direction: rtl;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px;">
+            <div style="font-size: 12px; line-height: 1.8;">
+                <p><strong>شرکت گسترش فناوری خوارزمی</strong></p>
+                <p>واحد بهداشت، ایمنی و محیط زیست (HSE)</p>
+            </div>
+            <div style="text-align: center;">
+                <h2 id="pFormTitle" style="font-size: 18px; font-weight: bold; margin: 0;">فرم ابلاغیه انضباطی</h2>
+            </div>
+            <div style="font-size: 12px; line-height: 1.8; text-align: left;">
+                <p><strong>تاریخ صدور:</strong> <span id="pDate"></span></p>
+                <p><strong>شماره ثبت:</strong> <span id="pId"></span></p>
+            </div>
+        </div>
+
+        <div style="font-size: 13px; line-height: 2; margin-bottom: 25px;">
+            <p><strong>نام و نام خانوادگی پرسنل:</strong> <span id="pName"></span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>کد پرسنلی:</strong> <span id="pEmpId"></span></p>
+            <p><strong>واحد / قسمت مربوطه:</strong> <span id="pDept"></span></p>
+            <p><strong>نوع ابلاغیه:</strong> <span id="pType" style="font-weight: bold;"></span></p>
+            <hr style="border: 0.5px solid #ccc; margin: 15px 0;">
+            <p><strong>موضوع / علت:</strong></p>
+            <p id="pReason" style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; border-radius: 8px; margin-top: 5px; text-align: justify;"></p>
+            <p><strong>توضیحات تکمیلی:</strong> <span id="pDesc"></span></p>
+        </div>
+
+        <div style="margin-top: 60px; display: flex; justify-content: space-between; text-align: center; font-size: 12px;">
+            <div>
+                <p><strong>امضاء مسئول HSE</strong></p>
+            </div>
+            <div>
+                <p><strong>امضاء مدیر واحد مربوطه</strong></p>
+            </div>
+            <div>
+                <p><strong>امضاء و رویت پرسنل</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="text-center text-[11px] text-slate-500 py-4 mt-8 no-print">
     سامانه مدیریت HSE - توسعه‌یافته برای کنترل و پایش ایمنی صنعتی
 </footer>
 
@@ -177,6 +248,29 @@ async function loadEkhtarsModule() {
         console.error("خطا در بارگذاری اطلاعات:", err.message);
     }
 }
+
+// نمایش کارت مشخصات و آمار فردی هنگام تایپ یا انتخاب پرسنل
+document.getElementById('ektEmpInput').addEventListener('input', (e) => {
+    const val = e.target.value;
+    const empIdStr = val.split(' - ')[0].trim();
+    const emp = allEmployeesForEkt.find(x => String(x.emp_id) === String(empIdStr));
+    
+    const summaryCard = document.getElementById('empSummaryCard');
+    if (emp) {
+        const empEkhtars = allEkhtarsData.filter(x => x.employees && String(x.employees.emp_id) === String(emp.emp_id));
+        
+        document.getElementById('empSummaryName').innerText = `👤 مشخصات پرسنل: ${emp.first_name || ''} ${emp.last_name || ''} (کد: ${emp.emp_id})`;
+        document.getElementById('empSummaryDept').innerText = `واحد: ${emp.department || 'نامشخص'}`;
+        
+        document.getElementById('empEkhtarCount').innerText = empEkhtars.filter(x => x.record_type === 'اخطار کتبی').length;
+        document.getElementById('empTazakorCount').innerText = empEkhtars.filter(x => x.record_type === 'تذکر شفاهی').length;
+        document.getElementById('empTashvigCount').innerText = empEkhtars.filter(x => x.record_type === 'تشویق').length;
+        
+        summaryCard.classList.remove('hidden');
+    } else {
+        summaryCard.classList.add('hidden');
+    }
+});
 
 function updateStatistics(data) {
     const total = data.length;
@@ -244,12 +338,35 @@ function renderEkhtarsTable(data) {
                 <td class="p-3 text-slate-200">${item.reason || '-'}</td>
                 <td class="p-3 font-mono text-slate-300">${item.record_date || '-'}</td>
                 <td class="p-3 text-slate-400">${item.description || '-'}</td>
-                <td class="p-3 text-center">
+                <td class="p-3 text-center space-x-1 space-x-reverse">
+                    <button onclick="printEkhtarForm('${item.id}')" class="px-2 py-1 bg-blue-900/50 hover:bg-blue-800 text-blue-300 rounded text-[10px] font-bold">🖨️ چاپ</button>
                     <button onclick="deleteEkhtarRecord('${item.id}')" class="px-2 py-1 bg-rose-900/50 hover:bg-rose-800 text-rose-300 rounded text-[10px]">حذف</button>
                 </td>
             </tr>
         `;
     }).join('');
+}
+
+// تابع پر کردن و چاپ رسمی فرم ابلاغیه
+function printEkhtarForm(id) {
+    const item = allEkhtarsData.find(x => String(x.id) === String(id));
+    if (!item) return;
+
+    const emp = item.employees || {};
+    document.getElementById('pFormTitle').innerText = `فرم ابلاغیه ${item.record_type}`;
+    document.getElementById('pDate').innerText = item.record_date || '-';
+    document.getElementById('pId').innerText = item.id;
+    document.getElementById('pName').innerText = `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
+    document.getElementById('pEmpId').innerText = emp.emp_id || '-';
+    document.getElementById('pDept').innerText = emp.department || 'عمومی';
+    document.getElementById('pType').innerText = item.record_type;
+    document.getElementById('pReason').innerText = item.reason;
+    document.getElementById('pDesc').innerText = item.description || 'ندارد';
+
+    const printSection = document.getElementById('printSection');
+    printSection.classList.remove('hidden');
+    window.print();
+    printSection.classList.add('hidden');
 }
 
 document.getElementById('ekhtarForm').addEventListener('submit', async (e) => {
@@ -277,6 +394,7 @@ document.getElementById('ekhtarForm').addEventListener('submit', async (e) => {
         
         alert('سابقه انضباطی با موفقیت ثبت شد.');
         document.getElementById('ekhtarForm').reset();
+        document.getElementById('empSummaryCard').classList.add('hidden');
         loadEkhtarsModule();
     } catch (err) {
         alert('خطا در ثبت اطلاعات: ' + err.message);
