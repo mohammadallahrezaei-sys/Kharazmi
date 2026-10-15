@@ -31,10 +31,7 @@ input:focus, select:focus { border-color: var(--ac); box-shadow: 0 0 0 3px rgba(
 button, .btn-link { font: inherit; color: var(--ink); background: var(--card-bg); border: 1.5px solid var(--ln); border-radius: 12px; min-height: 48px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
 button:hover, .btn-link:hover { background: var(--ln); }
 
-/* برای نمایش دکمه‌ها به‌صورت دوتا دوتا در کنار هم */
 body div#app { display: flex; flex-direction: column; }
-/* اگر منظورتان لیست دکمه‌های چک‌لیست در صفحه اصلی است: */
-/* می‌توانید یک کانتینر دور دکمه‌های M بگذارید یا به شکل زیر گرید کنید */
 .m:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--ac); }
 .m b { display: block; font-size: 16px; font-weight: 700; color: var(--ink); }
 .p { width: 100%; margin-top: 10px; background: var(--ac); border-color: var(--ac); color: #0f172a; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(16,185,129,0.25); }
@@ -92,6 +89,23 @@ body div#app { display: flex; flex-direction: column; }
 .tr div { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; min-width: 32px; }
 .tr i { width: 100%; background: var(--ac); border-radius: 4px 4px 0 0; min-height: 4px; }
 .tr span { font-size: 10px; color: var(--mu); margin-top: 4px; }
+
+/* هدر و لوگو */
+.hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; background:var(--card-bg); padding:14px; border-radius:16px; border:1px solid var(--ln); }
+.hdr-r { display:flex; align-items:center; gap:12px; min-width:0; }
+.logo { width:40px; height:40px; object-fit:contain; border-radius:8px; flex-shrink:0; }
+.hdr h2 { margin:0; font-size:16px; }
+
+/* دکمه بازگشت */
+.back { display:inline-flex; align-items:center; padding:6px 12px; background:var(--ln); color:#fff; border-radius:12px; font-size:12px; text-decoration:none; white-space:nowrap; flex-shrink:0; }
+.back:hover { background:#475569; }
+
+/* دکمه‌های بالای صفحه: دوتا دوتا */
+.top-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.top-grid .p { margin:0; min-height:56px; font-size:13px; padding:8px; text-align:center; line-height:1.5; }
+
+/* دکمه‌های چک‌لیست */
+.m { display:block; width:100%; text-align:right; padding:14px 16px; margin-top:10px; border-radius:14px; }
 
 @media print { .np { display: none !important; } body { padding: 0; background: #fff; color: #000; } }
 [hidden] { display: none !important; }
@@ -252,40 +266,30 @@ const $ = s => document.querySelector(s), view = h => $('#app').innerHTML = h, e
 const fd = d => new Date(d).toLocaleDateString('fa-IR');
 const ft = d => new Date(d).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
 const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-let tok = localStorage.tk || '', mail = localStorage.em || '', cur, A = {}, N = {}, D = { loc: '', extra: {} };
+/* ماژول فرعی است و ورود جداگانه ندارد: مثل داشبورد اصلی با کلید عمومی کار می‌کند.
+   اگر کاربر قبلاً وارد شده باشد (توکن ذخیره‌شده)، از همان استفاده می‌شود. */
+function getSession() {
+  try {
+    if (localStorage.tk) return { t: localStorage.tk, e: localStorage.em || '' };
+    for (const k of Object.keys(localStorage)) {
+      if (/^sb-.*-auth-token$/.test(k)) {
+        const j = JSON.parse(localStorage.getItem(k) || '{}'), x = j.currentSession || j;
+        if (x.access_token) return { t: x.access_token, e: (x.user && x.user.email) || '' };
+      }
+    }
+  } catch (e) { }
+  return { t: '', e: '' };
+}
+const SS = getSession();
+let tok = SS.t || KEY, mail = SS.e || 'کاربر سامانه', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
 const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS });
 
 async function api(p, o = {}) {
   const r = await fetch(URL_ + '/rest/v1/' + p, { ...o, headers: { apikey: KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', Prefer: 'return=representation' } });
-  if (r.status == 401) { logout(); throw new Error('نشست کاری به پایان رسیده است. دوباره وارد شوید.'); }
+  if (r.status == 401) { tok = KEY; throw new Error('دسترسی غیرمجاز (401). تنظیمات دسترسی دیتابیس را بررسی کنید.'); }
   if (!r.ok) throw new Error(await r.text());
   return r.json();
-}
-
-function loginV(m = '') {
-  view(`
-    <div style="max-width:380px; margin:40px auto; text-align:center;">
-      <div class="mb-4 flex justify-center">
-        <img src="logo.png" alt="گسترش فناوری خوارزمی" style="width: 48px; height: auto;" class="rounded-lg shadow" onerror="this.style.display='none'">
-      </div>
-      <h2 style="justify-content:center; font-size:24px; margin-bottom:20px;">ورود به ماژول چک‌لیست‌ها</h2>
-      <input id="em" type="email" dir="ltr" placeholder="ایمیل کاربر">
-      <input id="pw" type="password" dir="ltr" placeholder="رمز عبور">
-      <button class="p" data-a="login">ورود به سیستم</button>
-      <p class="e" style="color:var(--nc); margin-top:12px;">${m}</p>
-    </div>
-  `);
-}
-
-function logout() { tok = ''; localStorage.removeItem('tk'); loginV(); }
-
-async function login() {
-  try {
-    const r = await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: $('#em').value.trim(), password: $('#pw').value }) }), j = await r.json();
-    if (!r.ok) return loginV('ایمیل یا رمز عبور اشتباه است.');
-    tok = localStorage.tk = j.access_token; mail = localStorage.em = j.user.email; home();
-  } catch (e) { loginV('خطا در اتصال به سرور'); }
 }
 
 async function home() {
@@ -293,31 +297,31 @@ async function home() {
   let L = {};
   try { (await api('inspections?select=module,created_at&order=created_at.desc&limit=500')).forEach(r => L[r.module] = L[r.module] || r.created_at); } catch (e) { }
   view(`
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;" class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
-      <div class="flex items-center gap-3">
-        <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded shadow object-contain" onerror="this.style.display='none'">
+    <div class="hdr">
+      <div class="hdr-r">
+        <img src="logo.png" alt="لوگو" class="logo" onerror="this.style.display='none'">
         <div>
-          <h2 style="margin:0;" class="text-base">ماژول چک‌لیست‌های ایمنی</h2>
+          <h2>ماژول چک‌لیست‌های ایمنی</h2>
           <small>بازرسی‌های تخصصی کارخانه</small>
         </div>
       </div>
-      <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors shrink-0">← بازگشت</a>
+      <a href="index.html" class="back">← بازگشت</a>
     </div>
-    <div style="margin-bottom:14px;">
-      <button class="p" data-a="history" style="background:var(--ok); border-color:var(--ok); color:#fff;">📋 تاریخچه کامل بازدیدها (گزارش‌های ثبت‌شده)</button>
-      <button class="p" data-a="stats" style="background:#6366f1; border-color:#6366f1; color:#fff;">📊 داشبورد آماری و تحلیل ریسک</button>
+
+    <div class="top-grid">
+      <button class="p" data-a="history" style="background:var(--ok); border-color:var(--ok); color:#fff;">📋 تاریخچه بازدیدها</button>
+      <button class="p" data-a="stats" style="background:#6366f1; border-color:#6366f1; color:#fff;">📊 داشبورد آماری</button>
+      <button class="p" data-a="finds">🛠️ پیگیری عدم‌انطباق‌ها</button>
+      <button class="p" data-a="rep" style="background:var(--card-bg); color:var(--ink); border-color:var(--ln);">📑 گزارش مدیریتی</button>
     </div>
+
     ${M.map(m => `
       <button class="m" data-a="open" data-k="${m[0]}">
         <b>${m[1]}</b>
-        <small>${m[2]} ${m[3] ? ' · کد: ' + m[3] : ''} \vert{} آخرین بازدید: ${L[m[0]] ? fd(L[m[0]]) : 'ثبت نشده'}</small>
+        <small>${m[2]}${m[3] ? ' · کد: ' + m[3] : ''} · آخرین بازدید: ${L[m[0]] ? fd(L[m[0]]) : 'ثبت نشده'}</small>
       </button>
     `).join('')}
-    <div style="margin-top:20px;">
-      <button class="p" data-a="finds">پیگیری و ثبت اصلاحات عدم‌انطباق‌ها</button>
-      <button class="p" style="background:var(--card-bg); color:var(--ink); border-color:var(--ln);" data-a="rep">گزارش مدیریتی و اسلایدها</button>
-      <button class="l" style="margin-top:16px; width:100%; text-align:center;" data-a="logout">خروج از حساب (${esc(mail)})</button>
-    </div>
+
   `);
 }
 
@@ -328,7 +332,7 @@ async function historyList() {
     view(`
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
-        <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors">← داشبورد اصلی</a>
+        <a href="index.html" class="back">← داشبورد اصلی</a>
       </div>
       <h2>تاریخچه جامع بازدیدها</h2>
       <small>لیست تمام بازرسی‌های ثبت‌شده (امکان ویرایش محل و شیفت با ثبت لاگ تاریخچه)</small>
@@ -361,7 +365,7 @@ function form() {
   view(`
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
       <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
-      <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors">← داشبورد اصلی</a>
+      <a href="index.html" class="back">← داشبورد اصلی</a>
     </div>
     <h2>${m[1]}</h2>
     <small>${m[2]} ${m[3] ? ' · ' + m[3] : ''}</small>
@@ -511,7 +515,7 @@ async function finds(iid) {
     view(`
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
-        <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors">← داشبورد اصلی</a>
+        <a href="index.html" class="back">← داشبورد اصلی</a>
       </div>
       <h2>${FI ? 'ثبت اعلان عدم‌انطباق' : 'مدیریت و پیگیری عدم‌انطباق‌ها'}</h2>
       <small>تعداد موارد باز: ${fa(r.filter(x => x.status == 'open').length)}</small>
@@ -613,7 +617,7 @@ async function stats(d = 90) {
     view(`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
-        <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs">← داشبورد اصلی</a>
+        <a href="index.html" class="back">← داشبورد اصلی</a>
       </div>
       <h2>📊 داشبورد آماری و تحلیل ریسک</h2>
       <small>تحلیل خودکار برای شناسایی نقاط پرخطر و پیشگیری از حوادث</small>
@@ -667,7 +671,7 @@ async function stats(d = 90) {
       ${bl(inspRows, 'var(--ac)')}
 
       ${sec('📈 روند هفتگی درصد عدم‌انطباق')}
-      <div class="tr">${trend.map(t => `<div><span>${fa(t.p)}٪</span><i style="height:${Math.max(2, t.p)}\%"></i><span>${t.i ? fa(t.i) + 'ه' : 'اخیر'}</span></div>`).join('')}</div>
+      <div class="tr">${trend.map(t => `<div><span>${fa(t.p)}٪</span><i style="height:${Math.max(2, t.p)}%"></i><span>${t.i ? fa(t.i) + 'ه' : 'اخیر'}</span></div>`).join('')}</div>
 
       ${sec('🕓 سن عدم‌انطباق‌های باز')}
       <div class="kp" style="grid-template-columns:repeat(3,1fr)">
@@ -684,8 +688,6 @@ document.onclick = async e => {
   const t = e.target.closest('[data-a]'); if (!t) return;
   const a = t.dataset.a, y = scrollY;
   if (a == 'home') home();
-  else if (a == 'login') login();
-  else if (a == 'logout') logout();
   else if (a == 'history') historyList();
   else if (a == 'stats') stats();
   else if (a == 'open') {
@@ -718,12 +720,10 @@ document.onclick = async e => {
     const newLoc = $('#edit-loc').value, newSh = $('#edit-sh').value;
     if (oldLoc === newLoc && oldSh === newSh) return alert('تغییری ایجاد نشده است.');
     try {
-      // آپدیت جدول اصلی
       await api('inspections?id=eq.' + id, {
         method: 'PATCH',
         body: JSON.stringify({ location: newLoc, shift: newSh })
       });
-      // ثبت لاگ در جدول تاریخچه تغییرات
       const logs = [];
       if (oldLoc !== newLoc) {
         logs.push({ inspection_id: id, inspector: mail, action_type: 'UPDATE_LOCATION', old_value: oldLoc, new_value: newLoc });
@@ -789,7 +789,7 @@ document.oninput = async e => {
   save();
 };
 
-tok ? home() : loginV();
+home();
 </script>
 </body>
 </html>
