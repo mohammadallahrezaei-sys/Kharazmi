@@ -149,7 +149,8 @@ const SHIFTS = ['صبح','عصر','شب'];
 const SEVN = {1:'کم',2:'متوسط',3:'زیاد',4:'بحرانی'}, SEVC = {1:'#94a3b8',2:'#f59e0b',3:'#f97316',4:'#ef4444'};
 const SLA = {1:30,2:14,3:3,4:1};
 const RCS = ['آموزش/آگاهی نیروی انسانی','خرابی/فرسودگی تجهیزات','نبود یا ضعف رویه و دستورالعمل','نظارت و پیگیری ناکافی','بودجه/تأمین ناکافی','شرایط محیطی/طراحی'];
-let SV = {}, RS = {};
+let SV = {}, RS = {}, LC = {};
+const ROUND_LOC = 'گشت کل کارخانه'; /* بازدید روزانه ایمنی (D) یک‌بار برای کل کارخانه ثبت می‌شود */
 
 const CATS = [
   ['حریق', /کپسول|فایرباکس|حریق|آتش|اشتعال|جرقه/],
@@ -263,7 +264,7 @@ function getSession() {
 const SS = getSession();
 let tok = SS.t || KEY, mail = SS.e || 'کاربر سامانه', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
-const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS });
+const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS, LC });
 const AH = () => ({ apikey: KEY, Authorization: 'Bearer ' + tok });
 
 async function api(p, o = {}) {
@@ -339,7 +340,8 @@ async function historyList() {
 }
 
 function form() {
-  const m = cur, extras = m[5] || [];
+  const m = cur, extras = m[5] || [], rd = m[0] == 'D';
+  if (rd) D.loc = ROUND_LOC;
   D.shift = D.shift || SHIFTS[0];
   const ls = LOCS.includes(D.loc) ? D.loc : (D.loc || D.oth ? '__o' : '');
   view(`
@@ -349,9 +351,10 @@ function form() {
     </div>
     <h2>${m[1]}</h2>
     <small>${m[2]} ${m[3] ? ' · ' + m[3] : ''}</small>
+    ${rd ? '<small style="display:block; margin-top:6px; color:var(--ac);">گشت روزانه کل کارخانه: سؤال‌ها را یک‌بار برای کل گشت پاسخ دهید. فقط برای مورد دارای عدم‌انطباق، محل (سوله/بخش) را بنویسید.</small>' : ''}
 
     <div class="meta-box">
-      <div>
+      <div ${rd ? 'hidden' : ''}>
         <label style="font-size:12px; font-weight:700;">محل / سالن / بخش (الزامی):</label>
         <select id="ls"><option value="">انتخاب کنید...</option>${LOCS.map(l => `<option ${ls == l ? 'selected' : ''}>${l}</option>`).join('')}<option value="__o" ${ls == '__o' ? 'selected' : ''}>سایر (تایپ کنید)</option></select>
         <input id="loc" placeholder="نام محل را بنویسید" value="${esc(D.loc)}" ${ls == '__o' ? '' : 'hidden'}>
@@ -379,6 +382,7 @@ function form() {
             `).join('')}
           </div>
           ${a == 'nc' ? `
+            ${rd ? `<input data-lc="${id}" list="locs" placeholder="محل عدم‌انطباق (الزامی)" value="${esc(LC[id])}">` : ''}
             <input data-note="${id}" placeholder="شرح مشخص عدم‌انطباق (الزامی)" value="${esc(N[id])}">
             <select data-sv="${id}">${[1, 2, 3, 4].map(v => `<option value="${v}" ${sv == v ? 'selected' : ''}>شدت: ${SEVN[v]}</option>`).join('')}</select>
             <input data-rs="${id}" placeholder="مسئول پیگیری اصلاح${sv >= 3 ? ' (الزامی)' : ''}" value="${esc(RS[id])}">
@@ -391,12 +395,13 @@ function form() {
         </div>
       `;
     }).join('')}
+    ${rd ? `<datalist id="locs">${LOCS.map(l => `<option value="${l}">`).join('')}</datalist>` : ''}
     <button class="p" data-a="send" style="margin-top:20px;">ثبت نهایی بازدید</button>
   `);
 }
 
 async function send() {
-  const m = cur, loc = D.loc.trim(), extras = m[5] || [], Q = m[6], ids = Q.map(q => m[0] + '-' + q.id);
+  const m = cur, rd = m[0] == 'D', loc = rd ? ROUND_LOC : D.loc.trim(), extras = m[5] || [], Q = m[6], ids = Q.map(q => m[0] + '-' + q.id);
   if (!loc) return alert('لطفاً محل بازدید را مشخص کنید.');
   for (const ex of extras) if (!(D.extra[ex.key] || '').trim()) return alert(`لطفاً فیلد «${ex.ph}» را تکمیل کنید.`);
 
@@ -404,6 +409,7 @@ async function send() {
   const ncs = ids.filter(i => A[i] == 'nc');
   const bad = ncs.filter(i => !(N[i] || '').trim() || !(PH[i] || []).length);
   if (bad.length) return alert('ثبت توضیحات و عکس برای موارد عدم‌انطباق الزامی است.\nناقص: سوال ' + bad.map(pos).join('، '));
+  if (rd) { const nloc = ncs.filter(i => !(LC[i] || '').trim()); if (nloc.length) return alert('محل هر عدم‌انطباق را بنویسید.\nسوال: ' + nloc.map(pos).join('، ')); }
   const nr = ncs.filter(i => sv(i) >= 3 && !(RS[i] || '').trim());
   if (nr.length) return alert('برای موارد با شدت «زیاد» یا «بحرانی» نام مسئول پیگیری الزامی است.\nسوال: ' + nr.map(pos).join('، '));
 
@@ -422,13 +428,13 @@ async function send() {
       let extNote = N[i] || '';
       if (extras.length) extNote += ' | ' + extras.map(ex => `${ex.ph.replace('(الزامی)', '')}: ${D.extra[ex.key] || ''}`).join(' - ');
       f.push({
-        inspection_id: r.id, module: m[0], location: loc, qid: i, question: qt(i), note: extNote,
+        inspection_id: r.id, module: m[0], location: rd ? LC[i].trim() : loc, qid: i, question: qt(i), note: extNote,
         severity: sv(i), category: cat(m[0], qt(i)), responsible: (RS[i] || '').trim() || null, due_date: addDays(SLA[sv(i)]),
         photos_before: await Promise.all((PH[i] || []).map(p => up(p.b)))
       });
     }
     if (f.length) await api('findings', { method: 'POST', body: JSON.stringify(f) });
-    localStorage.removeItem('draft'); ids.forEach(i => delete PH[i]); SV = {}; RS = {};
+    localStorage.removeItem('draft'); ids.forEach(i => delete PH[i]); SV = {}; RS = {}; LC = {};
     alert('بازدید با موفقیت ثبت شد.');
     home();
   } catch (e) {
@@ -563,7 +569,7 @@ async function stats(d = 90) {
     const worstMod = MD.filter(x => x.cnt).sort((a, b) => b.r - a.r).slice(0, 6);
 
     const L = {}; LOCS.forEach(k => L[k] = { n: 0, nc: 0, risk: 0, open: 0, last: null });
-    I.forEach(r => { const k = nl(r.location), o = L[k] = L[k] || { n: 0, nc: 0, risk: 0, open: 0, last: null }; o.n++; o.nc += r.nc; o.last = o.last || r.created_at; });
+    I.forEach(r => { if (r.location === ROUND_LOC) { LOCS.forEach(k => { const o = L[k]; o.n++; o.last = o.last || r.created_at; }); return; } const k = nl(r.location), o = L[k] = L[k] || { n: 0, nc: 0, risk: 0, open: 0, last: null }; o.n++; o.nc += r.nc; o.last = o.last || r.created_at; });
     OF.forEach(x => { const k = nl(x.location), o = L[k] = L[k] || { n: 0, nc: 0, risk: 0, open: 0, last: null }; o.open++; o.risk += sv(x) * 2 + (od(x) ? 3 : 0); });
     const LA = Object.entries(L).map(([k, o]) => { const ds = o.last ? days(o.last) : 999; return { k, ...o, ds, score: o.risk + o.nc + (ds > 30 ? 3 : ds > 14 ? 1 : 0) }; });
     const riskTop = [...LA].sort((a, b) => b.score - a.score).filter(x => x.score > 0).slice(0, 8);
@@ -852,8 +858,8 @@ document.onclick = async e => {
   else if (a == 'open') {
     cur = M.find(m => m[0] == t.dataset.k);
     const d = JSON.parse(localStorage.draft || '{}');
-    if (d.k == cur[0]) { A = d.A || {}; N = d.N || {}; SV = d.SV || {}; RS = d.RS || {}; D.loc = d.loc || ''; D.extra = d.extra || {}; D.shift = d.shift || ''; }
-    else { A = {}; N = {}; SV = {}; RS = {}; D.loc = ''; D.extra = {}; D.shift = ''; D.oth = false; }
+    if (d.k == cur[0]) { A = d.A || {}; N = d.N || {}; SV = d.SV || {}; RS = d.RS || {}; LC = d.LC || {}; D.loc = d.loc || ''; D.extra = d.extra || {}; D.shift = d.shift || ''; }
+    else { A = {}; N = {}; SV = {}; RS = {}; LC = {}; D.loc = ''; D.extra = {}; D.shift = ''; D.oth = false; }
     form();
   }
   else if (a == 'ans') { A[t.dataset.id] = t.dataset.v; save(); form(); scrollTo(0, y); }
@@ -944,6 +950,7 @@ document.oninput = async e => {
   else if (t.dataset.ex) { D.extra = D.extra || {}; D.extra[t.dataset.ex] = t.value; }
   else if (t.dataset.note) N[t.dataset.note] = t.value;
   else if (t.dataset.rs) RS[t.dataset.rs] = t.value;
+  else if (t.dataset.lc) LC[t.dataset.lc] = t.value;
   else return;
   save();
 };
