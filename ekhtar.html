@@ -11,6 +11,53 @@
 body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc; }
 .fld { width:100%; background:#0f172a; border:1px solid #334155; border-radius:.75rem; padding:.5rem .75rem; color:#fff; font-size:.875rem; outline:none; }
 .fld:focus { border-color:#10b981; }
+.lbl { display:block; font-size:11px; color:#cbd5e1; margin-bottom:.2rem; }
+
+/* ---------- فرم چاپی (مطابق فرم‌های Word) ---------- */
+.sheet { background:#fff; color:#000; width:100%; max-width:17cm; margin:0 auto; direction:rtl; font-weight:700; font-size:12pt;
+  font-family:'B Nazanin','BNazanin','Nazanin','Vazirmatn',Tahoma,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+.sheet table { width:100%; border-collapse:collapse; table-layout:fixed; }
+.sheet td { border:2.25pt solid #000; padding:3px 7px; vertical-align:top; }
+.sheet .titr { font-family:'B Titr','BTitr','B Nazanin','Vazirmatn',Tahoma,sans-serif; }
+.sheet u { text-decoration:underline; }
+.sheet p { margin:0; }
+.sheet .hdr td { vertical-align:middle; }
+.sheet .c-logo { text-align:center; }
+.sheet .c-logo img { display:inline-block; }
+.sheet .c-title { text-align:center; font-size:14pt; }
+.sheet .c-meta { font-size:11pt; line-height:1.4; }
+.sheet .gap { height:.12in; }
+.sheet .body { padding:6px 10px; }
+.sheet .addr { font-weight:400; }
+.sheet .sig { font-size:11pt; padding:3px 7px; }
+.sheet .dist { font-size:11pt; }
+.sheet ul { margin:0; padding:0 1.6em 0 0; list-style:disc; }
+.sheet li { margin:0; }
+.sheet .cb { display:inline-block; width:.95em; height:.95em; border:1.6px solid #000; vertical-align:-.14em; margin:0 .3em; }
+.sheet .cb.on { background:#000; }
+.sheet .dots { letter-spacing:1px; font-weight:400; }
+.sheet bdi { unicode-bidi:isolate; }
+.sheet.warn .c-logo img { width:1.17in; height:auto; }
+.sheet.reward .c-logo img { width:1.52in; height:auto; }
+.sheet.warn .body { height:4.97in; }
+.sheet.reward .body { height:5.03in; }
+.sheet.warn .gap { height:.12in; }
+.sheet.reward .gap { height:.5in; }
+.sheet.warn .sig, .sheet.reward .sig { height:.93in; }
+.sheet.warn .main-p { line-height:1.75; text-align:justify; }
+.sheet.reward .main-p { line-height:1.45; text-align:justify; }
+
+/* ---------- چاپ ---------- */
+@page { size: A4; margin: 16mm 20mm; }
+@media print {
+  html, body { background:#fff !important; padding:0 !important; margin:0 !important; }
+  body > *:not(#printModal) { display:none !important; }
+  #printModal { position:static !important; display:block !important; background:#fff !important; padding:0 !important; overflow:visible !important; }
+  #printModal .no-print { display:none !important; }
+  #printModal .modal-card { background:#fff !important; border:0 !important; padding:0 !important; display:block !important; box-shadow:none !important; }
+  #printModal .preview-wrap { background:#fff !important; padding:0 !important; overflow:visible !important; }
+  .sheet { max-width:none; }
+}
 </style>
 </head>
 <body class="p-4 max-w-6xl mx-auto flex flex-col min-h-screen justify-between">
@@ -76,9 +123,36 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
             </form>
         </div>
 
-        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl flex flex-col justify-between lg:col-span-2">
-            <h3 class="text-sm font-bold text-white mb-2">📊 نمودار فراوانی انواع سوابق انضباطی</h3>
-            <div class="relative w-full h-64 flex items-center justify-center"><canvas id="ekhtarChart"></canvas></div>
+        <!-- پنل سمت چپ: نمودار کلی (بدون انتخاب) یا آمار فرد (با انتخاب) -->
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl lg:col-span-2 flex flex-col">
+            <h3 id="sideTitle" class="text-sm font-bold text-white mb-2">📊 نمودار فراوانی انواع سوابق انضباطی</h3>
+
+            <div id="chartBox" class="relative w-full h-64 flex items-center justify-center"><canvas id="ekhtarChart"></canvas></div>
+
+            <div id="personBox" class="hidden space-y-3">
+                <div class="flex justify-between items-start gap-2 flex-wrap">
+                    <div>
+                        <p id="pName" class="text-sm font-bold text-white"></p>
+                        <p id="pMeta" class="text-[11px] text-slate-400 mt-0.5"></p>
+                    </div>
+                    <button type="button" id="pClear" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-[11px]">✕ برگشت به نمودار کلی</button>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
+                    <div class="bg-slate-900 border border-slate-700 rounded-xl p-3"><span class="text-[10px] text-slate-400 block mb-1">کل اخطارها (کتبی + شفاهی)</span><span id="pWarnTotal" class="text-xl font-extrabold text-white">0</span></div>
+                    <div class="bg-slate-900 border border-slate-700 rounded-xl p-3"><span class="text-[10px] text-rose-400 block mb-1">اخطار کتبی</span><span id="pWritten" class="text-xl font-extrabold text-rose-400">0</span></div>
+                    <div class="bg-slate-900 border border-slate-700 rounded-xl p-3"><span class="text-[10px] text-amber-400 block mb-1">تذکر شفاهی</span><span id="pVerbal" class="text-xl font-extrabold text-amber-400">0</span></div>
+                    <div class="bg-slate-900 border border-slate-700 rounded-xl p-3"><span class="text-[10px] text-emerald-400 block mb-1">تشویق</span><span id="pReward" class="text-xl font-extrabold text-emerald-400">0</span></div>
+                </div>
+                <p id="pNext" class="text-xs text-slate-300 bg-slate-900/60 border border-slate-700 rounded-xl p-2.5"></p>
+                <div class="flex gap-2 flex-wrap">
+                    <button type="button" data-new="warn" class="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white rounded-xl text-xs font-bold">🖨 صدور فرم اخطاریه</button>
+                    <button type="button" data-new="reward" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold">🖨 صدور فرم تشویق</button>
+                </div>
+                <div>
+                    <p class="text-xs font-bold text-slate-300 mb-1">سوابق این فرد</p>
+                    <div id="pList" class="space-y-1.5 max-h-40 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -112,17 +186,94 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
     سامانه مدیریت HSE - توسعه‌یافته برای کنترل و پایش ایمنی صنعتی
 </footer>
 
+<!-- پنجره صدور و چاپ فرم (ذخیره نمی‌شود) -->
+<div id="printModal" class="hidden fixed inset-0 z-50 bg-black/75 overflow-y-auto p-3">
+    <div class="modal-card max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl p-4 grid grid-cols-1 lg:grid-cols-[19rem_1fr] gap-4">
+        <div class="no-print space-y-2.5 text-xs">
+            <div class="flex justify-between items-center">
+                <h3 id="pfHead" class="text-sm font-bold text-white">صدور فرم</h3>
+                <button type="button" id="pfClose" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg text-[11px]">✕ بستن</button>
+            </div>
+            <p class="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-800/60 rounded-lg p-2">این فرم در پایگاه داده ذخیره نمی‌شود؛ هر زمان لازم بود دوباره از روی سوابق ساخته می‌شود.</p>
+
+            <div><label class="lbl">نوع فرم</label>
+                <select id="pfKind" class="fld"><option value="warn">فرم اخطاریه HSE</option><option value="reward">فرم تشویق HSE</option></select></div>
+
+            <div class="grid grid-cols-3 gap-2">
+                <div><label class="lbl">خطاب</label><select id="pfGender" class="fld"><option>آقای</option><option>خانم</option></select></div>
+                <div class="col-span-2"><label class="lbl">نام و نام خانوادگی</label><input id="pfName" class="fld"></div>
+            </div>
+            <div><label class="lbl">واحد</label><input id="pfUnit" class="fld"></div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="lbl">تاریخ فرم</label><input id="pfDate" class="fld" dir="ltr"></div>
+                <div><label class="lbl">تاریخ بازدید / وقوع</label><input id="pfVDate" class="fld" dir="ltr"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="lbl">شماره / کد فرم</label><input id="pfCode" class="fld" dir="ltr"></div>
+                <div><label class="lbl">مرتبه (نوبت) برای این فرد</label><input id="pfOrd" type="number" min="1" class="fld" dir="ltr"></div>
+            </div>
+
+            <div class="only-warn space-y-2.5">
+                <div><label class="lbl">مرحله اخطار</label>
+                    <select id="pfStage" class="fld">
+                        <option value="1">مرحله اول - تذکر شفاهی</option>
+                        <option value="2">مرحله دوم - اخطار کتبی</option>
+                        <option value="3">مرحله سوم - جریمه ۲,۰۰۰,۰۰۰ ریال</option>
+                        <option value="4">مرحله چهارم - جریمه ۴,۰۰۰,۰۰۰ ریال</option>
+                        <option value="5">مرحله پنجم - قطع همکاری</option>
+                    </select></div>
+                <div><label class="lbl">دلیل صدور اخطار</label><textarea id="pfReason" rows="2" class="fld" placeholder="مثلاً: عدم استفاده از لوازم حفاظت فردی (ماسک)"></textarea></div>
+            </div>
+
+            <div class="only-reward space-y-1.5">
+                <label class="lbl">دلایل تشویق</label>
+                <label class="flex items-start gap-1.5"><input type="checkbox" class="pfR mt-0.5" data-i="0"><span>رعایت مسایل مربوط به ایمنی، بهداشت و محیط زیست</span></label>
+                <label class="flex items-start gap-1.5"><input type="checkbox" class="pfR mt-0.5" data-i="1"><span>رعایت اصول ایمنی متناسب با شغل</span></label>
+                <label class="flex items-start gap-1.5"><input type="checkbox" class="pfR mt-0.5" data-i="2"><span>استفاده مناسب از تجهیزات و لوازم حفاظت فردی</span></label>
+                <label class="flex items-start gap-1.5"><input type="checkbox" class="pfR mt-0.5" data-i="3"><span>نظارت بر استفاده افراد زیرمجموعه از تجهیزات و لوازم حفاظت فردی</span></label>
+                <label class="flex items-start gap-1.5"><input type="checkbox" class="pfR mt-0.5" data-i="4"><span>همکاری با واحد HSE در ایمن سازی محیط کار</span></label>
+                <div><label class="lbl">و ... (دلیل دیگر)</label><input id="pfOther" class="fld"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="lbl">کارشناس HSE</label><input id="pfExpert" class="fld"></div>
+                <div><label class="lbl">مدیر HSE</label><input id="pfManager" class="fld"></div>
+            </div>
+
+            <details class="bg-slate-900/60 border border-slate-700 rounded-lg p-2">
+                <summary class="cursor-pointer text-[11px] text-slate-300">تنظیم شماره‌گذاری (آخرین شماره فرم‌های کاغذی قبلی)</summary>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <div><label class="lbl">آخرین اخطاریه قبلی</label><input id="pfOffW" type="number" min="0" class="fld" dir="ltr"></div>
+                    <div><label class="lbl">آخرین تشویق قبلی</label><input id="pfOffR" type="number" min="0" class="fld" dir="ltr"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">مثلاً اگر آخرین اخطاریه کاغذی شماره ۳۵ بوده، عدد ۳۵ را بزنید تا فرم بعدی ۰۳۶ شود.</p>
+            </details>
+
+            <button type="button" id="pfPrint" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold">🖨 چاپ فرم</button>
+        </div>
+
+        <div class="preview-wrap bg-slate-600/40 rounded-xl p-3 overflow-x-auto">
+            <div id="sheetHost"></div>
+        </div>
+    </div>
+</div>
+
 <script>
-/* همان آدرس و کلید پروژه که در صفحه بهداری استفاده شده */
 const SB_URL = 'https://priopguwfjawybffarhd.supabase.co';
 const SB_KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 const H = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };
 const JH = Object.assign({}, H, { 'Content-Type': 'application/json' });
 const $ = id => document.getElementById(id);
 
+const LOGO_W = 'data:image/jpeg;base64,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';
+const LOGO_R = 'data:image/jpeg;base64,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';
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const empName = e => ((e.first_name || '') + ' ' + (e.last_name || '')).trim() || e.full_name || 'نامشخص';
 const empLabel = e => `${e.emp_id} - ${empName(e)}`;
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 
 function showDebug(msg) { $('debugText').textContent = msg; $('debugBox').classList.remove('hidden'); }
 $('debugClose').onclick = () => $('debugBox').classList.add('hidden');
@@ -135,13 +286,40 @@ async function api(path, opts) {
     return text ? JSON.parse(text) : [];
 }
 
-let employees = [], records = [], myChart = null;
+let employees = [], records = [], myChart = null, selEmp = null;
 const empById = id => employees.find(e => e.id === id) || {};
+
+const isWarn = r => r.record_type === 'اخطار کتبی' || r.record_type === 'تذکر شفاهی';
+const kindOf = r => r.record_type === 'تشویق' ? 'reward' : 'warn';
+const recordsAsc = () => records.slice().reverse();           // records از جدید به قدیم می‌آید
+const STAGE_TXT = ['', 'تذکر شفاهی', 'اخطار کتبی و درج در پرونده پرسنلی', 'جریمه ۲,۰۰۰,۰۰۰ ریال', 'جریمه ۴,۰۰۰,۰۰۰ ریال', 'قطع همکاری'];
+const ORD_WORDS = ['', 'اول', 'دوم', 'سوم', 'چهارم', 'پنجم', 'ششم', 'هفتم', 'هشتم', 'نهم', 'دهم'];
+const ordWord = n => ORD_WORDS[n] || ('شماره ' + n);
+
+/* ---------- تاریخ شمسی ---------- */
+const pad2 = n => String(n).padStart(2, '0');
+function jalaliToday() {
+    try {
+        const p = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Tehran' }).formatToParts(new Date());
+        const g = t => p.find(x => x.type === t).value;
+        return pad2(g('day')) + '/' + pad2(g('month')) + '/' + g('year');
+    } catch (e) { return ''; }
+}
+function normDigits(s) {
+    return String(s ?? '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+}
+function toDMY(s) {
+    const n = normDigits(s).trim();
+    let m = n.match(/^(\d{4})\D+(\d{1,2})\D+(\d{1,2})$/);
+    if (m) return pad2(m[3]) + '/' + pad2(m[2]) + '/' + m[1];
+    m = n.match(/^(\d{1,2})\D+(\d{1,2})\D+(\d{4})$/);
+    if (m) return pad2(m[1]) + '/' + pad2(m[2]) + '/' + m[3];
+    return n;
+}
 
 window.addEventListener('DOMContentLoaded', loadAll);
 
 async function loadAll() {
-    // ۱. پرسنل (جدا از سوابق تا خطای یکی، دیگری را نخواباند)
     try {
         employees = await api('employees?select=*&order=emp_id.asc&limit=2000');
         $('ektEmpList').innerHTML = employees.map(e => `<option value="${esc(empLabel(e))}"></option>`).join('');
@@ -150,8 +328,6 @@ async function loadAll() {
         $('ektEmpInput').placeholder = 'خطا در بارگذاری پرسنل';
         showDebug('بارگذاری پرسنل: ' + e.message);
     }
-
-    // ۲. سوابق انضباطی (بدون join؛ اتصال به پرسنل سمت کلاینت انجام می‌شود)
     try {
         records = await api('ekhtars?select=*&order=id.desc&limit=5000');
     } catch (e) {
@@ -160,7 +336,7 @@ async function loadAll() {
     }
     updateStatistics();
     renderTable();
-    renderChart();
+    renderSide();
 }
 
 const countType = t => records.filter(x => x.record_type === t).length;
@@ -172,6 +348,7 @@ function updateStatistics() {
     $('statTashvig').innerText = countType('تشویق');
 }
 
+/* ---------- پنل کناری: نمودار کلی یا آمار فرد ---------- */
 function renderChart() {
     if (typeof Chart === 'undefined') return;
     const ctx = $('ekhtarChart').getContext('2d');
@@ -193,13 +370,54 @@ function renderChart() {
     });
 }
 
+function renderSide() {
+    const on = !!selEmp;
+    $('chartBox').classList.toggle('hidden', on);
+    $('personBox').classList.toggle('hidden', !on);
+    $('sideTitle').textContent = on ? '👤 آمار و سوابق فرد انتخاب‌شده' : '📊 نمودار فراوانی انواع سوابق انضباطی';
+    if (on) renderPerson(); else renderChart();
+}
+
+function personRecords(emp) { return records.filter(r => r.employee_id === emp.id); }
+
+function renderPerson() {
+    const mine = personRecords(selEmp);
+    const c = t => mine.filter(r => r.record_type === t).length;
+    const w = c('اخطار کتبی'), v = c('تذکر شفاهی'), t = c('تشویق'), total = w + v;
+    $('pName').textContent = empName(selEmp);
+    $('pMeta').textContent = `کد ${selEmp.emp_id || '-'} · ${selEmp.job_title || 'سمت نامشخص'} · ${selEmp.department || 'واحد نامشخص'}`;
+    $('pWarnTotal').textContent = total;
+    $('pWritten').textContent = w;
+    $('pVerbal').textContent = v;
+    $('pReward').textContent = t;
+    const nextOrd = total + 1, stage = Math.min(nextOrd, 5);
+    $('pNext').textContent = total
+        ? `این فرد تاکنون ${total} بار اخطار/تذکر داشته است. در صورت صدور اخطار بعدی، مرتبه ${ordWord(nextOrd)} و مشمول «مرحله ${ordWord(stage)} - ${STAGE_TXT[stage]}» می‌شود.`
+        : `این فرد تاکنون اخطار یا تذکری نداشته است. اولین اخطار او مشمول «مرحله اول - تذکر شفاهی» خواهد بود.`;
+    $('pList').innerHTML = mine.length ? mine.map(r => {
+        const cls = r.record_type === 'تشویق' ? 'text-emerald-400' : r.record_type === 'تذکر شفاهی' ? 'text-amber-400' : 'text-rose-400';
+        return `<div class="flex items-center justify-between gap-2 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[11px]">
+            <div class="min-w-0"><span class="${cls} font-bold">${esc(r.record_type)}</span> <span class="text-slate-400 font-mono" dir="ltr">${esc(r.record_date || '')}</span> <span class="text-slate-200">${esc(r.reason || '')}</span></div>
+            <button type="button" data-print="${esc(r.id)}" class="shrink-0 px-2 py-0.5 bg-blue-700 hover:bg-blue-600 text-white rounded text-[10px]">🖨 چاپ فرم</button>
+        </div>`;
+    }).join('') : '<p class="text-[11px] text-slate-500">سابقه‌ای ثبت نشده است.</p>';
+}
+
+function onEmpChange() {
+    selEmp = employees.find(x => empLabel(x) === $('ektEmpInput').value.trim()) || null;
+    renderSide();
+}
+$('ektEmpInput').addEventListener('input', onEmpChange);
+$('ektEmpInput').addEventListener('change', onEmpChange);
+$('pClear').onclick = () => { $('ektEmpInput').value = ''; onEmpChange(); };
+
+/* ---------- جدول ---------- */
 function renderTable() {
     const q = $('ektSearchBox').value.toLowerCase().trim();
     const rows = records.filter(item => {
         const e = empById(item.employee_id);
         return !q || [e.emp_id, empName(e), item.reason, item.record_type, item.description].join(' ').toLowerCase().includes(q);
     });
-
     const tbody = $('ektTableBody');
     if (!rows.length) {
         tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">هیچ سوابقی یافت نشد.</td></tr>';
@@ -218,23 +436,27 @@ function renderTable() {
             <td class="p-3 text-slate-200">${esc(item.reason || '-')}</td>
             <td class="p-3 font-mono text-slate-300">${esc(item.record_date || '-')}</td>
             <td class="p-3 text-slate-400">${esc(item.description || '-')}</td>
-            <td class="p-3 text-center"><button data-del="${esc(item.id)}" class="px-2 py-1 bg-rose-900/50 hover:bg-rose-800 text-rose-300 rounded text-[10px]">حذف</button></td>
+            <td class="p-3 text-center whitespace-nowrap">
+                <button data-print="${esc(item.id)}" class="px-2 py-1 bg-blue-900/60 hover:bg-blue-800 text-blue-200 rounded text-[10px]">🖨 فرم</button>
+                <button data-del="${esc(item.id)}" class="px-2 py-1 bg-rose-900/50 hover:bg-rose-800 text-rose-300 rounded text-[10px]">حذف</button>
+            </td>
         </tr>`;
     }).join('');
 }
-
 $('ektSearchBox').addEventListener('input', renderTable);
 
+/* ---------- ثبت و حذف ---------- */
 $('ekhtarForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const target = employees.find(x => empLabel(x) === $('ektEmpInput').value.trim());
+    const label = $('ektEmpInput').value.trim();
+    const target = employees.find(x => empLabel(x) === label);
     if (!target) { alert('پرسنل را از لیست پیشنهادی انتخاب کنید.'); return; }
 
     const body = {
         employee_id: target.id,
         record_type: $('ektType').value,
         reason: $('ektReason').value.trim(),
-        record_date: $('ektDate').value.trim(),
+        record_date: normDigits($('ektDate').value.trim()),
         description: $('ektDesc').value.trim() || null
     };
     const btn = $('ektSubmit');
@@ -243,19 +465,238 @@ $('ekhtarForm').addEventListener('submit', async e => {
         await api('ekhtars', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(body) });
         alert('سابقه انضباطی با موفقیت ثبت شد.');
         $('ekhtarForm').reset();
+        $('ektEmpInput').value = label;          // فرد انتخاب‌شده باقی بماند تا بتوان فرم را چاپ کرد
         await loadAll();
+        onEmpChange();
     } catch (err) { showDebug(err.message); alert('خطا در ثبت اطلاعات: ' + err.message); }
     finally { btn.disabled = false; btn.textContent = 'ثبت در پایگاه داده'; }
 });
 
-$('ektTableBody').addEventListener('click', async e => {
-    const b = e.target.closest('button[data-del]');
-    if (!b) return;
+async function deleteRecord(id) {
     if (!confirm('آیا از حذف این سابقه اطمینان دارید؟')) return;
     try {
-        await api('ekhtars?id=eq.' + encodeURIComponent(b.dataset.del), { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
+        await api('ekhtars?id=eq.' + encodeURIComponent(id), { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
         await loadAll();
     } catch (err) { showDebug(err.message); alert('خطا در حذف رکورد: ' + err.message); }
+}
+
+/* ======================================================================
+   فرم چاپی اخطاریه / تشویق  (بدون ذخیره؛ هر بار از روی داده ساخته می‌شود)
+   ====================================================================== */
+const REWARD_REASONS = [
+    'رعایت مسایل مربوط به ایمنی، بهداشت و محیط زیست',
+    'رعایت اصول ایمنی متناسب با شغل',
+    'استفاده مناسب از تجهیزات و لوازم حفاظت فردی',
+    'نظارت بر استفاده افراد زیرمجموعه از تجهیزات و لوازم حفاظت فردی',
+    'همکاری با واحد HSE در ایمن سازی محیط کار'
+];
+const CODE_PREFIX = { warn: 'HSE-W-', reward: 'HSE-R-' };
+
+let P = null;   // وضعیت فرم در حال نمایش
+
+function seqCount(kind, uptoRec, empId) {
+    // تعداد سوابق هم‌نوع (اخطار/تشویق) قبل از این رکورد؛ اگر uptoRec نباشد کل سوابق
+    const asc = recordsAsc().filter(r => kindOf(r) === kind && (empId == null || r.employee_id === empId));
+    if (!uptoRec) return asc.length;
+    const i = asc.findIndex(r => String(r.id) === String(uptoRec.id));
+    return i < 0 ? asc.length : i;
+}
+
+function openPrint(kind, emp, rec) {
+    if (!emp || !emp.id) { alert('پرسنل این سابقه پیدا نشد.'); return; }
+    const gFem = ['f', 'female', 'زن', 'مونث', 'خانم'].includes(String(emp.gender || emp.sex || '').toLowerCase());
+    P = {
+        rec: rec || null,
+        emp,
+        kind: rec ? kindOf(rec) : kind,
+        gender: gFem ? 'خانم' : 'آقای',
+        name: empName(emp),
+        unit: emp.department || '',
+        date: jalaliToday(),
+        vdate: rec ? toDMY(rec.record_date) : jalaliToday(),
+        reason: rec ? (rec.reason || '') : '',
+        flags: [false, false, false, false, false],
+        other: '',
+        expert: lsGet('hse_expert', 'محمد الله رضایی'),
+        manager: lsGet('hse_manager', 'محسن هفت لنگی'),
+        offW: Number(lsGet('hse_off_warn', '0')) || 0,
+        offR: Number(lsGet('hse_off_reward', '0')) || 0,
+        codeEdited: false, stageEdited: false
+    };
+    if (rec && P.kind === 'reward') {
+        const r = normDigits(rec.reason || '').replace(/\s+/g, ' ').trim();
+        REWARD_REASONS.forEach((t, i) => { if (r && r.includes(t)) P.flags[i] = true; });
+        P.other = P.flags.some(Boolean) ? '' : (rec.reason || '');
+    }
+    recalcDefaults();
+    fillInputs();
+    $('pfHead').textContent = rec ? 'چاپ مجدد فرم از روی سابقه ثبت‌شده' : 'صدور فرم جدید';
+    $('pfKind').disabled = !!rec;
+    $('printModal').classList.remove('hidden');
+    refreshSheet();
+}
+
+function recalcDefaults() {
+    const rec = P.rec, kind = P.kind;
+    const seq = seqCount(kind, rec, null) + 1;
+    P.seq = seq;
+    P.ord = seqCount(kind, rec, P.emp.id) + 1;
+    P.stage = Math.min(P.ord, 5);
+    if (!P.codeEdited) P.code = makeCode();
+}
+function makeCode() {
+    const off = P.kind === 'warn' ? P.offW : P.offR;
+    return CODE_PREFIX[P.kind] + String(off + P.seq).padStart(3, '0');
+}
+
+function fillInputs() {
+    $('pfKind').value = P.kind;
+    $('pfGender').value = P.gender; $('pfName').value = P.name; $('pfUnit').value = P.unit;
+    $('pfDate').value = P.date; $('pfVDate').value = P.vdate; $('pfCode').value = P.code; $('pfOrd').value = P.ord;
+    $('pfStage').value = P.stage; $('pfReason').value = P.reason;
+    document.querySelectorAll('.pfR').forEach(c => c.checked = !!P.flags[+c.dataset.i]);
+    $('pfOther').value = P.other;
+    $('pfExpert').value = P.expert; $('pfManager').value = P.manager;
+    $('pfOffW').value = P.offW; $('pfOffR').value = P.offR;
+    toggleKindFields();
+}
+function toggleKindFields() {
+    document.querySelectorAll('.only-warn').forEach(el => el.classList.toggle('hidden', P.kind !== 'warn'));
+    document.querySelectorAll('.only-reward').forEach(el => el.classList.toggle('hidden', P.kind !== 'reward'));
+}
+
+function readInputs(changedId) {
+    if (!P) return;
+    const prevKind = P.kind, prevOrd = P.ord;
+    P.kind = $('pfKind').value;
+    P.gender = $('pfGender').value; P.name = $('pfName').value; P.unit = $('pfUnit').value;
+    P.date = $('pfDate').value; P.vdate = $('pfVDate').value;
+    P.reason = $('pfReason').value;
+    document.querySelectorAll('.pfR').forEach(c => P.flags[+c.dataset.i] = c.checked);
+    P.other = $('pfOther').value;
+    P.expert = $('pfExpert').value; P.manager = $('pfManager').value;
+    P.offW = Number($('pfOffW').value) || 0; P.offR = Number($('pfOffR').value) || 0;
+    P.ord = Math.max(1, Number($('pfOrd').value) || 1);
+    P.stage = Number($('pfStage').value) || 1;
+
+    if (changedId === 'pfCode') { P.codeEdited = true; P.code = $('pfCode').value; }
+    if (changedId === 'pfStage') P.stageEdited = true;
+    if (P.kind !== prevKind) {                       // تغییر نوع فرم → شماره و مرتبه از نو
+        P.codeEdited = false; P.stageEdited = false;
+        recalcDefaults(); fillInputs();
+    } else {
+        if (changedId === 'pfOrd' && P.ord !== prevOrd && !P.stageEdited) { P.stage = Math.min(P.ord, 5); $('pfStage').value = P.stage; }
+        if (!P.codeEdited) { P.code = makeCode(); $('pfCode').value = P.code; }
+    }
+    lsSet('hse_expert', P.expert); lsSet('hse_manager', P.manager);
+    lsSet('hse_off_warn', String(P.offW)); lsSet('hse_off_reward', String(P.offR));
+}
+
+document.querySelectorAll('#printModal input, #printModal select, #printModal textarea').forEach(el => {
+    el.addEventListener('input', () => { readInputs(el.id); refreshSheet(); });
+    el.addEventListener('change', () => { readInputs(el.id); refreshSheet(); });
+});
+
+function cb(on) { return `<span class="cb${on ? ' on' : ''}"></span>`; }
+const dots = '.................................................................';
+
+function sheetHTML(s) {
+    const isW = s.kind === 'warn';
+    const U = t => `<u class="titr">${esc(t)}</u>`;
+    const header = `
+    <table class="hdr"><tr style="height:${isW ? '.84in' : '.97in'}">
+        <td class="c-logo" style="width:${isW ? '30.7%' : '38.2%'}"><img src="${isW ? LOGO_W : LOGO_R}" alt=""></td>
+        <td class="c-title" style="width:${isW ? '40.1%' : '37.6%'}">${isW ? 'فرم اخطاریه HSE' : 'فرم تشویق HSE'}</td>
+        <td class="c-meta" style="width:${isW ? '29.2%' : '24.2%'}">
+            <p>تاریخ : <bdi dir="ltr">${esc(s.date)}</bdi></p>
+            <p>شماره : <bdi dir="ltr">${esc(s.code)}</bdi></p>
+            <p>پیوست : ندارد</p>
+        </td>
+    </tr></table>
+    <div class="gap"></div>`;
+
+    let body;
+    if (isW) {
+        const stageLines = [
+            'مرحله اول -   تذکر شفاهی',
+            'مرحله دوم-  اخطار کتبی و درج در پرونده پرسنلی',
+            'مرحله سوم -  جریمه به مبلغ <bdi dir="ltr">2,000,000</bdi> ریال و درج در پرونده پرسنلی',
+            'مرحله چهارم -   جریمه به مبلغ <bdi dir="ltr">4,000,000</bdi> ریال و درج در پرونده پرسنلی',
+            'مرحله پنجم –قطع همکاری'
+        ];
+        body = `
+        <p class="addr titr">جناب آقای مهندس مردانلو</p>
+        <p class="addr titr">مدیریت محترم شرکت گسترش فناوری خوارزمی</p>
+        <p>&nbsp;</p>
+        <p class="main-p">با سلام</p>
+        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ ${U(s.vdate)} ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل ${s.reason.trim() ? U(s.reason.trim()) : '<span class="dots">' + dots + '</span>'} این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه ${U(ordWord(s.ord))} مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.</p>
+        <ul>${stageLines.map((t, i) => `<li>${t} ${cb(s.stage === i + 1)}</li>`).join('')}</ul>`;
+    } else {
+        const tier = Math.min(s.ord, 3);
+        const tiers = [
+            'برای بار اول مشمول تشویق به مبلغ <bdi dir="ltr">3,000,000</bdi> ریال و درج در پرونده هستند.',
+            'برای بار دوم مشمول تشویق به مبلغ <bdi dir="ltr">5,000,000</bdi> ریال و درج در پرونده هستند.',
+            'برای بار سوم و بیشتر مشمول تشویق به مبلغ <bdi dir="ltr">7,000,000</bdi> ریال و درج در پرونده هستند.'
+        ];
+        body = `
+        <p class="addr titr">جناب آقای مهندس مردانلو</p>
+        <p class="addr titr">مدیریت محترم شرکت گسترش فناوری خوارزمی</p>
+        <p class="main-p">با سلام</p>
+        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ ${U(s.vdate)} ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل:</p>
+        <ul>
+            ${REWARD_REASONS.map((t, i) => `<li>${esc(t)} ${cb(s.flags[i])}</li>`).join('')}
+            <li>و ${s.other.trim() ? U(s.other.trim()) : '<span class="dots">' + dots + '</span>'}</li>
+        </ul>
+        ${tiers.map((t, i) => `<p class="main-p">${t} ${cb(tier === i + 1)}</p>`).join('')}`;
+    }
+
+    const signs = `
+        <tr>
+            <td class="sig"><p>نام و نام خانوادگی کارشناس HSE:</p><p>${esc(s.expert)}</p></td>
+            <td class="sig"><p>نام و نام خانوادگی و تایید مدیر HSE :</p><p>${esc(s.manager)}</p></td>
+        </tr>
+        <tr>
+            <td class="sig"><p>${isW ? 'نام و نام خانوادگی و امضاء اخطار گیرنده :' : 'نام و نام خانوادگی و امضاء تشویق شونده :'}</p></td>
+            <td class="sig"><p>نام و نام خانوادگی و تایید مدیریت کارخانه:</p></td>
+        </tr>`;
+
+    return `<div class="sheet ${isW ? 'warn' : 'reward'}">
+        ${header}
+        <table class="mainTbl" style="table-layout:fixed">
+            <colgroup><col style="width:${isW ? '50.4%' : '46.6%'}"><col></colgroup>
+            <tr><td class="body" colspan="2">${body}</td></tr>
+            ${signs}
+            <tr><td class="dist" colspan="2">توزيع نسخ :&nbsp;&nbsp;&nbsp; 1- واحد HSE &nbsp;&nbsp;&nbsp;&nbsp; 2-منابع انسانی &nbsp;&nbsp;&nbsp; 3- واحد مالی</td></tr>
+        </table>
+    </div>`;
+}
+
+function refreshSheet() {
+    if (!P) return;
+    $('sheetHost').innerHTML = sheetHTML(P);
+}
+
+let oldTitle = document.title;
+$('pfPrint').onclick = () => {
+    oldTitle = document.title;
+    document.title = P.code || 'HSE-form';
+    window.print();
+};
+window.addEventListener('afterprint', () => { document.title = oldTitle; });
+$('pfClose').onclick = () => { $('printModal').classList.add('hidden'); P = null; $('sheetHost').innerHTML = ''; };
+
+/* ---------- مدیریت کلیک‌ها ---------- */
+document.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const d = b.dataset;
+    if (d.del !== undefined) deleteRecord(d.del);
+    else if (d.print !== undefined) {
+        const rec = records.find(r => String(r.id) === d.print);
+        if (rec) openPrint(kindOf(rec), empById(rec.employee_id), rec);
+    } else if (d.new !== undefined) {
+        if (selEmp) openPrint(d.new, selEmp, null);
+    }
 });
 </script>
 </body>
