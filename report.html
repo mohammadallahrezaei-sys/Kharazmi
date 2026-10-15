@@ -102,7 +102,7 @@ function render(K){
   // ---- تحلیل متنی
   const A=[];
   if(!I.length)A.push('در این ماه بازرسی ثبت نشده است.');
-  else A.push(`${fa(RD)} گشت بازرسی (${fa(I.length)} چک‌لیست محل) انجام شد و نرخ انطباق ${P(comp)} بود.`);
+  else A.push(`${fa(RD)} گشت بازرسی انجام شد و نرخ انطباق ${P(comp)} بود.`);
   if(FN.length||FC.length)A.push(`${fa(FN.length)} عدم‌انطباق جدید ثبت و ${fa(FC.length)} مورد بسته شد؛ ${fa(openAll.length)} مورد باز است${overF?` که ${fa(overF)} مورد از مهلت گذشته`:''}.`);
   A.push(IN.length?`${fa(IN.length)} حادثه ثبت شد (${fa(lost)} روز کاری از دست رفته)${bpTop?`؛ بیشترین آسیب: ${esc(bpTop[0])}`:''}.`:'در این ماه حادثه‌ای ثبت نشده است.');
   if(capaOver)A.push(`${fa(capaOver)} اقدام اصلاحی حوادث از مهلت گذشته است.`);
@@ -130,7 +130,7 @@ function render(K){
    <div class="mu" style="margin-top:8px">میانگین وزنی بخش‌های ثبت‌شده (۴۰/۲۵/۲۰/۱۵)؛ هر حادثه شدید ۱۰ و هر حادثه فوتی ۲۰ امتیاز کم می‌کند.</div></div>
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
   <div class="card"><h2>عملکرد واحد HSE در این ماه</h2><div class="g">
-   ${k(fa(RD),'گشت بازرسی')}${k(fa(I.length),'چک‌لیست تکمیل‌شده')}${k(fa(FN.length),'عدم‌انطباق ثبت‌شده')}${k(fa(FC.length),'عدم‌انطباق بسته‌شده','ok')}${k(fa(NT),'اعلان به مسئولین')}
+   ${k(fa(RD),'گشت بازرسی')}${k(fa(FN.length),'عدم‌انطباق ثبت‌شده')}${k(fa(FC.length),'عدم‌انطباق بسته‌شده','ok')}${k(fa(NT),'اعلان به مسئولین')}
    ${k(fa(IN.length),'حادثه بررسی‌شده')}${k(fa(FUc.length),'پیگیری طب کار ایجاد‌شده')}${k(fa(FUd),'پیگیری انجام‌شده','ok')}${k(fa(E.length),'اخطار/تشویق ثبت‌شده')}</div></div>
   <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="g">
    ${k(P(comp),'نرخ انطباق چک‌لیست‌ها',col(comp))}${k(fa(openAll.length),'عدم‌انطباق باز',openAll.length?'wa':'ok')}${k(fa(overF),'عدم‌انطباق معوق',overF?'bad':'ok')}
