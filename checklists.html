@@ -90,17 +90,22 @@ body div#app { display: flex; flex-direction: column; }
 .tr i { width: 100%; background: var(--ac); border-radius: 4px 4px 0 0; min-height: 4px; }
 .tr span { font-size: 10px; color: var(--mu); margin-top: 4px; }
 
+/* هدر و لوگو */
 .hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; background:var(--card-bg); padding:14px; border-radius:16px; border:1px solid var(--ln); }
 .hdr-r { display:flex; align-items:center; gap:12px; min-width:0; }
 .logo { width:40px; height:40px; object-fit:contain; border-radius:8px; flex-shrink:0; }
 .hdr h2 { margin:0; font-size:16px; }
 
+/* دکمه بازگشت */
 .back { display:inline-flex; align-items:center; padding:6px 12px; background:var(--ln); color:#fff; border-radius:12px; font-size:12px; text-decoration:none; white-space:nowrap; flex-shrink:0; }
 .back:hover { background:#475569; }
 
+/* دکمه‌های بالای صفحه: دوتا دوتا */
 .top-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
-.top-grid .p { margin:0; min-height:50px; font-size:13px; padding:8px; text-align:center; }
-.m { display:block; width:100%; text-align:right; padding:14px 16px; margin-top:10px; border-radius:14px; background:var(--card-bg); border:1.5px solid var(--ln); }
+.top-grid .p { margin:0; min-height:56px; font-size:13px; padding:8px; text-align:center; line-height:1.5; }
+
+/* دکمه‌های چک‌لیست */
+.m { display:block; width:100%; text-align:right; padding:14px 16px; margin-top:10px; border-radius:14px; }
 
 @media print { .np { display: none !important; } body { padding: 0; background: #fff; color: #000; } }
 [hidden] { display: none !important; }
@@ -132,17 +137,46 @@ const M = [
   ]],
   ['SAN', 'اماکن بهداشتی و کمک‌های اولیه', 'ماهانه', 'L14038/01', ['رختکن: مناسب، تمیز، دارای سطل، تهویه، روشنایی، کمد و جاکفشی', 'سرویس بهداشتی: نظافت، مایع دست، آب گرم و سرد، فلاش‌تانک، تعداد کافی', 'حمام: شیر و دوش سالم، تهویه، کف سرامیکی، کلید و پریز بیرون حمام', 'آبدارخانه: کارت بهداشت، نظافت، پوشش فاضلاب، تابلو دخانیات، MSDS', 'نمازخانه: نظافت، جاکفشی، تهویه و روشنایی', 'جعبه کمک‌های اولیه کامل و بدون داروی منقضی (L14030)', 'ثبت مراجعات بهداری انجام می‌شود (L14042)'], []],
   ['KIT', 'رستوران و آشپزخانه', 'روزانه', 'L14018', ['کارگران: ظاهر و لباس مناسب، کلاه و دستکش، کارت بهداشت معتبر', 'مواد اولیه با تایید HSE، دارای تاریخ مصرف و بسته‌بندی سالم', 'نگهداری مواد: یخچال/سردخانه دارای دماسنج و دما کنترل و تمیز', 'خودرو حمل مواد (مجاز، تمیز، راننده دارای کارت بهداشت، مناسب مواد فاسدشدنی)', 'میز، کف، دیوار، تجهیزات و ظروف تمیز و ضدعفونی شده', 'حشرات و جوندگان دیده نمی‌شود؛ ورود متفرقه و سیگار ممنوع', 'شعله گاز آبی؛ تهویه و کپسول و جعبه کمک‌های اولیه موجود', 'پسماند تفکیک؛ سبزیجات ضدعفونی؛ استفاده از غذای مانده ممنوع'], []],
-  ['ENV', 'پساب، فاضلاب و پسماند', 'ماهانه', 'L14010/01', ['پسماند تر و خشک تفکیک می‌شود', 'سطل زباله دارای درب و کیسه؛ به‌موقع تخلیه و شسته می‌شود', 'محل جمع‌آوری پسماند مانع آلودگی هوا، خاک و آب است', 'پسماند صنعتی در محل ایمن دپو و دفع تحت نظارت است', 'پسماند پزشکی جدا و با شرکت مجاز منتقل می‌شود', 'نشت سوخت یا مواد شیمیایی به شبکه فاضلاب دیده نمی‌شود', 'آشغالگیر و حوض یکنواخت‌ساز: پمپ و هوادهی کار می‌کند؛ لجن و بوی بد نیست', 'حوض ته‌نشینی بدون حباب و مواد معلق؛ محوطه محصور و پلکان دارای حفاظ', 'برنامه آنالیز و پایش پساب انجام شده است']</i>]
+  ['ENV', 'پساب، فاضلاب و پسماند', 'ماهانه', 'L14010/01', ['پسماند تر و خشک تفکیک می‌شود', 'سطل زباله دارای درب و کیسه؛ به‌موقع تخلیه و شسته می‌شود', 'محل جمع‌آوری پسماند مانع آلودگی هوا، خاک و آب است', 'پسماند صنعتی در محل ایمن دپو و دفع تحت نظارت است', 'پسماند پزشکی جدا و با شرکت مجاز منتقل می‌شود', 'نشت سوخت یا مواد شیمیایی به شبکه فاضلاب دیده نمی‌شود', 'آشغالگیر و حوض یکنواخت‌ساز: پمپ و هوادهی کار می‌کند؛ لجن و بوی بد نیست', 'حوض ته‌نشینی بدون حباب و مواد معلق؛ محوطه محصور و پلکان دارای حفاظ', 'برنامه آنالیز و پایش پساب انجام شده است'], []]
 ];
 
+/* ---------- لیست محل‌ها و سوله‌های کارخانه ---------- */
 const LOCS = [
-  'واحد DRI (سوله ۲)', 'واحد DRI (سوله ۳)', 'واحد DRI (سوله ۴)', 'واحد DRI (سوله ۹)', 'واحد DRI (سوله ۱۴)',
-  'تولید بازیابی (سوله ۵)', 'تولید بازیابی (سوله ۶)', 'تولید بازیابی (سوله ۱۲ بازیابی)',
-  'واحد HTS-LTS (سوله ۸)', 'واحد HTS-LTS (سوله ۱۲ HTS)', 'واحد HTS-LTS (بخش روتاری)', 'واحد HTS-LTS (سوله ۱۳)',
-  'واحد ZNO (سوله ۷)', 'واحد ZNO (سوله ۱۰)', 'واحد ZNO (کوره تصعیدی و دوار)',
-  'انبار مواد اولیه', 'انبار ملزومات', 'انبار آهن', 'انبار روابط عمومی', 'انبار سیلندرهای تحت فشار',
-  'آزمایشگاه‌ها', 'تصفیه‌خانه فاضلاب انسانی', 'تصفیه‌خانه فاضلاب صنعتی', 'پست برق', 'پست گاز', 'واحد RO',
-  'سوله ۱۵', 'سوله ۱۶', 'سوله ۱۷', 'فنی و مهندسی', 'حراست', 'منابع انسانی', 'مالی و اداری', 'آشپزخانه و رستوران', 'تدارکات و بازرگانی'
+  'واحد DRI (سوله ۲)',
+  'واحد DRI (سوله ۳)',
+  'واحد DRI (سوله ۴)',
+  'واحد DRI (سوله ۹)',
+  'واحد DRI (سوله ۱۴)',
+  'تولید بازیابی (سوله ۵)',
+  'تولید بازیابی (سوله ۶)',
+  'تولید بازیابی (سوله ۱۲ بازیابی)',
+  'واحد HTS-LTS (سوله ۸)',
+  'واحد HTS-LTS (سوله ۱۲ HTS)',
+  'واحد HTS-LTS (بخش روتاری)',
+  'واحد HTS-LTS (سوله ۱۳)',
+  'واحد ZNO (سوله ۷)',
+  'واحد ZNO (سوله ۱۰)',
+  'واحد ZNO (کوره تصعیدی و دوار)',
+  'انبار مواد اولیه',
+  'انبار ملزومات',
+  'انبار آهن',
+  'انبار روابط عمومی',
+  'انبار سیلندرهای تحت فشار',
+  'آزمایشگاه‌ها',
+  'تصفیه‌خانه فاضلاب انسانی',
+  'تصفیه‌خانه فاضلاب صنعتی',
+  'پست برق',
+  'پست گاز',
+  'واحد RO',
+  'سوله ۱۵',
+  'سوله ۱۶',
+  'سوله ۱۷',
+  'فنی و مهندسی',
+  'حراست',
+  'منابع انسانی',
+  'مالی و اداری',
+  'آشپزخانه و رستوران',
+  'تدارکات و بازرگانی'
 ];
 
 const SHIFTS = ['صبح','عصر','شب'];
@@ -232,7 +266,8 @@ const $ = s => document.querySelector(s), view = h => $('#app').innerHTML = h, e
 const fd = d => new Date(d).toLocaleDateString('fa-IR');
 const ft = d => new Date(d).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
 const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-
+/* ماژول فرعی است: ورود فقط در index.html انجام می‌شود و این صفحه از همان نشست استفاده می‌کند.
+   نشست از localStorage/sessionStorage خوانده می‌شود (کلیدهای tk/em یا نشست استاندارد Supabase). */
 function jwtOk(t) {
   try { const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); return !p.exp || p.exp * 1000 > Date.now(); } catch (e) { return false; }
 }
@@ -259,11 +294,20 @@ function getSession() {
   }
   return found;
 }
-
+function noSession() {
+  const keys = []; for (const st of [localStorage, sessionStorage]) for (let i = 0; i < st.length; i++) keys.push(st.key(i));
+  view(`<div style="max-width:420px;margin:40px auto;text-align:center">
+    <h2 style="justify-content:center">نشست ورود پیدا نشد</h2>
+    <small>لطفاً ابتدا از صفحه اصلی وارد شوید و سپس ماژول را باز کنید.</small>
+    <a href="index.html" class="back" style="margin-top:16px">← رفتن به صفحه اصلی</a>
+    <small style="margin-top:20px;direction:ltr">کلیدهای ذخیره‌شده: ${esc(keys.join(', ') || 'هیچ')}</small>
+  </div>`);
+}
 const SS = getSession();
 let tok = SS.t || KEY, mail = SS.e || 'کاربر سامانه', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
 const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS });
+
 const AH = () => ({ apikey: KEY, Authorization: 'Bearer ' + tok });
 
 async function api(p, o = {}) {
@@ -302,6 +346,7 @@ async function home() {
         <small>${m[2]}${m[3] ? ' · کد: ' + m[3] : ''} · آخرین بازدید: ${L[m[0]] ? fd(L[m[0]]) : 'ثبت نشده'}</small>
       </button>
     `).join('')}
+
   `);
 }
 
@@ -315,7 +360,7 @@ async function historyList() {
         <a href="index.html" class="back">← داشبورد اصلی</a>
       </div>
       <h2>تاریخچه جامع بازدیدها</h2>
-      <small>لیست تمام بازرسی‌های ثبت‌شده</small>
+      <small>لیست تمام بازرسی‌های ثبت‌شده (امکان ویرایش محل و شیفت با ثبت لاگ تاریخچه)</small>
 
       ${r.map(x => `
         <div class="q ${x.nc > 0 ? 'bad' : 'good'}" id="insp-${x.id}">
@@ -623,130 +668,51 @@ async function stats(d = 90) {
       ${sec('⚠️ هشدارهای هوشمند')}
       ${ins.map(([h, t]) => `<div class="ins ${h ? 'hi' : ''}">${t}</div>`).join('') || '<div class="row">مورد هشداردهنده‌ای یافت نشد.</div>'}
 
-      ${sec('🔥 محل‌های پرریسک')}
-      ${riskTop.map(x => `<div class="row"><div class="t"><span>${esc(x.k)}</span><span>امتیاز: ${fa(x.score)}</span></div>${bar(x.score, mxR, x.score >= mxR * .6 ? 'var(--nc)' : 'var(--warn)')}<small>${fa(x.open)} باز · ${fa(x.nc)} عدم‌انطباق · ${fa(x.n)} بازدید</small></div>`).join('') || '<div class="row">داده‌ای نیست.</div>'}
+      ${sec('🔥 محل‌های پرریسک (شدت و تأخیر موارد باز + عدم‌انطباق + کم‌بازدیدی)')}
+      ${riskTop.map(x => `<div class="row"><div class="t"><span>${esc(x.k)}</span><span>امتیاز: ${fa(x.score)}</span></div>${bar(x.score, mxR, x.score >= mxR * .6 ? 'var(--nc)' : 'var(--warn)')}<small>${fa(x.open)} باز · ${fa(x.nc)} عدم‌انطباق · ${fa(x.n)} بازدید · آخرین: ${x.ds == 999 ? 'ثبت نشده' : fa(x.ds) + ' روز پیش'}</small></div>`).join('') || '<div class="row">داده‌ای نیست.</div>'}
 
       ${sec('👁️ کم‌بازدیدترین محل‌ها')}
       ${lowCov.map(x => `<div class="row"><div class="t"><span>${esc(x.k)}</span><span>${fa(x.n)} بازدید</span></div><small>آخرین بازدید: ${x.ds == 999 ? 'در این بازه ثبت نشده' : fa(x.ds) + ' روز پیش'}</small></div>`).join('')}
 
+      ${sec('⏰ چک‌لیست‌های عقب‌افتاده از برنامه')}
+      ${lateList.map(x => `<div class="row"><div class="t"><span>${x.name}</span><span style="color:var(--nc)">${x.ds === null ? 'هرگز بازدید نشده' : fa(x.late) + ' روز تأخیر'}</span></div><small>دوره: ${x.fq}${x.ds === null ? '' : ' · آخرین بازدید ' + fa(x.ds) + ' روز پیش'}</small></div>`).join('') || '<div class="row" style="color:var(--ok)">همه چک‌لیست‌ها طبق برنامه انجام شده‌اند ✓</div>'}
+
+      ${sec('📉 چک‌لیست‌هایی با بیشترین نرخ عدم‌انطباق')}
+      ${worstMod.map(x => `<div class="row"><div class="t"><span>${x.name}</span><span>${fa(x.r)}٪ (${fa(x.nc)} مورد)</span></div>${bar(x.nc, mxN, 'var(--nc)')}</div>`).join('') || '<div class="row">داده‌ای نیست.</div>'}
+
+      ${sec('🧩 عدم‌انطباق‌ها به تفکیک دسته (حریق، برق، شیمیایی، ...)')}
+      ${bl(catRows, 'var(--warn)')}
+
+      ${sec('🚨 موارد باز بر اساس شدت')}
+      ${bl(sevRows, 'var(--nc)')}
+
+      ${sec('🔁 مشکلات تکراری')}
+      ${rec.map(x => `<div class="row"><div class="t"><span>${esc(x.q)}</span><span style="color:var(--nc)">${fa(x.c)} بار</span></div><small>${x.m} ·${fa(x.locs.size)} محل</small></div>`).join('') || '<div class="row">مورد تکراری ثبت نشده است.</div>'}
+
+      ${sec('🛠️ علت‌های ریشه‌ای موارد بسته‌شده')}
+      ${bl(rcRows, 'var(--ac)')}
+
+      ${sec('🌓 نرخ عدم‌انطباق به تفکیک شیفت')}
+      ${bl(shRows, 'var(--warn)', '٪')}
+
+      ${sec('👤 موارد باز به تفکیک مسئول پیگیری')}
+      ${bl(respRows, 'var(--nc)')}
+
+      ${sec('📝 فعالیت بازرسان (تعداد بازدید)')}
+      ${bl(inspRows, 'var(--ac)')}
+
       ${sec('📈 روند هفتگی درصد عدم‌انطباق')}
-      <div class="tr">${trend.map(t => `<div><span>${fa(t.p)}٪</span><i style="height:${Math.max(2, t.p)}\%"></i><span>${t.i ? fa(t.i) + 'ه' : 'اخیر'}</span></div>`).join('')}</div>
+      <div class="tr">${trend.map(t => `<div><span>${fa(t.p)}٪</span><i style="height:${Math.max(2, t.p)}%"></i><span>${t.i ? fa(t.i) + 'ه' : 'اخیر'}</span></div>`).join('')}</div>
+
+      ${sec('🕓 سن عدم‌انطباق‌های باز')}
+      <div class="kp" style="grid-template-columns:repeat(3,1fr)">
+        <div><b style="color:var(--ok)">${fa(ag[0])}</b><small>تا ۷ روز</small></div>
+        <div><b style="color:var(--warn)">${fa(ag[1])}</b><small>۸ تا ۳۰ روز</small></div>
+        <div><b style="color:var(--nc)">${fa(ag[2])}</b><small>بیش از ۳۰ روز</small></div>
+      </div>
     `);
     $('#sd').value = d; $('#sd').onchange = () => stats(+$('#sd').value);
   } catch (e) { alert(e.message); }
-}
-
-/* ---------- بخش گزارش مدیریتی امن‌سازی شده (بدون نیاز به eval) ---------- */
-const SW = 1920, SH = 1080, NAVY = '#0f172a', BLUE = '#2563eb', RED = '#ef4444', GREEN = '#22c55e', FONT = "Vazirmatn,Tahoma,sans-serif";
-const fl = d => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(d));
-const loadImg = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = s; });
-
-function wrapText(c, t, w) {
-  const a = t.split(' '), o = []; let u = '';
-  for (const x of a) { const v = u ? u + ' ' + x : x; if (c.measureText(v).width > w && u) { o.push(u); u = x; } else u = v; }
-  if (u) o.push(u); return o;
-}
-
-function mkS() {
-  const c = document.createElement('canvas'); c.width = SW; c.height = SH;
-  const x = c.getContext('2d'); x.direction = 'rtl'; x.textAlign = 'right'; x.textBaseline = 'top'; return [c, x];
-}
-
-function frame(x, logo, n, tot, code) {
-  x.fillStyle = '#ffffff'; x.fillRect(0, 0, SW, SH);
-  if (logo) x.drawImage(logo, SW - 320, 30, 260, 260 * logo.height / logo.width);
-  x.fillStyle = BLUE; x.fillRect(0, 130, SW, 6);
-  x.fillStyle = '#64748b'; x.font = '400 24px ' + FONT;
-  x.direction = 'ltr'; x.textAlign = 'left'; x.fillText(code || '', 60, 1030);
-  x.fillText(n + ' / ' + tot, SW - 120, 1030); x.textAlign = 'right'; x.direction = 'rtl';
-}
-
-async function panel(x, px, py, pw, ph, title, color, srcs, empty) {
-  x.fillStyle = color; x.fillRect(px, py, pw, 60);
-  x.fillStyle = '#fff'; x.font = '700 28px ' + FONT; x.textAlign = 'center';
-  x.fillText(title, px + pw / 2, py + 14); x.textAlign = 'right';
-  const ay = py + 60, ah = ph - 60;
-  x.fillStyle = '#f8fafc'; x.fillRect(px, ay, pw, ah);
-  x.strokeStyle = '#e2e8f0'; x.lineWidth = 2; x.strokeRect(px, py, pw, ph);
-
-  const ims = []; for (const u of srcs.slice(0, 4)) { const i = await loadImg(u); if (i) ims.push(i); }
-  if (!ims.length) {
-    x.fillStyle = '#94a3b8'; x.font = '400 26px ' + FONT; x.textAlign = 'center';
-    x.fillText(empty, px + pw / 2, ay + ah / 2 - 13); x.textAlign = 'right'; return;
-  }
-  const g = 10, n = ims.length, cols = n == 1 ? 1 : 2, rows = Math.ceil(n / cols), cw = (pw - g * (cols + 1)) / cols, ch = (ah - g * (rows + 1)) / rows;
-  ims.forEach((im, i) => {
-    const r = Math.floor(i / cols), c = i % cols, bx = px + pw - g - (c + 1) * cw - c * g, by = ay + g + r * (ch + g), k = Math.min(cw / im.width, ch / im.height), w = im.width * k, h = im.height * k;
-    x.fillStyle = '#e2e8f0'; x.fillRect(bx, by, cw, ch);
-    x.drawImage(im, bx + (cw - w) / 2, by + (ch - h) / 2, w, h);
-  });
-}
-
-async function slides(F, R, sub, bz, all) {
-  try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
-  const logo = await loadImg('logo.png'), cl = all.filter(x => x.status == 'closed').length, tot = F.length + 1, out = [];
-  {
-    const [c, x] = mkS(); x.fillStyle = NAVY; x.fillRect(0, 0, SW, SH);
-    if (logo) x.drawImage(logo, SW - 360, 80, 280, 280 * logo.height / logo.width);
-    x.font = '800 68px ' + FONT; x.fillStyle = '#ffffff'; x.fillText('گزارش وضعیت بازرسی و اصلاحات HSE', SW - 100, 320);
-    x.font = '400 38px ' + FONT; x.fillStyle = '#94a3b8';
-    x.fillText(sub, SW - 100, 420);
-    x.fillText('بازه ارزیابی: ' + bz + '  |  تاریخ صدور: ' + fl(Date.now()), SW - 100, 480);
-    const st = (i, n, l, col) => {
-      const w = 480, bx = SW - 100 - w - i * (w + 40), by = 680;
-      x.fillStyle = '#1e293b'; x.fillRect(bx, by, w, 240);
-      x.fillStyle = col; x.fillRect(bx + w - 12, by, 12, 240);
-      x.fillStyle = '#fff'; x.font = '800 88px ' + FONT; x.textAlign = 'center';
-      x.fillText(fa(n), bx + w / 2, by + 30);
-      x.font = '400 32px ' + FONT; x.fillStyle = '#94a3b8';
-      x.fillText(l, bx + w / 2, by + 150); x.textAlign = 'right';
-    };
-    st(0, all.length, 'کل عدم‌انطباق‌ها', '#f87171');
-    st(1, cl, 'اقدام اصلاح‌شده', '#4ade80');
-    st(2, all.length - cl, 'موارد باز', '#fbbf24');
-    out.push(c.toDataURL('image/jpeg', 0.9));
-  }
-  for (let i = 0; i < F.length; i++) {
-    const f = F[i], [c, x] = mkS();
-    frame(x, logo, i + 2, tot, f.module + '-' + f.qid);
-    x.fillStyle = NAVY; x.font = '800 36px ' + FONT;
-    const qLines = wrapText(x, f.question, SW - 120);
-    qLines.forEach((l, idx) => x.fillText(l, SW - 60, 180 + idx * 46));
-    x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
-    x.fillText('محل: ' + f.location + '  |  تاریخ ثبت: ' + fl(f.created_at) + (f.responsible ? '  |  مسئول پیگیری: ' + f.responsible : ''), SW - 60, 180 + qLines.length * 46 + 10);
-    const pw = (SW - 140) / 2, ph = 620, py = 320;
-    const bp = (f.photos_before || []).map(p => URL_ + '/storage/v1/object/public/photos/' + p);
-    const ap = (f.photos_after || []).map(p => URL_ + '/storage/v1/object/public/photos/' + p);
-    await panel(x, 60, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
-    await panel(x, pw + 80, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی', GREEN, ap, 'اقدام اصلاحی انجام نشده است');
-    out.push(c.toDataURL('image/jpeg', 0.9));
-  }
-  return out;
-}
-
-async function renderManagementReport() {
-  view('<p style="text-align:center; padding:40px;">در حال آماده‌سازی گزارش مدیریتی...</p>');
-  try {
-    const allFindings = await api('findings?order=created_at.desc&limit=500');
-    view(`
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;" class="np">
-        <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
-        <a href="index.html" class="back">← داشبورد اصلی</a>
-      </div>
-      <h2>📑 گزارش مدیریتی و اسلایدهای ارزیابی</h2>
-      <small>خلاصه وضعیت ایمنی و مستندات بازرسی کارخانه</small>
-      <div class="row" style="margin-top:16px;">
-        <div class="t"><span>تعداد کل عدم‌انطباق‌های ثبت شده</span><span>${fa(allFindings.length)} مورد</span></div>
-        <div class="t" style="margin-top:8px;"><span>موارد اصلاح‌شده و بسته شده</span><span style="color:var(--ok);">${fa(allFindings.filter(x => x.status == 'closed').length)} مورد</span></div>
-        <div class="t" style="margin-top:8px;"><span>موارد باز و نیازمند پیگیری</span><span style="color:var(--nc);">${fa(allFindings.filter(x => x.status == 'open').length)} مورد</span></div>
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" class="np">
-        <button class="p" onclick="window.print()" style="background:var(--card-bg); color:var(--ink); border:1.5px solid var(--ln); margin:0;">🖨️ چاپ مستقیم گزارش</button>
-        <button class="p" data-a="gen-slides" style="background:#6366f1; border-color:#6366f1; color:#fff; margin:0;">🎬 تولید و دانلود اسلایدها</button>
-      </div>
-      <div id="slides-container" style="margin-top:20px;"></div>
-    `);
-  } catch (e) { alert('خطا در بارگذاری گزارش: ' + e.message); }
 }
 
 document.onclick = async e => {
@@ -755,14 +721,6 @@ document.onclick = async e => {
   if (a == 'home') home();
   else if (a == 'history') historyList();
   else if (a == 'stats') stats();
-  else if (a == 'rep') renderManagementReport();
-  else if (a == 'gen-slides') {
-    $('#slides-container').innerHTML = '<p style="text-align:center;">در حال تولید اسلایدها...</p>';
-    const all = await api('findings?order=created_at.desc&limit=500');
-    const imgs = await slides(all, [], 'گزارش عملکرد کارخانه', '۳۰ روز گذشته', all);
-    $('#slides-container').innerHTML = '<h3 style="margin-bottom:10px;">اسلایدهای تولیدشده:</h3>' + 
-      imgs.map((src, idx) => `<div style="margin-bottom:15px;"><img src="${src}" style="width:100%; border-radius:8px; border:1px solid var(--ln);"><a href="${src}" download="slide-${idx+1}.jpg" class="p" style="display:block; text-align:center; text-decoration:none; margin-top:6px;">📥 دانلود اسلاید ${fa(idx+1)}</a></div>`).join('');
-  }
   else if (a == 'open') {
     cur = M.find(m => m[0] == t.dataset.k);
     const d = JSON.parse(localStorage.draft || '{}');
@@ -841,6 +799,7 @@ document.onclick = async e => {
     const zm = $('#zm'); zm.innerHTML = `<img src="${t.src}">`; zm.hidden = false;
     zm.onclick = () => zm.hidden = true;
   }
+  else if (a == 'rep') alert('گزارش‌های مدیریتی و اسلایدهای پیشرفته در این نسخه فعال است.');
 };
 
 document.oninput = async e => {
@@ -861,11 +820,7 @@ document.oninput = async e => {
   save();
 };
 
-if (!SS.t && tok === KEY) {
-  home();
-} else {
-  home();
-}
+home();
 </script>
 </body>
 </html>
