@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>گزارش ماهانه HSE - گسترش فناوری خوارزمی</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap">
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ok:#059669;--wa:#d97706;--bad:#dc2626;--ac:#0f766e}
+@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155;--ok:#34d399;--wa:#fbbf24;--bad:#f87171;--ac:#2dd4bf}}
+*{box-sizing:border-box}body{margin:0;font-family:Vazirmatn,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.8}
+.w{max-width:900px;margin:auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 8px;color:var(--ac)}
+select,button,a.b{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer;text-decoration:none}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px;break-inside:avoid}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.k{border:1px solid var(--bd);border-radius:10px;padding:8px 10px}.k b{display:block;font-size:22px}.k span{font-size:12px;color:var(--mu)}
+.score{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.big{font-size:44px;font-weight:800}
+.bar{height:8px;background:var(--bd);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%}
+ul{margin:6px 0 0;padding-inline-start:18px}li{margin:2px 0}.mu{color:var(--mu);font-size:12px}
+.ok{color:var(--ok)}.wa{color:var(--wa)}.bad{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;border-bottom:1px solid var(--bd);text-align:right}
+@media print{body{background:#fff;color:#000}.np{display:none}.card{border-color:#ccc}.w{padding:0}}
+</style>
+</head>
+<body>
+<div class="w">
+  <div class="top">
+    <div><h1>گزارش ماهانه HSE</h1><div class="mu">گسترش فناوری خوارزمی · <span id="mname"></span></div></div>
+    <div class="np"><select id="msel"></select> <button onclick="print()">چاپ / PDF</button> <a class="b" href="index.html">← بازگشت</a></div>
+  </div>
+  <div id="out" class="card">در حال دریافت اطلاعات...</div>
+</div>
+<script>
+const URL_='https://priopguwfjawybffarhd.supabase.co',KEY='sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+const H={apikey:KEY,Authorization:`Bearer ${KEY}`};
+const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const nd=s=>String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function jk(v){ // کلید ماه شمسی yyyy-mm از تاریخ میلادی یا رشته شمسی
+  if(!v)return null;const s=nd(v).trim();
+  const m=s.match(/^(1[34]\d\d)[\/\-](\d{1,2})/);if(m)return m[1]+'-'+String(+m[2]).padStart(2,'0');
+  const d=new Date(s);if(isNaN(d))return null;
+  const p=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric'}).formatToParts(d);
+  return p.find(x=>x.type==='year').value+'-'+String(+p.find(x=>x.type==='month').value).padStart(2,'0');
+}
+const nowK=jk(new Date().toISOString());
+async function get(t){try{const r=await fetch(`${URL_}/rest/v1/${t}`,{headers:H});if(!r.ok)return null;return await r.json()}catch(e){return null}}
+const pct=(a,b)=>b?Math.round(a/b*100):null;
+const P=v=>v==null?'ثبت نشده':fa(v)+'٪';
+const col=v=>v==null?'':v>=85?'ok':v>=65?'wa':'bad';
+let D={};
+async function load(){
+  const [ins,fin,inc,fu,ek]=await Promise.all([
+    get('inspections?select=module,ok,nc,na,created_at&limit=5000'),
+    get('findings?select=status,created_at,closed_at,notice_at,severity,due_date,root_cause&limit=5000'),
+    get('clinic_incidents?select=incident_date,severity,description,body_part,corrective_action,action_status,action_due_date,social_security_reported&limit=5000'),
+    get('clinic_followups?select=kind,status,due_date,completed_at,created_at&limit=5000'),
+    get('ekhtars?select=record_type,record_date,reason,employee_id&limit=5000')]);
+  D={ins,fin,inc,fu,ek};
+  const keys=new Set();let y=+nowK.slice(0,4),m=+nowK.slice(5);
+  for(let i=0;i<12;i++){keys.add(y+'-'+String(m).padStart(2,'0'));if(--m<1){m=12;y--}}
+  const sel=document.getElementById('msel');
+  sel.innerHTML=[...keys].map(k=>`<option value="${k}">${MN[+k.slice(5)-1]} ${fa(k.slice(0,4))}</option>`).join('');
+  sel.onchange=()=>render(sel.value);render(sel.value);
+}
+function render(K){
+  const {ins,fin,inc,fu,ek}=D,today=new Date().toISOString().slice(0,10);
+  document.getElementById('mname').textContent=MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
+  const inM=(a,f)=>(a||[]).filter(x=>jk(x[f])===K);
+  // ---- چک‌لیست و عدم‌انطباق
+  const I=inM(ins,'created_at'),ok=I.reduce((s,x)=>s+(x.ok||0),0),nc=I.reduce((s,x)=>s+(x.nc||0),0);
+  const comp=pct(ok,ok+nc);
+  const FN=inM(fin,'created_at'),FC=inM(fin,'closed_at'),NT=(fin||[]).filter(x=>jk(x.notice_at)===K).length;
+  const openAll=(fin||[]).filter(x=>x.status==='open'),overF=openAll.filter(x=>x.due_date&&x.due_date<today).length;
+  const closeRate=pct(FC.length,FN.length||FC.length||0);
+  const onTime=FC.length?pct(FC.filter(x=>!x.due_date||x.closed_at.slice(0,10)<=x.due_date).length,FC.length):null;
+  // ---- حوادث
+  const IN=inM(inc,'incident_date'),sev={minor:0,moderate:0,severe:0,fatal:0};IN.forEach(x=>sev[x.severity]=(sev[x.severity]||0)+1);
+  const lost=IN.reduce((s,x)=>s+(+((x.description||'').match(/روز از دست رفته:\s*(\d+)/)||[0,0])[1]),0);
+  const ssRep=IN.filter(x=>x.social_security_reported).length;
+  const capaAll=(inc||[]).filter(x=>x.corrective_action),capaOpen=capaAll.filter(x=>x.action_status!=='done'),capaOver=capaOpen.filter(x=>x.action_due_date&&x.action_due_date<today).length;
+  const capaM=IN.filter(x=>x.corrective_action),capaRate=capaM.length?pct(capaM.filter(x=>x.action_status==='done').length,capaM.length):null;
+  const bp={};IN.forEach(x=>{if(x.body_part)bp[x.body_part]=(bp[x.body_part]||0)+1});
+  const bpTop=Object.entries(bp).sort((a,b)=>b[1]-a[1])[0];
+  // ---- طب کار
+  const FUc=inM(fu,'created_at'),FUd=(fu||[]).filter(x=>x.status==='done'&&jk(x.completed_at)===K).length;
+  const FUo=(fu||[]).filter(x=>['pending','overdue'].includes(x.status)),FUover=FUo.filter(x=>x.due_date&&x.due_date<today).length;
+  // ---- انضباطی و تشویق
+  const E=inM(ek,'record_date'),rw=E.filter(x=>x.record_type==='تشویق').length,wr=E.length-rw,wk=E.filter(x=>x.record_type==='اخطار کتبی').length;
+  const rwShare=E.length?pct(rw,E.length):null;
+  const rep={};E.filter(x=>x.record_type!=='تشویق').forEach(x=>rep[x.employee_id]=(rep[x.employee_id]||0)+1);
+  const repeat=Object.values(rep).filter(n=>n>1).length;
+  // ---- شاخص فرهنگ ایمنی
+  const parts=[['انطباق بازرسی‌ها',comp,40],['بستن به‌موقع عدم‌انطباق‌ها',onTime,25],['انجام اقدامات اصلاحی حوادث',capaRate,20],['سهم تشویق از تشویق+اخطار',rwShare,15]].filter(p=>p[1]!=null);
+  const W=parts.reduce((s,p)=>s+p[2],0);let score=W?Math.round(parts.reduce((s,p)=>s+p[1]*p[2],0)/W):null;
+  if(score!=null){score-=Math.min(20,sev.severe*10+sev.fatal*20);score=Math.max(0,score)}
+  const band=score==null?'':score>=85?['مطلوب','ok']:score>=65?['قابل قبول؛ نیازمند بهبود','wa']:['ضعیف؛ نیازمند اقدام فوری','bad'];
+  // ---- تحلیل متنی
+  const A=[];
+  if(!I.length)A.push('در این ماه بازرسی ثبت نشده است.');
+  else A.push(`${fa(I.length)} بازرسی انجام شد و نرخ انطباق ${P(comp)} بود.`);
+  if(FN.length||FC.length)A.push(`${fa(FN.length)} عدم‌انطباق جدید ثبت و ${fa(FC.length)} مورد بسته شد؛ ${fa(openAll.length)} مورد باز است${overF?` که ${fa(overF)} مورد از مهلت گذشته`:''}.`);
+  A.push(IN.length?`${fa(IN.length)} حادثه ثبت شد (${fa(lost)} روز کاری از دست رفته)${bpTop?`؛ بیشترین آسیب: ${esc(bpTop[0])}`:''}.`:'در این ماه حادثه‌ای ثبت نشده است.');
+  if(capaOver)A.push(`${fa(capaOver)} اقدام اصلاحی حوادث از مهلت گذشته است.`);
+  if(FUover)A.push(`${fa(FUover)} پیگیری طب کار معوق است.`);
+  if(E.length)A.push(`${fa(rw)} تشویق در برابر ${fa(wr)} تذکر/اخطار ثبت شد${repeat?`؛ ${fa(repeat)} نفر تکرارشونده‌اند`:''}.`);
+  const k=(n,l,c)=>`<div class="k"><b class="${c||''}">${n}</b><span>${l}</span></div>`;
+  document.getElementById('out').outerHTML=`<div id="out">
+  <div class="card"><div class="score"><div><div class="mu">شاخص فرهنگ ایمنی</div><div class="big ${band?band[1]:''}">${score==null?'—':fa(score)}</div></div>
+   <div style="flex:1;min-width:220px"><b class="${band?band[1]:''}">${band?band[0]:'داده کافی ثبت نشده'}</b>
+   ${parts.map(p=>`<div class="mu" style="margin-top:6px">${p[0]} · ${fa(p[1])}٪</div><div class="bar"><i style="width:${p[1]}%;background:var(--${col(p[1])||'ac'})"></i></div>`).join('')}</div></div>
+   <div class="mu" style="margin-top:8px">میانگین وزنی بخش‌های ثبت‌شده (۴۰/۲۵/۲۰/۱۵)؛ هر حادثه شدید ۱۰ و هر حادثه فوتی ۲۰ امتیاز کم می‌کند.</div></div>
+  <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
+  <div class="card"><h2>عملکرد واحد HSE در این ماه</h2><div class="g">
+   ${k(fa(I.length),'بازرسی انجام‌شده')}${k(fa(FN.length),'عدم‌انطباق ثبت‌شده')}${k(fa(FC.length),'عدم‌انطباق بسته‌شده','ok')}${k(fa(NT),'اعلان به مسئولین')}
+   ${k(fa(IN.length),'حادثه بررسی‌شده')}${k(fa(FUc.length),'پیگیری طب کار ایجاد‌شده')}${k(fa(FUd),'پیگیری انجام‌شده','ok')}${k(fa(E.length),'اخطار/تشویق ثبت‌شده')}</div></div>
+  <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="g">
+   ${k(P(comp),'نرخ انطباق چک‌لیست‌ها',col(comp))}${k(fa(openAll.length),'عدم‌انطباق باز',openAll.length?'wa':'ok')}${k(fa(overF),'عدم‌انطباق معوق',overF?'bad':'ok')}
+   ${k(fa(IN.length),'حوادث ماه',IN.length?'wa':'ok')}${k(fa(lost),'روز کاری از دست‌رفته',lost?'bad':'ok')}${k(fa(sev.severe+sev.fatal),'حادثه شدید/فوتی',sev.severe+sev.fatal?'bad':'ok')}
+   ${k(fa(ssRep),'گزارش به تأمین اجتماعی')}${k(fa(capaOpen.length),'اقدام اصلاحی باز حوادث',capaOpen.length?'wa':'ok')}${k(fa(capaOver),'اقدام اصلاحی معوق',capaOver?'bad':'ok')}${k(fa(FUo.length),'پیگیری باز طب کار',FUo.length?'wa':'ok')}</div>
+   <table style="margin-top:10px"><tr><th>شدت حوادث</th><td>جزئی ${fa(sev.minor)}</td><td>متوسط ${fa(sev.moderate)}</td><td>شدید ${fa(sev.severe)}</td><td>فوتی ${fa(sev.fatal)}</td></tr></table></div>
+  <div class="card"><h2>فرهنگ ایمنی و رفتار</h2><div class="g">
+   ${k(fa(rw),'تشویق','ok')}${k(fa(wr-wk),'تذکر شفاهی','wa')}${k(fa(wk),'اخطار کتبی',wk?'bad':'ok')}${k(fa(repeat),'نفر تکرارشونده',repeat?'bad':'ok')}</div></div>
+  <div class="mu">${[['inspections',ins],['findings',fin],['clinic_incidents',inc],['clinic_followups',fu],['ekhtars',ek]].filter(x=>x[1]==null).map(x=>x[0]).join('، ')?'⚠ جدول‌های قابل‌دریافت‌نبود: '+[['inspections',ins],['findings',fin],['clinic_incidents',inc],['clinic_followups',fu],['ekhtars',ek]].filter(x=>x[1]==null).map(x=>x[0]).join('، '):''}</div>
+  </div>`;
+}
+load();
+</script>
+</body>
+</html>
