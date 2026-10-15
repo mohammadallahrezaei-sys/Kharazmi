@@ -799,7 +799,14 @@ document.onclick = async e => {
     const zm = $('#zm'); zm.innerHTML = `<img src="${t.src}">`; zm.hidden = false;
     zm.onclick = () => zm.hidden = true;
   }
-  else if (a == 'rep') alert('گزارش‌های مدیریتی و اسلایدهای پیشرفته در این نسخه فعال است.');
+  else if (a == 'rep') renderManagementReport();
+  else if (a == 'gen-slides') {
+    $('#slides-container').innerHTML = '<p style="text-align:center;">در حال تولید اسلایدها...</p>';
+    const all = await api('findings?order=created_at.desc&limit=500');
+    const imgs = await slides(all, [], 'گزارش عملکرد کارخانه', '۳۰ روز گذشته', all);
+    $('#slides-container').innerHTML = '<h3 style="margin-bottom:10px;">اسلایدهای تولیدشده:</h3>' + 
+      imgs.map((src, idx) => `<div style="margin-bottom:15px;"><img src="${src}" style="width:100%; border-radius:8px; border:1px solid var(--ln);"><a href="${src}" download="slide-${idx+1}.jpg" class="p" style="display:block; text-align:center; text-decoration:none; margin-top:6px;">📥 دانلود اسلاید ${fa(idx+1)}</a></div>`).join('');
+  }
 };
 
 document.oninput = async e => {
