@@ -266,28 +266,39 @@ const $ = s => document.querySelector(s), view = h => $('#app').innerHTML = h, e
 const fd = d => new Date(d).toLocaleDateString('fa-IR');
 const ft = d => new Date(d).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
 const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-/* ماژول فرعی است و ورود جداگانه ندارد: مثل داشبورد اصلی با کلید عمومی کار می‌کند.
-   اگر کاربر قبلاً وارد شده باشد (توکن ذخیره‌شده)، از همان استفاده می‌شود. */
+/* ماژول فرعی است: ورود فقط در index.html انجام می‌شود و این صفحه از همان نشست استفاده می‌کند.
+   نشست از localStorage/sessionStorage خوانده می‌شود (کلیدهای tk/em یا نشست استاندارد Supabase). */
+function jwtOk(t) {
+  try { const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); return !p.exp || p.exp * 1000 > Date.now(); } catch (e) { return false; }
+}
 function getSession() {
-  try {
-    if (localStorage.tk) return { t: localStorage.tk, e: localStorage.em || '' };
-    for (const k of Object.keys(localStorage)) {
-      if (/^sb-.*-auth-token$/.test(k)) {
-        const j = JSON.parse(localStorage.getItem(k) || '{}'), x = j.currentSession || j;
-        if (x.access_token) return { t: x.access_token, e: (x.user && x.user.email) || '' };
+  const stores = [localStorage, sessionStorage];
+  for (const st of stores) {
+    try {
+      for (const k of ['tk', 'token', 'access_token', 'sb_token']) {
+        const t = st.getItem(k);
+        if (t && jwtOk(t)) return { t, e: st.getItem('em') || st.getItem('email') || '' };
       }
-    }
-  } catch (e) { }
+      for (let i = 0; i < st.length; i++) {
+        const k = st.key(i);
+        if (!/^sb-.*-auth-token$/.test(k)) continue;
+        const j = JSON.parse(st.getItem(k) || '{}'), x = j.currentSession || j;
+        if (x.access_token && jwtOk(x.access_token)) return { t: x.access_token, e: (x.user && x.user.email) || '' };
+      }
+    } catch (e) { }
+  }
   return { t: '', e: '' };
 }
 const SS = getSession();
-let tok = SS.t || KEY, mail = SS.e || 'کاربر سامانه', cur, A = {}, N = {}, D = { loc: '', extra: {} };
+let tok = SS.t, mail = SS.e || 'کاربر', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
 const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS });
 
+const AH = () => tok === KEY ? { apikey: KEY } : { apikey: KEY, Authorization: 'Bearer ' + tok };
+
 async function api(p, o = {}) {
-  const r = await fetch(URL_ + '/rest/v1/' + p, { ...o, headers: { apikey: KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', Prefer: 'return=representation' } });
-  if (r.status == 401) { tok = KEY; throw new Error('دسترسی غیرمجاز (401). تنظیمات دسترسی دیتابیس را بررسی کنید.'); }
+  const r = await fetch(URL_ + '/rest/v1/' + p, { ...o, headers: { ...AH(), 'Content-Type': 'application/json', Prefer: 'return=representation' } });
+  if (r.status == 401) { location.href = 'index.html'; throw new Error('نشست کاری به پایان رسیده است. دوباره وارد شوید.'); }
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -473,14 +484,18 @@ function shrink(f) {
 async function up(b) {
   const p = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '' + Math.random().toString(36).slice(2)) + '.jpg';
   const r = await fetch(URL_ + '/storage/v1/object/photos/' + p, {
-    method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'image/jpeg' }, body: b
+    method: 'POST', headers: { ...AH(), 'Content-Type': 'image/jpeg', 'x-upsert': 'false' }, body: b
   });
-  if (!r.ok) throw new Error('خطا در آپلود تصویر');
+  if (!r.ok) {
+    let d = ''; try { d = (await r.json()).message || ''; } catch (e) { }
+    throw new Error('خطا در آپلود تصویر (' + r.status + ')' + (d ? ': ' + d : ''));
+  }
   return p;
 }
 
 const pimg = async p => {
-  const r = await fetch(URL_ + '/storage/v1/object/authenticated/photos/' + p, { headers: { apikey: KEY, Authorization: 'Bearer ' + tok } });
+  if (tok === KEY) return URL_ + '/storage/v1/object/public/photos/' + p;
+  const r = await fetch(URL_ + '/storage/v1/object/authenticated/photos/' + p, { headers: AH() });
   return URL.createObjectURL(await r.blob());
 };
 const li = () => document.querySelectorAll('img[data-p]').forEach(async i => { try { i.src = await pimg(i.dataset.p); } catch (e) { } });
@@ -789,7 +804,7 @@ document.oninput = async e => {
   save();
 };
 
-home();
+if (!tok) location.href = 'index.html'; else home();
 </script>
 </body>
 </html>
