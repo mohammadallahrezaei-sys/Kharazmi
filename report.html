@@ -54,7 +54,7 @@ const col=v=>v==null?'':v>=85?'ok':v>=65?'wa':'bad';
 let D={};
 async function load(){
   const [ins,fin,inc,fu,ek,tr,ta,emp]=await Promise.all([
-    get('inspections?select=module,ok,nc,na,created_at,inspector&limit=5000'),
+    get('inspections?select=module,location,ok,nc,na,created_at,inspector&limit=5000'),
     get('findings?select=status,created_at,closed_at,notice_at,severity,due_date,root_cause&limit=5000'),
     get('clinic_incidents?select=incident_date,severity,description,body_part,corrective_action,action_status,action_due_date,social_security_reported&limit=5000'),
     get('clinic_followups?select=kind,status,due_date,completed_at,created_at&limit=5000'),
@@ -72,7 +72,7 @@ function render(K){
   document.getElementById('mname').textContent=MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
   const inM=(a,f)=>(a||[]).filter(x=>jk(x[f])===K);
   // ---- چک‌لیست و عدم‌انطباق
-  const I=inM(ins,'created_at'),RD=new Set(I.map(x=>(x.inspector||'?')+'|'+new Date(x.created_at).toLocaleDateString('en-CA'))).size,ok=I.reduce((s,x)=>s+(x.ok||0),0),nc=I.reduce((s,x)=>s+(x.nc||0),0);
+  const I=inM(ins,'created_at'),CK=(()=>{const g=new Set();let n=0;inM(ins,'created_at').forEach(r=>{if(r.module==='D'&&r.location!=='گشت کل کارخانه')g.add((r.inspector||'?')+'|'+new Date(r.created_at).toLocaleDateString('en-CA'));else n++});return g.size+n})(),RD=new Set(I.map(x=>(x.inspector||'?')+'|'+new Date(x.created_at).toLocaleDateString('en-CA'))).size,ok=I.reduce((s,x)=>s+(x.ok||0),0),nc=I.reduce((s,x)=>s+(x.nc||0),0);
   const comp=pct(ok,ok+nc);
   const FN=inM(fin,'created_at'),FC=inM(fin,'closed_at'),NT=(fin||[]).filter(x=>jk(x.notice_at)===K).length;
   const openAll=(fin||[]).filter(x=>x.status==='open'),overF=openAll.filter(x=>x.due_date&&x.due_date<today).length;
@@ -102,7 +102,7 @@ function render(K){
   // ---- تحلیل متنی
   const A=[];
   if(!I.length)A.push('در این ماه بازرسی ثبت نشده است.');
-  else A.push(`${fa(RD)} گشت بازرسی انجام شد و نرخ انطباق ${P(comp)} بود.`);
+  else A.push(`${fa(RD)} گشت بازرسی (${fa(CK)} چک‌لیست) انجام شد و نرخ انطباق ${P(comp)} بود.`);
   if(FN.length||FC.length)A.push(`${fa(FN.length)} عدم‌انطباق جدید ثبت و ${fa(FC.length)} مورد بسته شد؛ ${fa(openAll.length)} مورد باز است${overF?` که ${fa(overF)} مورد از مهلت گذشته`:''}.`);
   A.push(IN.length?`${fa(IN.length)} حادثه ثبت شد (${fa(lost)} روز کاری از دست رفته)${bpTop?`؛ بیشترین آسیب: ${esc(bpTop[0])}`:''}.`:'در این ماه حادثه‌ای ثبت نشده است.');
   if(capaOver)A.push(`${fa(capaOver)} اقدام اصلاحی حوادث از مهلت گذشته است.`);
@@ -130,7 +130,7 @@ function render(K){
    <div class="mu" style="margin-top:8px">میانگین وزنی بخش‌های ثبت‌شده (۴۰/۲۵/۲۰/۱۵)؛ هر حادثه شدید ۱۰ و هر حادثه فوتی ۲۰ امتیاز کم می‌کند.</div></div>
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
   <div class="card"><h2>عملکرد واحد HSE در این ماه</h2><div class="g">
-   ${k(fa(RD),'گشت بازرسی')}${k(fa(FN.length),'عدم‌انطباق ثبت‌شده')}${k(fa(FC.length),'عدم‌انطباق بسته‌شده','ok')}${k(fa(NT),'اعلان به مسئولین')}
+   ${k(fa(RD),'گشت بازرسی')}${k(fa(CK),'چک‌لیست تکمیل‌شده')}${k(fa(FN.length),'عدم‌انطباق ثبت‌شده')}${k(fa(FC.length),'عدم‌انطباق بسته‌شده','ok')}${k(fa(NT),'اعلان به مسئولین')}
    ${k(fa(IN.length),'حادثه بررسی‌شده')}${k(fa(FUc.length),'پیگیری طب کار ایجاد‌شده')}${k(fa(FUd),'پیگیری انجام‌شده','ok')}${k(fa(E.length),'اخطار/تشویق ثبت‌شده')}</div></div>
   <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="g">
    ${k(P(comp),'نرخ انطباق چک‌لیست‌ها',col(comp))}${k(fa(openAll.length),'عدم‌انطباق باز',openAll.length?'wa':'ok')}${k(fa(overF),'عدم‌انطباق معوق',overF?'bad':'ok')}
