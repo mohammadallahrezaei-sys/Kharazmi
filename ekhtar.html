@@ -158,12 +158,14 @@ window.addEventListener('DOMContentLoaded', async () => {
 async function loadEkhtarsModule() {
     try {
         // ۱. دریافت پرسنل
-        const { data: empData, error: empErr } = await supabaseClient.from('employees').select('id, emp_id, full_name');
-        if (empErr) throw empErr;
-        allEmployeesForEkt = empData || [];
-        
-        const datalist = document.getElementById('ektEmpList');
-        datalist.innerHTML = allEmployeesForEkt.map(e => `<option value="${e.emp_id} - ${e.full_name}">`).join('');
+ // دریافت پرسنل با ستون‌های صحیح جدول شما
+const { data: empData, error: empErr } = await supabaseClient.from('employees').select('id, emp_id, first_name, last_name');
+if (empErr) throw empErr;
+allEmployeesForEkt = empData || [];
+
+// ساخت نام کامل از روی فیلدهای مجزای جدول
+const datalist = document.getElementById('ektEmpList');
+datalist.innerHTML = allEmployeesForEkt.map(e => `<option value="${e.emp_id} - ${e.first_name || ''} ${e.last_name || ''}">`).join('');
 
         // ۲. دریافت سوابق انضباطی
         const { data: ektData, error: ektErr } = await supabaseClient
