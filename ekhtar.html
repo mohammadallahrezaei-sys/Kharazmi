@@ -157,20 +157,21 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 async function loadEkhtarsModule() {
     try {
-        // ۱. دریافت پرسنل
- // دریافت پرسنل با ستون‌های صحیح جدول شما
-const { data: empData, error: empErr } = await supabaseClient.from('employees').select('id, emp_id, first_name, last_name');
-if (empErr) throw empErr;
-allEmployeesForEkt = empData || [];
+        // ۱. دریافت پرسنل بر اساس ستون‌های صحیح اولیه‌ای که فرستادید (first_name و last_name)
+        const { data: empData, error: empErr } = await supabaseClient.from('employees').select('id, emp_id, first_name, last_name');
+        if (empErr) throw empErr;
+        allEmployeesForEkt = empData || [];
+        
+        const datalist = document.getElementById('ektEmpList');
+        datalist.innerHTML = allEmployeesForEkt.map(e => {
+            const fullName = `${e.first_name || ''} ${e.last_name || ''}`.trim();
+            return `<option value="${e.emp_id} - ${fullName}">`;
+        }).join('');
 
-// ساخت نام کامل از روی فیلدهای مجزای جدول
-const datalist = document.getElementById('ektEmpList');
-datalist.innerHTML = allEmployeesForEkt.map(e => `<option value="${e.emp_id} - ${e.first_name || ''} ${e.last_name || ''}">`).join('');
-
-        // ۲. دریافت سوابق انضباطی
+        // ۲. دریافت سوابق انضباطی و اتصال به جدول پرسنل با ستون‌های درست
         const { data: ektData, error: ektErr } = await supabaseClient
             .from('ekhtars')
-            .select(`id, record_type, reason, record_date, description, employees ( emp_id, full_name )`)
+            .select(`id, record_type, reason, record_date, description, employees ( emp_id, first_name, last_name )`)
             .order('id', { ascending: false });
 
         if (ektErr) throw ektErr;
@@ -240,6 +241,7 @@ function renderEkhtarsTable(data) {
 
     tbody.innerHTML = data.map(item => {
         const emp = item.employees || {};
+        const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'نامشخص';
         const badgeColor = item.record_type === 'تشویق' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 
                            item.record_type === 'تذکر شفاهی' ? 'bg-amber-950 text-amber-400 border-amber-800' : 
                            'bg-rose-950 text-rose-400 border-rose-800';
@@ -247,7 +249,7 @@ function renderEkhtarsTable(data) {
         return `
             <tr class="hover:bg-slate-700/30 transition-colors">
                 <td class="p-3 font-mono text-slate-300">${emp.emp_id || '-'}</td>
-                <td class="p-3 font-bold text-white">${emp.full_name || 'نامشخص'}</td>
+                <td class="p-3 font-bold text-white">${fullName}</td>
                 <td class="p-3"><span class="px-2 py-1 rounded border text-[11px] ${badgeColor}">${item.record_type}</span></td>
                 <td class="p-3 text-slate-200">${item.reason || '-'}</td>
                 <td class="p-3 font-mono text-slate-300">${item.record_date || '-'}</td>
@@ -309,9 +311,10 @@ document.getElementById('ektSearchBox').addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase().trim();
     const filtered = allEkhtarsData.filter(item => {
         const emp = item.employees || {};
+        const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
         return (
             String(emp.emp_id || '').toLowerCase().includes(query) ||
-            String(emp.full_name || '').toLowerCase().includes(query) ||
+            fullName.includes(query) ||
             String(item.reason || '').toLowerCase().includes(query) ||
             String(item.record_type || '').toLowerCase().includes(query)
         );
