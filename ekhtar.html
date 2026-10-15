@@ -574,3 +574,7 @@ document.addEventListener('click', e => {
         openPrint(d.new, selEmp, null);
     }
 });
+// بارگذاری اولیه اطلاعات هنگام باز شدن صفحه
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadAll();
+});
