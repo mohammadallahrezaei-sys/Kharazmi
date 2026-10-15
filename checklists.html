@@ -31,7 +31,10 @@ input:focus, select:focus { border-color: var(--ac); box-shadow: 0 0 0 3px rgba(
 button, .btn-link { font: inherit; color: var(--ink); background: var(--card-bg); border: 1.5px solid var(--ln); border-radius: 12px; min-height: 48px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
 button:hover, .btn-link:hover { background: var(--ln); }
 
-.m { display: block; width: 100%; margin-top: 10px; padding: 14px 16px; text-align: right; background: var(--card-bg); border-radius: 14px; border: 1px solid var(--ln); box-shadow: var(--shadow-sm); }
+/* برای نمایش دکمه‌ها به‌صورت دوتا دوتا در کنار هم */
+body div#app { display: flex; flex-direction: column; }
+/* اگر منظورتان لیست دکمه‌های چک‌لیست در صفحه اصلی است: */
+/* می‌توانید یک کانتینر دور دکمه‌های M بگذارید یا به شکل زیر گرید کنید */
 .m:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--ac); }
 .m b { display: block; font-size: 16px; font-weight: 700; color: var(--ink); }
 .p { width: 100%; margin-top: 10px; background: var(--ac); border-color: var(--ac); color: #0f172a; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(16,185,129,0.25); }
