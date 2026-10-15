@@ -413,6 +413,7 @@ function renderPerson() {
     $('pNext').textContent = total
         ? `این فرد تاکنون ${total} بار اخطار/تذکر داشته است. در صورت صدور اخطار بعدی، مرتبه ${ordWord(nextOrd)} و مشمول «مرحله ${ordWord(stage)} - ${STAGE_TXT[stage]}» می‌شود.`
         : `این فرد تاکنون اخطار یا تذکری نداشته است. اولین اخطار او مشمول «مرحله اول - تذکر شفاهی» خواهد بود.`;
+    $('pNext').innerHTML = esc($('pNext').textContent) + (nextOrd >= 5 ? ' <b class="text-rose-400">⚠ از مرتبه پنجم به بعد، قطع همکاری منوط به تأیید مدیریت است و در فرم چاپی یادداشت آن می‌آید.</b>' : '');
     $('pList').innerHTML = mine.length ? mine.map(r => {
         const cls = r.record_type === 'تشویق' ? 'text-emerald-400' : r.record_type === 'تذکر شفاهی' ? 'text-amber-400' : 'text-rose-400';
         return `<div class="flex items-center justify-between gap-2 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[11px]">
@@ -653,7 +654,8 @@ function sheetHTML(s) {
         <p>&nbsp;</p>
         <p class="main-p">با سلام</p>
         <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ <u class="titr ltr">${esc(fmtJ(s.vdate, s.dateFmt))}</u> ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل ${s.reason.trim() ? U(s.reason.trim()) : '<span class="dots">' + dots + '</span>'} این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه ${U(ordWord(s.ord))} مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.</p>
-        <ul>${stageLines.map((t, i) => `<li>${t} ${cb(s.stage === i + 1)}</li>`).join('')}</ul>`;
+        <ul>${stageLines.map((t, i) => `<li>${t} ${cb(s.stage === i + 1)}</li>`).join('')}</ul>
+        ${(s.ord >= 5 || s.stage >= 5) ? `<p class="main-p" style="margin-top:.12in;border:1.5pt solid #000;padding:3px 8px">توجه: این اخطار برای مرتبه ${esc(ordWord(s.ord))} می‌باشد و فرد مشمول مرحله پنجم (قطع همکاری) است. تصمیم نهایی در این خصوص منوط به بررسی و تأیید مدیریت کارخانه می‌باشد.</p>` : ''}`;
     } else {
         const tier = Math.min(s.ord, 3);
         const tiers = [
