@@ -123,44 +123,43 @@ const M = [
   ['ENV', 'پساب، فاضلاب و پسماند', 'ماهانه', 'L14010/01', ['پسماند تر و خشک تفکیک می‌شود', 'سطل زباله دارای درب و کیسه؛ به‌موقع تخلیه و شسته می‌شود', 'محل جمع‌آوری پسماند مانع آلودگی هوا، خاک و آب است', 'پسماند صنعتی در محل ایمن دپو و دفع تحت نظارت است', 'پسماند پزشکی جدا و با شرکت مجاز منتقل می‌شود', 'نشت سوخت یا مواد شیمیایی به شبکه فاضلاب دیده نمی‌شود', 'آشغالگیر و حوض یکنواخت‌ساز: پمپ و هوادهی کار می‌کند؛ لجن و بوی بد نیست', 'حوض ته‌نشینی بدون حباب و مواد معلق؛ محوطه محصور و پلکان دارای حفاظ', 'برنامه آنالیز و پایش پساب انجام شده است'], []]
 ];
 
-/* ---------- لیست محل‌های مستخرج از فایل پرسنلی ---------- */
+/* ---------- لیست محل‌ها و سوله‌های کارخانه ---------- */
 const LOCS = [
-  'تولید DRI',
-  'تولید HTS-LTS',
-  'تولید ZNO',
-  'تولید بازیابی',
-  'تولید',
+  'واحد DRI (سوله ۲)',
+  'واحد DRI (سوله ۳)',
+  'واحد DRI (سوله ۴)',
+  'واحد DRI (سوله ۹)',
+  'واحد DRI (سوله ۱۴)',
+  'تولید بازیابی (سوله ۵)',
+  'تولید بازیابی (سوله ۶)',
+  'تولید بازیابی (سوله ۱۲ بازیابی)',
+  'واحد HTS-LTS (سوله ۸)',
+  'واحد HTS-LTS (سوله ۱۲ HTS)',
+  'واحد HTS-LTS (بخش روتاری)',
+  'واحد HTS-LTS (سوله ۱۳)',
+  'واحد ZNO (سوله ۷)',
+  'واحد ZNO (سوله ۱۰)',
+  'واحد ZNO (کوره تصعیدی و دوار)',
+  'انبار مواد اولیه',
+  'انبار ملزومات',
+  'انبار آهن',
+  'انبار روابط عمومی',
+  'انبار سیلندرهای تحت فشار',
+  'آزمایشگاه‌ها',
+  'تصفیه‌خانه فاضلاب انسانی',
+  'تصفیه‌خانه فاضلاب صنعتی',
+  'پست برق',
+  'پست گاز',
+  'واحد RO',
+  'سوله ۱۵',
+  'سوله ۱۶',
+  'سوله ۱۷',
   'فنی و مهندسی',
-  'انبار',
   'حراست',
-  'تحقیق و توسعه مهندسی فرایند',
-  'آزمایشگاه کاتاتست',
-  'تدارکات',
-  'برنامه ریزی',
-  'مالی',
-  'آزمایشگاه آنالیز',
-  'آزمایشگاه کنترل کیفیت',
   'منابع انسانی',
-  'خدمات',
-  'عمران',
-  'هوش مصنوعی',
-  'فروش',
-  'مدیریت',
-  'آشپزخانه',
-  'رستوران',
-  'آزمایشگاه سنتز کاتالیست',
-  'آزمایشگاه سنتز',
-  'کنترل کیفیت',
-  'پشتیبانی',
-  'تضمین کیفیت',
-  'برنامه ریزی تعمیرات و نگهداری',
-  'فناوری اطلاعات',
-  'روابط عمومی',
-  'بازرگانی',
-  'طرح و برنامه',
-  'ترابری',
-  'ایمنی و بهداشت',
-  'طراحی فرایند'
+  'مالی و اداری',
+  'آشپزخانه و رستوران',
+  'تدارکات و بازرگانی'
 ];
 
 const SHIFTS = ['صبح','عصر','شب'];
@@ -265,7 +264,7 @@ function loginV(m = '') {
   view(`
     <div style="max-width:380px; margin:40px auto; text-align:center;">
       <div class="mb-4 flex justify-center">
-        <img src="logo.png" alt="گسترش فناوری خوارزمی" class="w-16 h-auto rounded-lg shadow" onerror="this.style.display='none'">
+        <img src="logo.png" alt="گسترش فناوری خوارزمی" style="width: 48px; height: auto;" class="rounded-lg shadow" onerror="this.style.display='none'">
       </div>
       <h2 style="justify-content:center; font-size:24px; margin-bottom:20px;">ورود به ماژول چک‌لیست‌ها</h2>
       <input id="em" type="email" dir="ltr" placeholder="ایمیل کاربر">
@@ -329,17 +328,23 @@ async function historyList() {
         <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors">← داشبورد اصلی</a>
       </div>
       <h2>تاریخچه جامع بازدیدها</h2>
-      <small>لیست تمام بازرسی‌های ثبت‌شده (ایمن و دارای عدم‌انطباق)</small>
+      <small>لیست تمام بازرسی‌های ثبت‌شده (امکان ویرایش محل و شیفت با ثبت لاگ تاریخچه)</small>
 
       ${r.map(x => `
-        <div class="q ${x.nc > 0 ? 'bad' : 'good'}">
+        <div class="q ${x.nc > 0 ? 'bad' : 'good'}" id="insp-${x.id}">
           <p>${esc(nm(x.module))}</p>
-          <small style="margin-top:4px;">محل: <b>${esc(x.location)}</b> · شیفت: ${esc(x.shift || 'نامشخص')} · بازرس: ${esc(x.inspector || 'نامشخص')} · تاریخ: ${fd(x.created_at)} ساعت ${ft(x.created_at)}</small>
+          <small style="margin-top:4px;">
+            محل: <b class="loc-txt">${esc(x.location)}</b> · 
+            شیفت: <b class="sh-txt">${esc(x.shift || 'نامشخص')}</b> · 
+            بازرس: ${esc(x.inspector || 'نامشخص')} · تاریخ: ${fd(x.created_at)} ساعت ${ft(x.created_at)}
+          </small>
           <div style="display:flex; gap:10px; margin-top:8px; font-size:12px; font-weight:600;">
             <span style="color:var(--ok);">مطابق: ${fa(x.ok)}</span>
             <span style="color:var(--nc);">عدم‌انطباق: ${fa(x.nc)}</span>
             <span style="color:var(--mu);">نامربوط: ${fa(x.na)}</span>
+            <button class="l" data-a="edit-insp" data-id="${x.id}" data-loc="${esc(x.location)}" data-sh="${esc(x.shift || 'صبح')}" style="margin-right:auto; color:var(--ac);">✏️ ویرایش محل/شیفت</button>
           </div>
+          <div class="edit-area" hidden style="margin-top:10px; background:var(--bg); padding:10px; border-radius:8px;"></div>
         </div>
       `).join('') || '<p style="margin-top:20px;">هیچ بازدیدی ثبت نشده است.</p>'}
     `);
@@ -692,6 +697,44 @@ document.onclick = async e => {
   else if (a == 'rmph') { PH[t.dataset.id].splice(+t.dataset.j, 1); form(); scrollTo(0, y); }
   else if (a == 'send') send();
   else if (a == 'finds') finds();
+  else if (a == 'edit-insp') {
+    const box = t.closest('.q').querySelector('.edit-area');
+    box.hidden = !box.hidden;
+    if (!box.hidden) {
+      box.innerHTML = `
+        <label style="font-size:12px; font-weight:700;">ویرایش محل:</label>
+        <select id="edit-loc">${LOCS.map(l => `<option ${l == t.dataset.loc ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <label style="font-size:12px; font-weight:700; margin-top:8px;">ویرایش شیفت:</label>
+        <select id="edit-sh">${SHIFTS.map(s => `<option ${s == t.dataset.sh ? 'selected' : ''}>${s}</option>`).join('')}</select>
+        <button class="p" data-a="save-insp" data-id="${t.dataset.id}" data-oldloc="${t.dataset.loc}" data-oldsh="${t.dataset.sh}" style="margin-top:10px; min-height:38px; font-size:13px;">ذخیره تغییرات و درج لاگ</button>
+      `;
+    }
+  }
+  else if (a == 'save-insp') {
+    const id = t.dataset.id, oldLoc = t.dataset.oldloc, oldSh = t.dataset.oldsh;
+    const newLoc = $('#edit-loc').value, newSh = $('#edit-sh').value;
+    if (oldLoc === newLoc && oldSh === newSh) return alert('تغییری ایجاد نشده است.');
+    try {
+      // آپدیت جدول اصلی
+      await api('inspections?id=eq.' + id, {
+        method: 'PATCH',
+        body: JSON.stringify({ location: newLoc, shift: newSh })
+      });
+      // ثبت لاگ در جدول تاریخچه تغییرات
+      const logs = [];
+      if (oldLoc !== newLoc) {
+        logs.push({ inspection_id: id, inspector: mail, action_type: 'UPDATE_LOCATION', old_value: oldLoc, new_value: newLoc });
+      }
+      if (oldSh !== newSh) {
+        logs.push({ inspection_id: id, inspector: mail, action_type: 'UPDATE_SHIFT', old_value: oldSh, new_value: newSh });
+      }
+      if (logs.length) {
+        await api('inspection_logs', { method: 'POST', body: JSON.stringify(logs) });
+      }
+      alert('تغییرات با موفقیت ذخیره و در تاریخچه ثبت شد.');
+      await historyList(); scrollTo(0, y);
+    } catch (er) { alert('خطا در ذخیره تغییرات: ' + er.message); }
+  }
   else if (a == 'ntc') {
     try {
       const id = t.dataset.id;
