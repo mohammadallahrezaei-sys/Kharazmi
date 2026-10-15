@@ -580,7 +580,7 @@ async function stats(d = 90) {
     const ag = [OF.filter(x => days(x.created_at) <= 7).length, OF.filter(x => { const k = days(x.created_at); return k > 7 && k <= 30; }).length, OF.filter(x => days(x.created_at) > 30).length];
     const sevRows = [4, 3, 2, 1].map(v => [SEVN[v], OF.filter(x => sv(x) == v).length]);
     const catRows = cnt(F, ct), rcRows = cnt(closed.filter(x => x.root_cause), x => x.root_cause);
-    const shRows = SHIFTS.map(h => { const ii = I.filter(r => r.shift == h); return [h + ' (' + fa(ii.length) + ' بازدید)', pct(ii.reduce((a, r) => a + r.nc, 0), ii.reduce((a, r) => a + r.nc + r.ok, 0))]; });
+    const shRows = SHIFTS.map(h => { const ii = I.filter(r => r.shift == h); return [h + ' (' + fa(rounds(ii)) + ' گشت)', pct(ii.reduce((a, r) => a + r.nc, 0), ii.reduce((a, r) => a + r.nc + r.ok, 0))]; });
     const respRows = cnt(OF.filter(x => x.responsible), x => x.responsible).slice(0, 6), inspRows = cnt(I.filter(r => r.inspector), r => r.inspector).slice(0, 6);
 
     const ins = [];
@@ -610,7 +610,8 @@ async function stats(d = 90) {
       <select id="sd"><option value="7">۷ روز گذشته</option><option value="30">۳۰ روز گذشته</option><option value="90">۹۰ روز گذشته</option><option value="0">تمام سوابق</option></select>
 
       <div class="kp">
-        <div><b>${fa(I.length)}</b><small>بازدید ثبت‌شده</small></div>
+        <div><b>${fa(rounds(I))}</b><small>گشت بازرسی</small></div>
+        <div><b>${fa(I.length)}</b><small>چک‌لیست تکمیل‌شده</small></div>
         <div><b style="color:${rate >= 85 ? 'var(--ok)' : 'var(--nc)'}">${fa(rate)}٪</b><small>نرخ انطباق</small></div>
         <div><b style="color:var(--nc)">${fa(OF.length)}</b><small>عدم‌انطباق باز (کل)</small></div>
         <div><b style="color:var(--nc)">${fa(hiOpen)}</b><small>باز با شدت زیاد/بحرانی</small></div>
@@ -692,6 +693,8 @@ async function panel(x, px, py, pw, ph, title, color, srcs, empty) {
   });
 }
 
+/* گشت بازرسی = یک بازرس در یک روز (هر چک‌لیست محل یک رکورد جداست) */
+function rounds(a) { return new Set((a || []).map(r => (r.inspector || '?') + '|' + new Date(r.created_at).toLocaleDateString('en-CA'))).size; }
 let RPD = 30;
 const MAXS = 60;
 const sev_ = x => x.severity || dsev(x.question || '');
@@ -703,7 +706,7 @@ function summarySlide(logo, n, tot, S) {
   x.fillStyle = NAVY; x.font = '800 44px ' + FONT;
   x.fillText('خلاصه مدیریتی وضعیت HSE', SW - 60, 170);
   x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
-  x.fillText('بازه: ' + S.bz + '  |  ' + fa(S.insCount) + ' بازدید ثبت‌شده', SW - 60, 230);
+  x.fillText('بازه: ' + S.bz + '  |  ' + fa(S.insCount) + ' گشت بازرسی  |  ' + fa(S.chkCount) + ' چک‌لیست', SW - 60, 230);
   const kp = [
     [fa(S.rate) + '٪', 'نرخ انطباق بازدیدها', S.rate >= 85 ? GREEN : RED],
     [fa(S.hi), 'باز با شدت زیاد/بحرانی', RED],
@@ -772,8 +775,8 @@ async function slides(F, sub, bz, S) {
     const pw = (SW - 140) / 2, ph = 620, py = 320;
     const bp = (await Promise.all((f.photos_before || []).slice(0, 4).map(photoSrc))).filter(Boolean);
     const ap = (await Promise.all((f.photos_after || []).slice(0, 4).map(photoSrc))).filter(Boolean);
-    await panel(x, 60, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
-    await panel(x, pw + 80, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی', GREEN, ap, 'اقدام اصلاحی انجام نشده است');
+    await panel(x, pw + 80, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
+    await panel(x, 60, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی', GREEN, ap, 'اقدام اصلاحی انجام نشده است');
     [...bp, ...ap].forEach(u => URL.revokeObjectURL(u));
     out.push(c.toDataURL('image/jpeg', 0.9));
     if ($('#slides-progress')) $('#slides-progress').textContent = 'در حال تولید اسلایدها... ' + fa(i + 1) + ' از ' + fa(F.length);
@@ -820,11 +823,11 @@ async function genSlides() {
     const [P, OF, I] = await Promise.all([
       api('findings?select=' + FS + '&created_at=gte.' + s + '&order=created_at.desc&limit=1000'),
       api('findings?select=' + FS + '&status=eq.open&limit=1000'),
-      api('inspections?select=ok,nc&created_at=gte.' + s + '&limit=1000')
+      api('inspections?select=ok,nc,inspector,created_at&created_at=gte.' + s + '&limit=1000')
     ]);
     const ok = I.reduce((a, r) => a + r.ok, 0), nc = I.reduce((a, r) => a + r.nc, 0);
     const S = {
-      bz: periodLabel(RPD), totalPeriod: P.length, insCount: I.length, rate: pct(ok, ok + nc),
+      bz: periodLabel(RPD), totalPeriod: P.length, insCount: rounds(I), chkCount: I.length, rate: pct(ok, ok + nc),
       hi: OF.filter(x => sev_(x) >= 3).length, overdue: OF.filter(od_).length, noNotice: OF.filter(x => !x.notice_at).length,
       topLocs: cnt(OF, x => nl(x.location)).slice(0, 5),
       topCats: cnt(P, x => x.category || cat(x.module, x.question || '')).slice(0, 5)
