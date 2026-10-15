@@ -324,7 +324,7 @@ async function api(path, opts) {
 
 async function loadAll() {
     try {
-        employees = await api('employees?select=*&order=emp_id.asc&limit=2000');
+        employees = await api('employees?order=emp_id.asc&limit=2000');
         $('ektEmpList').innerHTML = employees.map(e => `<option value="${esc(empLabel(e))}"></option>`).join('');
         $('ektEmpInput').placeholder = employees.length ? 'کد یا نام پرسنل را تایپ کنید...' : 'هیچ پرسنلی در دیتابیس یافت نشد!';
     } catch (e) {
