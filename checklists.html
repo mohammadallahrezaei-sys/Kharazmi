@@ -271,23 +271,37 @@ const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 function jwtOk(t) {
   try { const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); return !p.exp || p.exp * 1000 > Date.now(); } catch (e) { return false; }
 }
+function deepFind(o, key, d = 0) {
+  if (!o || typeof o !== 'object' || d > 4) return null;
+  if (typeof o[key] === 'string') return o[key];
+  for (const k in o) { const r = deepFind(o[k], key, d + 1); if (r) return r; }
+  return null;
+}
 function getSession() {
-  const stores = [localStorage, sessionStorage];
-  for (const st of stores) {
+  let found = { t: '', e: '' };
+  for (const st of [localStorage, sessionStorage]) {
     try {
-      for (const k of ['tk', 'token', 'access_token', 'sb_token']) {
-        const t = st.getItem(k);
-        if (t && jwtOk(t)) return { t, e: st.getItem('em') || st.getItem('email') || '' };
-      }
       for (let i = 0; i < st.length; i++) {
-        const k = st.key(i);
-        if (!/^sb-.*-auth-token$/.test(k)) continue;
-        const j = JSON.parse(st.getItem(k) || '{}'), x = j.currentSession || j;
-        if (x.access_token && jwtOk(x.access_token)) return { t: x.access_token, e: (x.user && x.user.email) || '' };
+        const raw = st.getItem(st.key(i)) || '';
+        if (/^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(raw) && jwtOk(raw) && raw !== KEY) { found.t = found.t || raw; continue; }
+        if (raw[0] === '{' || raw[0] === '[') {
+          const j = JSON.parse(raw), t = deepFind(j, 'access_token');
+          if (t && jwtOk(t)) { found.t = t; found.e = deepFind(j, 'email') || found.e; return found; }
+        }
       }
+      found.e = found.e || st.getItem('em') || st.getItem('email') || '';
     } catch (e) { }
   }
-  return { t: '', e: '' };
+  return found;
+}
+function noSession() {
+  const keys = []; for (const st of [localStorage, sessionStorage]) for (let i = 0; i < st.length; i++) keys.push(st.key(i));
+  view(`<div style="max-width:420px;margin:40px auto;text-align:center">
+    <h2 style="justify-content:center">نشست ورود پیدا نشد</h2>
+    <small>لطفاً ابتدا از صفحه اصلی وارد شوید و سپس ماژول را باز کنید.</small>
+    <a href="index.html" class="back" style="margin-top:16px">← رفتن به صفحه اصلی</a>
+    <small style="margin-top:20px;direction:ltr">کلیدهای ذخیره‌شده: ${esc(keys.join(', ') || 'هیچ')}</small>
+  </div>`);
 }
 const SS = getSession();
 let tok = SS.t, mail = SS.e || 'کاربر', cur, A = {}, N = {}, D = { loc: '', extra: {} };
@@ -298,7 +312,7 @@ const AH = () => tok === KEY ? { apikey: KEY } : { apikey: KEY, Authorization: '
 
 async function api(p, o = {}) {
   const r = await fetch(URL_ + '/rest/v1/' + p, { ...o, headers: { ...AH(), 'Content-Type': 'application/json', Prefer: 'return=representation' } });
-  if (r.status == 401) { location.href = 'index.html'; throw new Error('نشست کاری به پایان رسیده است. دوباره وارد شوید.'); }
+  if (r.status == 401) { tok = ''; noSession(); throw new Error('نشست کاری به پایان رسیده است. دوباره وارد شوید.'); }
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -804,7 +818,7 @@ document.oninput = async e => {
   save();
 };
 
-if (!tok) location.href = 'index.html'; else home();
+if (!tok) noSession(); else home();
 </script>
 </body>
 </html>
