@@ -819,7 +819,118 @@ document.oninput = async e => {
   else return;
   save();
 };
+/* ---------- بخش گزارش مدیریتی و اسلایدها ---------- */
+const SW = 1920, SH = 1080, NAVY = '#0f172a', BLUE = '#2563eb', RED = '#ef4444', GREEN = '#22c55e', FONT = "Vazirmatn,Tahoma,sans-serif";
+const fl = d => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(d));
+const loadImg = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = s; });
 
+function wrapText(c, t, w) {
+  const a = t.split(' '), o = []; let u = '';
+  for (const x of a) { const v = u ? u + ' ' + x : x; if (c.measureText(v).width > w && u) { o.push(u); u = x; } else u = v; }
+  if (u) o.push(u); return o;
+}
+
+function mkS() {
+  const c = document.createElement('canvas'); c.width = SW; c.height = SH;
+  const x = c.getContext('2d'); x.direction = 'rtl'; x.textAlign = 'right'; x.textBaseline = 'top'; return [c, x];
+}
+
+function frame(x, logo, n, tot, code) {
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, SW, SH);
+  if (logo) x.drawImage(logo, SW - 320, 30, 260, 260 * logo.height / logo.width);
+  x.fillStyle = BLUE; x.fillRect(0, 130, SW, 6);
+  x.fillStyle = '#64748b'; x.font = '400 24px ' + FONT;
+  x.direction = 'ltr'; x.textAlign = 'left'; x.fillText(code || '', 60, 1030);
+  x.fillText(n + ' / ' + tot, SW - 120, 1030); x.textAlign = 'right'; x.direction = 'rtl';
+}
+
+async function panel(x, px, py, pw, ph, title, color, srcs, empty) {
+  x.fillStyle = color; x.fillRect(px, py, pw, 60);
+  x.fillStyle = '#fff'; x.font = '700 28px ' + FONT; x.textAlign = 'center';
+  x.fillText(title, px + pw / 2, py + 14); x.textAlign = 'right';
+  const ay = py + 60, ah = ph - 60;
+  x.fillStyle = '#f8fafc'; x.fillRect(px, ay, pw, ah);
+  x.strokeStyle = '#e2e8f0'; x.lineWidth = 2; x.strokeRect(px, py, pw, ph);
+
+  const ims = []; for (const u of srcs.slice(0, 4)) { const i = await loadImg(u); if (i) ims.push(i); }
+  if (!ims.length) {
+    x.fillStyle = '#94a3b8'; x.font = '400 26px ' + FONT; x.textAlign = 'center';
+    x.fillText(empty, px + pw / 2, ay + ah / 2 - 13); x.textAlign = 'right'; return;
+  }
+  const g = 10, n = ims.length, cols = n == 1 ? 1 : 2, rows = Math.ceil(n / cols), cw = (pw - g * (cols + 1)) / cols, ch = (ah - g * (rows + 1)) / rows;
+  ims.forEach((im, i) => {
+    const r = Math.floor(i / cols), c = i % cols, bx = px + pw - g - (c + 1) * cw - c * g, by = ay + g + r * (ch + g), k = Math.min(cw / im.width, ch / im.height), w = im.width * k, h = im.height * k;
+    x.fillStyle = '#e2e8f0'; x.fillRect(bx, by, cw, ch);
+    x.drawImage(im, bx + (cw - w) / 2, by + (ch - h) / 2, w, h);
+  });
+}
+
+async function slides(F, R, sub, bz, all) {
+  try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
+  const logo = await loadImg('logo.png'), cl = all.filter(x => x.status == 'closed').length, tot = F.length + 1, out = [];
+  {
+    const [c, x] = mkS(); x.fillStyle = NAVY; x.fillRect(0, 0, SW, SH);
+    if (logo) x.drawImage(logo, SW - 360, 80, 280, 280 * logo.height / logo.width);
+    x.font = '800 68px ' + FONT; x.fillStyle = '#ffffff'; x.fillText('گزارش وضعیت بازرسی و اصلاحات HSE', SW - 100, 320);
+    x.font = '400 38px ' + FONT; x.fillStyle = '#94a3b8';
+    x.fillText(sub, SW - 100, 420);
+    x.fillText('بازه ارزیابی: ' + bz + '  |  تاریخ صدور: ' + fl(Date.now()), SW - 100, 480);
+    const st = (i, n, l, col) => {
+      const w = 480, bx = SW - 100 - w - i * (w + 40), by = 680;
+      x.fillStyle = '#1e293b'; x.fillRect(bx, by, w, 240);
+      x.fillStyle = col; x.fillRect(bx + w - 12, by, 12, 240);
+      x.fillStyle = '#fff'; x.font = '800 88px ' + FONT; x.textAlign = 'center';
+      x.fillText(fa(n), bx + w / 2, by + 30);
+      x.font = '400 32px ' + FONT; x.fillStyle = '#94a3b8';
+      x.fillText(l, bx + w / 2, by + 150); x.textAlign = 'right';
+    };
+    st(0, all.length, 'کل عدم‌انطباق‌ها', '#f87171');
+    st(1, cl, 'اقدام اصلاح‌شده', '#4ade80');
+    st(2, all.length - cl, 'موارد باز', '#fbbf24');
+    out.push(c.toDataURL('image/jpeg', 0.9));
+  }
+  for (let i = 0; i < F.length; i++) {
+    const f = F[i], [c, x] = mkS();
+    frame(x, logo, i + 2, tot, f.module + '-' + f.qid);
+    x.fillStyle = NAVY; x.font = '800 36px ' + FONT;
+    const qLines = wrapText(x, f.question, SW - 120);
+    qLines.forEach((l, idx) => x.fillText(l, SW - 60, 180 + idx * 46));
+    x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
+    x.fillText('محل: ' + f.location + '  |  تاریخ ثبت: ' + fl(f.created_at) + (f.responsible ? '  |  مسئول پیگیری: ' + f.responsible : ''), SW - 60, 180 + qLines.length * 46 + 10);
+    const pw = (SW - 140) / 2, ph = 620, py = 320;
+    const bp = (f.photos_before || []).map(p => URL_ + '/storage/v1/object/public/photos/' + p);
+    const ap = (f.photos_after || []).map(p => URL_ + '/storage/v1/object/public/photos/' + p);
+    await panel(x, 60, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
+    await panel(x, pw + 80, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی', GREEN, ap, 'اقدام اصلاحی انجام نشده است');
+    out.push(c.toDataURL('image/jpeg', 0.9));
+  }
+  return out;
+}
+
+async function renderManagementReport() {
+  view('<p style="text-align:center; padding:40px;">در حال آماده‌سازی گزارش مدیریتی...</p>');
+  try {
+    const allFindings = await api('findings?order=created_at.desc&limit=500');
+    view(`
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;" class="np">
+        <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
+        <a href="index.html" class="back">← داشبورد اصلی</a>
+      </div>
+      <h2>📑 گزارش مدیریتی و اسلایدهای ارزیابی</h2>
+      <small>خلاصه وضعیت ایمنی و مستندات بازرسی کارخانه</small>
+      <div class="row" style="margin-top:16px;">
+        <div class="t"><span>تعداد کل عدم‌انطباق‌های ثبت شده</span><span>${fa(allFindings.length)} مورد</span></div>
+        <div class="t" style="margin-top:8px;"><span>موارد اصلاح‌شده و بسته شده</span><span style="color:var(--ok);">${fa(allFindings.filter(x => x.status == 'closed').length)} مورد</span></div>
+        <div class="t" style="margin-top:8px;"><span>موارد باز و نیازمند پیگیری</span><span style="color:var(--nc);">${fa(allFindings.filter(x => x.status == 'open').length)} مورد</span></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" class="np">
+        <button class="p" onclick="window.print()" style="background:var(--card-bg); color:var(--ink); border:1.5px solid var(--ln); margin:0;">🖨️ چاپ مستقیم گزارش</button>
+        <button class="p" data-a="gen-slides" style="background:#6366f1; border-color:#6366f1; color:#fff; margin:0;">🎬 تولید و دانلود اسلایدها</button>
+      </div>
+      <div id="slides-container" style="margin-top:20px;"></div>
+    `);
+  } catch (e) { alert('خطا در بارگذاری گزارش: ' + e.message); }
+}
 home();
 </script>
 </body>
