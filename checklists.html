@@ -304,15 +304,15 @@ function noSession() {
   </div>`);
 }
 const SS = getSession();
-let tok = SS.t, mail = SS.e || 'کاربر', cur, A = {}, N = {}, D = { loc: '', extra: {} };
+let tok = SS.t || KEY, mail = SS.e || 'کاربر سامانه', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
 const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS });
 
-const AH = () => tok === KEY ? { apikey: KEY } : { apikey: KEY, Authorization: 'Bearer ' + tok };
+const AH = () => ({ apikey: KEY, Authorization: 'Bearer ' + tok });
 
 async function api(p, o = {}) {
   const r = await fetch(URL_ + '/rest/v1/' + p, { ...o, headers: { ...AH(), 'Content-Type': 'application/json', Prefer: 'return=representation' } });
-  if (r.status == 401) { tok = ''; noSession(); throw new Error('نشست کاری به پایان رسیده است. دوباره وارد شوید.'); }
+  if (r.status == 401) throw new Error('دسترسی غیرمجاز (401). تنظیمات دسترسی دیتابیس را بررسی کنید.');
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -497,9 +497,9 @@ function shrink(f) {
 
 async function up(b) {
   const p = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '' + Math.random().toString(36).slice(2)) + '.jpg';
-  const r = await fetch(URL_ + '/storage/v1/object/photos/' + p, {
-    method: 'POST', headers: { ...AH(), 'Content-Type': 'image/jpeg', 'x-upsert': 'false' }, body: b
-  });
+  const url = URL_ + '/storage/v1/object/photos/' + p;
+  let r = await fetch(url, { method: 'POST', headers: { ...AH(), 'Content-Type': 'image/jpeg' }, body: b });
+  if (!r.ok && tok === KEY) r = await fetch(url, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'image/jpeg' }, body: b });
   if (!r.ok) {
     let d = ''; try { d = (await r.json()).message || ''; } catch (e) { }
     throw new Error('خطا در آپلود تصویر (' + r.status + ')' + (d ? ': ' + d : ''));
@@ -508,9 +508,11 @@ async function up(b) {
 }
 
 const pimg = async p => {
-  if (tok === KEY) return URL_ + '/storage/v1/object/public/photos/' + p;
-  const r = await fetch(URL_ + '/storage/v1/object/authenticated/photos/' + p, { headers: AH() });
-  return URL.createObjectURL(await r.blob());
+  try {
+    const r = await fetch(URL_ + '/storage/v1/object/authenticated/photos/' + p, { headers: AH() });
+    if (r.ok) return URL.createObjectURL(await r.blob());
+  } catch (e) { }
+  return URL_ + '/storage/v1/object/public/photos/' + p;
 };
 const li = () => document.querySelectorAll('img[data-p]').forEach(async i => { try { i.src = await pimg(i.dataset.p); } catch (e) { } });
 const th = a => (a || []).map(p => `<span class="th"><img data-a="zoom" data-p="${p}"></span>`).join('');
@@ -818,7 +820,7 @@ document.oninput = async e => {
   save();
 };
 
-if (!tok) noSession(); else home();
+home();
 </script>
 </body>
 </html>
