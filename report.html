@@ -53,13 +53,14 @@ const P=v=>v==null?'ثبت نشده':fa(v)+'٪';
 const col=v=>v==null?'':v>=85?'ok':v>=65?'wa':'bad';
 let D={};
 async function load(){
-  const [ins,fin,inc,fu,ek]=await Promise.all([
-    get('inspections?select=module,ok,nc,na,created_at&limit=5000'),
+  const [ins,fin,inc,fu,ek,tr,ta,emp]=await Promise.all([
+    get('inspections?select=module,ok,nc,na,created_at,inspector&limit=5000'),
     get('findings?select=status,created_at,closed_at,notice_at,severity,due_date,root_cause&limit=5000'),
     get('clinic_incidents?select=incident_date,severity,description,body_part,corrective_action,action_status,action_due_date,social_security_reported&limit=5000'),
     get('clinic_followups?select=kind,status,due_date,completed_at,created_at&limit=5000'),
-    get('ekhtars?select=record_type,record_date,reason,employee_id&limit=5000')]);
-  D={ins,fin,inc,fu,ek};
+    get('ekhtars?select=record_type,record_date,reason,employee_id&limit=5000'),
+    get('trainings?select=id,training_type,training_date,duration_hours&limit=5000'),get('training_attendees?select=training_id,employee_id&limit=20000'),get('employees?select=id&limit=3000')]);
+  D={ins,fin,inc,fu,ek,tr,ta,emp};
   const keys=new Set();let y=+nowK.slice(0,4),m=+nowK.slice(5);
   for(let i=0;i<12;i++){keys.add(y+'-'+String(m).padStart(2,'0'));if(--m<1){m=12;y--}}
   const sel=document.getElementById('msel');
@@ -67,11 +68,11 @@ async function load(){
   sel.onchange=()=>render(sel.value);render(sel.value);
 }
 function render(K){
-  const {ins,fin,inc,fu,ek}=D,today=new Date().toISOString().slice(0,10);
+  const {ins,fin,inc,fu,ek,tr,ta,emp}=D,today=new Date().toISOString().slice(0,10);
   document.getElementById('mname').textContent=MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
   const inM=(a,f)=>(a||[]).filter(x=>jk(x[f])===K);
   // ---- چک‌لیست و عدم‌انطباق
-  const I=inM(ins,'created_at'),ok=I.reduce((s,x)=>s+(x.ok||0),0),nc=I.reduce((s,x)=>s+(x.nc||0),0);
+  const I=inM(ins,'created_at'),RD=new Set(I.map(x=>(x.inspector||'?')+'|'+new Date(x.created_at).toLocaleDateString('en-CA'))).size,ok=I.reduce((s,x)=>s+(x.ok||0),0),nc=I.reduce((s,x)=>s+(x.nc||0),0);
   const comp=pct(ok,ok+nc);
   const FN=inM(fin,'created_at'),FC=inM(fin,'closed_at'),NT=(fin||[]).filter(x=>jk(x.notice_at)===K).length;
   const openAll=(fin||[]).filter(x=>x.status==='open'),overF=openAll.filter(x=>x.due_date&&x.due_date<today).length;
@@ -101,13 +102,27 @@ function render(K){
   // ---- تحلیل متنی
   const A=[];
   if(!I.length)A.push('در این ماه بازرسی ثبت نشده است.');
-  else A.push(`${fa(I.length)} بازرسی انجام شد و نرخ انطباق ${P(comp)} بود.`);
+  else A.push(`${fa(RD)} گشت بازرسی (${fa(I.length)} چک‌لیست محل) انجام شد و نرخ انطباق ${P(comp)} بود.`);
   if(FN.length||FC.length)A.push(`${fa(FN.length)} عدم‌انطباق جدید ثبت و ${fa(FC.length)} مورد بسته شد؛ ${fa(openAll.length)} مورد باز است${overF?` که ${fa(overF)} مورد از مهلت گذشته`:''}.`);
   A.push(IN.length?`${fa(IN.length)} حادثه ثبت شد (${fa(lost)} روز کاری از دست رفته)${bpTop?`؛ بیشترین آسیب: ${esc(bpTop[0])}`:''}.`:'در این ماه حادثه‌ای ثبت نشده است.');
   if(capaOver)A.push(`${fa(capaOver)} اقدام اصلاحی حوادث از مهلت گذشته است.`);
   if(FUover)A.push(`${fa(FUover)} پیگیری طب کار معوق است.`);
   if(E.length)A.push(`${fa(rw)} تشویق در برابر ${fa(wr)} تذکر/اخطار ثبت شد${repeat?`؛ ${fa(repeat)} نفر تکرارشونده‌اند`:''}.`);
   const k=(n,l,c)=>`<div class="k"><b class="${c||''}">${n}</b><span>${l}</span></div>`;
+  // ---- آموزش
+  const TY={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران'};
+  let trCard='<div class="card"><h2>آموزش</h2><div class="mu">ثبت نشده (ماژول آموزش راه‌اندازی نشده است)</div></div>';
+  if(tr){
+    const TM=inM(tr,'training_date'),ids=new Set(TM.map(x=>x.id)),AM=(ta||[]).filter(a=>ids.has(a.training_id));
+    const hrs=Math.round(TM.reduce((s,t)=>s+(+t.duration_hours||0)*AM.filter(a=>a.training_id===t.id).length,0));
+    const cut=new Date(Date.now()-365*864e5).toISOString().slice(0,10),rec=new Set(tr.filter(t=>t.training_date>=cut).map(t=>t.id));
+    const cv=new Set((ta||[]).filter(a=>rec.has(a.training_id)&&a.employee_id).map(a=>a.employee_id)).size,cvp=emp&&emp.length?pct(cv,emp.length):null;
+    const pi=TM.filter(t=>t.training_type==='post_incident').length;
+    trCard=`<div class="card"><h2>آموزش</h2><div class="g">${k(fa(TM.length),'جلسه آموزشی')}${k(fa(AM.length),'حضور ثبت‌شده')}${k(fa(hrs),'نفر-ساعت آموزش')}${k(P(cvp),'پوشش آموزش پرسنل (۱۲ ماه)',col(cvp))}</div>
+     <table style="margin-top:10px">${Object.entries(TY).map(([a,b])=>`<tr><th>${b}</th><td>${fa(TM.filter(t=>t.training_type===a).length)} جلسه</td></tr>`).join('')}</table>
+     ${IN.length?`<div class="mu" style="margin-top:6px">${fa(IN.length)} حادثه در ماه، ${fa(pi)} جلسه آموزش پس از حادثه${pi<IN.length?' — برای همه حوادث آموزش ثبت نشده':''}</div>`:''}</div>`;
+    A.push(`${fa(TM.length)} جلسه آموزشی با ${fa(AM.length)} حضور برگزار شد؛ پوشش آموزش ۱۲ ماه اخیر ${P(cvp)}.`);
+  } 
   document.getElementById('out').outerHTML=`<div id="out">
   <div class="card"><div class="score"><div><div class="mu">شاخص فرهنگ ایمنی</div><div class="big ${band?band[1]:''}">${score==null?'—':fa(score)}</div></div>
    <div style="flex:1;min-width:220px"><b class="${band?band[1]:''}">${band?band[0]:'داده کافی ثبت نشده'}</b>
@@ -115,7 +130,7 @@ function render(K){
    <div class="mu" style="margin-top:8px">میانگین وزنی بخش‌های ثبت‌شده (۴۰/۲۵/۲۰/۱۵)؛ هر حادثه شدید ۱۰ و هر حادثه فوتی ۲۰ امتیاز کم می‌کند.</div></div>
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
   <div class="card"><h2>عملکرد واحد HSE در این ماه</h2><div class="g">
-   ${k(fa(I.length),'بازرسی انجام‌شده')}${k(fa(FN.length),'عدم‌انطباق ثبت‌شده')}${k(fa(FC.length),'عدم‌انطباق بسته‌شده','ok')}${k(fa(NT),'اعلان به مسئولین')}
+   ${k(fa(RD),'گشت بازرسی')}${k(fa(I.length),'چک‌لیست تکمیل‌شده')}${k(fa(FN.length),'عدم‌انطباق ثبت‌شده')}${k(fa(FC.length),'عدم‌انطباق بسته‌شده','ok')}${k(fa(NT),'اعلان به مسئولین')}
    ${k(fa(IN.length),'حادثه بررسی‌شده')}${k(fa(FUc.length),'پیگیری طب کار ایجاد‌شده')}${k(fa(FUd),'پیگیری انجام‌شده','ok')}${k(fa(E.length),'اخطار/تشویق ثبت‌شده')}</div></div>
   <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="g">
    ${k(P(comp),'نرخ انطباق چک‌لیست‌ها',col(comp))}${k(fa(openAll.length),'عدم‌انطباق باز',openAll.length?'wa':'ok')}${k(fa(overF),'عدم‌انطباق معوق',overF?'bad':'ok')}
@@ -124,6 +139,7 @@ function render(K){
    <table style="margin-top:10px"><tr><th>شدت حوادث</th><td>جزئی ${fa(sev.minor)}</td><td>متوسط ${fa(sev.moderate)}</td><td>شدید ${fa(sev.severe)}</td><td>فوتی ${fa(sev.fatal)}</td></tr></table></div>
   <div class="card"><h2>فرهنگ ایمنی و رفتار</h2><div class="g">
    ${k(fa(rw),'تشویق','ok')}${k(fa(wr-wk),'تذکر شفاهی','wa')}${k(fa(wk),'اخطار کتبی',wk?'bad':'ok')}${k(fa(repeat),'نفر تکرارشونده',repeat?'bad':'ok')}</div></div>
+  ${trCard}
   <div class="mu">${[['inspections',ins],['findings',fin],['clinic_incidents',inc],['clinic_followups',fu],['ekhtars',ek]].filter(x=>x[1]==null).map(x=>x[0]).join('، ')?'⚠ جدول‌های قابل‌دریافت‌نبود: '+[['inspections',ins],['findings',fin],['clinic_incidents',inc],['clinic_followups',fu],['ekhtars',ek]].filter(x=>x[1]==null).map(x=>x[0]).join('، '):''}</div>
   </div>`;
 }
