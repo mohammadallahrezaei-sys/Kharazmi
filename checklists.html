@@ -617,7 +617,7 @@ async function stats(d = 90) {
 
       <div class="kp">
         <div><b>${fa(rounds(I))}</b><small>گشت بازرسی</small></div>
-        <div><b>${fa(I.length)}</b><small>چک‌لیست تکمیل‌شده</small></div>
+        <div><b>${fa(checks(I))}</b><small>چک‌لیست تکمیل‌شده</small></div>
         <div><b style="color:${rate >= 85 ? 'var(--ok)' : 'var(--nc)'}">${fa(rate)}٪</b><small>نرخ انطباق</small></div>
         <div><b style="color:var(--nc)">${fa(OF.length)}</b><small>عدم‌انطباق باز (کل)</small></div>
         <div><b style="color:var(--nc)">${fa(hiOpen)}</b><small>باز با شدت زیاد/بحرانی</small></div>
@@ -701,6 +701,8 @@ async function panel(x, px, py, pw, ph, title, color, srcs, empty) {
 
 /* گشت بازرسی = یک بازرس در یک روز (هر چک‌لیست محل یک رکورد جداست) */
 function rounds(a) { return new Set((a || []).map(r => (r.inspector || '?') + '|' + new Date(r.created_at).toLocaleDateString('en-CA'))).size; }
+/* چک‌لیست تکمیل‌شده: رکوردهای قدیمی بازدید روزانه (هر سوله جدا) = هر بازرس در هر روز یکی؛ بقیه هر رکورد یکی */
+function checks(a) { const g = new Set(); let n = 0; (a || []).forEach(r => { if (r.module == 'D' && r.location !== ROUND_LOC) g.add((r.inspector || '?') + '|' + new Date(r.created_at).toLocaleDateString('en-CA')); else n++; }); return g.size + n; }
 let RPD = 30;
 const MAXS = 60;
 const sev_ = x => x.severity || dsev(x.question || '');
@@ -829,11 +831,11 @@ async function genSlides() {
     const [P, OF, I] = await Promise.all([
       api('findings?select=' + FS + '&created_at=gte.' + s + '&order=created_at.desc&limit=1000'),
       api('findings?select=' + FS + '&status=eq.open&limit=1000'),
-      api('inspections?select=ok,nc,inspector,created_at&created_at=gte.' + s + '&limit=1000')
+      api('inspections?select=module,location,ok,nc,inspector,created_at&created_at=gte.' + s + '&limit=1000')
     ]);
     const ok = I.reduce((a, r) => a + r.ok, 0), nc = I.reduce((a, r) => a + r.nc, 0);
     const S = {
-      bz: periodLabel(RPD), totalPeriod: P.length, insCount: rounds(I), chkCount: I.length, rate: pct(ok, ok + nc),
+      bz: periodLabel(RPD), totalPeriod: P.length, insCount: rounds(I), chkCount: checks(I), rate: pct(ok, ok + nc),
       hi: OF.filter(x => sev_(x) >= 3).length, overdue: OF.filter(od_).length, noNotice: OF.filter(x => !x.notice_at).length,
       topLocs: cnt(OF, x => nl(x.location)).slice(0, 5),
       topCats: cnt(P, x => x.category || cat(x.module, x.question || '')).slice(0, 5)
