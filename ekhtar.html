@@ -3,203 +3,319 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>نرم‌افزار جامع HSE - گسترش فناوری خوارزمی</title>
+<title>مدیریت سوابق انضباطی، اخطار و تشویق - نرم‌افزار جامع HSE</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap">
 <script src="https://cdn.tailwindcss.com"></script>
-<style> body { font-family: 'Vazirmatn', sans-serif; } </style>
+<!-- کتابخانه Chart.js برای نمودارهای آماری -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc; }
+.fld { width:100%; background:#0f172a; border:1px solid #334155; border-radius:.75rem; padding:.5rem .75rem; color:#fff; font-size:.875rem; outline:none; }
+.fld:focus { border-color:#10b981; }
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between p-4">
-    <div class="max-w-md w-full mx-auto space-y-4 mt-6">
-        
-        <!-- هدر و لوگوی خوارزمی -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl text-center">
-            <div class="mb-3 flex justify-center">
-                <img src="logo.png" alt="گسترش فناوری خوارزمی" class="w-20 h-auto rounded-lg shadow" onerror="this.style.display='none'">
+<body class="p-4 max-w-6xl mx-auto flex flex-col min-h-screen justify-between">
+<div class="space-y-4">
+    <!-- هدر صفحه -->
+    <div class="flex justify-between items-center bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-emerald-950 border border-emerald-700 rounded-xl flex items-center justify-center text-emerald-400 font-bold">⚠️</div>
+            <div>
+                <h1 class="text-base font-bold text-white">مدیریت سوابق انضباطی، اخطار و تشویق</h1>
+                <p class="text-[11px] text-slate-400">سامانه جامع HSE - ثبت، جستجو و گزارش‌گیری پیشرفته سوابق پرسنل</p>
             </div>
-            <h1 class="text-xl font-black text-white mb-1">نرم‌افزار جامع HSE</h1>
-            <p class="text-xs text-slate-400">سامانه یکپارچه مدیریت ایمنی، بهداشت و تجهیزات</p>
         </div>
+        <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs shrink-0">← بازگشت به منو</a>
+    </div>
 
-        <!-- ویجت هوشمند هشدار عدم‌انطباق‌های باز -->
-        <div id="alertWidget" class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all">
-            <div class="flex items-center space-x-3 space-x-reverse">
-                <div id="alertIcon" class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400">
-                    ✓
-                </div>
-                <div>
-                    <h3 id="alertTitle" class="text-sm font-bold text-white">وضعیت ایمنی کارخانه</h3>
-                    <p id="alertDesc" class="text-xs text-slate-400">در حال بررسی عدم‌انطباق‌های باز...</p>
-                </div>
-            </div>
-            <a href="checklists.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors font-medium">
-                مدیریت
-            </a>
+    <!-- کارت‌های آماری کلیدی -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl text-center">
+            <span class="text-xs text-slate-400 block mb-1">کل سوابق ثبت‌شده</span>
+            <span id="statTotal" class="text-xl font-extrabold text-white">0</span>
         </div>
-
-        <!-- ویجت خلاصه وضعیت حوادث و بهداری -->
-        <div id="clinicAlertWidget" class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all">
-            <div class="flex items-center space-x-3 space-x-reverse">
-                <div id="clinicAlertIcon" class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400">
-                    🏥
-                </div>
-                <div>
-                    <h3 id="clinicAlertTitle" class="text-sm font-bold text-white">وضعیت بهداری و حوادث</h3>
-                    <p id="clinicAlertDesc" class="text-xs text-slate-400">در حال دریافت آمار بهداری...</p>
-                </div>
-            </div>
-            <a href="clinic.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors font-medium">
-                مدیریت
-            </a>
+        <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl text-center">
+            <span class="text-xs text-rose-400 block mb-1">اخطارهای کتبی</span>
+            <span id="statEkhtar" class="text-xl font-extrabold text-rose-400">0</span>
         </div>
-
-        <!-- ویجت جدید خلاصه سوابق انضباطی و اخطارها -->
-        <div id="ekhtarAlertWidget" class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all">
-            <div class="flex items-center space-x-3 space-x-reverse">
-                <div id="ekhtarAlertIcon" class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400">
-                    ⚠️
-                </div>
-                <div>
-                    <h3 id="ekhtarAlertTitle" class="text-sm font-bold text-white">سوابق انضباطی و اخطارها</h3>
-                    <p id="ekhtarAlertDesc" class="text-xs text-slate-400">در حال بارگذاری آمار انضباطی...</p>
-                </div>
-            </div>
-            <a href="ekhtar.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs transition-colors font-medium">
-                مدیریت
-            </a>
+        <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl text-center">
+            <span class="text-xs text-amber-400 block mb-1">تذکرات شفاهی</span>
+            <span id="statTazakor" class="text-xl font-extrabold text-amber-400">0</span>
         </div>
-
-        <!-- ماژول‌های اصلی سامانه -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-3">
-            <h2 class="text-sm font-bold text-slate-300 mb-2">ماژول‌های عملیاتی</h2>
-            
-            <a href="checklists.html" class="block w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-colors shadow-md text-center text-sm">
-                📋 ماژول چک‌لیست‌ها و بازرسی
-            </a>
-            
-            <!-- ماژول بهداری و حوادث شغلی -->
-            <a href="clinic.html" class="block w-full py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-sm">
-                🏥 ماژول بهداری و سوابق پزشکی
-            </a>
-
-            <!-- ماژول اخطار و انضباطی -->
-            <a href="ekhtar.html" class="block w-full py-3 px-4 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-sm">
-                ⚠️ ماژول سوابق انضباطی و اخطارها
-            </a>
-
-            <a href="employees.html" class="block w-full py-3 px-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors text-center text-sm">
-                👥 ماژول بانک پرسنل (Supabase)
-            </a>
+        <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl text-center">
+            <span class="text-xs text-emerald-400 block mb-1">تشویق‌ها</span>
+            <span id="statTashvig" class="text-xl font-extrabold text-emerald-400">0</span>
         </div>
     </div>
 
-    <!-- فوتر سامانه و ذکر نام طراح -->
-    <footer class="bg-slate-800/50 border-t border-slate-700 text-center py-4 text-xs text-slate-400 mt-8 rounded-xl">
-        نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <span class="text-emerald-400 font-bold">محمد اله رضایی</span>
-    </footer>
+    <!-- گرید اصلی: فرم ثبت + نمودار آماری -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- فرم ثبت سابقه جدید -->
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-4 lg:col-span-1">
+            <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                <span>➕</span> ثبت سابقه جدید
+            </h3>
+            
+            <form id="ekhtarForm" class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">انتخاب پرسنل:</label>
+                    <input id="ektEmpInput" list="ektEmpList" class="fld" placeholder="کد یا نام پرسنل..." autocomplete="off" required>
+                    <datalist id="ektEmpList"></datalist>
+                </div>
 
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">نوع سابقه:</label>
+                    <select id="ektType" class="fld" required>
+                        <option value="اخطار کتبی">اخطار کتبی</option>
+                        <option value="تذکر شفاهی">تذکر شفاهی</option>
+                        <option value="تشویق">تشویق</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">علت / موضوع:</label>
+                    <input type="text" id="ektReason" class="fld" placeholder="علت تخلف یا تشویق..." required>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">تاریخ صدور:</label>
+                    <input type="text" id="ektDate" class="fld" dir="ltr" placeholder="1405/00/00" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">توضیحات تکمیلی (اختیاری):</label>
+                    <input type="text" id="ektDesc" class="fld" placeholder="توضیحات...">
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg">
+                        ثبت در پایگاه داده
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- بخش نمودار آماری -->
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl flex flex-col justify-between lg:col-span-2">
+            <h3 class="text-sm font-bold text-white mb-2">📊 نمودار فراوانی انواع سوابق انضباطی</h3>
+            <div class="relative w-full h-64 flex items-center justify-center">
+                <canvas id="ekhtarChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول جستجو و لیست سوابق -->
+    <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-4">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-3">
+            <h3 class="text-sm font-bold text-white">📋 لیست کامل سوابق و جستجوی پیشرفته</h3>
+            <div class="w-full md:w-80">
+                <input type="text" id="ektSearchBox" class="fld text-xs" placeholder="جستجو بر اساس نام، کد پرسنلی یا علت...">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto border border-slate-700 rounded-xl">
+            <table class="w-full text-right text-xs">
+                <thead class="bg-slate-900 text-slate-400 border-b border-slate-700">
+                    <tr>
+                        <th class="p-3">کد پرسنلی</th>
+                        <th class="p-3">نام و نام خانوادگی</th>
+                        <th class="p-3">نوع سابقه</th>
+                        <th class="p-3">علت / موضوع</th>
+                        <th class="p-3">تاریخ</th>
+                        <th class="p-3">توضیحات</th>
+                        <th class="p-3 text-center">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="ektTableBody" class="divide-y divide-slate-700/50">
+                    <tr><td colspan="7" class="p-4 text-center text-slate-500">در حال بارگذاری اطلاعات...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<footer class="text-center text-[11px] text-slate-500 py-4 mt-8">
+    سامانه مدیریت HSE - توسعه‌یافته برای کنترل و پایش ایمنی صنعتی
+</footer>
+
+<!-- اسکریپت‌های اتصال به Supabase و منطق صفحه -->
 <script>
-const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
-const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
+// تنظیمات اتصال به Supabase (مقادیر پروژه خود را جایگزین کنید)
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-async function checkOpenFindings() {
+let allEmployeesForEkt = [];
+let allEkhtarsData = [];
+let myChart = null;
+
+// بارگذاری اولیه صفحه
+window.addEventListener('DOMContentLoaded', async () => {
+    await loadEkhtarsModule();
+});
+
+async function loadEkhtarsModule() {
     try {
-        const res = await fetch(`${URL_}/rest/v1/findings?status=eq.open&select=id`, { headers });
-        const data = await res.json();
-        const count = data.length || 0;
-
-        const widget = document.getElementById('alertWidget');
-        const icon = document.getElementById('alertIcon');
-        const title = document.getElementById('alertTitle');
-        const desc = document.getElementById('alertDesc');
-
-        if (count > 0) {
-            widget.className = "bg-red-950/40 border border-red-500/40 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all animate-pulse";
-            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-red-500/20 text-red-400";
-            icon.innerHTML = "⚠️";
-            title.innerHTML = `هشدار: ${count} مورد عدم‌انطباق باز`;
-            desc.innerHTML = "نیازمند پیگیری، اعلان و اقدام اصلاحی فوری";
-        } else {
-            widget.className = "bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all";
-            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/20 text-emerald-400";
-            icon.innerHTML = "✓";
-            title.innerHTML = "وضعیت ایمنی مطلوب";
-            desc.innerHTML = "هیچ عدم‌انطباق باز و معلقی وجود ندارد.";
-        }
-    } catch (e) {
-        document.getElementById('alertDesc').innerHTML = "آماده‌به‌کار (متصل به دیتابیس)";
-    }
-}
-
-async function checkClinicSummary() {
-    try {
-        const [incRes, fuRes] = await Promise.all([
-            fetch(`${URL_}/rest/v1/clinic_incidents?select=id,severity`, { headers }),
-            fetch(`${URL_}/rest/v1/clinic_followups?status=in.(pending,overdue)&select=id`, { headers })
-        ]);
+        // ۱. دریافت پرسنل
+        const { data: empData, error: empErr } = await supabaseClient.from('employees').select('id, emp_id, full_name');
+        if (empErr) throw empErr;
+        allEmployeesForEkt = empData || [];
         
-        const incidents = await incRes.json();
-        const followups = await fuRes.json();
+        const datalist = document.getElementById('ektEmpList');
+        datalist.innerHTML = allEmployeesForEkt.map(e => `<option value="${e.emp_id} - ${e.full_name}">`).join('');
 
-        const incCount = Array.isArray(incidents) ? incidents.length : 0;
-        const fuCount = Array.isArray(followups) ? followups.length : 0;
-        const severeInc = Array.isArray(incidents) ? incidents.filter(i => ['severe', 'fatal'].includes(i.severity)).length : 0;
+        // ۲. دریافت سوابق انضباطی
+        const { data: ektData, error: ektErr } = await supabaseClient
+            .from('ekhtars')
+            .select(`id, record_type, reason, record_date, description, employees ( emp_id, full_name )`)
+            .order('id', { ascending: false });
 
-        const widget = document.getElementById('clinicAlertWidget');
-        const icon = document.getElementById('clinicAlertIcon');
-        const title = document.getElementById('clinicAlertTitle');
-        const desc = document.getElementById('clinicAlertDesc');
+        if (ektErr) throw ektErr;
+        allEkhtarsData = ektData || [];
+        
+        updateStatistics(allEkhtarsData);
+        renderEkhtarsTable(allEkhtarsData);
+        renderChart(allEkhtarsData);
 
-        if (severeInc > 0 || fuCount > 0) {
-            widget.className = "bg-amber-950/40 border border-amber-500/40 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all";
-            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-amber-500/20 text-amber-400";
-            icon.innerHTML = "🏥";
-            title.innerHTML = `حوادث: ${incCount} مورد | پیگیری باز: ${fuCount}`;
-            desc.innerHTML = severeInc > 0 ? `⚠️ ${severeInc} حادثه شدید ثبت شده است` : "نیازمند رسیدگی به ارجاعات و پیگیری‌ها";
-        } else {
-            widget.className = "bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all";
-            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400";
-            icon.innerHTML = "🏥";
-            title.innerHTML = `مجموع حوادث ثبت‌شده: ${incCount}`;
-            desc.innerHTML = "وضعیت مراجعات و پیگیری‌های بهداری پایدار است.";
-        }
-    } catch (e) {
-        document.getElementById('clinicAlertDesc').innerHTML = "آماده‌به‌کار (بخش بهداری)";
+    } catch (err) {
+        console.error("خطا در بارگذاری اطلاعات:", err.message);
     }
 }
 
-async function checkEkhtarSummary() {
+// به‌روزرسانی کارت‌های آماری
+function updateStatistics(data) {
+    const total = data.length;
+    const ekhtarCount = data.filter(x => x.record_type === 'اخطار کتبی').length;
+    const tazakorCount = data.filter(x => x.record_type === 'تذکر شفاهی').length;
+    const tashvigCount = data.filter(x => x.record_type === 'تشویق').length;
+
+    document.getElementById('statTotal').innerText = total;
+    document.getElementById('statEkhtar').innerText = ekhtarCount;
+    document.getElementById('statTazakor').innerText = tazakorCount;
+    document.getElementById('statTashvig').innerText = tashvigCount;
+}
+
+// ترسیم نمودار آماری با Chart.js
+function renderChart(data) {
+    const ekhtarCount = data.filter(x => x.record_type === 'اخطار کتبی').length;
+    const tazakorCount = data.filter(x => x.record_type === 'تذکر شفاهی').length;
+    const tashvigCount = data.filter(x => x.record_type === 'تشویق').length;
+
+    const ctx = document.getElementById('ekhtarChart').getContext('2d');
+    if (myChart) myChart.destroy();
+
+    myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['اخطار کتبی', 'تذکر شفاهی', 'تشویق'],
+            datasets: [{
+                label: 'تعداد',
+                data: [ekhtarCount, tazakorCount, tashvigCount],
+                backgroundColor: ['#f43f5e', '#fbbf24', '#10b981'],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+                x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+// نمایش جدول
+function renderEkhtarsTable(data) {
+    const tbody = document.getElementById('ektTableBody');
+    if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">هیچ سوابقی یافت نشد.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(item => {
+        const emp = item.employees || {};
+        const badgeColor = item.record_type === 'تشویق' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 
+                           item.record_type === 'تذکر شفاهی' ? 'bg-amber-950 text-amber-400 border-amber-800' : 
+                           'bg-rose-950 text-rose-400 border-rose-800';
+        
+        return `
+            <tr class="hover:bg-slate-700/30 transition-colors">
+                <td class="p-3 font-mono text-slate-300">${emp.emp_id || '-'}</td>
+                <td class="p-3 font-bold text-white">${emp.full_name || 'نامشخص'}</td>
+                <td class="p-3"><span class="px-2 py-1 rounded border text-[11px] ${badgeColor}">${item.record_type}</span></td>
+                <td class="p-3 text-slate-200">${item.reason || '-'}</td>
+                <td class="p-3 font-mono text-slate-300">${item.record_date || '-'}</td>
+                <td class="p-3 text-slate-400">${item.description || '-'}</td>
+                <td class="p-3 text-center">
+                    <button onclick="deleteEkhtarRecord('${item.id}')" class="px-2 py-1 bg-rose-900/50 hover:bg-rose-800 text-rose-300 rounded text-[10px]">حذف</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ثبت فرم جدید
+document.getElementById('ekhtarForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const empVal = document.getElementById('ektEmpInput').value;
+    const empIdStr = empVal.split(' - ')[0].trim();
+    
+    const targetEmp = allEmployeesForEkt.find(x => String(x.emp_id) === String(empIdStr));
+    if (!targetEmp) {
+        alert('پرسنل مورد نظر از لیست انتخاب نشده یا نامعتبر است.');
+        return;
+    }
+
+    const newRecord = {
+        employee_id: targetEmp.id,
+        record_type: document.getElementById('ektType').value,
+        reason: document.getElementById('ektReason').value.trim(),
+        record_date: document.getElementById('ektDate').value.trim(),
+        description: document.getElementById('ektDesc').value.trim() || null
+    };
+
     try {
-        const res = await fetch(`${URL_}/rest/v1/ekhtars?select=record_type`, { headers });
-        const data = await res.json();
-        const total = Array.isArray(data) ? data.length : 0;
-        const ekhtars = Array.isArray(data) ? data.filter(x => x.record_type === 'اخطار کتبی').length : 0;
+        const { error } = await supabaseClient.from('ekhtars').insert([newRecord]);
+        if (error) throw error;
+        
+        alert('سابقه انضباطی با موفقیت ثبت شد.');
+        document.getElementById('ekhtarForm').reset();
+        loadEkhtarsModule();
+    } catch (err) {
+        alert('خطا در ثبت اطلاعات: ' + err.message);
+    }
+});
 
-        const widget = document.getElementById('ekhtarAlertWidget');
-        const icon = document.getElementById('ekhtarAlertIcon');
-        const title = document.getElementById('ekhtarAlertTitle');
-        const desc = document.getElementById('ekhtarAlertDesc');
-
-        if (ekhtars > 0) {
-            widget.className = "bg-amber-950/40 border border-amber-500/40 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all";
-            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-amber-500/20 text-amber-400";
-            icon.innerHTML = "⚠️";
-            title.innerHTML = `سوابق انضباطی: ${total} مورد ثبت‌شده`;
-            desc.innerHTML = `${ekhtars} اخطار کتبی و تذکر ثبت شده است.`;
-        } else {
-            widget.className = "bg-slate-800/80 border border-slate-700 rounded-2xl p-4 shadow-lg flex items-center justify-between transition-all";
-            icon.className = "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg bg-emerald-500/10 text-emerald-400";
-            icon.innerHTML = "✓";
-            title.innerHTML = `مجموع سوابق انضباطی: ${total}`;
-            desc.innerHTML = "وضعیت انضباطی پرسنل پایدار است.";
-        }
-    } catch (e) {
-        document.getElementById('ekhtarAlertDesc').innerHTML = "آماده‌به‌کار (بخش انضباطی)";
+// حذف رکورد
+async function deleteEkhtarRecord(id) {
+    if (!confirm('آیا از حذف این سابقه اطمینان دارید؟')) return;
+    try {
+        const { error } = await supabaseClient.from('ekhtars').delete().eq('id', id);
+        if (error) throw error;
+        loadEkhtarsModule();
+    } catch (err) {
+        alert('خطا در حذف رکورد: ' + err.message);
     }
 }
 
-checkOpenFindings();
-checkClinicSummary();
-checkEkhtarSummary();
+// جستجو
+document.getElementById('ektSearchBox').addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    const filtered = allEkhtarsData.filter(item => {
+        const emp = item.employees || {};
+        return (
+            String(emp.emp_id || '').toLowerCase().includes(query) ||
+            String(emp.full_name || '').toLowerCase().includes(query) ||
+            String(item.reason || '').toLowerCase().includes(query) ||
+            String(item.record_type || '').toLowerCase().includes(query)
+        );
+    });
+    renderEkhtarsTable(filtered);
+});
 </script>
 </body>
 </html>
