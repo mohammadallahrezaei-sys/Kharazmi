@@ -141,37 +141,29 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
 
 <!-- اسکریپت‌های اتصال به Supabase و منطق صفحه -->
 <script>
-// تنظیمات اتصال به Supabase (مقادیر پروژه خود را جایگزین کنید)
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+const supabaseClient = supabase.createClient(URL_, KEY);
 
 let allEmployeesForEkt = [];
 let allEkhtarsData = [];
 let myChart = null;
 
-// بارگذاری اولیه صفحه
 window.addEventListener('DOMContentLoaded', async () => {
     await loadEkhtarsModule();
 });
 
 async function loadEkhtarsModule() {
     try {
-        // ۱. دریافت پرسنل بر اساس ستون‌های صحیح اولیه‌ای که فرستادید (first_name و last_name)
-        const { data: empData, error: empErr } = await supabaseClient.from('employees').select('id, emp_id, first_name, last_name');
+        const { data: empData, error: empErr } = await supabaseClient.from('employees').select('id, emp_id, first_name, last_name, department');
         if (empErr) throw empErr;
         allEmployeesForEkt = empData || [];
         
         const datalist = document.getElementById('ektEmpList');
-        datalist.innerHTML = allEmployeesForEkt.map(e => {
-            const fullName = `${e.first_name || ''} ${e.last_name || ''}`.trim();
-            return `<option value="${e.emp_id} - ${fullName}">`;
-        }).join('');
+        datalist.innerHTML = allEmployeesForEkt.map(e => `<option value="${e.emp_id} - ${e.first_name || ''} ${e.last_name || ''}">`).join('');
 
-        // ۲. دریافت سوابق انضباطی و اتصال به جدول پرسنل با ستون‌های درست
         const { data: ektData, error: ektErr } = await supabaseClient
             .from('ekhtars')
-            .select(`id, record_type, reason, record_date, description, employees ( emp_id, first_name, last_name )`)
+            .select(`id, record_type, reason, record_date, description, employees ( emp_id, first_name, last_name, department )`)
             .order('id', { ascending: false });
 
         if (ektErr) throw ektErr;
@@ -186,7 +178,6 @@ async function loadEkhtarsModule() {
     }
 }
 
-// به‌روزرسانی کارت‌های آماری
 function updateStatistics(data) {
     const total = data.length;
     const ekhtarCount = data.filter(x => x.record_type === 'اخطار کتبی').length;
@@ -199,7 +190,6 @@ function updateStatistics(data) {
     document.getElementById('statTashvig').innerText = tashvigCount;
 }
 
-// ترسیم نمودار آماری با Chart.js
 function renderChart(data) {
     const ekhtarCount = data.filter(x => x.record_type === 'اخطار کتبی').length;
     const tazakorCount = data.filter(x => x.record_type === 'تذکر شفاهی').length;
@@ -231,7 +221,6 @@ function renderChart(data) {
     });
 }
 
-// نمایش جدول
 function renderEkhtarsTable(data) {
     const tbody = document.getElementById('ektTableBody');
     if (!data.length) {
@@ -242,6 +231,7 @@ function renderEkhtarsTable(data) {
     tbody.innerHTML = data.map(item => {
         const emp = item.employees || {};
         const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'نامشخص';
+        
         const badgeColor = item.record_type === 'تشویق' ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 
                            item.record_type === 'تذکر شفاهی' ? 'bg-amber-950 text-amber-400 border-amber-800' : 
                            'bg-rose-950 text-rose-400 border-rose-800';
@@ -262,7 +252,6 @@ function renderEkhtarsTable(data) {
     }).join('');
 }
 
-// ثبت فرم جدید
 document.getElementById('ekhtarForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const empVal = document.getElementById('ektEmpInput').value;
@@ -294,7 +283,6 @@ document.getElementById('ekhtarForm').addEventListener('submit', async (e) => {
     }
 });
 
-// حذف رکورد
 async function deleteEkhtarRecord(id) {
     if (!confirm('آیا از حذف این سابقه اطمینان دارید؟')) return;
     try {
@@ -306,7 +294,6 @@ async function deleteEkhtarRecord(id) {
     }
 }
 
-// جستجو
 document.getElementById('ektSearchBox').addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase().trim();
     const filtered = allEkhtarsData.filter(item => {
