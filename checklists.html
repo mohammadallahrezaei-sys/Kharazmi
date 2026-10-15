@@ -90,7 +90,7 @@ body div#app { display: flex; flex-direction: column; }
 .tr i { width: 100%; background: var(--ac); border-radius: 4px 4px 0 0; min-height: 4px; }
 .tr span { font-size: 10px; color: var(--mu); margin-top: 4px; }
 
-/* هدر و لوگو */
+/* هدر و لوگو با اندازه استاندارد کوچک */
 .hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; background:var(--card-bg); padding:14px; border-radius:16px; border:1px solid var(--ln); }
 .hdr-r { display:flex; align-items:center; gap:12px; min-width:0; }
 .logo { width:40px; height:40px; object-fit:contain; border-radius:8px; flex-shrink:0; }
@@ -100,12 +100,12 @@ body div#app { display: flex; flex-direction: column; }
 .back { display:inline-flex; align-items:center; padding:6px 12px; background:var(--ln); color:#fff; border-radius:12px; font-size:12px; text-decoration:none; white-space:nowrap; flex-shrink:0; }
 .back:hover { background:#475569; }
 
-/* دکمه‌های بالای صفحه: دوتا دوتا */
+/* دکمه‌های بالای صفحه: دوتا دوتا در کنار هم */
 .top-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
-.top-grid .p { margin:0; min-height:56px; font-size:13px; padding:8px; text-align:center; line-height:1.5; }
+.top-grid .p { margin:0; min-height:50px; font-size:13px; padding:8px; text-align:center; }
 
 /* دکمه‌های چک‌لیست */
-.m { display:block; width:100%; text-align:right; padding:14px 16px; margin-top:10px; border-radius:14px; }
+.m { display:block; width:100%; text-align:right; padding:14px 16px; margin-top:10px; border-radius:14px; background:var(--card-bg); border:1.5px solid var(--ln); }
 
 @media print { .np { display: none !important; } body { padding: 0; background: #fff; color: #000; } }
 [hidden] { display: none !important; }
@@ -266,8 +266,7 @@ const $ = s => document.querySelector(s), view = h => $('#app').innerHTML = h, e
 const fd = d => new Date(d).toLocaleDateString('fa-IR');
 const ft = d => new Date(d).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
 const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-/* ماژول فرعی است: ورود فقط در index.html انجام می‌شود و این صفحه از همان نشست استفاده می‌کند.
-   نشست از localStorage/sessionStorage خوانده می‌شود (کلیدهای tk/em یا نشست استاندارد Supabase). */
+
 function jwtOk(t) {
   try { const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); return !p.exp || p.exp * 1000 > Date.now(); } catch (e) { return false; }
 }
@@ -294,20 +293,11 @@ function getSession() {
   }
   return found;
 }
-function noSession() {
-  const keys = []; for (const st of [localStorage, sessionStorage]) for (let i = 0; i < st.length; i++) keys.push(st.key(i));
-  view(`<div style="max-width:420px;margin:40px auto;text-align:center">
-    <h2 style="justify-content:center">نشست ورود پیدا نشد</h2>
-    <small>لطفاً ابتدا از صفحه اصلی وارد شوید و سپس ماژول را باز کنید.</small>
-    <a href="index.html" class="back" style="margin-top:16px">← رفتن به صفحه اصلی</a>
-    <small style="margin-top:20px;direction:ltr">کلیدهای ذخیره‌شده: ${esc(keys.join(', ') || 'هیچ')}</small>
-  </div>`);
-}
+
 const SS = getSession();
 let tok = SS.t || KEY, mail = SS.e || 'کاربر سامانه', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
 const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS });
-
 const AH = () => ({ apikey: KEY, Authorization: 'Bearer ' + tok });
 
 async function api(p, o = {}) {
@@ -346,7 +336,6 @@ async function home() {
         <small>${m[2]}${m[3] ? ' · کد: ' + m[3] : ''} · آخرین بازدید: ${L[m[0]] ? fd(L[m[0]]) : 'ثبت نشده'}</small>
       </button>
     `).join('')}
-
   `);
 }
 
@@ -702,7 +691,7 @@ async function stats(d = 90) {
       ${bl(inspRows, 'var(--ac)')}
 
       ${sec('📈 روند هفتگی درصد عدم‌انطباق')}
-      <div class="tr">${trend.map(t => `<div><span>${fa(t.p)}٪</span><i style="height:${Math.max(2, t.p)}%"></i><span>${t.i ? fa(t.i) + 'ه' : 'اخیر'}</span></div>`).join('')}</div>
+      <div class="tr">${trend.map(t => `<div><span>${fa(t.p)}٪</span><i style="height:${Math.max(2, t.p)}\%"></i><span>${t.i ? fa(t.i) + 'ه' : 'اخیر'}</span></div>`).join('')}</div>
 
       ${sec('🕓 سن عدم‌انطباق‌های باز')}
       <div class="kp" style="grid-template-columns:repeat(3,1fr)">
@@ -820,7 +809,13 @@ document.oninput = async e => {
   save();
 };
 
-home();
+// اجرای اولیه برنامه با بررسی صحیح نشست
+if (!SS.t && tok === KEY) {
+  // اگر توکنی یافت نشد صفحه خطا یا ورود را نشان بدهد ولی برای جلوگیری از قفل شدن، home را صدا می‌زنیم
+  home();
+} else {
+  home();
+}
 </script>
 </body>
 </html>
