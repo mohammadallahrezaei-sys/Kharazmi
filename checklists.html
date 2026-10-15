@@ -90,21 +90,16 @@ body div#app { display: flex; flex-direction: column; }
 .tr i { width: 100%; background: var(--ac); border-radius: 4px 4px 0 0; min-height: 4px; }
 .tr span { font-size: 10px; color: var(--mu); margin-top: 4px; }
 
-/* هدر و لوگو با اندازه استاندارد کوچک */
 .hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; background:var(--card-bg); padding:14px; border-radius:16px; border:1px solid var(--ln); }
 .hdr-r { display:flex; align-items:center; gap:12px; min-width:0; }
 .logo { width:40px; height:40px; object-fit:contain; border-radius:8px; flex-shrink:0; }
 .hdr h2 { margin:0; font-size:16px; }
 
-/* دکمه بازگشت */
 .back { display:inline-flex; align-items:center; padding:6px 12px; background:var(--ln); color:#fff; border-radius:12px; font-size:12px; text-decoration:none; white-space:nowrap; flex-shrink:0; }
 .back:hover { background:#475569; }
 
-/* دکمه‌های بالای صفحه: دوتا دوتا در کنار هم */
 .top-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
 .top-grid .p { margin:0; min-height:50px; font-size:13px; padding:8px; text-align:center; }
-
-/* دکمه‌های چک‌لیست */
 .m { display:block; width:100%; text-align:right; padding:14px 16px; margin-top:10px; border-radius:14px; background:var(--card-bg); border:1.5px solid var(--ln); }
 
 @media print { .np { display: none !important; } body { padding: 0; background: #fff; color: #000; } }
@@ -140,7 +135,6 @@ const M = [
   ['ENV', 'پساب، فاضلاب و پسماند', 'ماهانه', 'L14010/01', ['پسماند تر و خشک تفکیک می‌شود', 'سطل زباله دارای درب و کیسه؛ به‌موقع تخلیه و شسته می‌شود', 'محل جمع‌آوری پسماند مانع آلودگی هوا، خاک و آب است', 'پسماند صنعتی در محل ایمن دپو و دفع تحت نظارت است', 'پسماند پزشکی جدا و با شرکت مجاز منتقل می‌شود', 'نشت سوخت یا مواد شیمیایی به شبکه فاضلاب دیده نمی‌شود', 'آشغالگیر و حوض یکنواخت‌ساز: پمپ و هوادهی کار می‌کند؛ لجن و بوی بد نیست', 'حوض ته‌نشینی بدون حباب و مواد معلق؛ محوطه محصور و پلکان دارای حفاظ', 'برنامه آنالیز و پایش پساب انجام شده است']</i>]
 ];
 
-/* ---------- لیست محل‌ها و سوله‌های کارخانه ---------- */
 const LOCS = [
   'واحد DRI (سوله ۲)', 'واحد DRI (سوله ۳)', 'واحد DRI (سوله ۴)', 'واحد DRI (سوله ۹)', 'واحد DRI (سوله ۱۴)',
   'تولید بازیابی (سوله ۵)', 'تولید بازیابی (سوله ۶)', 'تولید بازیابی (سوله ۱۲ بازیابی)',
@@ -321,7 +315,7 @@ async function historyList() {
         <a href="index.html" class="back">← داشبورد اصلی</a>
       </div>
       <h2>تاریخچه جامع بازدیدها</h2>
-      <small>لیست تمام بازرسی‌های ثبت‌شده (امکان ویرایش محل و شیفت با ثبت لاگ تاریخچه)</small>
+      <small>لیست تمام بازرسی‌های ثبت‌شده</small>
 
       ${r.map(x => `
         <div class="q ${x.nc > 0 ? 'bad' : 'good'}" id="insp-${x.id}">
@@ -629,54 +623,20 @@ async function stats(d = 90) {
       ${sec('⚠️ هشدارهای هوشمند')}
       ${ins.map(([h, t]) => `<div class="ins ${h ? 'hi' : ''}">${t}</div>`).join('') || '<div class="row">مورد هشداردهنده‌ای یافت نشد.</div>'}
 
-      ${sec('🔥 محل‌های پرریسک (شدت و تأخیر موارد باز + عدم‌انطباق + کم‌بازدیدی)')}
-      ${riskTop.map(x => `<div class="row"><div class="t"><span>${esc(x.k)}</span><span>امتیاز: ${fa(x.score)}</span></div>${bar(x.score, mxR, x.score >= mxR * .6 ? 'var(--nc)' : 'var(--warn)')}<small>${fa(x.open)} باز · ${fa(x.nc)} عدم‌انطباق · ${fa(x.n)} بازدید · آخرین: ${x.ds == 999 ? 'ثبت نشده' : fa(x.ds) + ' روز پیش'}</small></div>`).join('') || '<div class="row">داده‌ای نیست.</div>'}
+      ${sec('🔥 محل‌های پرریسک')}
+      ${riskTop.map(x => `<div class="row"><div class="t"><span>${esc(x.k)}</span><span>امتیاز: ${fa(x.score)}</span></div>${bar(x.score, mxR, x.score >= mxR * .6 ? 'var(--nc)' : 'var(--warn)')}<small>${fa(x.open)} باز · ${fa(x.nc)} عدم‌انطباق · ${fa(x.n)} بازدید</small></div>`).join('') || '<div class="row">داده‌ای نیست.</div>'}
 
       ${sec('👁️ کم‌بازدیدترین محل‌ها')}
       ${lowCov.map(x => `<div class="row"><div class="t"><span>${esc(x.k)}</span><span>${fa(x.n)} بازدید</span></div><small>آخرین بازدید: ${x.ds == 999 ? 'در این بازه ثبت نشده' : fa(x.ds) + ' روز پیش'}</small></div>`).join('')}
 
-      ${sec('⏰ چک‌لیست‌های عقب‌افتاده از برنامه')}
-      ${lateList.map(x => `<div class="row"><div class="t"><span>${x.name}</span><span style="color:var(--nc)">${x.ds === null ? 'هرگز بازدید نشده' : fa(x.late) + ' روز تأخیر'}</span></div><small>دوره: ${x.fq}${x.ds === null ? '' : ' · آخرین بازدید ' + fa(x.ds) + ' روز پیش'}</small></div>`).join('') || '<div class="row" style="color:var(--ok)">همه چک‌لیست‌ها طبق برنامه انجام شده‌اند ✓</div>'}
-
-      ${sec('📉 چک‌لیست‌هایی با بیشترین نرخ عدم‌انطباق')}
-      ${worstMod.map(x => `<div class="row"><div class="t"><span>${x.name}</span><span>${fa(x.r)}٪ (${fa(x.nc)} مورد)</span></div>${bar(x.nc, mxN, 'var(--nc)')}</div>`).join('') || '<div class="row">داده‌ای نیست.</div>'}
-
-      ${sec('🧩 عدم‌انطباق‌ها به تفکیک دسته (حریق، برق، شیمیایی، ...)')}
-      ${bl(catRows, 'var(--warn)')}
-
-      ${sec('🚨 موارد باز بر اساس شدت')}
-      ${bl(sevRows, 'var(--nc)')}
-
-      ${sec('🔁 مشکلات تکراری')}
-      ${rec.map(x => `<div class="row"><div class="t"><span>${esc(x.q)}</span><span style="color:var(--nc)">${fa(x.c)} بار</span></div><small>${x.m} ·${fa(x.locs.size)} محل</small></div>`).join('') || '<div class="row">مورد تکراری ثبت نشده است.</div>'}
-
-      ${sec('🛠️ علت‌های ریشه‌ای موارد بسته‌شده')}
-      ${bl(rcRows, 'var(--ac)')}
-
-      ${sec('🌓 نرخ عدم‌انطباق به تفکیک شیفت')}
-      ${bl(shRows, 'var(--warn)', '٪')}
-
-      ${sec('👤 موارد باز به تفکیک مسئول پیگیری')}
-      ${bl(respRows, 'var(--nc)')}
-
-      ${sec('📝 فعالیت بازرسان (تعداد بازدید)')}
-      ${bl(inspRows, 'var(--ac)')}
-
       ${sec('📈 روند هفتگی درصد عدم‌انطباق')}
       <div class="tr">${trend.map(t => `<div><span>${fa(t.p)}٪</span><i style="height:${Math.max(2, t.p)}\%"></i><span>${t.i ? fa(t.i) + 'ه' : 'اخیر'}</span></div>`).join('')}</div>
-
-      ${sec('🕓 سن عدم‌انطباق‌های باز')}
-      <div class="kp" style="grid-template-columns:repeat(3,1fr)">
-        <div><b style="color:var(--ok)">${fa(ag[0])}</b><small>تا ۷ روز</small></div>
-        <div><b style="color:var(--warn)">${fa(ag[1])}</b><small>۸ تا ۳۰ روز</small></div>
-        <div><b style="color:var(--nc)">${fa(ag[2])}</b><small>بیش از ۳۰ روز</small></div>
-      </div>
     `);
     $('#sd').value = d; $('#sd').onchange = () => stats(+$('#sd').value);
   } catch (e) { alert(e.message); }
 }
 
-/* ---------- بخش اضافه شده: گزارش مدیریتی و اسلایدها ---------- */
+/* ---------- بخش گزارش مدیریتی امن‌سازی شده (بدون نیاز به eval) ---------- */
 const SW = 1920, SH = 1080, NAVY = '#0f172a', BLUE = '#2563eb', RED = '#ef4444', GREEN = '#22c55e', FONT = "Vazirmatn,Tahoma,sans-serif";
 const fl = d => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(d));
 const loadImg = s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = s; });
@@ -723,7 +683,7 @@ async function panel(x, px, py, pw, ph, title, color, srcs, empty) {
 }
 
 async function slides(F, R, sub, bz, all) {
-  try { await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
+  try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
   const logo = await loadImg('logo.png'), cl = all.filter(x => x.status == 'closed').length, tot = F.length + 1, out = [];
   {
     const [c, x] = mkS(); x.fillStyle = NAVY; x.fillRect(0, 0, SW, SH);
