@@ -14,7 +14,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
 .lbl { display:block; font-size:11px; color:#cbd5e1; margin-bottom:.2rem; }
 
 /* ---------- فرم چاپی (مطابق فرم‌های Word) ---------- */
-.sheet { background:#fff; color:#000; width:100%; max-width:17cm; margin:0 auto; direction:rtl; font-weight:700; font-size:12pt;
+.sheet { background:#fff; color:#000; width:100%; max-width:17cm; margin:0 auto; direction:rtl; font-weight:700; font-size:13pt;
   font-family:'B Nazanin','BNazanin','Nazanin','Vazirmatn',Tahoma,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 .sheet table { width:100%; border-collapse:collapse; table-layout:fixed; }
 .sheet td { border:2.25pt solid #000; padding:3px 7px; vertical-align:top; }
@@ -24,31 +24,33 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
 .sheet .hdr td { vertical-align:middle; }
 .sheet .c-logo { text-align:center; }
 .sheet .c-logo img { display:inline-block; }
-.sheet .c-title { text-align:center; font-size:14pt; }
-.sheet .c-meta { font-size:11pt; line-height:1.4; }
+.sheet .c-title { text-align:center; font-size:16pt; }
+.sheet .c-meta { font-size:12pt; line-height:1.5; }
+.sheet .ltr { direction:ltr; unicode-bidi:isolate; display:inline-block; }
 .sheet .gap { height:.12in; }
 .sheet .body { padding:6px 10px; }
 .sheet .addr { font-weight:400; }
-.sheet .sig { font-size:11pt; padding:3px 7px; }
-.sheet .dist { font-size:11pt; }
+.sheet .sig { font-size:12pt; padding:4px 8px; }
+.sheet .dist { font-size:12pt; padding:4px 8px; }
 .sheet ul { margin:0; padding:0 1.6em 0 0; list-style:disc; }
 .sheet li { margin:0; }
 .sheet .cb { display:inline-block; width:.95em; height:.95em; border:1.6px solid #000; vertical-align:-.14em; margin:0 .3em; }
 .sheet .cb.on { background:#000; }
 .sheet .dots { letter-spacing:1px; font-weight:400; }
 .sheet bdi { unicode-bidi:isolate; }
-.sheet.warn .c-logo img { width:1.17in; height:auto; }
-.sheet.reward .c-logo img { width:1.52in; height:auto; }
-.sheet.warn .body { height:4.97in; }
-.sheet.reward .body { height:5.03in; }
-.sheet.warn .gap { height:.12in; }
-.sheet.reward .gap { height:.5in; }
-.sheet.warn .sig, .sheet.reward .sig { height:.93in; }
-.sheet.warn .main-p { line-height:1.75; text-align:justify; }
-.sheet.reward .main-p { line-height:1.45; text-align:justify; }
+.sheet.warn .c-logo img { width:1.3in; height:auto; }
+.sheet.reward .c-logo img { width:1.6in; height:auto; }
+.sheet.warn .body { height:6.1in; }
+.sheet.reward .body { height:6.1in; }
+.sheet .gap { height:.18in; }
+.sheet.warn .sig, .sheet.reward .sig { height:1in; }
+.paper { background:#fff; padding:14mm 16mm; width:21cm; max-width:100%; margin:0 auto; box-shadow:0 4px 18px rgba(0,0,0,.45); box-sizing:border-box; }
+@media screen { .paper { zoom:.82; } }
+.sheet.warn .main-p { line-height:1.8; text-align:justify; }
+.sheet.reward .main-p { line-height:1.55; text-align:justify; }
 
 /* ---------- چاپ ---------- */
-@page { size: A4; margin: 16mm 20mm; }
+@page { size: A4; margin: 0; }
 @media print {
   html, body { background:#fff !important; padding:0 !important; margin:0 !important; }
   body > *:not(#printModal) { display:none !important; }
@@ -56,6 +58,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
   #printModal .no-print { display:none !important; }
   #printModal .modal-card { background:#fff !important; border:0 !important; padding:0 !important; display:block !important; box-shadow:none !important; }
   #printModal .preview-wrap { background:#fff !important; padding:0 !important; overflow:visible !important; }
+  .paper { width:210mm !important; max-width:none !important; box-shadow:none !important; margin:0 !important; zoom:1 !important; }
   .sheet { max-width:none; }
 }
 </style>
@@ -205,6 +208,8 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
             </div>
             <div><label class="lbl">واحد</label><input id="pfUnit" class="fld"></div>
 
+            <div><label class="lbl">ترتیب نمایش تاریخ در فرم (چپ به راست)</label>
+                <select id="pfDateFmt" class="fld"><option value="ymd">سال/ماه/روز  مثل 1405/07/23</option><option value="dmy">روز/ماه/سال  مثل 23/07/1405</option></select></div>
             <div class="grid grid-cols-2 gap-2">
                 <div><label class="lbl">تاریخ فرم</label><input id="pfDate" class="fld" dir="ltr"></div>
                 <div><label class="lbl">تاریخ بازدید / وقوع</label><input id="pfVDate" class="fld" dir="ltr"></div>
@@ -302,12 +307,26 @@ function jalaliToday() {
     try {
         const p = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Tehran' }).formatToParts(new Date());
         const g = t => p.find(x => x.type === t).value;
-        return pad2(g('day')) + '/' + pad2(g('month')) + '/' + g('year');
+        return g('year') + '/' + pad2(g('month')) + '/' + pad2(g('day'));
     } catch (e) { return ''; }
 }
 function normDigits(s) {
     return String(s ?? '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
+function parseJ(s) {
+    const n = normDigits(s).trim();
+    let m = n.match(/^(\d{4})\D+(\d{1,2})\D+(\d{1,2})$/);
+    if (m) return { y: m[1], m: pad2(m[2]), d: pad2(m[3]) };
+    m = n.match(/^(\d{1,2})\D+(\d{1,2})\D+(\d{4})$/);
+    if (m) return { y: m[3], m: pad2(m[2]), d: pad2(m[1]) };
+    return null;
+}
+function fmtJ(s, mode) {
+    const j = parseJ(s);
+    if (!j) return normDigits(s).trim();
+    return mode === 'dmy' ? `${j.d}/${j.m}/${j.y}` : `${j.y}/${j.m}/${j.d}`;
+}
+const LTRD = (s, mode) => `<span class="ltr">${esc(fmtJ(s, mode))}</span>`;
 function toDMY(s) {
     const n = normDigits(s).trim();
     let m = n.match(/^(\d{4})\D+(\d{1,2})\D+(\d{1,2})$/);
@@ -434,7 +453,7 @@ function renderTable() {
             <td class="p-3 font-bold text-white">${esc(e.id ? empName(e) : 'نامشخص')}</td>
             <td class="p-3"><span class="px-2 py-1 rounded border text-[11px] ${badge}">${esc(item.record_type)}</span></td>
             <td class="p-3 text-slate-200">${esc(item.reason || '-')}</td>
-            <td class="p-3 font-mono text-slate-300">${esc(item.record_date || '-')}</td>
+            <td class="p-3 font-mono text-slate-300"><span dir="ltr" style="unicode-bidi:isolate;display:inline-block">${esc(item.record_date || '-')}</span></td>
             <td class="p-3 text-slate-400">${esc(item.description || '-')}</td>
             <td class="p-3 text-center whitespace-nowrap">
                 <button data-print="${esc(item.id)}" class="px-2 py-1 bg-blue-900/60 hover:bg-blue-800 text-blue-200 rounded text-[10px]">🖨 فرم</button>
@@ -513,7 +532,7 @@ function openPrint(kind, emp, rec) {
         name: empName(emp),
         unit: emp.department || '',
         date: jalaliToday(),
-        vdate: rec ? toDMY(rec.record_date) : jalaliToday(),
+        vdate: rec ? (rec.record_date || '') : jalaliToday(),
         reason: rec ? (rec.reason || '') : '',
         flags: [false, false, false, false, false],
         other: '',
@@ -521,6 +540,7 @@ function openPrint(kind, emp, rec) {
         manager: lsGet('hse_manager', 'محسن هفت لنگی'),
         offW: Number(lsGet('hse_off_warn', '0')) || 0,
         offR: Number(lsGet('hse_off_reward', '0')) || 0,
+        dateFmt: lsGet('hse_datefmt', 'ymd'),
         codeEdited: false, stageEdited: false
     };
     if (rec && P.kind === 'reward') {
@@ -552,7 +572,8 @@ function makeCode() {
 function fillInputs() {
     $('pfKind').value = P.kind;
     $('pfGender').value = P.gender; $('pfName').value = P.name; $('pfUnit').value = P.unit;
-    $('pfDate').value = P.date; $('pfVDate').value = P.vdate; $('pfCode').value = P.code; $('pfOrd').value = P.ord;
+    $('pfDateFmt').value = P.dateFmt;
+    $('pfDate').value = fmtJ(P.date, P.dateFmt); $('pfVDate').value = fmtJ(P.vdate, P.dateFmt); $('pfCode').value = P.code; $('pfOrd').value = P.ord;
     $('pfStage').value = P.stage; $('pfReason').value = P.reason;
     document.querySelectorAll('.pfR').forEach(c => c.checked = !!P.flags[+c.dataset.i]);
     $('pfOther').value = P.other;
@@ -570,7 +591,9 @@ function readInputs(changedId) {
     const prevKind = P.kind, prevOrd = P.ord;
     P.kind = $('pfKind').value;
     P.gender = $('pfGender').value; P.name = $('pfName').value; P.unit = $('pfUnit').value;
+    const newFmt = $('pfDateFmt').value;
     P.date = $('pfDate').value; P.vdate = $('pfVDate').value;
+    if (newFmt !== P.dateFmt) { P.dateFmt = newFmt; lsSet('hse_datefmt', newFmt); $('pfDate').value = fmtJ(P.date, newFmt); $('pfVDate').value = fmtJ(P.vdate, newFmt); }
     P.reason = $('pfReason').value;
     document.querySelectorAll('.pfR').forEach(c => P.flags[+c.dataset.i] = c.checked);
     P.other = $('pfOther').value;
@@ -608,8 +631,8 @@ function sheetHTML(s) {
         <td class="c-logo" style="width:${isW ? '30.7%' : '38.2%'}"><img src="${isW ? LOGO_W : LOGO_R}" alt=""></td>
         <td class="c-title" style="width:${isW ? '40.1%' : '37.6%'}">${isW ? 'فرم اخطاریه HSE' : 'فرم تشویق HSE'}</td>
         <td class="c-meta" style="width:${isW ? '29.2%' : '24.2%'}">
-            <p>تاریخ : <bdi dir="ltr">${esc(s.date)}</bdi></p>
-            <p>شماره : <bdi dir="ltr">${esc(s.code)}</bdi></p>
+            <p>تاریخ : ${LTRD(s.date, s.dateFmt)}</p>
+            <p>شماره : <span class="ltr">${esc(s.code)}</span></p>
             <p>پیوست : ندارد</p>
         </td>
     </tr></table>
@@ -629,7 +652,7 @@ function sheetHTML(s) {
         <p class="addr titr">مدیریت محترم شرکت گسترش فناوری خوارزمی</p>
         <p>&nbsp;</p>
         <p class="main-p">با سلام</p>
-        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ ${U(s.vdate)} ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل ${s.reason.trim() ? U(s.reason.trim()) : '<span class="dots">' + dots + '</span>'} این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه ${U(ordWord(s.ord))} مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.</p>
+        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ <u class="titr ltr">${esc(fmtJ(s.vdate, s.dateFmt))}</u> ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل ${s.reason.trim() ? U(s.reason.trim()) : '<span class="dots">' + dots + '</span>'} این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه ${U(ordWord(s.ord))} مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.</p>
         <ul>${stageLines.map((t, i) => `<li>${t} ${cb(s.stage === i + 1)}</li>`).join('')}</ul>`;
     } else {
         const tier = Math.min(s.ord, 3);
@@ -642,7 +665,7 @@ function sheetHTML(s) {
         <p class="addr titr">جناب آقای مهندس مردانلو</p>
         <p class="addr titr">مدیریت محترم شرکت گسترش فناوری خوارزمی</p>
         <p class="main-p">با سلام</p>
-        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ ${U(s.vdate)} ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل:</p>
+        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ <u class="titr ltr">${esc(fmtJ(s.vdate, s.dateFmt))}</u> ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل:</p>
         <ul>
             ${REWARD_REASONS.map((t, i) => `<li>${esc(t)} ${cb(s.flags[i])}</li>`).join('')}
             <li>و ${s.other.trim() ? U(s.other.trim()) : '<span class="dots">' + dots + '</span>'}</li>
@@ -673,7 +696,7 @@ function sheetHTML(s) {
 
 function refreshSheet() {
     if (!P) return;
-    $('sheetHost').innerHTML = sheetHTML(P);
+    $('sheetHost').innerHTML = '<div class="paper">' + sheetHTML(P) + '</div>';
 }
 
 let oldTitle = document.title;
