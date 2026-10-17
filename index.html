@@ -9,23 +9,17 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   body { font-family: 'Vazirmatn', sans-serif; }
-  .office-tile {
-    @apply flex flex-col justify-between p-3.5 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 hover:border-emerald-500/50 rounded-xl transition-all duration-200 text-right shadow-sm min-h-[90px];
-  }
-  .tab-btn {
-    @apply py-2 px-3 text-xs font-bold rounded-lg transition-all text-slate-400 hover:text-white whitespace-nowrap;
-  }
-  .tab-btn.active {
-    @apply bg-slate-700 text-emerald-400 shadow;
+  .menu-item {
+    @apply flex items-center justify-between p-3 bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/60 hover:border-emerald-500/40 rounded-xl transition-all text-right;
   }
 </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between p-4 selection:bg-emerald-500 selection:text-slate-900">
 
-    <div class="max-w-xl w-full mx-auto space-y-4">
+    <div class="max-w-md w-full mx-auto space-y-4">
         
         <!-- هدر اصلی -->
-        <header class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-lg text-center backdrop-blur-sm">
+        <header class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-lg text-center">
             <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
                     <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded-lg shadow" onerror="this.style.display='none'">
@@ -41,121 +35,112 @@
             </div>
         </header>
 
-        <!-- خلاصه وضعیت هوشمند کارخانه (ویجت‌های یکپارچه) -->
+        <!-- وضعیت‌های لحظه‌ای (۳ ویجت بالا) -->
         <section class="grid grid-cols-3 gap-2">
-            <a id="alertWidget" href="checklists.html" class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-2.5 shadow-sm flex items-center gap-2 hover:border-slate-600 transition-all">
-                <div id="alertIcon" class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-sm bg-emerald-500/10 text-emerald-400">✓</div>
-                <div class="min-w-0">
-                    <h3 id="alertTitle" class="text-[11px] font-bold text-slate-200 truncate">وضعیت ایمنی</h3>
-                    <p id="alertDesc" class="text-[9px] text-slate-400 truncate">در حال بررسی...</p>
-                </div>
+            <a id="alertWidget" href="checklists.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
+                <div id="alertIcon" class="text-emerald-400 font-bold text-sm">✓</div>
+                <h3 id="alertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">ایمنی</h3>
+                <p id="alertDesc" class="text-[9px] text-slate-400 truncate">بررسی...</p>
             </a>
 
-            <a id="clinicAlertWidget" href="clinic.html" class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-2.5 shadow-sm flex items-center gap-2 hover:border-slate-600 transition-all">
-                <div id="clinicAlertIcon" class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-sm bg-rose-500/10 text-rose-400">🏥</div>
-                <div class="min-w-0">
-                    <h3 id="clinicAlertTitle" class="text-[11px] font-bold text-slate-200 truncate">بهداری و حوادث</h3>
-                    <p id="clinicAlertDesc" class="text-[9px] text-slate-400 truncate">در حال بررسی...</p>
-                </div>
+            <a id="clinicAlertWidget" href="clinic.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
+                <div id="clinicAlertIcon" class="text-rose-400 font-bold text-sm">🏥</div>
+                <h3 id="clinicAlertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">بهداری</h3>
+                <p id="clinicAlertDesc" class="text-[9px] text-slate-400 truncate">بررسی...</p>
             </a>
 
-            <a id="ekhtarAlertWidget" href="ekhtar.html" class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-2.5 shadow-sm flex items-center gap-2 hover:border-slate-600 transition-all">
-                <div id="ekhtarAlertIcon" class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-sm bg-amber-500/10 text-amber-400">⚠️</div>
-                <div class="min-w-0">
-                    <h3 id="ekhtarAlertTitle" class="text-[11px] font-bold text-slate-200 truncate">انضباطی و اخطارها</h3>
-                    <p id="ekhtarAlertDesc" class="text-[9px] text-slate-400 truncate">در حال بررسی...</p>
-                </div>
+            <a id="ekhtarAlertWidget" href="ekhtar.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
+                <div id="ekhtarAlertIcon" class="text-amber-400 font-bold text-sm">⚠️</div>
+                <h3 id="ekhtarAlertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">انضباطی</h3>
+                <p id="ekhtarAlertDesc" class="text-[9px] text-slate-400 truncate">بررسی...</p>
             </a>
         </section>
 
-        <!-- منوی تب‌بندی سبک آفیس/ویندوز -->
-        <main class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-3 space-y-3">
+        <!-- منوهای اصلی (دسته‌بندی‌های پاکیزه و خطی) -->
+        <main class="space-y-4">
             
-            <!-- نوار تب‌ها (Ribbon Tabs) -->
-            <div class="flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl overflow-x-auto no-scrollbar">
-                <button onclick="switchTab('safety')" id="tab-safety" class="tab-btn active">🛡️ ایمنی و بازرسی</button>
-                <button onclick="switchTab('health')" id="tab-health" class="tab-btn">🏥 سلامت و طب کار</button>
-                <button onclick="switchTab('hr')" id="tab-hr" class="tab-btn">⚖️ انضباطی و پرسنل</button>
-                <button onclick="switchTab('culture')" id="tab-culture" class="tab-btn">🎓 آموزش و فرهنگ</button>
+            <!-- بخش ۱: بازرسی و ایمنی -->
+            <div class="space-y-2">
+                <h2 class="text-xs font-bold text-slate-400 px-1">🛡️ بازرسی و ایمنی فرآیندی</h2>
+                <div class="space-y-1.5">
+                    <a href="checklists.html" class="menu-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base">📋</span>
+                            <span class="text-xs font-bold text-white">چک‌لیست‌ها و بازرسی</span>
+                        </div>
+                        <span class="text-xs text-slate-500">←</span>
+                    </a>
+                    <a href="equipment.html" class="menu-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base">🏗</span>
+                            <span class="text-xs font-bold text-white">تجهیزات و ماشین‌آلات</span>
+                        </div>
+                        <span class="text-xs text-slate-500">←</span>
+                    </a>
+                    <a href="cards.html" class="menu-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base">🗂</span>
+                            <span class="text-xs font-bold text-white">کارت خطر و پیشنهاد</span>
+                        </div>
+                        <span class="text-xs text-slate-500">←</span>
+                    </a>
+                    <a href="evaluation.html" class="menu-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base">📈</span>
+                            <span class="text-xs font-bold text-white">ارزیابی عملکرد واحدها</span>
+                        </div>
+                        <span class="text-xs text-slate-500">←</span>
+                    </a>
+                </div>
             </div>
 
-            <!-- محتوای تب ۱: ایمنی و بازرسی -->
-            <div id="content-safety" class="tab-content grid grid-cols-2 gap-2.5">
-                <a href="checklists.html" class="office-tile">
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs font-bold text-white">چک‌لیست‌ها و بازرسی</span>
-                        <span class="text-base">📋</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">بازرسی روزانه، سالن‌ها و فنی</span>
-                </a>
-                <a href="equipment.html" class="office-tile">
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs font-bold text-white">تجهیزات و ماشین‌آلات</span>
-                        <span class="text-base">🏗</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">تست دوره‌ای، لیفتراک و جرثقیل</span>
-                </a>
-                <a href="cards.html" class="office-tile">
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs font-bold text-white">کارت خطر و پیشنهاد</span>
-                        <span class="text-base">🗂</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">گزارش شبه‌حادثه و ناایمنی</span>
-                </a>
-                <a href="evaluation.html" class="office-tile">
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs font-bold text-white">ارزیابی عملکرد واحدها</span>
-                        <span class="text-base">📈</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">معدل و رتبه‌بندی HSE سالن‌ها</span>
-                </a>
+            <!-- بخش ۲: سلامت و پرسنل -->
+            <div class="space-y-2">
+                <h2 class="text-xs font-bold text-slate-400 px-1">🏥 سلامت، طب کار و پرسنل</h2>
+                <div class="space-y-1.5">
+                    <a href="clinic.html" class="menu-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base">🏥</span>
+                            <span class="text-xs font-bold text-white">بهداری و سوابق پزشکی</span>
+                        </div>
+                        <span class="text-xs text-slate-500">←</span>
+                    </a>
+                    <a href="employees.html" class="menu-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base">👥</span>
+                            <span class="text-xs font-bold text-white">بانک اطلاعاتی پرسنل</span>
+                        </div>
+                        <span class="text-xs text-slate-500">←</span>
+                    </a>
+                </div>
             </div>
 
-            <!-- محتوای تب ۲: سلامت و طب کار -->
-            <div id="content-health" class="tab-content hidden grid grid-cols-2 gap-2.5">
-                <a href="clinic.html" class="office-tile col-span-2 sm:col-span-1">
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs font-bold text-white">بهداری و سوابق پزشکی</span>
-                        <span class="text-base">🏥</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">ثبت مراجعات درمانگاه، حوادث و ارجاعات</span>
-                </a>
-                <a href="employees.html" class="office-tile col-span-2 sm:col-span-1">
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs font-bold text-white">بانک پرسنل و طب کار</span>
-                        <span class="text-base">👥</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">پرونده سلامت، کارت بهداشت و طب کار</span>
-                </a>
-            </div>
-
-            <!-- محتوای تب ۳: انضباطی و پرسنل -->
-            <div id="content-hr" class="tab-content hidden grid grid-cols-2 gap-2.5">
-                <a href="ekhtar.html" class="office-tile col-span-2">
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs font-bold text-white">سوابق انضباطی و اخطارها</span>
-                        <span class="text-base">⚠️</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">ثبت تخلفات ایمنی، اخطار کتبی و کمیته انضباطی</span>
-                </a>
-            </div>
-
-            <!-- محتوای تب ۴: آموزش و فرهنگ -->
-            <div id="content-culture" class="tab-content hidden grid grid-cols-2 gap-2.5">
-                <a href="training.html" class="office-tile">
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs font-bold text-white">آموزش HSE</span>
-                        <span class="text-base">🎓</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">برنامه‌ریزی، دوره‌ها و گواهینامه‌ها</span>
-                </a>
-                <a href="culture.html" class="office-tile">
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs font-bold text-white">نردبان فرهنگ ایمنی</span>
-                        <span class="text-base">🪜</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">ارزیابی سطح بلوغ ایمنی سازمان</span>
-                </a>
+            <!-- بخش ۳: انضباطی، آموزش و فرهنگ -->
+            <div class="space-y-2">
+                <h2 class="text-xs font-bold text-slate-400 px-1">⚖️ انضباطی، آموزش و فرهنگ</h2>
+                <div class="space-y-1.5">
+                    <a href="ekhtar.html" class="menu-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base">⚠️</span>
+                            <span class="text-xs font-bold text-white">سوابق انضباطی و اخطارها</span>
+                        </div>
+                        <span class="text-xs text-slate-500">←</span>
+                    </a>
+                    <a href="training.html" class="menu-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base">🎓</span>
+                            <span class="text-xs font-bold text-white">آموزش HSE</span>
+                        </div>
+                        <span class="text-xs text-slate-500">←</span>
+                    </a>
+                    <a href="culture.html" class="menu-item">
+                        <div class="flex items-center gap-3">
+                            <span class="text-base">🪜</span>
+                            <span class="text-xs font-bold text-white">نردبان فرهنگ ایمنی</span>
+                        </div>
+                        <span class="text-xs text-slate-500">←</span>
+                    </a>
+                </div>
             </div>
 
         </main>
@@ -170,108 +155,36 @@
 const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    
-    document.getElementById(`content-${tabId}`).classList.remove('hidden');
-    document.getElementById(`tab-${tabId}`).classList.add('active');
-}
-
 async function checkOpenFindings() {
     try {
         const res = await fetch(`${URL_}/rest/v1/findings?status=eq.open&select=id`, { headers });
         const data = await res.json();
         const count = data.length || 0;
 
-        const widget = document.getElementById('alertWidget');
-        const icon = document.getElementById('alertIcon');
-        const title = document.getElementById('alertTitle');
-        const desc = document.getElementById('alertDesc');
-
-        if (count > 0) {
-            widget.className = "bg-red-950/40 border border-red-500/40 rounded-xl p-2.5 shadow-sm flex items-center gap-2 transition-all animate-pulse";
-            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-sm bg-red-500/20 text-red-400";
-            icon.innerHTML = "⚠️";
-            title.innerHTML = `ایمنی کارخانه`;
-            desc.innerHTML = `${count} مورد باز`;
-        } else {
-            widget.className = "bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-2.5 shadow-sm flex items-center gap-2 transition-all";
-            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-sm bg-emerald-500/20 text-emerald-400";
-            icon.innerHTML = "✓";
-            title.innerHTML = "ایمنی کارخانه";
-            desc.innerHTML = "مطلوب";
-        }
+        document.getElementById('alertTitle').innerText = count > 0 ? `${count} مورد باز` : 'وضعیت مطلوب';
+        document.getElementById('alertDesc').innerText = count > 0 ? 'نیازمند پیگیری' : 'بدون خطر';
+        if(count > 0) document.getElementById('alertIcon').className = "text-red-400 font-bold text-sm animate-pulse";
     } catch (e) {
-        document.getElementById('alertDesc').innerHTML = "آماده‌به‌کار";
+        document.getElementById('alertDesc').innerText = "متصل";
     }
 }
 
 async function checkClinicSummary() {
     try {
-        const [incRes, fuRes] = await Promise.all([
-            fetch(`${URL_}/rest/v1/clinic_incidents?select=id,severity`, { headers }),
-            fetch(`${URL_}/rest/v1/clinic_followups?status=in.(pending,overdue)&select=id`, { headers })
-        ]);
-        
-        const incidents = await incRes.json();
-        const followups = await fuRes.json();
-
-        const incCount = Array.isArray(incidents) ? incidents.length : 0;
-        const fuCount = Array.isArray(followups) ? followups.length : 0;
-        const severeInc = Array.isArray(incidents) ? incidents.filter(i => ['severe', 'fatal'].includes(i.severity)).length : 0;
-
-        const widget = document.getElementById('clinicAlertWidget');
-        const icon = document.getElementById('clinicAlertIcon');
-        const title = document.getElementById('clinicAlertTitle');
-        const desc = document.getElementById('clinicAlertDesc');
-
-        if (severeInc > 0 || fuCount > 0) {
-            widget.className = "bg-amber-950/40 border border-amber-500/40 rounded-xl p-2.5 shadow-sm flex items-center gap-2 transition-all";
-            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-sm bg-amber-500/20 text-amber-400";
-            icon.innerHTML = "🏥";
-            title.innerHTML = `بهداری`;
-            desc.innerHTML = severeInc > 0 ? `⚠️ ${severeInc} شدید` : `${fuCount} پیگیری`;
-        } else {
-            widget.className = "bg-slate-800/70 border border-slate-700/80 rounded-xl p-2.5 shadow-sm flex items-center gap-2 transition-all";
-            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-sm bg-emerald-500/10 text-emerald-400";
-            icon.innerHTML = "🏥";
-            title.innerHTML = `بهداری`;
-            desc.innerHTML = `${incCount} ثبت‌شده`;
-        }
-    } catch (e) {
-        document.getElementById('clinicAlertDesc').innerHTML = "آماده‌به‌کار";
-    }
+        const res = await fetch(`${URL_}/rest/v1/clinic_incidents?select=id`, { headers });
+        const data = await res.json();
+        document.getElementById('clinicTitle').innerText = `${data.length || 0} حادثه`;
+        document.getElementById('clinicAlertDesc').innerText = "ثبت شده";
+    } catch (e) {}
 }
 
 async function checkEkhtarSummary() {
     try {
-        const res = await fetch(`${URL_}/rest/v1/ekhtars?select=record_type`, { headers });
+        const res = await fetch(`${URL_}/rest/v1/ekhtars?select=id`, { headers });
         const data = await res.json();
-        const total = Array.isArray(data) ? data.length : 0;
-        const ekhtars = Array.isArray(data) ? data.filter(x => x.record_type === 'اخطار کتبی').length : 0;
-
-        const widget = document.getElementById('ekhtarAlertWidget');
-        const icon = document.getElementById('ekhtarAlertIcon');
-        const title = document.getElementById('ekhtarAlertTitle');
-        const desc = document.getElementById('ekhtarAlertDesc');
-
-        if (ekhtars > 0) {
-            widget.className = "bg-amber-950/40 border border-amber-500/40 rounded-xl p-2.5 shadow-sm flex items-center gap-2 transition-all";
-            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-sm bg-amber-500/20 text-amber-400";
-            icon.innerHTML = "⚠️";
-            title.innerHTML = `انضباطی`;
-            desc.innerHTML = `${ekhtars} اخطار`;
-        } else {
-            widget.className = "bg-slate-800/70 border border-slate-700/80 rounded-xl p-2.5 shadow-sm flex items-center gap-2 transition-all";
-            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-sm bg-emerald-500/10 text-emerald-400";
-            icon.innerHTML = "✓";
-            title.innerHTML = `انضباطی`;
-            desc.innerHTML = `${total} ثبت‌شده`;
-        }
-    } catch (e) {
-        document.getElementById('ekhtarAlertDesc').innerHTML = "آماده‌به‌کار";
-    }
+        document.getElementById('ekhtarAlertTitle').innerText = `${data.length || 0} مورد`;
+        document.getElementById('ekhtarAlertDesc').innerText = "انضباطی";
+    } catch (e) {}
 }
 
 checkOpenFindings();
