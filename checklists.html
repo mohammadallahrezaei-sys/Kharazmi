@@ -113,6 +113,7 @@ body div#app { display: flex; flex-direction: column; }
 <input type="file" id="fi" accept="image/*" multiple hidden>
 <div id="zm" hidden></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
 <script>
 const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 
@@ -653,16 +654,6 @@ async function stats(d = 90) {
 const SW = 1920, SH = 1080, NAVY = '#0f172a', BLUE = '#2563eb', RED = '#ef4444', GREEN = '#22c55e', FONT = "Vazirmatn,Tahoma,sans-serif";
 const fl = d => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(d));
 const loadImg = s => new Promise(r => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => r(i); i.onerror = () => r(null); i.src = s; });
-/* عکس را به‌صورت blob می‌گیرد (ابتدا مسیر authenticated، سپس public) تا canvas آلوده نشود */
-async function photoSrc(p) {
-  for (const path of ['/storage/v1/object/authenticated/photos/', '/storage/v1/object/public/photos/']) {
-    try {
-      const r = await fetch(URL_ + path + p, { headers: AH() });
-      if (r.ok) return URL.createObjectURL(await r.blob());
-    } catch (e) { }
-  }
-  return null;
-}
 
 function wrapText(c, t, w) {
   const a = t.split(' '), o = []; let u = '';
@@ -684,33 +675,12 @@ function frame(x, logo, n, tot, code) {
   x.fillText(n + ' / ' + tot, SW - 120, 1030); x.textAlign = 'right'; x.direction = 'rtl';
 }
 
-async function panel(x, px, py, pw, ph, title, color, srcs, empty) {
-  x.fillStyle = color; x.fillRect(px, py, pw, 60);
-  x.fillStyle = '#fff'; x.font = '700 28px ' + FONT; x.textAlign = 'center';
-  x.fillText(title, px + pw / 2, py + 14); x.textAlign = 'right';
-  const ay = py + 60, ah = ph - 60;
-  x.fillStyle = '#f8fafc'; x.fillRect(px, ay, pw, ah);
-  x.strokeStyle = '#e2e8f0'; x.lineWidth = 2; x.strokeRect(px, py, pw, ph);
-
-  const ims = []; for (const u of srcs.slice(0, 4)) { const i = await loadImg(u); if (i) ims.push(i); }
-  if (!ims.length) {
-    x.fillStyle = '#94a3b8'; x.font = '400 26px ' + FONT; x.textAlign = 'center';
-    x.fillText(empty, px + pw / 2, ay + ah / 2 - 13); x.textAlign = 'right'; return;
-  }
-  const g = 10, n = ims.length, cols = n == 1 ? 1 : 2, rows = Math.ceil(n / cols), cw = (pw - g * (cols + 1)) / cols, ch = (ah - g * (rows + 1)) / rows;
-  ims.forEach((im, i) => {
-    const r = Math.floor(i / cols), c = i % cols, bx = px + pw - g - (c + 1) * cw - c * g, by = ay + g + r * (ch + g), k = Math.min(cw / im.width, ch / im.height), w = im.width * k, h = im.height * k;
-    x.fillStyle = '#e2e8f0'; x.fillRect(bx, by, cw, ch);
-    x.drawImage(im, bx + (cw - w) / 2, by + (ch - h) / 2, w, h);
-  });
-}
 
 /* گشت بازرسی = یک بازرس در یک روز (هر چک‌لیست محل یک رکورد جداست) */
 function rounds(a) { return new Set((a || []).map(r => (r.inspector || '?') + '|' + new Date(r.created_at).toLocaleDateString('en-CA'))).size; }
 /* چک‌لیست تکمیل‌شده: رکوردهای قدیمی بازدید روزانه (هر سوله جدا) = هر بازرس در هر روز یکی؛ بقیه هر رکورد یکی */
 function checks(a) { const g = new Set(); let n = 0; (a || []).forEach(r => { if (r.module == 'D' && r.location !== ROUND_LOC) g.add((r.inspector || '?') + '|' + new Date(r.created_at).toLocaleDateString('en-CA')); else n++; }); return g.size + n; }
-let RPD = 30;
-const MAXS = 60;
+
 const sev_ = x => x.severity || dsev(x.question || '');
 const od_ = x => x.due_date ? new Date(x.due_date + 'T23:59:59') < Date.now() : (Date.now() - new Date(x.created_at)) / 864e5 > 14;
 
@@ -753,107 +723,240 @@ function summarySlide(logo, n, tot, S) {
   return c.toDataURL('image/jpeg', 0.9);
 }
 
-async function slides(F, sub, bz, S) {
-  try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
-  const logo = await loadImg('logo.png'), cl = F.filter(x => x.status == 'closed').length, tot = F.length + 2, out = [];
-  {
-    const [c, x] = mkS(); x.fillStyle = NAVY; x.fillRect(0, 0, SW, SH);
-    if (logo) x.drawImage(logo, SW - 360, 80, 280, 280 * logo.height / logo.width);
-    x.font = '800 68px ' + FONT; x.fillStyle = '#ffffff'; x.fillText('گزارش وضعیت بازرسی و اصلاحات HSE', SW - 100, 320);
-    x.font = '400 38px ' + FONT; x.fillStyle = '#94a3b8';
-    x.fillText(sub, SW - 100, 420);
-    x.fillText('بازه ارزیابی: ' + bz + '  |  تاریخ صدور: ' + fl(Date.now()), SW - 100, 480);
-    const st = (i, n, l, col) => {
-      const w = 480, bx = SW - 100 - w - i * (w + 40), by = 680;
-      x.fillStyle = '#1e293b'; x.fillRect(bx, by, w, 240);
-      x.fillStyle = col; x.fillRect(bx + w - 12, by, 12, 240);
-      x.fillStyle = '#fff'; x.font = '800 88px ' + FONT; x.textAlign = 'center';
-      x.fillText(fa(n), bx + w / 2, by + 30);
-      x.font = '400 32px ' + FONT; x.fillStyle = '#94a3b8';
-      x.fillText(l, bx + w / 2, by + 150); x.textAlign = 'right';
-    };
-    st(0, S.totalPeriod, 'کل عدم‌انطباق‌های بازه', '#f87171');
-    st(1, cl, 'اقدام اصلاح‌شده', '#4ade80');
-    st(2, S.totalPeriod - cl, 'موارد باز', '#fbbf24');
-    out.push(c.toDataURL('image/jpeg', 0.9));
+/* ===== گزارش مدیریتی v2: فیلتر بازه/ماه/فصل/سال شمسی، بدون سقف اسلاید، خروجی PPTX چندبخشی ===== */
+const JMN = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+function j2g(jy, jm, jd) {
+  jy += 1595;
+  let days = -355668 + 365 * jy + Math.floor(jy / 33) * 8 + Math.floor((jy % 33 + 3) / 4) + jd + (jm < 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186);
+  let gy = 400 * Math.floor(days / 146097); days %= 146097;
+  if (days > 36524) { days--; gy += 100 * Math.floor(days / 36524); days %= 36524; if (days >= 365) days++; }
+  gy += 4 * Math.floor(days / 1461); days %= 1461;
+  if (days > 365) { gy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
+  let gd = days + 1;
+  const ml = [0, 31, (gy % 4 == 0 && gy % 100 != 0) || gy % 400 == 0 ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  let gm = 0; while (gm < 13 && gd > ml[gm]) { gd -= ml[gm]; gm++; }
+  return [gy, gm, gd];
+}
+function jNow() { const o = {}; new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', { year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(new Date()).forEach(p => o[p.type] = +p.value); return o; }
+const jStart = (y, m) => { const [a, b, c] = j2g(y, m, 1); return new Date(a, b - 1, c); };
+
+/* وضعیت فیلترهای گزارش */
+const R = { mode: 'days', days: 30, jy: 0, jm: 0, from: '', to: '', mod: '', st: '', ord: 'sev', per: 60 };
+function rRange() {
+  if (R.mode == 'days') return { from: R.days ? new Date(Date.now() - R.days * 864e5) : null, to: null, label: R.days ? fa(R.days) + ' روز گذشته' : 'تمام سوابق' };
+  if (R.mode == 'j') {
+    const y = +R.jy, m = +R.jm;
+    if (m == 0) return { from: jStart(y, 1), to: jStart(y + 1, 1), label: 'سال ' + fa(y) };
+    if (m > 100) { const q = m - 100, s = (q - 1) * 3 + 1; return { from: jStart(y, s), to: s + 3 > 12 ? jStart(y + 1, 1) : jStart(y, s + 3), label: 'فصل ' + ['بهار', 'تابستان', 'پاییز', 'زمستان'][q - 1] + ' ' + fa(y) }; }
+    return { from: jStart(y, m), to: m == 12 ? jStart(y + 1, 1) : jStart(y, m + 1), label: JMN[m - 1] + ' ' + fa(y) };
   }
-  out.push(summarySlide(logo, 2, tot, S));
-  for (let i = 0; i < F.length; i++) {
-    const f = F[i], [c, x] = mkS();
-    frame(x, logo, i + 3, tot, f.module + '-' + f.qid);
-    x.fillStyle = NAVY; x.font = '800 36px ' + FONT;
-    const qLines = wrapText(x, f.question, SW - 120);
-    qLines.forEach((l, idx) => x.fillText(l, SW - 60, 180 + idx * 46));
-    x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
-    x.fillText('محل: ' + f.location + '  |  تاریخ ثبت: ' + fl(f.created_at) + (f.responsible ? '  |  مسئول پیگیری: ' + f.responsible : ''), SW - 60, 180 + qLines.length * 46 + 10);
-    const pw = (SW - 140) / 2, ph = 620, py = 320;
-    const bp = (await Promise.all((f.photos_before || []).slice(0, 4).map(photoSrc))).filter(Boolean);
-    const ap = (await Promise.all((f.photos_after || []).slice(0, 4).map(photoSrc))).filter(Boolean);
-    await panel(x, pw + 80, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
-    await panel(x, 60, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی', GREEN, ap, 'اقدام اصلاحی انجام نشده است');
-    [...bp, ...ap].forEach(u => URL.revokeObjectURL(u));
-    out.push(c.toDataURL('image/jpeg', 0.9));
-    if ($('#slides-progress')) $('#slides-progress').textContent = 'در حال تولید اسلایدها... ' + fa(i + 1) + ' از ' + fa(F.length);
+  const f = R.from ? new Date(R.from + 'T00:00:00') : null, t = R.to ? new Date(new Date(R.to + 'T00:00:00').getTime() + 864e5) : null;
+  return { from: f, to: t, label: (f ? fl(f) : 'ابتدا') + ' تا ' + (R.to ? fl(R.to + 'T00:00:00') : 'اکنون') };
+}
+/* بخش‌های کوئری: تاریخ، ماژول، وضعیت */
+function rDateQ() { const r = rRange(); let q = ''; if (r.from) q += '&created_at=gte.' + encodeURIComponent(r.from.toISOString()); if (r.to) q += '&created_at=lt.' + encodeURIComponent(r.to.toISOString()); return q; }
+const rModQ = () => R.mod ? '&module=eq.' + encodeURIComponent(R.mod) : '';
+const rQuery = () => rDateQ() + rModQ() + (R.st ? '&status=eq.' + R.st : '');
+
+async function fetchAll(p) {
+  const out = [];
+  for (let off = 0; ; off += 1000) {
+    const rows = await api(p + (p.includes('?') ? '&' : '?') + 'limit=1000&offset=' + off);
+    out.push(...rows); if (rows.length < 1000) break;
   }
   return out;
 }
+async function rCount(extra = '') {
+  const r = await fetch(URL_ + '/rest/v1/findings?select=id&limit=1' + rQuery() + extra, { headers: { ...AH(), Prefer: 'count=exact' } });
+  if (!r.ok) throw new Error(await r.text());
+  const m = /\/(\d+)$/.exec(r.headers.get('content-range') || '');
+  if (m) return +m[1];
+  return (await fetchAll('findings?select=id&order=id.asc' + rQuery() + extra)).length;
+}
 
-const periodStart = d => d ? new Date(Date.now() - d * 864e5).toISOString() : '1970-01-01T00:00:00.000Z';
-const periodLabel = d => d ? fa(d) + ' روز گذشته' : 'تمام سوابق';
+/* عکس: اول مسیر public (سریع، بدون preflight)، بعد authenticated. بعد از ترسیم باید close() شود تا حافظه آزاد شود */
+async function photoImg(p) {
+  for (const path of ['/storage/v1/object/public/photos/', '/storage/v1/object/authenticated/photos/']) {
+    try {
+      const r = await fetch(URL_ + path + p, path.includes('authenticated') ? { headers: AH() } : {});
+      if (r.ok) return await createImageBitmap(await r.blob());
+    } catch (e) { }
+  }
+  return null;
+}
+async function pool(n, items, fn) {
+  let k = 0; const res = new Array(items.length);
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (k < items.length) { const i = k++; res[i] = await fn(items[i], i); } }));
+  return res;
+}
+
+function panel(x, px, py, pw, ph, title, color, ims, empty) {
+  x.fillStyle = color; x.fillRect(px, py, pw, 60);
+  x.fillStyle = '#fff'; x.font = '700 28px ' + FONT; x.textAlign = 'center';
+  x.fillText(title, px + pw / 2, py + 14); x.textAlign = 'right';
+  const ay = py + 60, ah = ph - 60;
+  x.fillStyle = '#f8fafc'; x.fillRect(px, ay, pw, ah);
+  x.strokeStyle = '#e2e8f0'; x.lineWidth = 2; x.strokeRect(px, py, pw, ph);
+  if (!ims.length) {
+    x.fillStyle = '#94a3b8'; x.font = '400 26px ' + FONT; x.textAlign = 'center';
+    x.fillText(empty, px + pw / 2, ay + ah / 2 - 13); x.textAlign = 'right'; return;
+  }
+  const g = 10, n = ims.length, cols = n == 1 ? 1 : 2, rows = Math.ceil(n / cols), cw = (pw - g * (cols + 1)) / cols, ch = (ah - g * (rows + 1)) / rows;
+  ims.forEach((im, i) => {
+    const r = Math.floor(i / cols), c = i % cols, bx = px + pw - g - (c + 1) * cw - c * g, by = ay + g + r * (ch + g), k = Math.min(cw / im.width, ch / im.height), w = im.width * k, h = im.height * k;
+    x.fillStyle = '#e2e8f0'; x.fillRect(bx, by, cw, ch);
+    x.drawImage(im, bx + (cw - w) / 2, by + (ch - h) / 2, w, h);
+  });
+}
+
+function coverSlide(logo, sub, bz, S, cl) {
+  const [c, x] = mkS(); x.fillStyle = NAVY; x.fillRect(0, 0, SW, SH);
+  if (logo) x.drawImage(logo, SW - 360, 80, 280, 280 * logo.height / logo.width);
+  x.font = '800 68px ' + FONT; x.fillStyle = '#ffffff'; x.fillText('گزارش وضعیت بازرسی و اصلاحات HSE', SW - 100, 320);
+  x.font = '400 38px ' + FONT; x.fillStyle = '#94a3b8';
+  x.fillText(sub, SW - 100, 420);
+  x.fillText('بازه ارزیابی: ' + bz + '  |  تاریخ صدور: ' + fl(Date.now()), SW - 100, 480);
+  const st = (i, n, l, col) => {
+    const w = 480, bx = SW - 100 - w - i * (w + 40), by = 680;
+    x.fillStyle = '#1e293b'; x.fillRect(bx, by, w, 240);
+    x.fillStyle = col; x.fillRect(bx + w - 12, by, 12, 240);
+    x.fillStyle = '#fff'; x.font = '800 88px ' + FONT; x.textAlign = 'center';
+    x.fillText(fa(n), bx + w / 2, by + 30);
+    x.font = '400 32px ' + FONT; x.fillStyle = '#94a3b8';
+    x.fillText(l, bx + w / 2, by + 150); x.textAlign = 'right';
+  };
+  st(0, S.totalPeriod, 'کل عدم‌انطباق‌های بازه', '#f87171');
+  st(1, cl, 'اقدام اصلاح‌شده', '#4ade80');
+  st(2, S.totalPeriod - cl, 'موارد باز', '#fbbf24');
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
+async function findingSlide(f, n, tot, logo) {
+  const [c, x] = mkS();
+  frame(x, logo, n, tot, f.module + '-' + f.qid);
+  x.fillStyle = NAVY; x.font = '800 36px ' + FONT;
+  const qLines = wrapText(x, f.question, SW - 120).slice(0, 3);
+  qLines.forEach((l, idx) => x.fillText(l, SW - 60, 180 + idx * 46));
+  x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
+  x.fillText('محل: ' + f.location + '  |  تاریخ ثبت: ' + fl(f.created_at) + (f.responsible ? '  |  مسئول پیگیری: ' + f.responsible : ''), SW - 60, 180 + qLines.length * 46 + 10);
+  const pw = (SW - 140) / 2, ph = 620, py = 320;
+  const get = a => Promise.all((a || []).slice(0, 4).map(photoImg)).then(r => r.filter(Boolean));
+  const [bp, ap] = await Promise.all([get(f.photos_before), get(f.photos_after)]);
+  panel(x, pw + 80, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
+  panel(x, 60, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی', GREEN, ap, 'اقدام اصلاحی انجام نشده است');
+  [...bp, ...ap].forEach(b => b.close && b.close());
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
+async function buildPptx(imgs) {
+  const p = new PptxGenJS(); p.layout = 'LAYOUT_WIDE';
+  imgs.forEach(d => p.addSlide().addImage({ data: d.replace(/^data:/, ''), x: 0, y: 0, w: 13.333, h: 7.5 }));
+  return await p.write({ outputType: 'blob' });
+}
 
 async function renderManagementReport() {
   view('<p style="text-align:center; padding:40px;">در حال آماده‌سازی گزارش مدیریتی...</p>');
   try {
-    const allFindings = await api('findings?select=status&created_at=gte.' + periodStart(RPD) + '&limit=1000');
+    if (!R.jy) R.jy = jNow().year;
+    const n = await rCount(), no = R.st == 'closed' ? 0 : R.st == 'open' ? n : await rCount('&status=eq.open'), nc = n - no;
+    const years = []; for (let y = jNow().year; y >= jNow().year - 3; y--) years.push(y);
+    const o = (v, t, cur) => `<option value="${v}" ${String(cur) == String(v) ? 'selected' : ''}>${t}</option>`;
+    const lab = (t, h) => `<label style="display:block; margin-top:10px; font-size:12px; color:var(--mu);">${t}${h}</label>`;
+    const parts = Math.ceil(n / R.per) || 0;
     view(`
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;" class="np">
         <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
         <a href="index.html" class="back">← داشبورد اصلی</a>
       </div>
       <h2>📑 گزارش مدیریتی و اسلایدهای ارزیابی</h2>
-      <small>خلاصه وضعیت ایمنی و مستندات بازرسی کارخانه</small>
-      <select id="rp" class="np">${[[7, '۷ روز گذشته'], [30, '۳۰ روز گذشته'], [90, '۹۰ روز گذشته'], [0, 'تمام سوابق']].map(([v, t]) => `<option value="${v}" ${RPD == v ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <small>بازه: <b>${rRange().label}</b> — همه موارد بازه بدون سقف، در چند فایل PowerPoint</small>
+      <div class="np">
+        ${lab('نوع بازه', `<select data-rf="mode">${o('days', 'روزهای اخیر', R.mode)}${o('j', 'ماه / فصل / سال شمسی', R.mode)}${o('c', 'بازه دلخواه (از تاریخ تا تاریخ)', R.mode)}</select>`)}
+        ${R.mode == 'days' ? lab('مدت', `<select data-rf="days">${[[7, '۷ روز گذشته'], [30, '۳۰ روز گذشته'], [90, '۹۰ روز گذشته'], [180, '۶ ماه گذشته'], [365, 'یک سال گذشته'], [0, 'تمام سوابق']].map(([v, t]) => o(v, t, R.days)).join('')}</select>`) : ''}
+        ${R.mode == 'j' ? `<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          ${lab('سال', `<select data-rf="jy">${years.map(y => o(y, fa(y), R.jy)).join('')}</select>`)}
+          ${lab('ماه / فصل', `<select data-rf="jm">${o(0, 'کل سال', R.jm)}${['بهار', 'تابستان', 'پاییز', 'زمستان'].map((t, i) => o(101 + i, 'فصل ' + t, R.jm)).join('')}${JMN.map((t, i) => o(i + 1, t, R.jm)).join('')}</select>`)}
+        </div>` : ''}
+        ${R.mode == 'c' ? `<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          ${lab('از تاریخ', `<input type="date" data-rf="from" value="${R.from}">`)}
+          ${lab('تا تاریخ', `<input type="date" data-rf="to" value="${R.to}">`)}
+        </div>` : ''}
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          ${lab('چک‌لیست / ماژول', `<select data-rf="mod">${o('', 'همه', R.mod)}${M.map(m => o(m[0], m[1], R.mod)).join('')}</select>`)}
+          ${lab('وضعیت', `<select data-rf="st">${o('', 'همه', R.st)}${o('open', 'فقط باز', R.st)}${o('closed', 'فقط اصلاح‌شده', R.st)}</select>`)}
+          ${lab('ترتیب اسلایدها', `<select data-rf="ord">${o('sev', 'باز و شدت بالا اول', R.ord)}${o('date', 'جدیدترین اول', R.ord)}${o('old', 'قدیمی‌ترین اول', R.ord)}</select>`)}
+          ${lab('اسلاید در هر فایل', `<select data-rf="per">${[30, 60, 100, 150].map(v => o(v, fa(v), R.per)).join('')}</select>`)}
+        </div>
+      </div>
       <div class="row" style="margin-top:16px;">
-        <div class="t"><span>تعداد عدم‌انطباق‌های ثبت‌شده در بازه</span><span>${fa(allFindings.length)} مورد</span></div>
-        <div class="t" style="margin-top:8px;"><span>موارد اصلاح‌شده و بسته شده</span><span style="color:var(--ok);">${fa(allFindings.filter(x => x.status == 'closed').length)} مورد</span></div>
-        <div class="t" style="margin-top:8px;"><span>موارد باز و نیازمند پیگیری</span><span style="color:var(--nc);">${fa(allFindings.filter(x => x.status == 'open').length)} مورد</span></div>
+        <div class="t"><span>تعداد عدم‌انطباق‌های بازه</span><span>${fa(n)} مورد</span></div>
+        <div class="t" style="margin-top:8px;"><span>اصلاح‌شده و بسته</span><span style="color:var(--ok);">${fa(nc)} مورد</span></div>
+        <div class="t" style="margin-top:8px;"><span>باز و نیازمند پیگیری</span><span style="color:var(--nc);">${fa(no)} مورد</span></div>
+        <div class="t" style="margin-top:8px;"><span>خروجی</span><span>${fa(n + 2)} اسلاید در ${fa(parts)} فایل</span></div>
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" class="np">
         <button class="p" onclick="window.print()" style="background:var(--card-bg); color:var(--ink); border:1.5px solid var(--ln); margin:0;">🖨️ چاپ مستقیم گزارش</button>
-        <button class="p" data-a="gen-slides" style="background:#6366f1; border-color:#6366f1; color:#fff; margin:0;">🎬 تولید و دانلود اسلایدها</button>
+        <button class="p" data-a="gen-slides" ${n ? '' : 'disabled'} style="background:#6366f1; border-color:#6366f1; color:#fff; margin:0;">🎬 تولید فایل‌های PowerPoint</button>
       </div>
-      <small class="np" style="margin-top:8px;">برای جلوگیری از سنگین شدن مرورگر، حداکثر ${fa(MAXS)} اسلاید عدم‌انطباق تولید می‌شود (ابتدا موارد باز و با شدت بالاتر).</small>
       <div id="slides-container" style="margin-top:20px;"></div>
     `);
   } catch (e) { alert('خطا در بارگذاری گزارش: ' + e.message); }
 }
 
+const GEN = { cancel: false, busy: false };
 async function genSlides() {
+  if (GEN.busy) return;
+  if (typeof PptxGenJS == 'undefined') return alert('کتابخانه ساخت PowerPoint بارگذاری نشده است؛ اینترنت را بررسی و صفحه را دوباره باز کنید.');
   const box = $('#slides-container'), btn = $('[data-a=gen-slides]');
-  box.innerHTML = '<p id="slides-progress" style="text-align:center;">در حال تولید اسلایدها...</p>';
-  btn.disabled = true;
+  GEN.cancel = false; GEN.busy = true; btn.disabled = true;
+  box.innerHTML = `<progress id="gp" value="0" max="1" style="width:100%;"></progress>
+    <p id="slides-progress" style="text-align:center;">در حال دریافت اطلاعات...</p>
+    <button class="p np" data-a="gen-cancel" style="background:var(--card-bg); color:var(--ink); border:1.5px solid var(--ln);">⏹ توقف</button>
+    <div id="parts" style="margin-top:12px;"></div>`;
+  const prog = t => { const el = $('#slides-progress'); if (el) el.textContent = t; };
   try {
-    const s = periodStart(RPD), FS = 'module,location,qid,question,status,created_at,closed_at,notice_at,severity,category,responsible,due_date,photos_before,photos_after';
+    const FS = 'module,location,qid,question,status,created_at,closed_at,notice_at,severity,category,responsible,due_date,photos_before,photos_after';
+    const dq = rDateQ(), mq = rModQ(), r = rRange();
     const [P, OF, I] = await Promise.all([
-      api('findings?select=' + FS + '&created_at=gte.' + s + '&order=created_at.desc&limit=1000'),
-      api('findings?select=' + FS + '&status=eq.open&limit=1000'),
-      api('inspections?select=module,location,ok,nc,inspector,created_at&created_at=gte.' + s + '&limit=1000')
+      fetchAll('findings?select=' + FS + '&order=created_at.desc,id.asc' + rQuery()),
+      fetchAll('findings?select=' + FS + '&status=eq.open&order=created_at.desc,id.asc' + mq),
+      fetchAll('inspections?select=module,location,ok,nc,inspector,created_at&order=created_at.desc,id.asc' + dq + mq)
     ]);
-    const ok = I.reduce((a, r) => a + r.ok, 0), nc = I.reduce((a, r) => a + r.nc, 0);
+    if (!P.length) throw new Error('در این بازه و با این فیلترها موردی وجود ندارد.');
+    const ok = I.reduce((a, x) => a + x.ok, 0), nc = I.reduce((a, x) => a + x.nc, 0), cl = P.filter(x => x.status == 'closed').length;
     const S = {
-      bz: periodLabel(RPD), totalPeriod: P.length, insCount: rounds(I), chkCount: checks(I), rate: pct(ok, ok + nc),
+      bz: r.label, totalPeriod: P.length, insCount: rounds(I), chkCount: checks(I), rate: pct(ok, ok + nc),
       hi: OF.filter(x => sev_(x) >= 3).length, overdue: OF.filter(od_).length, noNotice: OF.filter(x => !x.notice_at).length,
       topLocs: cnt(OF, x => nl(x.location)).slice(0, 5),
       topCats: cnt(P, x => x.category || cat(x.module, x.question || '')).slice(0, 5)
     };
-    const F = [...P].sort((a, b) => (a.status == 'open' ? 0 : 1) - (b.status == 'open' ? 0 : 1) || sev_(b) - sev_(a) || new Date(b.created_at) - new Date(a.created_at)).slice(0, MAXS);
-    const imgs = await slides(F, 'گزارش عملکرد کارخانه', S.bz, S);
-    box.innerHTML = '<h3 style="margin-bottom:10px;">اسلایدهای تولیدشده:</h3>' +
-      (P.length > MAXS ? `<small style="margin-bottom:10px;">از ${fa(P.length)} مورد، ${fa(MAXS)} مورد اول نمایش داده شده است.</small>` : '') +
-      imgs.map((src, idx) => `<div style="margin-bottom:15px;"><img src="${src}" style="width:100%; border-radius:8px; border:1px solid var(--ln);"><a href="${src}" download="slide-${idx + 1}.jpg" class="p" style="display:block; text-align:center; text-decoration:none; margin-top:6px;">📥 دانلود اسلاید ${fa(idx + 1)}</a></div>`).join('');
-  } catch (e) { box.innerHTML = ''; alert('خطا در تولید اسلایدها: ' + e.message); }
-  btn.disabled = false;
+    const F = [...P].sort(R.ord == 'date' ? (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      : R.ord == 'old' ? (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      : (a, b) => (a.status == 'open' ? 0 : 1) - (b.status == 'open' ? 0 : 1) || sev_(b) - sev_(a) || new Date(b.created_at) - new Date(a.created_at));
+    try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
+    const logo = await loadImg('logo.png'), per = +R.per, parts = Math.ceil(F.length / per), tot = F.length + 2, t0 = Date.now();
+    let done = 0; const gp = $('#gp'); gp.max = F.length;
+    for (let pi = 0; pi < parts && !GEN.cancel; pi++) {
+      const chunk = F.slice(pi * per, (pi + 1) * per), imgs = [];
+      if (pi == 0) { imgs.push(coverSlide(logo, 'گزارش عملکرد کارخانه', S.bz, S, cl)); imgs.push(summarySlide(logo, 2, tot, S)); }
+      const res = await pool(6, chunk, async (f, i) => {
+        const d = await findingSlide(f, pi * per + i + 3, tot, logo);
+        done++; gp.value = done;
+        const sec = (Date.now() - t0) / 1000, eta = Math.round(sec / done * (F.length - done));
+        prog(`در حال تولید اسلایدها... ${fa(done)} از ${fa(F.length)} — فایل ${fa(pi + 1)} از ${fa(parts)} — حدود ${fa(Math.ceil(eta / 60))} دقیقه باقی‌مانده`);
+        return d;
+      });
+      imgs.push(...res);
+      prog(`در حال ساخت فایل ${fa(pi + 1)} از ${fa(parts)}...`);
+      const blob = await buildPptx(imgs), url = URL.createObjectURL(blob), name = `HSE-report-${pi + 1}-of-${parts}.pptx`;
+      $('#parts').insertAdjacentHTML('beforeend', `<a href="${url}" download="${name}" class="p" style="display:block; text-align:center; text-decoration:none; margin-top:8px;">📥 دانلود فایل ${fa(pi + 1)} از ${fa(parts)} (${fa(chunk.length + (pi == 0 ? 2 : 0))} اسلاید، ${fa(Math.round(blob.size / 1048576))} مگابایت)</a>`);
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    }
+    prog(GEN.cancel ? 'متوقف شد؛ فایل‌های ساخته‌شده در پایین قابل دانلودند.' : '✅ تمام شد. اگر مرورگر چند دانلود را مسدود کرد، از دکمه‌های زیر دانلود کنید.');
+  } catch (e) { prog(''); alert('خطا در تولید گزارش: ' + e.message); }
+  GEN.busy = false; if (btn) btn.disabled = false;
 }
+
 
 document.onclick = async e => {
   const t = e.target.closest('[data-a]'); if (!t) return;
@@ -863,6 +966,7 @@ document.onclick = async e => {
   else if (a == 'stats') stats();
   else if (a == 'rep') renderManagementReport();
   else if (a == 'gen-slides') genSlides();
+  else if (a == 'gen-cancel') GEN.cancel = true;
   else if (a == 'open') {
     cur = M.find(m => m[0] == t.dataset.k);
     const d = JSON.parse(localStorage.draft || '{}');
@@ -947,7 +1051,7 @@ document.onclick = async e => {
 
 document.oninput = async e => {
   const t = e.target, y = scrollY;
-  if (t.id == 'rp') { RPD = +t.value; renderManagementReport(); return; }
+  if (t.dataset.rf) { const k = t.dataset.rf; R[k] = ['days', 'per', 'jy', 'jm'].includes(k) ? +t.value : t.value; renderManagementReport(); return; }
   if (t.dataset.code) { t.nextElementSibling.hidden = !t.value.trim(); return; }
   if (t.id == 'ls') { D.oth = t.value == '__o'; D.loc = D.oth ? '' : t.value; save(); form(); scrollTo(0, y); return; }
   if (t.id == 'sh') { D.shift = t.value; save(); return; }
