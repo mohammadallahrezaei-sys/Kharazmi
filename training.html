@@ -45,7 +45,7 @@
 const URL_='https://priopguwfjawybffarhd.supabase.co',KEY='sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 const H={apikey:KEY,Authorization:`Bearer ${KEY}`},JH={...H,'Content-Type':'application/json'};
 const $=id=>document.getElementById(id);
-const T={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران'};
+const T={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران',safety_talk:'جلسه کوتاه ایمنی'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 const fday=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d}};
