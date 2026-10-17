@@ -46,9 +46,9 @@ const api=async p=>{const r=await fetch(`${URL_}/rest/v1/${p}`,{headers:H});if(!
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 const fd=d=>{try{return d?new Date(d.slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{year:'numeric',month:'2-digit',day:'2-digit'}):''}catch(e){return d||''}};
-const T={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران'};
+const T={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران',safety_talk:'جلسه کوتاه ایمنی'};
 const TPL={L:'طرح درس + لیست امضا',S:'لیست حضور و امضا',O:'فرم آموزش توجیهی (هر نفر یک برگ)',P:'فرم آموزش پس از حادثه',C:'فرم آموزش پیمانکاران'};
-const DEF={periodic:'L',on_job:'S',onboarding:'O',post_incident:'P',contractor:'C'};
+const DEF={periodic:'L',on_job:'S',onboarding:'O',post_incident:'P',contractor:'C',safety_talk:'S'};
 const SEV={minor:'جزئی',moderate:'متوسط',severe:'شدید',fatal:'فوتی'};
 const ed=(t,w)=>`<span class="ed" contenteditable="true"${w?` style="min-width:${w}px"`:''}>${esc(t)}</span>`;
 const blk=(t,h)=>`<div class="ed blk" contenteditable="true" style="display:block;min-height:${h||22}px">${esc(t)}</div>`;
