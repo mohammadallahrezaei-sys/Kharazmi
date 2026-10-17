@@ -1,0 +1,25 @@
+/* ظاهر مشترک ماژول‌های کارت‌ها، ارزیابی واحدها و نردبان فرهنگ */
+*{box-sizing:border-box}
+body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:#0f172a;color:#f1f5f9;font-size:13px;line-height:1.8;padding:14px}
+.w{max-width:900px;margin:auto}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:12px 16px;margin-bottom:12px}
+.top h1{font-size:16px;margin:0}.top p{margin:0;font-size:11px;color:#94a3b8}
+.card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:12px;margin-bottom:10px}
+.card h2{font-size:14px;margin:0 0 8px;color:#2dd4bf}
+.btn,button,a.btn,select,input,textarea{font-family:inherit;font-size:12px}
+.btn,button{padding:6px 12px;border-radius:10px;border:1px solid #334155;background:#334155;color:#f1f5f9;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.p,button.p{background:#10b981;border-color:#10b981;color:#052e16;font-weight:700}
+.btn.d,button.d{background:transparent;border-color:#7f1d1d;color:#fca5a5}
+.fld,select,input[type=text],input[type=number],textarea{width:100%;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:7px 10px;color:#fff;outline:none}
+.fld:focus,select:focus,input:focus,textarea:focus{border-color:#10b981}
+label.l{display:block;font-size:11px;color:#94a3b8;margin:6px 0 2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(max-width:560px){.g2,.g3{grid-template-columns:1fr}}
+.jd{display:flex;gap:4px}.jd select{flex:1;min-width:0}
+.mu{color:#94a3b8;font-size:11px}.ok{color:#34d399}.wa{color:#fbbf24}.bad{color:#f87171}
+.tag{display:inline-block;font-size:11px;padding:1px 9px;border-radius:99px;border:1px solid #334155;background:#0f172a}
+table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #334155;padding:5px 6px;text-align:right;font-size:12px}th{color:#94a3b8;font-weight:500;white-space:nowrap}
+.sc{overflow-x:auto}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}.modal.on{display:flex}
+.modal>div{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:16px;max-width:560px;width:100%;max-height:92vh;overflow-y:auto}
+.err{background:#450a0a;border:1px solid #7f1d1d;color:#fca5a5;border-radius:12px;padding:10px;margin-bottom:10px;display:none}
