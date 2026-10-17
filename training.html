@@ -27,7 +27,7 @@
   <div class="space-y-2">
    <select id="fType" class="fld"></select>
    <input id="fTitle" class="fld" placeholder="عنوان دوره (مثلاً کار در ارتفاع)">
-   <div class="grid grid-cols-2 gap-2"><input id="fDate" type="date" class="fld" dir="ltr"><input id="fHours" type="number" min="0" step="0.5" value="1" class="fld" placeholder="مدت (ساعت)"></div>
+   <div class="grid grid-cols-2 gap-2"><div id="fDate" style="display:flex;gap:4px"><select id="dD" class="fld" style="width:30%"></select><select id="dM" class="fld"></select><select id="dY" class="fld" style="width:34%"></select></div><input id="fHours" type="number" min="0" step="0.5" value="1" class="fld" placeholder="مدت (ساعت)"></div>
    <input id="fTrainer" class="fld" placeholder="مدرس / برگزارکننده">
    <input id="fContr" class="fld hidden" placeholder="نام شرکت پیمانکار">
    <select id="fInc" class="fld hidden"></select>
@@ -49,7 +49,7 @@ const T={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'�
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 const fday=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d}};
-const api=async(p,o)=>{const r=await fetch(`${URL_}/rest/v1/${p}`,{headers:H,...o});if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json()};
+const api=async(p,o)=>{const r=await fetch(`${URL_}/rest/v1/${p}`,{headers:H,...o});if(!r.ok)throw new Error(await r.text());const tx=await r.text();return tx?JSON.parse(tx):null};
 let emps=[],trs=[],att=[],incs=[],sel=new Map();
 const name=e=>`${e.first_name||''} ${e.last_name||''}`.trim();
 async function load(){
@@ -80,16 +80,27 @@ function chips(){$('fChips').innerHTML=[...sel.values()].map(e=>`<span class="bg
 function pick(){const q=$('fSearch').value.trim().toLowerCase();$('fPick').innerHTML=emps.filter(e=>!q||(name(e)+' '+e.emp_id).toLowerCase().includes(q)).slice(0,40).map(e=>`<div data-p="${e.id}" class="px-3 py-1.5 cursor-pointer hover:bg-slate-700 ${sel.has(e.id)?'text-emerald-400':''}">${sel.has(e.id)?'✓ ':''}${esc(name(e))} <span class="text-slate-500">(${esc(e.emp_id)})</span></div>`).join('')}
 $('fSearch').oninput=pick;
 $('fPick').onclick=ev=>{const d=ev.target.closest('[data-p]');if(!d)return;const e=emps.find(x=>x.id===d.dataset.p);sel.has(e.id)?sel.delete(e.id):sel.set(e.id,e);chips();pick()};
-$('btnNew').onclick=()=>{sel.clear();chips();pick();$('fDate').value=new Date().toISOString().slice(0,10);
+/* تقویم شمسی: سه لیست سال/ماه/روز؛ ذخیره به‌صورت تاریخ میلادی ISO */
+const JM=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const JF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
+const toJ=d=>{const p=JF.formatToParts(d),g=t=>+p.find(x=>x.type===t).value;return[g('year'),g('month'),g('day')]};
+function jToISO(y,m,d){const st=Date.UTC(y+621,2,17);for(let i=0;i<400;i++){const t=new Date(st+i*864e5),j=toJ(t);if(j[0]===y&&j[1]===m&&j[2]===d)return t.toISOString().slice(0,10)}return null}
+function getDate(){const y=+$('dY').value,m=+$('dM').value;let d=+$('dD').value,iso=jToISO(y,m,d);if(!iso&&d>29){d=29;$('dD').value=29;iso=jToISO(y,m,d)}return iso}
+function setDate(iso){const [y,m,d]=toJ(new Date(iso+'T00:00:00Z')),ty=toJ(new Date())[0];
+  $('dY').innerHTML=[ty-1,ty,ty+1].map(v=>`<option value="${v}">${fa(v)}</option>`).join('');
+  $('dM').innerHTML=JM.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('');
+  $('dD').innerHTML=Array.from({length:31},(_,i)=>`<option value="${i+1}">${fa(i+1)}</option>`).join('');
+  $('dY').value=y;$('dM').value=m;$('dD').value=d}
+$('btnNew').onclick=()=>{sel.clear();chips();pick();setDate(new Date().toISOString().slice(0,10));
   $('fInc').innerHTML='<option value="">حادثه مرتبط (اختیاری)</option>'+incs.map(i=>`<option value="${i.id}">${fday((i.incident_date||'').slice(0,10))} - ${esc(i.location)}</option>`).join('');
   $('modal').classList.remove('hidden');$('modal').classList.add('flex')};
 $('fCancel').onclick=()=>{$('modal').classList.add('hidden');$('modal').classList.remove('flex')};
 $('fSave').onclick=async()=>{
   const title=$('fTitle').value.trim(),extra=$('fExtra').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(!title||!$('fDate').value||(!sel.size&&!extra.length)){alert('عنوان، تاریخ و حداقل یک شرکت‌کننده لازم است.');return}
+  if(!title||!getDate()||(!sel.size&&!extra.length)){alert('عنوان، تاریخ و حداقل یک شرکت‌کننده لازم است.');return}
   const ty=$('fType').value;
   try{
-    const [t]=await api('trainings',{method:'POST',headers:{...JH,Prefer:'return=representation'},body:JSON.stringify({training_type:ty,title,training_date:$('fDate').value,duration_hours:+$('fHours').value||0,trainer:$('fTrainer').value.trim()||null,contractor_name:ty==='contractor'?($('fContr').value.trim()||null):null,incident_id:ty==='post_incident'?($('fInc').value||null):null,notes:$('fNotes').value.trim()||null})});
+    const [t]=await api('trainings',{method:'POST',headers:{...JH,Prefer:'return=representation'},body:JSON.stringify({training_type:ty,title,training_date:getDate(),duration_hours:+$('fHours').value||0,trainer:$('fTrainer').value.trim()||null,contractor_name:ty==='contractor'?($('fContr').value.trim()||null):null,incident_id:ty==='post_incident'?($('fInc').value||null):null,notes:$('fNotes').value.trim()||null})});
     await api('training_attendees',{method:'POST',headers:{...JH,Prefer:'return=minimal'},body:JSON.stringify([...[...sel.keys()].map(id=>({training_id:t.id,employee_id:id})),...extra.map(n=>({training_id:t.id,person_name:n}))])});
     $('fCancel').onclick();['fTitle','fTrainer','fContr','fExtra','fNotes'].forEach(i=>$(i).value='');load();
   }catch(e){alert('خطا در ثبت: '+e.message)}
