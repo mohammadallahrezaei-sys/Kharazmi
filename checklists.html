@@ -293,7 +293,7 @@ async function api(p, o = {}) {
 async function home() {
   view('<p style="text-align:center; padding:40px;">در حال بارگذاری چک‌لیست‌ها...</p>');
   let L = {};
-  try { (await api('inspections?select=module,created_at&order=created_at.desc&limit=500')).forEach(r => L[r.module] = L[r.module] || r.created_at); } catch (e) { }
+  try { (await lastVisits()).forEach(r => L[r.module] = L[r.module] || r.created_at); } catch (e) { }
   view(`
     <div class="hdr">
       <div class="hdr-r">
@@ -308,9 +308,8 @@ async function home() {
 
     <div class="top-grid">
       <button class="p" data-a="history" style="background:var(--ok); border-color:var(--ok); color:#fff;">📋 تاریخچه بازدیدها</button>
-      <button class="p" data-a="stats" style="background:#6366f1; border-color:#6366f1; color:#fff;">📊 داشبورد آماری</button>
       <button class="p" data-a="finds">🛠️ پیگیری عدم‌انطباق‌ها</button>
-      <button class="p" data-a="rep" style="background:var(--card-bg); color:var(--ink); border-color:var(--ln);">📑 گزارش مدیریتی</button>
+      <button class="p" data-a="rep" style="background:var(--card-bg); color:var(--ink); border-color:var(--ln);">📑 اسلایدهای قبل/بعد</button>
     </div>
 
     ${M.map(m => `
@@ -789,107 +788,6 @@ async function finds(iid) {
 }
 
 
-async function stats(d = 90) {
-  view('<p style="text-align:center;padding:40px;">در حال تحلیل داده‌ها...</p>');
-  try {
-    const s = d ? new Date(Date.now() - d * 864e5).toISOString() : '1970-01-01';
-    const FS = 'module,location,qid,question,status,created_at,closed_at,notice_at,severity,category,root_cause,due_date,responsible';
-    const [I, F, OF, LI] = await Promise.all([
-      api('inspections?select=module,location,ok,nc,na,created_at,inspector,shift&created_at=gte.' + s + '&order=created_at.desc&limit=1000'),
-      api('findings?select=' + FS + '&created_at=gte.' + s + '&limit=1000'),
-      api('findings?select=' + FS + '&status=eq.open&limit=1000'),
-      api('inspections?select=module,created_at&order=created_at.desc&limit=1000')
-    ]);
-    const now = Date.now(), days = t => Math.floor((now - new Date(t)) / 864e5);
-    const sv = x => x.severity || dsev(x.question || ''), ct = x => x.category || cat(x.module, x.question || '');
-    const od = x => x.due_date ? new Date(x.due_date + 'T23:59:59') < now : days(x.created_at) > 14;
-    const ok = I.reduce((a, r) => a + r.ok, 0), nc = I.reduce((a, r) => a + r.nc, 0), rate = pct(ok, ok + nc);
-    const closed = F.filter(x => x.status == 'closed' && x.closed_at);
-    const avgClose = closed.length ? Math.round(closed.reduce((a, x) => a + (new Date(x.closed_at) - new Date(x.created_at)) / 864e5, 0) / closed.length) : null;
-    const overdue = OF.filter(od).length, hiOpen = OF.filter(x => sv(x) >= 3).length, noNotice = OF.filter(x => !x.notice_at).length;
-
-    const last = {}; LI.forEach(r => last[r.module] = last[r.module] || r.created_at);
-    const MD = M.map(m => {
-      const ii = I.filter(r => r.module == m[0]), n = ii.reduce((a, r) => a + r.nc, 0), o = ii.reduce((a, r) => a + r.ok, 0), fq = FREQ[m[2]], ds = last[m[0]] ? days(last[m[0]]) : null;
-      return { name: m[1], fq: m[2], cnt: ii.length, nc: n, r: pct(n, n + o), ds, late: ds === null ? 999 : (fq ? ds - fq : -1) };
-    });
-    const lateList = MD.filter(x => x.late > 0).sort((a, b) => b.late - a.late);
-    const worstMod = MD.filter(x => x.cnt).sort((a, b) => b.r - a.r).slice(0, 6);
-
-    const L = {}; LOCS.forEach(k => L[k] = { n: 0, nc: 0, risk: 0, open: 0, last: null });
-    I.forEach(r => { if (r.location === ROUND_LOC) { LOCS.forEach(k => { const o = L[k]; o.n++; o.last = o.last || r.created_at; }); return; } const k = nl(r.location), o = L[k] = L[k] || { n: 0, nc: 0, risk: 0, open: 0, last: null }; o.n++; o.nc += r.nc; o.last = o.last || r.created_at; });
-    OF.forEach(x => { const k = nl(x.location), o = L[k] = L[k] || { n: 0, nc: 0, risk: 0, open: 0, last: null }; o.open++; o.risk += sv(x) * 2 + (od(x) ? 3 : 0); });
-    const LA = Object.entries(L).map(([k, o]) => { const ds = o.last ? days(o.last) : 999; return { k, ...o, ds, score: o.risk + o.nc + (ds > 30 ? 3 : ds > 14 ? 1 : 0) }; });
-    const riskTop = [...LA].sort((a, b) => b.score - a.score).filter(x => x.score > 0).slice(0, 8);
-    const lowCov = [...LA].sort((a, b) => a.n - b.n || b.ds - a.ds).slice(0, 6);
-
-    const RC = {};
-    F.forEach(x => { const k = x.module + '|' + x.qid, o = RC[k] = RC[k] || { q: x.question, m: nm(x.module), c: 0, locs: new Set() }; o.c++; o.locs.add(nl(x.location)); });
-    const rec = Object.values(RC).filter(o => o.c > 1).sort((a, b) => b.c - a.c).slice(0, 8);
-
-    const W = d ? Math.min(12, Math.ceil(d / 7)) : 12, tw = Array.from({ length: W }, () => ({ ok: 0, nc: 0 }));
-    I.forEach(r => { const w = Math.floor(days(r.created_at) / 7); if (w < W) { tw[w].ok += r.ok; tw[w].nc += r.nc; } });
-    const trend = tw.map((t, i) => ({ i, p: pct(t.nc, t.nc + t.ok) })).reverse();
-
-    const ag = [OF.filter(x => days(x.created_at) <= 7).length, OF.filter(x => { const k = days(x.created_at); return k > 7 && k <= 30; }).length, OF.filter(x => days(x.created_at) > 30).length];
-    const sevRows = [4, 3, 2, 1].map(v => [SEVN[v], OF.filter(x => sv(x) == v).length]);
-    const catRows = cnt(F, ct), rcRows = cnt(closed.filter(x => x.root_cause), x => x.root_cause);
-    const shRows = SHIFTS.map(h => { const ii = I.filter(r => r.shift == h); return [h + ' (' + fa(rounds(ii)) + ' گشت)', pct(ii.reduce((a, r) => a + r.nc, 0), ii.reduce((a, r) => a + r.nc + r.ok, 0))]; });
-    const respRows = cnt(OF.filter(x => x.responsible), x => x.responsible).slice(0, 6), inspRows = cnt(I.filter(r => r.inspector), r => r.inspector).slice(0, 6);
-
-    const ins = [];
-    const crit = OF.filter(x => sv(x) == 4).length;
-    if (crit) ins.push([1, `${fa(crit)} عدم‌انطباق «بحرانی» هنوز باز است؛ اقدام فوری لازم است.`]);
-    if (overdue) ins.push([1, `${fa(overdue)} عدم‌انطباق از مهلت اصلاح خود گذشته است.`]);
-    if (ag[2]) ins.push([1, `${fa(ag[2])} مورد بیش از ۳۰ روز باز است؛ به مدیریت ارجاع شود.`]);
-    if (noNotice) ins.push([0, `${fa(noNotice)} عدم‌انطباق باز هنوز اعلان رسمی ندارد.`]);
-    if (lateList[0]) ins.push([lateList.length > 3 ? 1 : 0, `${fa(lateList.length)} چک‌لیست از برنامه عقب است؛ بیشترین تأخیر: «${lateList[0].name}»${lateList[0].ds === null ? ' (هرگز بازدید نشده)' : ''}.`]);
-    const unv = LA.filter(x => LOCS.includes(x.k) && !x.n).length;
-    if (unv) ins.push([0, `${fa(unv)} محل از لیست محل‌ها در این بازه هیچ بازدیدی نداشته است.`]);
-    if (riskTop[0]) ins.push([1, `پرریسک‌ترین محل: «${riskTop[0].k}» (${fa(riskTop[0].open)} مورد باز، ${fa(riskTop[0].nc)} عدم‌انطباق در بازه).`]);
-    if (catRows[0]) ins.push([0, `بیشترین عدم‌انطباق‌ها در دسته «${catRows[0][0]}» (${fa(catRows[0][1])} مورد) است؛ آموزش یا ممیزی هدفمند برنامه‌ریزی شود.`]);
-    if (rec[0]) ins.push([0, `مشکل تکراری: «${rec[0].q}» ${fa(rec[0].c)} بار ثبت شده؛ علت ریشه‌ای بررسی شود.`]);
-    if (ok + nc && rate < 85) ins.push([1, `نرخ انطباق کل ${fa(rate)}٪ و کمتر از هدف ۸۵٪ است.`]);
-    const tl = trend.filter(t => t.p); if (tl.length > 2 && tl[tl.length - 1].p > tl[0].p + 5) ins.push([1, 'روند عدم‌انطباق در هفته‌های اخیر صعودی است.']);
-
-    const mxR = Math.max(1, ...riskTop.map(x => x.score)), mxN = Math.max(1, ...worstMod.map(x => x.nc));
-    const sec = t => `<div class="sec">${t}</div>`;
-    view(`
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
-        <a href="index.html" class="back">← داشبورد اصلی</a>
-      </div>
-      <h2>📊 داشبورد آماری و تحلیل ریسک</h2>
-      <small>تحلیل خودکار برای شناسایی نقاط پرخطر و پیشگیری از حوادث</small>
-      <select id="sd"><option value="7">۷ روز گذشته</option><option value="30">۳۰ روز گذشته</option><option value="90">۹۰ روز گذشته</option><option value="0">تمام سوابق</option></select>
-
-      <div class="kp">
-        <div><b>${fa(rounds(I))}</b><small>گشت بازرسی</small></div>
-        <div><b>${fa(checks(I))}</b><small>چک‌لیست تکمیل‌شده</small></div>
-        <div><b style="color:${rate >= 85 ? 'var(--ok)' : 'var(--nc)'}">${fa(rate)}٪</b><small>نرخ انطباق</small></div>
-        <div><b style="color:var(--nc)">${fa(OF.length)}</b><small>عدم‌انطباق باز (کل)</small></div>
-        <div><b style="color:var(--nc)">${fa(hiOpen)}</b><small>باز با شدت زیاد/بحرانی</small></div>
-        <div><b style="color:var(--warn)">${fa(overdue)}</b><small>گذشته از مهلت اصلاح</small></div>
-        <div><b>${avgClose === null ? '—' : fa(avgClose) + ' روز'}</b><small>میانگین زمان اصلاح</small></div>
-        <div><b style="color:var(--warn)">${fa(lateList.length)}</b><small>چک‌لیست عقب‌افتاده</small></div>
-        <div><b style="color:var(--warn)">${fa(noNotice)}</b><small>باز بدون اعلان رسمی</small></div>
-      </div>
-
-      ${sec('⚠️ هشدارهای هوشمند')}
-      ${ins.map(([h, t]) => `<div class="ins ${h ? 'hi' : ''}">${t}</div>`).join('') || '<div class="row">مورد هشداردهنده‌ای یافت نشد.</div>'}
-
-      ${sec('🔥 محل‌های پرریسک')}
-      ${riskTop.map(x => `<div class="row"><div class="t"><span>${esc(x.k)}</span><span>امتیاز: ${fa(x.score)}</span></div>${bar(x.score, mxR, x.score >= mxR * .6 ? 'var(--nc)' : 'var(--warn)')}<small>${fa(x.open)} باز · ${fa(x.nc)} عدم‌انطباق · ${fa(x.n)} بازدید</small></div>`).join('') || '<div class="row">داده‌ای نیست.</div>'}
-
-      ${sec('👁️ کم‌بازدیدترین محل‌ها')}
-      ${lowCov.map(x => `<div class="row"><div class="t"><span>${esc(x.k)}</span><span>${fa(x.n)} بازدید</span></div><small>آخرین بازدید: ${x.ds == 999 ? 'در این بازه ثبت نشده' : fa(x.ds) + ' روز پیش'}</small></div>`).join('')}
-
-      ${sec('📈 روند هفتگی درصد عدم‌انطباق')}
-      <div class="tr">${trend.map(t => `<div><span>${fa(t.p)}٪</span><i style="height:${Math.max(2, t.p)}\%"></i><span>${t.i ? fa(t.i) + 'ه' : 'اخیر'}</span></div>`).join('')}</div>
-    `);
-    $('#sd').value = d; $('#sd').onchange = () => stats(+$('#sd').value);
-  } catch (e) { alert(e.message); }
-}
 
 /* ---------- بخش گزارش مدیریتی امن‌سازی شده (بدون نیاز به eval) ---------- */
 const SW = 1920, SH = 1080, NAVY = '#0f172a', BLUE = '#2563eb', RED = '#ef4444', GREEN = '#22c55e', FONT = "Vazirmatn,Tahoma,sans-serif";
@@ -1001,11 +899,17 @@ const rQuery = () => rDateQ() + rModQ() + (R.st ? '&status=eq.' + R.st : '');
 
 async function fetchAll(p) {
   const out = [];
-  for (let off = 0; ; off += 1000) {
+  for (let off = 0; ;) {
     const rows = await api(p + (p.includes('?') ? '&' : '?') + 'limit=1000&offset=' + off);
-    out.push(...rows); if (rows.length < 1000) break;
+    if (!rows.length) break; out.push(...rows); off += rows.length;
   }
   return out;
+}
+/* آخرین بازدید هر ماژول: یک درخواست کوچک برای هر ماژول (به تعداد کل بازدیدها وابسته نیست) */
+async function lastVisits() {
+  const rows = [];
+  await Promise.all(M.map(async m => { try { const r = await api('inspections?select=module,created_at&module=eq.' + encodeURIComponent(m[0]) + '&order=created_at.desc&limit=1'); if (r[0]) rows.push(r[0]); } catch (e) { } }));
+  return rows;
 }
 async function rCount(extra = '') {
   const r = await fetch(URL_ + '/rest/v1/findings?select=id&limit=1' + rQuery() + extra, { headers: { ...AH(), Prefer: 'count=exact' } });
@@ -1205,8 +1109,7 @@ document.onclick = async e => {
   const a = t.dataset.a, y = scrollY;
   if (a == 'home') home();
   else if (a == 'history') historyList();
-  else if (a == 'stats') stats();
-  else if (a == 'rep') renderManagementReport();
+    else if (a == 'rep') renderManagementReport();
   else if (a == 'gen-slides') genSlides();
   else if (a == 'gen-cancel') GEN.cancel = true;
   else if (a == 'open') {
@@ -1346,11 +1249,7 @@ document.oninput = async e => {
   save();
 };
 
-if (!SS.t && tok === KEY) {
-  home();
-} else {
-  home();
-}
+home().then(() => { if (location.hash == '#rep') renderManagementReport(); });
 </script>
 </body>
 </html>
