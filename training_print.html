@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>فرم چاپی آموزش HSE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#e5e7eb;font-family:Vazirmatn,Tahoma,sans-serif;color:#000;font-size:12px;line-height:1.9}
+.bar{position:sticky;top:0;background:#0f172a;color:#fff;padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;z-index:5}
+.bar select,.bar button,.bar a{font-family:inherit;font-size:12px;padding:5px 12px;border-radius:8px;border:0;cursor:pointer;text-decoration:none}
+.bar button{background:#10b981;color:#052e16;font-weight:700}.bar a{background:#334155;color:#fff}
+.hint{font-size:11px;color:#cbd5e1}
+.pg{width:210mm;min-height:297mm;margin:10px auto;background:#fff;padding:12mm 12mm;position:relative}
+.hd{text-align:center;margin-bottom:6px}.hd .bs{font-size:12px}.hd h1{font-size:16px;margin:2px 0}.hd .org{font-size:12px}
+.logo{position:absolute;top:10mm;left:12mm;height:16mm}
+table{width:100%;border-collapse:collapse;margin:6px 0}
+td,th{border:1px solid #000;padding:3px 6px;vertical-align:top;text-align:right}
+th{background:#f1f5f9;font-weight:700}
+.sec{font-weight:800;background:#e2e8f0}
+.ed{display:inline-block;min-width:40px;border-bottom:1px dashed #94a3b8;outline:none}
+.ed:focus{background:#fef9c3}
+.blk{min-height:22px}
+.ck{font-family:sans-serif}
+ul.c{margin:2px 0;padding-inline-start:16px}ul.c li{margin:0}
+.sig td{height:34px}
+.cm{font-size:11px;text-align:justify}
+@media print{body{background:#fff}.bar{display:none}.pg{margin:0;box-shadow:none;page-break-after:always;width:auto;min-height:0;padding:0}.ed{border:0}@page{size:A4;margin:10mm}}
+</style>
+</head>
+<body>
+<div class="bar np">
+  <b>فرم چاپی آموزش</b>
+  <select id="tpl"></select>
+  <button onclick="print()">🖨 چاپ</button>
+  <a href="training.html">← بازگشت</a>
+  <span class="hint">خانه‌های خط‌چین را قبل از چاپ می‌توانید کلیک کنید و تایپ کنید (محل، هدف، عناوین و...).</span>
+</div>
+<div id="root"><div class="pg">در حال بارگذاری...</div></div>
+<script>
+const URL_='https://priopguwfjawybffarhd.supabase.co',KEY='sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+const H={apikey:KEY,Authorization:`Bearer ${KEY}`};
+const api=async p=>{const r=await fetch(`${URL_}/rest/v1/${p}`,{headers:H});if(!r.ok)throw new Error(await r.text());return r.json()};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const fd=d=>{try{return d?new Date(d.slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{year:'numeric',month:'2-digit',day:'2-digit'}):''}catch(e){return d||''}};
+const T={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران'};
+const TPL={L:'طرح درس + لیست امضا',S:'لیست حضور و امضا',O:'فرم آموزش توجیهی (هر نفر یک برگ)',P:'فرم آموزش پس از حادثه',C:'فرم آموزش پیمانکاران'};
+const DEF={periodic:'L',on_job:'S',onboarding:'O',post_incident:'P',contractor:'C'};
+const SEV={minor:'جزئی',moderate:'متوسط',severe:'شدید',fatal:'فوتی'};
+const ed=(t,w)=>`<span class="ed" contenteditable="true"${w?` style="min-width:${w}px"`:''}>${esc(t)}</span>`;
+const blk=(t,h)=>`<div class="ed blk" contenteditable="true" style="display:block;min-height:${h||22}px">${esc(t)}</div>`;
+let S,P,INC;
+
+const head=(title,sub)=>`<img class="logo" src="logo.png" alt="" onerror="this.style.display='none'"><div class="hd"><div class="bs">بسمه تعالی</div><h1>${title}</h1><div class="org">شرکت گسترش فناوری خوارزمی${sub?' — '+sub:''}</div></div>`;
+const foot=(a,b,c)=>`<table class="sig"><tr><td>${a}<br><br></td><td>${b}<br><br></td><td>${c}<br><br></td></tr></table>`;
+const metaRow=(...cells)=>`<tr>${cells.map(([l,v])=>`<td><b>${l}:</b> ${v}</td>`).join('')}</tr>`;
+
+/* جدول امضا: cols = [[عنوان, تابع(p)]] */
+function sigTable(cols,min){
+  const n=Math.max(P.length+2,min||12);
+  let h='<table><tr><th style="width:30px">ردیف</th>'+cols.map(c=>`<th>${c[0]}</th>`).join('')+'<th style="width:90px">امضا</th></tr>';
+  for(let i=0;i<n;i++){const p=P[i];h+=`<tr class="sig"><td>${fa(i+1)}</td>${cols.map(c=>`<td>${p?esc(c[1](p)):''}</td>`).join('')}<td></td></tr>`}
+  return h+'</table>';
+}
+const std=[['نام و نام خانوادگی',p=>p.name],['کد پرسنلی',p=>p.emp_id],['کد ملی',p=>p.nid],['عنوان شغلی',p=>p.job]];
+
+/* ---- ۱) طرح درس + لیست امضا (آموزش دوره‌ای) ---- */
+function tL(){
+  const rows=Array.from({length:7},()=>`<tr><td>${blk('',24)}</td><td>${blk('',24)}</td><td>${blk('',24)}</td><td>${blk('',24)}</td></tr>`).join('');
+  return `<div class="pg">${head('فرم طرح درس آموزش HSE','واحد بهداشت، ایمنی و محیط زیست')}
+  <div style="text-align:left;font-size:11px">تاریخ: <b>${fd(S.training_date)}</b></div>
+  <table>
+   ${metaRow(['موضوع آموزشی',esc(S.title)],['محل آموزش',ed('',120)])}
+   ${metaRow(['گروه هدف',ed('',120)],['مدت آموزش',fa(S.duration_hours||'')+' ساعت'])}
+   ${metaRow(['تعداد فراگیران',fa(P.length)+' نفر'],['آموزش‌دهنده',esc(S.trainer||'')])}
+   <tr><td colspan="2"><b>هدف اصلی:</b>${blk('',44)}</td></tr>
+   <tr><td colspan="2"><b>اهداف فرعی:</b>${blk('',70)}</td></tr>
+  </table>
+  <table><tr><th>عناوین آموزشی</th><th style="width:22%">روش آموزش</th><th style="width:12%">مدت (دقیقه)</th><th style="width:22%">وسایل آموزشی</th></tr>${rows}</table>
+  <table><tr><td><b>تکالیف فراگیران:</b>${blk('',34)}</td></tr><tr><td><b>ارزشیابی:</b>${blk('',34)}</td></tr></table>
+  ${S.notes?`<div class="cm">توضیحات: ${esc(S.notes)}</div>`:''}
+  </div>
+  <div class="pg">${head('لیست اسامی و امضای فراگیران',esc(S.title))}
+  <div style="text-align:left;font-size:11px">تاریخ: <b>${fd(S.training_date)}</b> | مدرس: <b>${esc(S.trainer||'')}</b></div>
+  ${sigTable(std,18)}</div>`;
+}
+
+/* ---- ۲) لیست حضور و امضا (آموزش حین کار و عمومی) ---- */
+function tS(){
+  return `<div class="pg">${head('فرم آموزش و لیست حضور و امضا','آموزش '+T[S.training_type])}
+  <table>${metaRow(['موضوع آموزش',esc(S.title)],['تاریخ',fd(S.training_date)])}
+  ${metaRow(['محل آموزش',ed('',120)],['مدت',fa(S.duration_hours||'')+' ساعت'])}
+  <tr><td colspan="2"><b>مدرس / برگزارکننده:</b> ${esc(S.trainer||'')}${S.contractor_name?` &nbsp;|&nbsp; <b>پیمانکار:</b> ${esc(S.contractor_name)}`:''}</td></tr>
+  <tr><td colspan="2"><b>عناوین آموزش داده‌شده:</b>${blk(S.notes||'',48)}</td></tr></table>
+  ${sigTable([['نام و نام خانوادگی',p=>p.name],['کد پرسنلی',p=>p.emp_id],['واحد / عنوان شغلی',p=>[p.dept,p.job].filter(Boolean).join(' / ')]],14)}
+  ${foot('نام و امضای مدرس:','نام و امضای مسئول واحد HSE:','نام و امضای مدیر واحد:')}</div>`;
+}
+
+/* ---- ۳) فرم آموزش توجیهی HSE (بدو استخدام / انتقال) — هر نفر یک برگ ---- */
+const OB=['آشنایی با مفاهیم و قوانین HSE','آشنایی با اصول ارگونومی و حمل صحیح بار دستی','آشنایی با مخاطرات محیط کار و نقاط حادثه‌خیز شغلی','آشنایی با عوامل زیان‌آور محیط کار','آشنایی با واکنش در شرایط اضطراری و نقطه تجمع ایمن','آشنایی با بیماری‌های شغلی مرتبط','آشنایی با تیم‌های امداد و اطفاء حریق کارخانه','آشنایی با تجهیزات حفاظت فردی و نحوه صحیح استفاده از آن','آشنایی با دستورالعمل ایمنی مرتبط با کار','آشنایی با خدمات بهداشتی و درمانی بهداری','آشنایی با اصول ایمنی کار در ارتفاع و کار با مواد شیمیایی و PTW','آشنایی با خط‌مشی زیست‌محیطی شرکت','آشنایی با SDS مواد مصرفی یا تولیدی','آشنایی با تعهدات HSE پرسنل'];
+const CM=['رعایت نکات و دستورات HSE که در جلسه آموزشی فرا گرفته‌ام را در طول مدت خدمت در شرکت رعایت خواهم نمود.','هنگام کار با مواد شیمیایی، همیشه دستورالعمل‌های ایمنی مربوط به هر ماده را رعایت کرده، از ریخت‌وپاش یا مخلوط کردن مواد بدون مجوز و آموزش خودداری خواهم کرد.','در صورت داشتن بیماری مزمن از قبیل صرع، قند خون، سرگیجه‌های مزمن و ... موارد را با واحد HSE در میان خواهم گذاشت.','قبل از شروع فعالیت، بسته به نوع کار، تجهیزات حفاظت فردی مناسب را تحویل گرفته و خود را ملزم به استفاده از آنها می‌دانم.','هنگام کار با مواد شیمیایی، از تجهیزات حفاظت فردی مربوطه استفاده خواهم نمود.','در هنگام فعالیت در ارتفاع، از کمربند ایمنی استفاده خواهم نمود.','به علائم هشداردهنده نصب‌شده در کارخانه توجه کامل خواهم نمود.','از دست‌کاری سیستم‌های برقی و تابلو برق خودداری خواهم نمود.','از کشیدن سیگار در تمامی محیط کارخانه خودداری خواهم نمود.','هرگز از ابزار و وسایل معیوب استفاده نخواهم کرد و در صورت خرابی، تعمیر آن را بر عهده تعمیرکار مربوطه خواهم گذاشت.','هرگز ابزار کار و وسایل خود را در محل‌های مرتفع که احتمال افتادن آنها وجود دارد، رها نخواهم کرد.','از دویدن و شوخی در محیط کار خودداری خواهم کرد.','در صورت مشاهده موارد و شرایط ناایمن، بلافاصله نفرات HSE را مطلع خواهم نمود.','از وسایل و دستگاه‌هایی که توان استفاده و تخصص لازم در آن را ندارم استفاده نخواهم کرد.','در صورت مشاهده شبه‌حادثه، آن را حتماً به واحد HSE اعلام خواهم نمود.','در صورت بروز حادثه در محل کار، مراتب را سریعاً به سرپرست خود اطلاع خواهم داد تا مراحل قانونی انجام گردد.','آشغال‌های موجود را در سطل‌های زباله تعبیه‌شده در قسمت‌های مختلف کارخانه ریخته و نظافت را رعایت خواهم نمود.','پس از اتمام کار نسبت به جمع‌آوری ابزار کار و نظافت محدوده کاری و چیدمان صحیح آنها اقدام خواهم نمود.','از انجام کارهای خطرناک که باعث به خطر افتادن سلامتی خود و دیگران می‌شود، اجتناب کرده و یا با هماهنگی واحد HSE انجام خواهم داد.'];
+function tO(){
+  const half=OB.length/2,box='<span class="ck">☐</span> ';
+  const crow=Array.from({length:half},(_,i)=>`<tr><td>${box}${OB[i]}</td><td>${box}${OB[i+half]}</td></tr>`).join('');
+  return (P.length?P:[{}]).map(p=>`<div class="pg">${head('فرم آموزش توجیهی HSE','بدو استخدام / حین انتقال / پس از حادثه / پیمانکار')}
+  <table>
+   <tr><td class="sec" rowspan="1" style="width:90px">الف) مشخصات فردی</td><td><b>نام و نام خانوادگی:</b> ${esc(p.name||'')}</td><td><b>شماره پرسنلی:</b> ${esc(p.emp_id||'')}</td><td><b>واحد/قسمت:</b> ${esc(p.dept||'')}</td></tr>
+   <tr><td class="sec">ب) مشخصات دوره آموزشی</td><td><b>تاریخ آموزش:</b> ${fd(S.training_date)}</td><td><b>مدت آموزش:</b> ${fa(S.duration_hours||'')} ساعت</td><td><b>محل برگزاری:</b> ${ed('',90)}</td></tr>
+  </table>
+  <table><tr><td class="sec" colspan="2">ج) محتوای آموزشی (موارد آموزش داده‌شده را علامت بزنید)</td></tr>${crow}
+   <tr><td colspan="2"><b>آموزش حین کار</b> — تاریخ: ${ed('',70)} محل آموزش: ${ed('',90)}<br>عناوین آموزش داده‌شده: ${ed('',320)}</td></tr></table>
+  <table><tr><td class="sec">د) تعهدنامه آموزشی</td></tr><tr><td class="cm">
+   اینجانب <b>${esc(p.name||'..........................')}</b> فرزند <b>${esc(p.father||'..............')}</b> از تاریخ ${ed('',80)} جهت شغل <b>${esc(p.job||'..............')}</b> در شرکت گسترش فناوری خوارزمی مشغول به کار گشته و در جلسه آموزش توجیهی HSE شرکت نموده و با <b>قوانین ایمنی، بهداشتی و محیط‌زیستی</b> آن آشنایی پیدا کرده‌ام و همچنین <b>تعهد می‌نمایم</b> که کلیه قوانین عنوان‌شده در جلسه آموزشی توجیهی HSE و نیز موارد ذیل را رعایت نموده و در صورت تخلف از قوانین مذکور این اختیار را به شرکت خواهم داد که مطابق آیین‌نامه کمیته انضباطی با اینجانب برخورد گردد.
+   <ul class="c">${CM.map(x=>`<li>${x}</li>`).join('')}</ul></td></tr></table>
+  <table class="sig"><tr><td>نام و نام خانوادگی فرد آموزش‌دیده: ${esc(p.name||'')}<br>امضا و اثر انگشت:<br><br></td><td>نام و نام خانوادگی مدرس: ${esc(S.trainer||'')}<br>امضاء:<br><br></td><td>نام و نام خانوادگی مسئول واحد HSE:<br>امضاء:<br><br></td></tr></table></div>`).join('');
+}
+
+/* ---- ۴) آموزش پس از حادثه ---- */
+const PI=['بررسی علل حادثه و درس‌های آموخته‌شده','روش صحیح و ایمن انجام کار مرتبط با حادثه','تجهیزات حفاظت فردی مرتبط و استفاده صحیح از آن','اقدامات اولیه، کمک‌های اولیه و واکنش اضطراری','اهمیت گزارش‌دهی حوادث و شبه‌حوادث','اقدام اصلاحی تعیین‌شده و نقش فراگیران در اجرای آن'];
+function tP(){
+  const i=INC||{},desc=String(i.description||'').replace(/\n?\[[^\]]*\]/g,'').trim();
+  return `<div class="pg">${head('فرم آموزش پس از حادثه','واحد بهداشت، ایمنی و محیط زیست')}
+  <table><tr><td class="sec" colspan="3">الف) مشخصات حادثه</td></tr>
+   ${metaRow(['تاریخ حادثه',i.incident_date?fd(i.incident_date):ed('',80)],['محل حادثه',esc(i.location||'')||ed('',90)],['شدت',SEV[i.severity]||ed('',50)])}
+   ${metaRow(['حادثه‌دیده',esc(i.victim||'')||ed('',90)],['عضو آسیب‌دیده',esc(i.body_part||'')||ed('',70)],['گزارش به تأمین اجتماعی',i.social_security_reported?'بله':'خیر / نامشخص'])}
+   <tr><td colspan="3"><b>شرح حادثه:</b>${blk(desc,40)}</td></tr>
+   <tr><td colspan="3"><b>عوامل ناایمن (عمل / شرایط):</b>${blk([i.unsafe_act,i.unsafe_condition].filter(Boolean).join(' — '),30)}</td></tr>
+   <tr><td colspan="3"><b>علت ریشه‌ای:</b>${blk('',28)}</td></tr>
+   <tr><td colspan="3"><b>اقدام اصلاحی:</b>${blk(i.corrective_action||'',28)}</td></tr></table>
+  <table><tr><td class="sec" colspan="2">ب) مشخصات آموزش</td></tr>
+   ${metaRow(['موضوع',esc(S.title)],['تاریخ آموزش',fd(S.training_date)])}
+   ${metaRow(['مدت',fa(S.duration_hours||'')+' ساعت'],['محل برگزاری',ed('',100)])}
+   <tr><td colspan="2"><b>مدرس:</b> ${esc(S.trainer||'')}</td></tr></table>
+  <table><tr><td class="sec">ج) محورهای آموزش (علامت بزنید)</td></tr>${PI.map(x=>`<tr><td><span class="ck">☐</span> ${x}</td></tr>`).join('')}
+   <tr><td><span class="ck">☐</span> سایر: ${ed('',300)}</td></tr></table>
+  <div class="cm">اینجانب با امضای این برگ تأیید می‌کنم در جلسه آموزشی بالا شرکت کرده و علل حادثه و روش‌های پیشگیری از تکرار آن را فراگرفته‌ام و آنها را رعایت خواهم نمود.</div></div>
+  <div class="pg">${head('لیست حاضرین آموزش پس از حادثه',esc(S.title))}
+  <div style="text-align:left;font-size:11px">تاریخ آموزش: <b>${fd(S.training_date)}</b></div>
+  ${sigTable(std,15)}${foot('نام و امضای مدرس:','نام و امضای مسئول واحد HSE:','نام و امضای مدیر واحد:')}</div>`;
+}
+
+/* ---- ۵) آموزش پیمانکاران ---- */
+const CT=['قوانین و مقررات HSE کارخانه و موارد ممنوعه (سیگار، دویدن، شوخی و...)','مخاطرات محل کار و نقاط حادثه‌خیز','تجهیزات حفاظت فردی الزامی و نحوه استفاده','مجوز کار (PTW): کار گرم، ارتفاع، فضای بسته، حفاری','ایمنی برق و قفل‌گذاری/برچسب‌گذاری (LOTO)','مواد شیمیایی، SDS و برچسب‌ها','واکنش در شرایط اضطراری، مسیر خروج و نقطه تجمع','گزارش‌دهی حوادث و شبه‌حوادث','مقررات تردد، لیفتراک و جرثقیل','نظافت و رعایت نظم و پسماند در محدوده کار'];
+function tC(){
+  return `<div class="pg">${head('فرم آموزش ایمنی پیمانکاران','واحد بهداشت، ایمنی و محیط زیست')}
+  <table>${metaRow(['شرکت پیمانکار',esc(S.contractor_name||'')||ed('',120)],['تاریخ آموزش',fd(S.training_date)])}
+  ${metaRow(['محدوده کار / پروژه',ed('',150)],['مدت آموزش',fa(S.duration_hours||'')+' ساعت'])}
+  ${metaRow(['محل برگزاری',ed('',120)],['مدرس',esc(S.trainer||'')])}</table>
+  <table><tr><td class="sec" colspan="2">محتوای آموزشی (علامت بزنید)</td></tr>
+  ${Array.from({length:CT.length/2},(_,k)=>`<tr><td><span class="ck">☐</span> ${CT[k]}</td><td><span class="ck">☐</span> ${CT[k+CT.length/2]}</td></tr>`).join('')}</table>
+  <div class="cm"><b>تعهدنامه:</b> اینجانبان با امضای ذیل تأیید می‌نماییم که در جلسه آموزش ایمنی شرکت گسترش فناوری خوارزمی شرکت کرده و مطالب فوق را فراگرفته‌ایم و متعهد می‌شویم قوانین HSE کارخانه، دستورات واحد HSE و شرایط مجوز کار را رعایت نماییم. در صورت تخلف، شرکت مجاز به توقف کار و برخورد مطابق قرارداد خواهد بود.</div>
+  ${sigTable([['نام و نام خانوادگی',p=>p.name],['کد ملی',p=>p.nid],['سمت / تخصص',p=>p.job],['شماره تماس',p=>p.phone]],12)}
+  <table class="sig"><tr><td>نماینده پیمانکار — نام و امضا:</td><td>مدرس — نام و امضا:</td><td>مسئول واحد HSE — نام و امضا:</td></tr></table></div>`;
+}
+
+const F={L:tL,S:tS,O:tO,P:tP,C:tC};
+function draw(){$('root').innerHTML=F[$('tpl').value]()}
+const $=id=>document.getElementById(id);
+(async()=>{
+  const id=new URLSearchParams(location.search).get('id');
+  if(!id){$('root').innerHTML='<div class="pg">شناسه جلسه مشخص نیست. از صفحه‌ی آموزش، دکمه‌ی «فرم چاپی» را بزنید.</div>';return}
+  try{
+    [S]=await api('trainings?id=eq.'+encodeURIComponent(id));
+    if(!S)throw new Error('جلسه پیدا نشد');
+    const att=await api('training_attendees?training_id=eq.'+encodeURIComponent(id)+'&select=*');
+    const ids=att.map(a=>a.employee_id).filter(Boolean);
+    const emps=ids.length?await api('employees?select=*&id=in.('+ids.join(',')+')'):[];
+    P=att.map(a=>{const e=emps.find(x=>x.id===a.employee_id);return e?{name:`${e.first_name||''} ${e.last_name||''}`.trim(),emp_id:e.emp_id||'',nid:e.national_id||'',job:e.job_title||'',dept:e.department||'',father:e.father_name||'',phone:e.phone_mobile||''}:{name:a.person_name||'',emp_id:'',nid:'',job:'',dept:'',father:'',phone:''}});
+    P.sort((a,b)=>String(a.emp_id).localeCompare(String(b.emp_id),undefined,{numeric:true}));
+    if(S.incident_id){try{[INC]=await api('clinic_incidents?id=eq.'+S.incident_id+'&select=*');if(INC&&INC.employee_id){const [v]=await api('employees?select=first_name,last_name&id=eq.'+INC.employee_id);if(v)INC.victim=`${v.first_name||''} ${v.last_name||''}`.trim()}}catch(e){}}
+    $('tpl').innerHTML=Object.entries(TPL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+    $('tpl').value=DEF[S.training_type]||'S';$('tpl').onchange=draw;draw();
+  }catch(e){$('root').innerHTML='<div class="pg">خطا: '+esc(e.message)+'</div>'}
+})();
+</script>
+</body>
+</html>
