@@ -10,7 +10,7 @@
 <style>
   body { font-family: 'Vazirmatn', sans-serif; }
   .grid-btn {
-    @apply flex flex-col items-center justify-center p-3.5 bg-slate-800/80 hover:bg-slate-700/90 border border-slate-700/80 hover:border-emerald-500/50 rounded-2xl transition-all duration-200 text-center shadow-md gap-2;
+    @apply flex flex-col items-center justify-center p-3.5 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 hover:border-emerald-500/50 rounded-2xl transition-all duration-200 text-center shadow-md gap-2;
   }
 </style>
 </head>
@@ -25,17 +25,17 @@
                     <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded-lg shadow" onerror="this.style.display='none'">
                     <div class="text-right">
                         <h1 class="text-base font-extrabold text-white leading-tight">نرم‌افزار جامع HSE</h1>
-                        <p class="text-[10px] text-slate-400">سامانه یکپارچه مدیریت ایمنی و بهداشت</p>
+                        <p class="text-[10px] text-slate-400">سامانه یکپارچه مدیریت ایمنی، بهداشت و تجهیزات</p>
                     </div>
                 </div>
-                <a href="report.html" class="bg-teal-950/60 hover:bg-teal-900/60 border border-teal-500/40 text-teal-300 text-xs px-3 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all">
+                <a href="report.html" class="bg-teal-950/60 hover:bg-teal-900/60 border border-teal-500/40 text-teal-300 text-xs px-3 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0">
                     <span>📊</span>
                     <span>گزارش ماهانه</span>
                 </a>
             </div>
         </header>
 
-        <!-- ویجت‌های هشدار بالا -->
+        <!-- ویجت‌های وضعیت لحظه‌ای بالا -->
         <section class="grid grid-cols-3 gap-2">
             <a id="alertWidget" href="checklists.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
                 <div id="alertIcon" class="text-emerald-400 font-bold text-sm">✓</div>
@@ -56,11 +56,11 @@
             </a>
         </section>
 
-        <!-- ماژول‌های عملیاتی (ساختار شبکه‌ای مرتب‌شده) -->
+        <!-- ماژول‌های اصلی (ساختار شبکه‌ایِ مرتب و خلوت) -->
         <main class="space-y-4">
             
-            <!-- بخش ۱: بازرسی و پایش ایمنی -->
-            <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-3.5 space-y-2.5">
+            <!-- بخش ۱: بازرسی و ایمنی -->
+            <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-3 space-y-2.5">
                 <h2 class="text-xs font-bold text-slate-400 px-1">🛡️ بازرسی و ایمنی فرآیندی</h2>
                 <div class="grid grid-cols-2 gap-2">
                     <a href="checklists.html" class="grid-btn">
@@ -82,9 +82,9 @@
                 </div>
             </div>
 
-            <!-- بخش ۲: سلامت، طب کار و پرسنل (کاملاً مجزا از انضباطی) -->
-            <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-3.5 space-y-2.5">
-                <h2 class="text-xs font-bold text-slate-400 px-1">🏥 سلامت و منابع انسانی</h2>
+            <!-- بخش ۲: بهداشت، طب کار و پرسنل (مستقل) -->
+            <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-3 space-y-2.5">
+                <h2 class="text-xs font-bold text-slate-400 px-1">🏥 بهداشت، طب کار و پرسنل</h2>
                 <div class="grid grid-cols-2 gap-2">
                     <a href="clinic.html" class="grid-btn">
                         <span class="text-xl">🏥</span>
@@ -98,7 +98,7 @@
             </div>
 
             <!-- بخش ۳: انضباطی، آموزش و فرهنگ -->
-            <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-3.5 space-y-2.5">
+            <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-3 space-y-2.5">
                 <h2 class="text-xs font-bold text-slate-400 px-1">⚖️ انضباطی، آموزش و فرهنگ</h2>
                 <div class="grid grid-cols-2 gap-2">
                     <a href="ekhtar.html" class="grid-btn">
