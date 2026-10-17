@@ -179,7 +179,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-3">
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="incSsRep" class="w-4 h-4"><span class="text-xs text-slate-300 font-bold">گزارش شده به بیمه تامین اجتماعی؟</span></label>
                     <div id="ssBox" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div><label class="block text-[11px] text-slate-400 mb-1">تاریخ ارسال گزارش</label><input type="date" id="incSsDate" class="fld" dir="ltr"></div>
+                        <div><label class="block text-[11px] text-slate-400 mb-1">تاریخ ارسال گزارش</label><div id="incSsDate" class="jd" style="display:flex;gap:4px"><select class="fld" style="flex:0 0 28%;min-width:0"></select><select class="fld" style="flex:1;min-width:0"></select><select class="fld" style="flex:0 0 32%;min-width:0"></select></div></div>
                         <div><label class="block text-[11px] text-slate-400 mb-1">شعبه تامین اجتماعی</label><input type="text" id="incSsBranch" class="fld" placeholder="نام شعبه..."></div>
                     </div>
                 </div>
@@ -188,7 +188,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                     <div><label class="block text-[11px] text-slate-400 mb-1">شرح اقدام اصلاحی</label><input type="text" id="incAction" class="fld" placeholder="اقدام جهت عدم تکرار..."></div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div><label class="block text-[11px] text-slate-400 mb-1">مسئول انجام</label><input type="text" id="incOwner" class="fld" placeholder="نام مسئول..."></div>
-                        <div><label class="block text-[11px] text-slate-400 mb-1">سررسید اقدام</label><input type="date" id="incDueDate" class="fld" dir="ltr"></div>
+                        <div><label class="block text-[11px] text-slate-400 mb-1">سررسید اقدام</label><div id="incDueDate" class="jd" style="display:flex;gap:4px"><select class="fld" style="flex:0 0 28%;min-width:0"></select><select class="fld" style="flex:1;min-width:0"></select><select class="fld" style="flex:0 0 32%;min-width:0"></select></div></div>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -224,7 +224,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div><label class="block text-xs text-slate-300 mb-1">نوع</label><select id="fuKind" class="fld"></select></div>
                     <div><label class="block text-xs text-slate-300 mb-1">اولویت</label><select id="fuPrio" class="fld"><option value="normal">عادی</option><option value="urgent">فوری</option></select></div>
-                    <div><label class="block text-xs text-slate-300 mb-1">سررسید</label><input type="date" id="fuDue" class="fld" dir="ltr"></div>
+                    <div><label class="block text-xs text-slate-300 mb-1">سررسید</label><div id="fuDue" class="jd" style="display:flex;gap:4px"><select class="fld" style="flex:0 0 28%;min-width:0"></select><select class="fld" style="flex:1;min-width:0"></select><select class="fld" style="flex:0 0 32%;min-width:0"></select></div></div>
                 </div>
                 <div><label class="block text-xs text-slate-300 mb-1">عنوان</label><input id="fuTitle" class="fld" placeholder="مثلاً: ارجاع به متخصص قلب" required></div>
                 <div><label class="block text-xs text-slate-300 mb-1">مقصد / پزشک / مرکز</label><input id="fuDest" class="fld" placeholder="نام بیمارستان، کلینیک یا پزشک"></div>
@@ -294,6 +294,18 @@ const SB_KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 const H = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };
 const JH = Object.assign({}, H, { 'Content-Type': 'application/json' });
 const $ = id => document.getElementById(id);
+/* تقویم شمسی برای فیلدهای تاریخ اختیاری: روز/ماه/سال؛ ذخیره به‌صورت تاریخ میلادی ISO */
+const JMN = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const JFMT = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC' });
+const jfa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const toJal = d => { const p = JFMT.formatToParts(d), g = t => +p.find(x => x.type === t).value; return [g('year'), g('month'), g('day')]; };
+function jalToISO(y, m, d) { const st = Date.UTC(y + 621, 2, 17); for (let i = 0; i < 400; i++) { const t = new Date(st + i * 864e5), j = toJal(t); if (j[0] === y && j[1] === m && j[2] === d) return t.toISOString().slice(0, 10); } return null; }
+function jdGet(id) { const [d, m, y] = [...$(id).querySelectorAll('select')].map(x => +x.value); if (!d || !m || !y) return null; return jalToISO(y, m, d) || jalToISO(y, m, 29); }
+function jdInit(el) { const ty = toJal(new Date())[0], o = (v, t) => `<option value="${v}">${t}</option>`, ss = el.querySelectorAll('select');
+  ss[0].innerHTML = o('', 'روز') + Array.from({ length: 31 }, (_, i) => o(i + 1, jfa(i + 1))).join('');
+  ss[1].innerHTML = o('', 'ماه') + JMN.map((n, i) => o(i + 1, n)).join('');
+  ss[2].innerHTML = o('', 'سال') + [ty - 1, ty, ty + 1, ty + 2].map(v => o(v, jfa(v))).join(''); }
+document.querySelectorAll('.jd').forEach(jdInit);
 
 const MEDS = [
  'استامینوفن ۵۰۰ میلی‌گرم قرص','استامینوفن کدئین قرص','ایبوپروفن ۴۰۰ قرص','ناپروکسن ۲۵۰ قرص','دیکلوفناک ۵۰ قرص','دیکلوفناک آمپول','کتورولاک آمپول','پیروکسیکام کپسول','ملوکسیکام قرص',
@@ -678,11 +690,11 @@ $('incForm').onsubmit = async function (e) {
         unsafe_act: $('incAct').value.trim() || null,
         unsafe_condition: $('incCond').value.trim() || null,
         social_security_reported: $('incSsRep').checked,
-        ss_report_date: $('incSsRep').checked ? ($('incSsDate').value || null) : null,
+        ss_report_date: $('incSsRep').checked ? (jdGet('incSsDate') || null) : null,
         ss_branch: $('incSsRep').checked ? ($('incSsBranch').value.trim() || null) : null,
         corrective_action: $('incAction').value.trim() || null,
         action_owner: $('incOwner').value.trim() || null,
-        action_due_date: $('incDueDate').value || null,
+        action_due_date: jdGet('incDueDate') || null,
         action_status: 'pending'
     };
 
@@ -924,7 +936,7 @@ $('fuForm').onsubmit = async function (e) {
             body: JSON.stringify({
                 employee_id: emp.id, kind: $('fuKind').value, priority: $('fuPrio').value,
                 title: $('fuTitle').value.trim(), destination: $('fuDest').value.trim() || null,
-                reason: $('fuReason').value.trim() || null, due_date: $('fuDue').value || null
+                reason: $('fuReason').value.trim() || null, due_date: jdGet('fuDue') || null
             })
         });
         $('fuForm').reset(); $('fuFormCard').classList.add('hidden');
