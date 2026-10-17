@@ -9,23 +9,23 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   body { font-family: 'Vazirmatn', sans-serif; }
-  .menu-item {
-    @apply flex items-center justify-between p-3 bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/60 hover:border-emerald-500/40 rounded-xl transition-all text-right;
+  .grid-btn {
+    @apply flex flex-col items-center justify-center p-3.5 bg-slate-800/80 hover:bg-slate-700/90 border border-slate-700/80 hover:border-emerald-500/50 rounded-2xl transition-all duration-200 text-center shadow-md gap-2;
   }
 </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between p-4 selection:bg-emerald-500 selection:text-slate-900">
 
-    <div class="max-w-md w-full mx-auto space-y-4">
+    <div class="max-w-lg w-full mx-auto space-y-4">
         
-        <!-- هدر اصلی -->
+        <!-- هدر و لوگوی خوارزمی -->
         <header class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-lg text-center">
             <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
                     <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded-lg shadow" onerror="this.style.display='none'">
                     <div class="text-right">
                         <h1 class="text-base font-extrabold text-white leading-tight">نرم‌افزار جامع HSE</h1>
-                        <p class="text-[10px] text-slate-400">گسترش فناوری خوارزمی</p>
+                        <p class="text-[10px] text-slate-400">سامانه یکپارچه مدیریت ایمنی و بهداشت</p>
                     </div>
                 </div>
                 <a href="report.html" class="bg-teal-950/60 hover:bg-teal-900/60 border border-teal-500/40 text-teal-300 text-xs px-3 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all">
@@ -35,17 +35,17 @@
             </div>
         </header>
 
-        <!-- وضعیت‌های لحظه‌ای (۳ ویجت بالا) -->
+        <!-- ویجت‌های هشدار بالا -->
         <section class="grid grid-cols-3 gap-2">
             <a id="alertWidget" href="checklists.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
                 <div id="alertIcon" class="text-emerald-400 font-bold text-sm">✓</div>
-                <h3 id="alertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">ایمنی</h3>
+                <h3 id="alertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">ایمنی کارخانه</h3>
                 <p id="alertDesc" class="text-[9px] text-slate-400 truncate">بررسی...</p>
             </a>
 
             <a id="clinicAlertWidget" href="clinic.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
                 <div id="clinicAlertIcon" class="text-rose-400 font-bold text-sm">🏥</div>
-                <h3 id="clinicAlertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">بهداری</h3>
+                <h3 id="clinicAlertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">بهداری و حوادث</h3>
                 <p id="clinicAlertDesc" class="text-[9px] text-slate-400 truncate">بررسی...</p>
             </a>
 
@@ -56,89 +56,62 @@
             </a>
         </section>
 
-        <!-- منوهای اصلی (دسته‌بندی‌های پاکیزه و خطی) -->
+        <!-- ماژول‌های عملیاتی (ساختار شبکه‌ای مرتب‌شده) -->
         <main class="space-y-4">
             
-            <!-- بخش ۱: بازرسی و ایمنی -->
-            <div class="space-y-2">
+            <!-- بخش ۱: بازرسی و پایش ایمنی -->
+            <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-3.5 space-y-2.5">
                 <h2 class="text-xs font-bold text-slate-400 px-1">🛡️ بازرسی و ایمنی فرآیندی</h2>
-                <div class="space-y-1.5">
-                    <a href="checklists.html" class="menu-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base">📋</span>
-                            <span class="text-xs font-bold text-white">چک‌لیست‌ها و بازرسی</span>
-                        </div>
-                        <span class="text-xs text-slate-500">←</span>
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="checklists.html" class="grid-btn">
+                        <span class="text-xl">📋</span>
+                        <span class="text-xs font-bold text-white">چک‌لیست‌ها و بازرسی</span>
                     </a>
-                    <a href="equipment.html" class="menu-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base">🏗</span>
-                            <span class="text-xs font-bold text-white">تجهیزات و ماشین‌آلات</span>
-                        </div>
-                        <span class="text-xs text-slate-500">←</span>
+                    <a href="equipment.html" class="grid-btn">
+                        <span class="text-xl">🏗</span>
+                        <span class="text-xs font-bold text-white">تجهیزات و ماشین‌آلات</span>
                     </a>
-                    <a href="cards.html" class="menu-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base">🗂</span>
-                            <span class="text-xs font-bold text-white">کارت خطر و پیشنهاد</span>
-                        </div>
-                        <span class="text-xs text-slate-500">←</span>
+                    <a href="cards.html" class="grid-btn">
+                        <span class="text-xl">🗂</span>
+                        <span class="text-xs font-bold text-white">کارت خطر و پیشنهاد</span>
                     </a>
-                    <a href="evaluation.html" class="menu-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base">📈</span>
-                            <span class="text-xs font-bold text-white">ارزیابی عملکرد واحدها</span>
-                        </div>
-                        <span class="text-xs text-slate-500">←</span>
+                    <a href="evaluation.html" class="grid-btn">
+                        <span class="text-xl">📈</span>
+                        <span class="text-xs font-bold text-white">ارزیابی عملکرد واحدها</span>
                     </a>
                 </div>
             </div>
 
-            <!-- بخش ۲: سلامت و پرسنل -->
-            <div class="space-y-2">
-                <h2 class="text-xs font-bold text-slate-400 px-1">🏥 سلامت، طب کار و پرسنل</h2>
-                <div class="space-y-1.5">
-                    <a href="clinic.html" class="menu-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base">🏥</span>
-                            <span class="text-xs font-bold text-white">بهداری و سوابق پزشکی</span>
-                        </div>
-                        <span class="text-xs text-slate-500">←</span>
+            <!-- بخش ۲: سلامت، طب کار و پرسنل (کاملاً مجزا از انضباطی) -->
+            <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-3.5 space-y-2.5">
+                <h2 class="text-xs font-bold text-slate-400 px-1">🏥 سلامت و منابع انسانی</h2>
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="clinic.html" class="grid-btn">
+                        <span class="text-xl">🏥</span>
+                        <span class="text-xs font-bold text-white">بهداری و سوابق پزشکی</span>
                     </a>
-                    <a href="employees.html" class="menu-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base">👥</span>
-                            <span class="text-xs font-bold text-white">بانک اطلاعاتی پرسنل</span>
-                        </div>
-                        <span class="text-xs text-slate-500">←</span>
+                    <a href="employees.html" class="grid-btn">
+                        <span class="text-xl">👥</span>
+                        <span class="text-xs font-bold text-white">بانک اطلاعاتی پرسنل</span>
                     </a>
                 </div>
             </div>
 
             <!-- بخش ۳: انضباطی، آموزش و فرهنگ -->
-            <div class="space-y-2">
+            <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-3.5 space-y-2.5">
                 <h2 class="text-xs font-bold text-slate-400 px-1">⚖️ انضباطی، آموزش و فرهنگ</h2>
-                <div class="space-y-1.5">
-                    <a href="ekhtar.html" class="menu-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base">⚠️</span>
-                            <span class="text-xs font-bold text-white">سوابق انضباطی و اخطارها</span>
-                        </div>
-                        <span class="text-xs text-slate-500">←</span>
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="ekhtar.html" class="grid-btn">
+                        <span class="text-xl">⚠️</span>
+                        <span class="text-xs font-bold text-white">سوابق انضباطی و اخطارها</span>
                     </a>
-                    <a href="training.html" class="menu-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base">🎓</span>
-                            <span class="text-xs font-bold text-white">آموزش HSE</span>
-                        </div>
-                        <span class="text-xs text-slate-500">←</span>
+                    <a href="training.html" class="grid-btn">
+                        <span class="text-xl">🎓</span>
+                        <span class="text-xs font-bold text-white">آموزش HSE</span>
                     </a>
-                    <a href="culture.html" class="menu-item">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base">🪜</span>
-                            <span class="text-xs font-bold text-white">نردبان فرهنگ ایمنی</span>
-                        </div>
-                        <span class="text-xs text-slate-500">←</span>
+                    <a href="culture.html" class="grid-btn col-span-2">
+                        <span class="text-xl">🪜</span>
+                        <span class="text-xs font-bold text-white">نردبان فرهنگ ایمنی</span>
                     </a>
                 </div>
             </div>
@@ -146,7 +119,7 @@
         </main>
     </div>
 
-    <!-- فوتر -->
+    <!-- فوتر سامانه -->
     <footer class="text-center py-4 text-xs text-slate-500 mt-6 border-t border-slate-800">
         نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح: <span class="text-slate-300 font-semibold">محمد اله رضایی</span>
     </footer>
@@ -160,20 +133,17 @@ async function checkOpenFindings() {
         const res = await fetch(`${URL_}/rest/v1/findings?status=eq.open&select=id`, { headers });
         const data = await res.json();
         const count = data.length || 0;
-
-        document.getElementById('alertTitle').innerText = count > 0 ? `${count} مورد باز` : 'وضعیت مطلوب';
+        document.getElementById('alertTitle').innerText = count > 0 ? `${count} مورد باز` : 'ایمنی مطلوب';
         document.getElementById('alertDesc').innerText = count > 0 ? 'نیازمند پیگیری' : 'بدون خطر';
         if(count > 0) document.getElementById('alertIcon').className = "text-red-400 font-bold text-sm animate-pulse";
-    } catch (e) {
-        document.getElementById('alertDesc').innerText = "متصل";
-    }
+    } catch (e) {}
 }
 
 async function checkClinicSummary() {
     try {
         const res = await fetch(`${URL_}/rest/v1/clinic_incidents?select=id`, { headers });
         const data = await res.json();
-        document.getElementById('clinicTitle').innerText = `${data.length || 0} حادثه`;
+        document.getElementById('clinicAlertTitle').innerText = `${data.length || 0} حادثه`;
         document.getElementById('clinicAlertDesc').innerText = "ثبت شده";
     } catch (e) {}
 }
