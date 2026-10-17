@@ -106,6 +106,18 @@ body div#app { display: flex; flex-direction: column; }
 
 @media print { .np { display: none !important; } body { padding: 0; background: #fff; color: #000; } }
 [hidden] { display: none !important; }
+.th { background: #1e293b; }
+.fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.fgrid select, .fgrid input { margin-top: 0; min-height: 42px; font-size: 13px; }
+.fgrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.chip { min-height: 38px; padding: 0 14px; border-radius: 20px; font-size: 13px; }
+.chip.on { background: var(--ac); color: #0f172a; border-color: var(--ac); }
+.pager { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.pager button { padding: 0 14px; min-height: 42px; }
+.pager button:disabled { opacity: .4; }
+details > summary { list-style: none; } 
+textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--ln); border-radius: 10px; padding: 10px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -226,7 +238,7 @@ Object.entries(SPLIT).forEach(([k, v]) => {
 const sevB = x => x.severity ? `<span class="bg" style="background:${SEVC[x.severity]}22;color:${SEVC[x.severity]}">شدت: ${SEVN[x.severity]}</span>` : '';
 const dueB = x => { if (!x.due_date) return ''; const o = x.status == 'open' && new Date(x.due_date + 'T23:59:59') < Date.now(); return `<span class="bg ${o ? 'r' : 'g'}">مهلت: ${fd(x.due_date)}${o ? ' (گذشته)' : ''}</span>`; };
 
-const FQ = { 'روزانه': 1, 'ماهانه': 31, 'فصلی': 92, 'هر پروژه': null };
+const FREQ = { 'روزانه': 1, 'ماهانه': 31, 'فصلی': 92, 'هر پروژه': null };
 const nl = l => (l || '').trim().replace(/\s+/g, ' ') || 'نامشخص';
 const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
 const bar = (v, mx, c) => `<div class="sb"><i style="width:${mx ? Math.max(2, v / mx * 100) : 0}%;background:${c}"></i></div>`;
@@ -475,15 +487,42 @@ async function up(b) {
   return p;
 }
 
-const pimg = async p => {
-  try {
-    const r = await fetch(URL_ + '/storage/v1/object/authenticated/photos/' + p, { headers: AH() });
-    if (r.ok) return URL.createObjectURL(await r.blob());
-  } catch (e) { }
-  return URL_ + '/storage/v1/object/public/photos/' + p;
+/* ===== ذخیره محلی تصاویر (File System Access) ===== */
+const IDB = {
+  open: () => new Promise((res, rej) => { const r = indexedDB.open('hse', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }),
+  async get(k) { try { const db = await this.open(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch (e) { return null; } },
+  async set(k, v) { const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
 };
-const li = () => document.querySelectorAll('img[data-p]').forEach(async i => { try { i.src = await pimg(i.dataset.p); } catch (e) { } });
-const th = a => (a || []).map(p => `<span class="th"><img data-a="zoom" data-p="${p}"></span>`).join('');
+let LDIR = null, LPERM = false, LINIT = false;
+const FSA = typeof window.showDirectoryPicker == 'function';
+async function localInit() {
+  if (LINIT) return; LINIT = true;
+  try { LDIR = (await IDB.get('dir')) || null; if (LDIR) LPERM = (await LDIR.queryPermission({ mode: 'readwrite' })) == 'granted'; } catch (e) { LDIR = null; }
+}
+async function localPick() { LDIR = await showDirectoryPicker({ mode: 'readwrite' }); await IDB.set('dir', LDIR); LPERM = true; }
+async function localAllow() { try { if (LDIR && (await LDIR.requestPermission({ mode: 'readwrite' })) == 'granted') LPERM = true; } catch (e) { } return LPERM; }
+async function localFile(p) { if (!LDIR || !LPERM) return null; try { return await (await LDIR.getFileHandle(p)).getFile(); } catch (e) { return null; } }
+
+/* ===== نمایش تصاویر: تنبل (فقط وقتی نزدیک صفحه‌اند) + اول پوشه محلی، بعد آدرس عمومی (کش مرورگر) ===== */
+const pubUrl = p => URL_ + '/storage/v1/object/public/photos/' + p;
+async function resolveSrc(p) { const f = await localFile(p); return f ? URL.createObjectURL(f) : pubUrl(p); }
+const NOPIC = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72"><rect width="72" height="72" fill="#334155"/><text x="36" y="40" font-size="10" fill="#94a3b8" text-anchor="middle">یافت نشد</text></svg>');
+const li = () => {
+  window.IO = window.IO || new IntersectionObserver(es => es.forEach(async en => {
+    if (!en.isIntersecting) return; const i = en.target; IO.unobserve(i);
+    try { i.src = await resolveSrc(i.dataset.p); } catch (e) { }
+  }), { rootMargin: '500px' });
+  document.querySelectorAll('img[data-p]:not([src])').forEach(i => IO.observe(i));
+};
+/* اگر آدرس عمومی لود نشد: مسیر authenticated، و در نهایت تصویر «یافت نشد» */
+document.addEventListener('error', async e => {
+  const i = e.target; if (!i || i.tagName != 'IMG' || !i.dataset || !i.dataset.p || i.dataset.fb == '2') return;
+  if (i.dataset.fb == '1') { i.dataset.fb = '2'; i.src = NOPIC; i.title = 'فایل در سوپابیس نیست؛ اگر به کامپیوتر منتقل شده، پوشه را متصل کنید'; return; }
+  i.dataset.fb = '1';
+  try { const r = await fetch(URL_ + '/storage/v1/object/authenticated/photos/' + i.dataset.p, { headers: AH() }); if (r.ok) { i.src = URL.createObjectURL(await r.blob()); return; } } catch (er) { }
+  i.dataset.fb = '2'; i.src = NOPIC;
+}, true);
+const th = (a, id, k, ed) => (a || []).map(p => `<span class="th"><img data-a="zoom" data-p="${esc(p)}" decoding="async">${ed ? `<b data-a="delph" data-id="${id}" data-k="${k}" data-p="${esc(p)}">×</b>` : ''}</span>`).join('');
 const nm = k => (M.find(m => m[0] == k) || [])[1], mn = k => esc(nm(k));
 
 fi.onchange = async () => {
@@ -496,57 +535,259 @@ fi.onchange = async () => {
       }
       form(); scrollTo(0, y);
     } else {
+      const key = FT.m == 'addbf' ? 'photos_before' : 'photos_after';
       const ps = []; for (const f of fs) ps.push(await up(await shrink(f)));
-      const [x] = await api('findings?select=photos_after&id=eq.' + FT.id);
-      await api('findings?id=eq.' + FT.id, { method: 'PATCH', body: JSON.stringify({ photos_after: [...(x.photos_after || []), ...ps] }) });
-      await finds(); scrollTo(0, y);
+      const [x] = await api('findings?select=' + key + '&id=eq.' + FT.id);
+      await api('findings?id=eq.' + FT.id, { method: 'PATCH', body: JSON.stringify({ [key]: [...(x[key] || []), ...ps] }) });
+      await loadFinds(); scrollTo(0, y);
     }
   } catch (e) { alert(e.message); }
 };
 
-let FI = '';
+/* ===== مدیریت و پیگیری عدم‌انطباق‌ها: جستجو، فیلتر، گروه‌بندی، صفحه‌بندی، ویرایش ===== */
+let FI = '', EDIT = null, FTM = null;
+const FQ = { q: '', mod: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', jy: 0, jm: 0, grp: '', ord: 'new', page: 0, size: 20 };
+const CATN = [...CATS.map(c => c[0]), 'نظم و ایمنی عمومی'];
+const GCOL = { mod: 'module', cat: 'category', loc: 'location', st: 'status', sev: 'severity' };
+
+function fRange() {
+  const d = { d7: 7, d30: 30, d90: 90 }[FQ.per];
+  if (d) return { from: new Date(Date.now() - d * 864e5), to: null };
+  if (FQ.per == 'j') {
+    const y = +FQ.jy, m = +FQ.jm;
+    if (m == 0) return { from: jStart(y, 1), to: jStart(y + 1, 1) };
+    return { from: jStart(y, m), to: m == 12 ? jStart(y + 1, 1) : jStart(y, m + 1) };
+  }
+  return { from: null, to: null };
+}
+function fQuery(skipSt) {
+  let q = '';
+  if (FI) q += '&inspection_id=eq.' + FI;
+  if (FQ.mod) q += '&module=eq.' + encodeURIComponent(FQ.mod);
+  if (FQ.st && !skipSt) q += '&status=eq.' + FQ.st;
+  if (FQ.sev) q += '&severity=eq.' + FQ.sev;
+  if (FQ.cat) q += '&category=eq.' + encodeURIComponent(FQ.cat);
+  const lc = FQ.loc.trim().replace(/[,()*%\\:"]/g, ' ').trim();
+  if (lc) q += '&location=ilike.' + encodeURIComponent('*' + lc + '*');
+  if (FQ.ntc == 'yes') q += '&notice_at=not.is.null'; else if (FQ.ntc == 'no') q += '&notice_at=is.null';
+  if (FQ.ph == 'noafter') q += '&photos_after=eq.%7B%7D';
+  else if (FQ.ph == 'ph') q += '&photos_before=cs.%7Bno-photo-placeholder.jpg%7D';
+  const r = fRange();
+  if (r.from) q += '&created_at=gte.' + encodeURIComponent(r.from.toISOString());
+  if (r.to) q += '&created_at=lt.' + encodeURIComponent(r.to.toISOString());
+  const s = FQ.q.trim().replace(/[,()*%\\:"]/g, ' ').trim();
+  if (s) q += '&or=(' + ['question', 'note', 'qid', 'location', 'notice_code', 'responsible'].map(c => c + '.ilike.' + encodeURIComponent('*' + s + '*')).join(',') + ')';
+  return q;
+}
+function fOrder() {
+  const o = { new: 'created_at.desc', old: 'created_at.asc', sev: 'severity.desc,created_at.desc', due: 'due_date.asc.nullslast,created_at.desc' }[FQ.ord];
+  const g = GCOL[FQ.grp]; if (!g) return o;
+  return (FQ.grp == 'st' || FQ.grp == 'sev' ? g + '.desc' : g + '.asc') + ',' + o;
+}
+async function fFetch(path, count) {
+  const r = await fetch(URL_ + '/rest/v1/' + path, { headers: { ...AH(), ...(count ? { Prefer: 'count=exact' } : {}) } });
+  if (r.status == 401) throw new Error('دسترسی غیرمجاز (401).');
+  if (!r.ok) throw new Error(await r.text());
+  const m = /\/(\d+)$/.exec(r.headers.get('content-range') || '');
+  return { rows: await r.json(), total: m ? +m[1] : null };
+}
+const gLabel = x => FQ.grp == 'mod' ? nm(x.module) : FQ.grp == 'cat' ? (x.category || 'بدون دسته') : FQ.grp == 'loc' ? nl(x.location) : FQ.grp == 'st' ? (x.status == 'open' ? 'باز' : 'اصلاح‌شده') : FQ.grp == 'sev' ? 'شدت: ' + (SEVN[x.severity] || 'نامشخص') : '';
+const optH = (v, t, cur) => `<option value="${esc(v)}" ${String(cur) == String(v) ? 'selected' : ''}>${esc(t)}</option>`;
+
+function fcard(x) {
+  const ed = EDIT == x.id, ph = (x.photos_before || []).includes('no-photo-placeholder.jpg');
+  const head = ed ? `
+    <textarea data-ef="question" rows="3" style="width:100%; margin-top:8px;">${esc(x.question)}</textarea>
+    <label style="font-size:12px; color:var(--mu);">توضیحات</label>
+    <textarea data-ef="note" rows="3" style="width:100%;">${esc(x.note)}</textarea>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div><label style="font-size:12px; color:var(--mu);">محل</label><input data-ef="location" list="locs" value="${esc(x.location)}"></div>
+      <div><label style="font-size:12px; color:var(--mu);">چک‌لیست / ماژول</label><select data-ef="module">${M.map(m => optH(m[0], m[1], x.module)).join('')}</select></div>
+      <div><label style="font-size:12px; color:var(--mu);">شدت</label><select data-ef="severity">${[1, 2, 3, 4].map(s => optH(s, SEVN[s], x.severity || 2)).join('')}</select></div>
+      <div><label style="font-size:12px; color:var(--mu);">دسته</label><select data-ef="category">${CATN.concat(x.category && !CATN.includes(x.category) ? [x.category] : []).map(c => optH(c, c, x.category)).join('')}</select></div>
+      <div><label style="font-size:12px; color:var(--mu);">مسئول پیگیری</label><input data-ef="responsible" value="${esc(x.responsible || '')}"></div>
+      <div><label style="font-size:12px; color:var(--mu);">مهلت اصلاح</label><input type="date" data-ef="due_date" value="${esc(x.due_date || '')}"></div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
+      <button class="p" data-a="fsave" data-id="${x.id}" style="margin:0; min-height:42px;">💾 ذخیره</button>
+      <button data-a="fcancel" style="min-height:42px;">انصراف</button>
+    </div>` : `
+    <p>${esc(x.question)}</p>
+    <small style="margin-top:4px;">${mn(x.module)} · ${esc(x.location)} · ${fd(x.created_at)} · <span dir="ltr">${esc(x.qid || '')}</span></small>
+    <div style="margin-top:6px;">${sevB(x)}${x.category ? `<span class="ct">${esc(x.category)}</span>` : ''}${x.responsible ? `<span class="bg g">مسئول: ${esc(x.responsible)}</span>` : ''} ${dueB(x)}${ph ? '<span class="ct">بدون عکس در گزارش اصلی</span>' : ''}</div>
+    <p style="font-size:13px; font-weight:400; color:var(--mu); margin-top:6px;">${esc(x.note)}</p>`;
+  return `
+    <div class="q ${x.status == 'open' ? 'bad' : 'good'}" data-fid="${x.id}">
+      ${ed ? '' : `<button class="l" data-a="fedit" data-id="${x.id}" style="float:left; margin:0;">✏️ ویرایش</button>`}
+      ${head}
+      <div class="ph">${th(x.photos_before, x.id, 'before', ed)}${ed ? `<button class="ad" data-a="addbf" data-id="${x.id}">+ عکس قبل از اصلاح</button>` : ''}</div>
+
+      <div class="step">مرحله ۲: ثبت اعلان رسمی ${x.notice_at ? '<span class="bg g">انجام شد</span>' : '<span class="bg r">در انتظار ثبت</span>'}</div>
+      ${x.notice_at ? `
+        <label class="fx"><input type="checkbox" data-a="ntc" data-id="${x.id}" checked> کد اعلان: <b dir="ltr">${esc(x.notice_code)}</b> (${fd(x.notice_at)})</label>
+      ` : `
+        <input data-code="1" dir="ltr" placeholder="کد شناسه/اعلان صادره">
+        <label class="fx" hidden><input type="checkbox" data-a="ntc" data-id="${x.id}"> تایید ثبت اعلان</label>
+      `}
+
+      <div class="step">مرحله ۳: اقدام اصلاحی ${x.status == 'closed' ? '<span class="bg g">اصلاح‌شده</span>' : '<span class="bg r">باز</span>'}</div>
+      <select data-rc="${x.id}"><option value="">علت ریشه‌ای (الزامی برای بستن)</option>${RCS.map(rc => `<option ${x.root_cause == rc ? 'selected' : ''}>${rc}</option>`).join('')}</select>
+      <div class="ph">${th(x.photos_after, x.id, 'after', ed)}<button class="ad" data-a="addaf" data-id="${x.id}">+ تصویر پس از اصلاح</button></div>
+      ${(x.photos_after || []).length ? `
+        <label class="fx"><input type="checkbox" data-a="fix" data-id="${x.id}" data-pa="${x.photos_after.length}" ${x.status == 'closed' ? 'checked' : ''}> تایید انجام اقدام اصلاحی (${x.closed_at ? fd(x.closed_at) : ''})</label>
+      ` : '<small style="margin-top:6px;">برای ثبت نهایی اصلاح، بارگذاری حداقل یک عکس الزامی است.</small>'}
+    </div>`;
+}
+
+async function loadFinds() {
+  const box = $('#fl'); if (!box) return;
+  box.style.opacity = .5;
+  try {
+    const [pg, cOpen, cAll] = await Promise.all([
+      fFetch('findings?select=*' + fQuery() + '&order=' + fOrder() + '&limit=' + FQ.size + '&offset=' + FQ.page * FQ.size, true),
+      fFetch('findings?select=id&limit=1&status=eq.open' + fQuery(true), true),
+      fFetch('findings?select=id&limit=1' + fQuery(true), true)
+    ]);
+    const total = pg.total ?? pg.rows.length, pages = Math.max(1, Math.ceil(total / FQ.size));
+    if (FQ.page >= pages) { FQ.page = pages - 1; return loadFinds(); }
+    const no = cOpen.total ?? 0, na = cAll.total ?? 0;
+    $('#fchips').innerHTML = [['', 'همه', na], ['open', 'باز', no], ['closed', 'اصلاح‌شده', na - no]].map(([v, t, n]) =>
+      `<button class="chip ${FQ.st == v ? 'on' : ''}" data-a="fst" data-v="${v}">${t} <b>${fa(n)}</b></button>`).join('');
+    let last = null, html = '';
+    pg.rows.forEach(x => { if (FQ.grp) { const g = gLabel(x); if (g !== last) { html += `<div class="sec" style="margin-top:18px;">${esc(g)}</div>`; last = g; } } html += fcard(x); });
+    box.innerHTML = html || '<p style="margin-top:20px;">هیچ عدم‌انطباقی با این فیلترها یافت نشد.</p>';
+    $('#fpager').innerHTML = `<button data-a="fpage" data-d="-1" ${FQ.page <= 0 ? 'disabled' : ''}>‹ قبلی</button><span style="align-self:center;">صفحه ${fa(FQ.page + 1)} از ${fa(pages)} — ${fa(total)} مورد</span><button data-a="fpage" data-d="1" ${FQ.page >= pages - 1 ? 'disabled' : ''}>بعدی ›</button>`;
+    li();
+  } catch (e) { box.innerHTML = ''; alert(e.message); }
+  box.style.opacity = 1;
+}
+
+/* ===== حجم فضای تصاویر و انتقال به کامپیوتر ===== */
+let STORE = null;
+async function storageList() {
+  const all = [];
+  for (let off = 0; ; off += 1000) {
+    const r = await fetch(URL_ + '/storage/v1/object/list/photos', { method: 'POST', headers: { ...AH(), 'Content-Type': 'application/json' }, body: JSON.stringify({ prefix: '', limit: 1000, offset: off, sortBy: { column: 'name', order: 'asc' } }) });
+    if (!r.ok) throw new Error(await r.text());
+    const rows = await r.json(); all.push(...rows.filter(x => x.id));
+    if (rows.length < 1000) break;
+  }
+  return all.map(x => ({ name: x.name, size: (x.metadata && x.metadata.size) || 0 }));
+}
+const mb = b => fa((b / 1048576).toFixed(b > 1e8 ? 0 : 1));
+const thrMB = () => +(localStorage.thr || 800);
+async function refreshUsage() {
+  const el = $('#su'); if (el) el.textContent = 'در حال محاسبه...';
+  try {
+    STORE = await storageList();
+    const tot = STORE.reduce((a, x) => a + x.size, 0);
+    if ($('#su')) $('#su').innerHTML = `${fa(STORE.length)} فایل — <b>${mb(tot)} مگابایت</b> (آستانه هشدار: ${fa(thrMB())} مگابایت)`;
+    const bn = $('#sbanner'); if (bn) bn.hidden = tot / 1048576 < thrMB();
+  } catch (e) { if ($('#su')) $('#su').textContent = 'خطا در محاسبه: ' + e.message; }
+}
+function renderLocalState() {
+  const el = $('#sl'); if (!el) return;
+  if (!FSA) { el.innerHTML = '<span style="color:var(--warn);">این مرورگر ذخیره روی پوشه را پشتیبانی نمی‌کند؛ از Chrome یا Edge کامپیوتر استفاده کنید.</span>'; return; }
+  el.innerHTML = !LDIR ? 'پوشه‌ای انتخاب نشده است.' : LPERM ? `✅ پوشه متصل است: <b dir="ltr">${esc(LDIR.name)}</b>` : `⚠️ پوشه <b dir="ltr">${esc(LDIR.name)}</b> انتخاب شده ولی دسترسی لازم است. <button class="l" data-a="lallow" style="display:inline;">اتصال دوباره</button>`;
+}
+async function moveToLocal() {
+  const log = t => { const l = $('#smlog'); if (l) { l.textContent += t + '\n'; l.scrollTop = l.scrollHeight; } };
+  if (!LDIR) return alert('اول پوشه‌ی ذخیره روی کامپیوتر را انتخاب کنید.');
+  if (!LPERM && !(await localAllow())) return alert('دسترسی به پوشه داده نشد.');
+  const del = $('#sdel').checked;
+  if (del && !confirm('پس از کپی موفق، تصاویر از سوپابیس حذف می‌شوند و فقط روی همین کامپیوتر (و همین پوشه) قابل مشاهده می‌مانند. موبایل و کامپیوترهای دیگر آن‌ها را نمی‌بینند. ادامه می‌دهید؟')) return;
+  const btn = $('[data-a=smove]'); btn.disabled = true; $('#smlog').textContent = '';
+  try {
+    const items = await storageList(); log(fa(items.length) + ' فایل در سوپابیس.');
+    const pgb = $('#smp'); pgb.hidden = false; pgb.max = items.length || 1; pgb.value = 0;
+    const ok = [], fail = []; let n = 0;
+    await pool(4, items, async it => {
+      try {
+        let have = await localFile(it.name);
+        if (!have || (it.size && have.size != it.size)) {
+          let r = await fetch(pubUrl(it.name)); if (!r.ok) r = await fetch(URL_ + '/storage/v1/object/authenticated/photos/' + it.name, { headers: AH() });
+          if (!r.ok) throw new Error('دریافت ناموفق ' + r.status);
+          const blob = await r.blob(), w = await (await LDIR.getFileHandle(it.name, { create: true })).createWritable();
+          await w.write(blob); await w.close();
+          have = await localFile(it.name);
+          if (!have || (it.size && have.size != it.size)) throw new Error('حجم فایل ذخیره‌شده با اصل یکی نیست');
+        }
+        ok.push(it.name);
+      } catch (e) { fail.push(it.name + ': ' + e.message); }
+      pgb.value = ++n;
+    });
+    log(`کپی موفق: ${fa(ok.length)} | ناموفق: ${fa(fail.length)}`);
+    fail.slice(0, 5).forEach(log);
+    if (del && ok.length) {
+      const names = ok.filter(x => x != 'no-photo-placeholder.jpg'); let gone = 0;
+      for (let i = 0; i < names.length; i += 50) {
+        const r = await fetch(URL_ + '/storage/v1/object/photos', { method: 'DELETE', headers: { ...AH(), 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: names.slice(i, i + 50) }) });
+        if (!r.ok) { log('حذف ناموفق: ' + (await r.text()).slice(0, 200)); break; }
+        gone += (await r.json()).length;
+      }
+      log(`حذف‌شده از سوپابیس: ${fa(gone)} از ${fa(names.length)}` + (gone < names.length ? ' — اگر کمتر است، سیاست DELETE برای bucket «photos» لازم است.' : ''));
+    }
+    log('پایان.');
+  } catch (e) { log('❌ ' + e.message); }
+  btn.disabled = false; refreshUsage();
+}
 
 async function finds(iid) {
-  if (iid !== undefined) FI = iid;
+  if (iid !== undefined) { FI = iid; EDIT = null; }
   view('<p style="text-align:center; padding:40px;">در حال بارگذاری عدم‌انطباق‌ها...</p>');
-  try {
-    const r = await api('findings?order=status.desc,created_at.desc&limit=1000' + (FI ? '&inspection_id=eq.' + FI : ''));
-    view(`
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
-        <a href="index.html" class="back">← داشبورد اصلی</a>
-      </div>
-      <h2>${FI ? 'ثبت اعلان عدم‌انطباق' : 'مدیریت و پیگیری عدم‌انطباق‌ها'}</h2>
-      <small>تعداد موارد باز: ${fa(r.filter(x => x.status == 'open').length)}</small>
+  await localInit();
+  if (!FQ.jy) FQ.jy = jNow().year;
+  const years = []; for (let y = jNow().year; y >= jNow().year - 3; y--) years.push(y);
+  view(`
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
+      <a href="index.html" class="back">← داشبورد اصلی</a>
+    </div>
+    <h2>${FI ? 'ثبت اعلان عدم‌انطباق' : 'مدیریت و پیگیری عدم‌انطباق‌ها'}</h2>
+    <div id="sbanner" class="q bad" hidden>⚠️ حجم تصاویر در سوپابیس از آستانه (${fa(thrMB())} مگابایت) گذشته است. از بخش «فضای تصاویر» پایین، آن‌ها را به کامپیوتر منتقل کنید.</div>
+    <datalist id="locs">${LOCS.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
 
-      ${r.map(x => `
-        <div class="q ${x.status == 'open' ? 'bad' : ''}">
-          <p>${esc(x.question)}</p>
-          <small style="margin-top:4px;">${mn(x.module)} · ${esc(x.location)} ·${fd(x.created_at)}</small>
-          <div style="margin-top:6px;">${sevB(x)}${x.responsible ? `<span class="bg g">مسئول: ${esc(x.responsible)}</span>` : ''} ${dueB(x)}</div>
-          <p style="font-size:13px; font-weight:400; color:var(--mu); margin-top:6px;">${esc(x.note)}</p>
-          <div class="ph">${th(x.photos_before)}</div>
-
-          <div class="step">مرحله ۲: ثبت اعلان رسمی ${x.notice_at ? '<span class="bg g">انجام شد</span>' : '<span class="bg r">در انتظار ثبت</span>'}</div>
-          ${x.notice_at ? `
-            <label class="fx"><input type="checkbox" data-a="ntc" data-id="${x.id}" checked> کد اعلان: <b dir="ltr">${esc(x.notice_code)}</b> (${fd(x.notice_at)})</label>
-          ` : `
-            <input data-code="1" dir="ltr" placeholder="کد شناسه/اعلان صادره">
-            <label class="fx" hidden><input type="checkbox" data-a="ntc" data-id="${x.id}"> تایید ثبت اعلان</label>
-          `}
-
-          <div class="step">مرحله ۳: اقدام اصلاحی ${x.status == 'closed' ? '<span class="bg g">اصلاح‌شده</span>' : '<span class="bg r">باز</span>'}</div>
-          <select data-rc="${x.id}"><option value="">علت ریشه‌ای (الزامی برای بستن)</option>${RCS.map(rc => `<option ${x.root_cause == rc ? 'selected' : ''}>${rc}</option>`).join('')}</select>
-          <div class="ph">${th(x.photos_after)}<button class="ad" data-a="addaf" data-id="${x.id}">+ تصویر پس از اصلاح</button></div>
-          ${(x.photos_after || []).length ? `
-            <label class="fx"><input type="checkbox" data-a="fix" data-id="${x.id}" data-pa="${x.photos_after.length}" ${x.status == 'closed' ? 'checked' : ''}> تایید انجام اقدام اصلاحی (${x.closed_at ? fd(x.closed_at) : ''})</label>
-          ` : '<small style="margin-top:6px;">برای ثبت نهایی اصلاح، بارگذاری حداقل یک عکس الزامی است.</small>'}
+    <div class="q" style="margin-top:10px;">
+      <input data-ff="q" placeholder="🔍 جستجو در متن، توضیحات، کد، محل، مسئول..." value="${esc(FQ.q)}">
+      <div class="fgrid">
+        <select data-ff="mod">${optH('', 'همه چک‌لیست‌ها', FQ.mod)}${M.map(m => optH(m[0], m[1], FQ.mod)).join('')}</select>
+        <select data-ff="cat">${optH('', 'همه دسته‌ها', FQ.cat)}${CATN.map(c => optH(c, c, FQ.cat)).join('')}</select>
+        <select data-ff="sev">${optH('', 'همه شدت‌ها', FQ.sev)}${[4, 3, 2, 1].map(s => optH(s, 'شدت ' + SEVN[s], FQ.sev)).join('')}</select>
+        <select data-ff="ntc">${optH('', 'اعلان: همه', FQ.ntc)}${optH('yes', 'اعلان ثبت شده', FQ.ntc)}${optH('no', 'بدون اعلان', FQ.ntc)}</select>
+        <select data-ff="ph">${optH('', 'عکس: همه', FQ.ph)}${optH('noafter', 'بدون عکس پس از اصلاح', FQ.ph)}${optH('ph', 'بدون عکس قبل (جایگزین)', FQ.ph)}</select>
+        <input data-ff="loc" list="locs" placeholder="محل..." value="${esc(FQ.loc)}">
+        <select data-ff="per">${optH('all', 'همه زمان‌ها', FQ.per)}${optH('d7', '۷ روز گذشته', FQ.per)}${optH('d30', '۳۰ روز گذشته', FQ.per)}${optH('d90', '۹۰ روز گذشته', FQ.per)}${optH('j', 'ماه / سال شمسی', FQ.per)}</select>
+        <div id="fj" class="fgrid2" ${FQ.per == 'j' ? '' : 'hidden'}>
+          <select data-ff="jy">${years.map(y => optH(y, fa(y), FQ.jy)).join('')}</select>
+          <select data-ff="jm">${optH(0, 'کل سال', FQ.jm)}${JMN.map((t, i) => optH(i + 1, t, FQ.jm)).join('')}</select>
         </div>
-      `).join('') || '<p style="margin-top:20px;">هیچ عدم‌انطباقی یافت نشد.</p>'}
-    `);
-    li();
-  } catch (e) { alert(e.message); }
+        <select data-ff="grp">${optH('', 'بدون گروه‌بندی', FQ.grp)}${optH('mod', 'گروه‌بندی: چک‌لیست', FQ.grp)}${optH('cat', 'گروه‌بندی: دسته', FQ.grp)}${optH('loc', 'گروه‌بندی: محل', FQ.grp)}${optH('st', 'گروه‌بندی: وضعیت', FQ.grp)}${optH('sev', 'گروه‌بندی: شدت', FQ.grp)}</select>
+        <select data-ff="ord">${optH('new', 'جدیدترین اول', FQ.ord)}${optH('old', 'قدیمی‌ترین اول', FQ.ord)}${optH('sev', 'شدت بالا اول', FQ.ord)}${optH('due', 'نزدیک‌ترین مهلت', FQ.ord)}</select>
+        <select data-ff="size">${[20, 50, 100].map(v => optH(v, fa(v) + ' مورد در صفحه', FQ.size)).join('')}</select>
+      </div>
+      <button class="l" data-a="fclear" style="margin-top:8px;">✖ پاک‌کردن فیلترها</button>
+    </div>
+    <div id="fchips" class="chips"></div>
+    <div id="fl"></div>
+    <div id="fpager" class="pager"></div>
+
+    <details class="q" style="margin-top:16px;" ${localStorage.spOpen ? 'open' : ''}>
+      <summary style="cursor:pointer; font-weight:700;">📦 فضای تصاویر (سوپابیس و کامپیوتر)</summary>
+      <p style="margin:8px 0;">حجم فعلی در سوپابیس: <span id="su">—</span> <button class="l" data-a="susage" style="display:inline;">محاسبه مجدد</button></p>
+      <label style="font-size:12px; color:var(--mu);">آستانه هشدار (مگابایت)</label>
+      <input type="number" data-sf="thr" value="${thrMB()}" min="50">
+      <p style="margin:12px 0 4px;">پوشه روی کامپیوتر: <span id="sl"></span></p>
+      <button data-a="lpick" style="width:100%;" ${FSA ? '' : 'disabled'}>📁 انتخاب / تغییر پوشه</button>
+      <label class="fx"><input type="checkbox" id="sdel"> بعد از کپی موفق، از سوپابیس حذف شود (فضا خالی شود)</label>
+      <button class="p" data-a="smove" ${FSA ? '' : 'disabled'}>⬇️ انتقال تصاویر به کامپیوتر</button>
+      <small style="margin-top:6px;">با کپی بدون حذف، هیچ چیز از دست نمی‌رود. بعد از حذف از سوپابیس، تصاویر فقط روی همین کامپیوتر و با پوشه‌ی متصل دیده می‌شوند (گزارش مدیریتی هم از همین پوشه می‌خواند).</small>
+      <progress id="smp" value="0" max="1" style="width:100%; margin-top:8px;" hidden></progress>
+      <pre id="smlog" style="white-space:pre-wrap; font-size:12px; max-height:160px; overflow:auto; margin:8px 0 0;"></pre>
+    </details>
+  `);
+  renderLocalState(); loadFinds(); refreshUsage();
 }
+
 
 async function stats(d = 90) {
   view('<p style="text-align:center;padding:40px;">در حال تحلیل داده‌ها...</p>');
@@ -569,7 +810,7 @@ async function stats(d = 90) {
 
     const last = {}; LI.forEach(r => last[r.module] = last[r.module] || r.created_at);
     const MD = M.map(m => {
-      const ii = I.filter(r => r.module == m[0]), n = ii.reduce((a, r) => a + r.nc, 0), o = ii.reduce((a, r) => a + r.ok, 0), fq = FQ[m[2]], ds = last[m[0]] ? days(last[m[0]]) : null;
+      const ii = I.filter(r => r.module == m[0]), n = ii.reduce((a, r) => a + r.nc, 0), o = ii.reduce((a, r) => a + r.ok, 0), fq = FREQ[m[2]], ds = last[m[0]] ? days(last[m[0]]) : null;
       return { name: m[1], fq: m[2], cnt: ii.length, nc: n, r: pct(n, n + o), ds, late: ds === null ? 999 : (fq ? ds - fq : -1) };
     });
     const lateList = MD.filter(x => x.late > 0).sort((a, b) => b.late - a.late);
@@ -776,6 +1017,7 @@ async function rCount(extra = '') {
 
 /* عکس: اول مسیر public (سریع، بدون preflight)، بعد authenticated. بعد از ترسیم باید close() شود تا حافظه آزاد شود */
 async function photoImg(p) {
+  try { const lf = await localFile(p); if (lf) return await createImageBitmap(lf); } catch (e) { }
   for (const path of ['/storage/v1/object/public/photos/', '/storage/v1/object/authenticated/photos/']) {
     try {
       const r = await fetch(URL_ + path + p, path.includes('authenticated') ? { headers: AH() } : {});
@@ -1028,10 +1270,39 @@ document.onclick = async e => {
       } else {
         await api('findings?id=eq.' + id, { method: 'PATCH', body: JSON.stringify({ notice_code: null, notice_at: null }) });
       }
-      await finds(); scrollTo(0, y);
+      await loadFinds(); scrollTo(0, y);
     } catch (er) { alert(er.message); }
   }
   else if (a == 'addaf') { FT = { m: 'addaf', id: t.dataset.id }; fi.click(); }
+  else if (a == 'addbf') { FT = { m: 'addbf', id: t.dataset.id }; fi.click(); }
+  else if (a == 'fedit') { EDIT = t.dataset.id; await loadFinds(); }
+  else if (a == 'fcancel') { EDIT = null; await loadFinds(); scrollTo(0, y); }
+  else if (a == 'fsave') {
+    const card = t.closest('.q'), v = k => card.querySelector('[data-ef=' + k + ']').value;
+    const body = { question: v('question').trim(), note: v('note').trim(), location: v('location').trim() || 'نامشخص', module: v('module'), severity: +v('severity'), category: v('category'), responsible: v('responsible').trim() || null, due_date: v('due_date') || null };
+    if (!body.question) return alert('متن عدم‌انطباق نمی‌تواند خالی باشد.');
+    try { await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify(body) }); EDIT = null; await loadFinds(); scrollTo(0, y); }
+    catch (er) { alert('خطا در ذخیره: ' + er.message); }
+  }
+  else if (a == 'delph') {
+    const k = t.dataset.k == 'before' ? 'photos_before' : 'photos_after';
+    if (!confirm('این عکس از این مورد حذف شود؟ (خود فایل از حافظه پاک نمی‌شود)')) return;
+    try {
+      const [x] = await api('findings?select=' + k + ',status&id=eq.' + t.dataset.id), nx = (x[k] || []).filter(p => p != t.dataset.p);
+      if (k == 'photos_before' && !nx.length) return alert('هر مورد باید حداقل یک عکس «قبل» داشته باشد. ابتدا عکس جدید اضافه کنید، بعد عکس قبلی را حذف کنید.');
+      if (k == 'photos_after' && !nx.length && x.status == 'closed') return alert('مورد بسته باید عکس پس از اصلاح داشته باشد. ابتدا آن را باز کنید یا عکس جدید اضافه کنید.');
+      await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify({ [k]: nx }) });
+      await loadFinds(); scrollTo(0, y);
+    } catch (er) { alert(er.message); }
+  }
+  else if (a == 'fst') { FQ.st = t.dataset.v; FQ.page = 0; await loadFinds(); }
+  else if (a == 'fpage') { FQ.page = Math.max(0, FQ.page + +t.dataset.d); await loadFinds(); scrollTo(0, 0); }
+  else if (a == 'fclear') { Object.assign(FQ, { q: '', mod: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', grp: '', ord: 'new', page: 0 }); finds(); }
+  else if (a == 'lpick') { try { await localPick(); renderLocalState(); } catch (er) { if (er.name != 'AbortError') alert(er.message); } }
+  else if (a == 'lallow') { await localAllow(); renderLocalState(); await loadFinds(); }
+  else if (a == 'susage') refreshUsage();
+  else if (a == 'smove') moveToLocal();
+
   else if (a == 'fix') {
     if (t.checked && !+t.dataset.pa) { t.checked = false; return alert('ثبت عکس پس از اصلاح الزام قانونی دارد.'); }
     if (t.checked && !t.closest('.q').querySelector('[data-rc]').value) { t.checked = false; return alert('ابتدا علت ریشه‌ای را انتخاب کنید.'); }
@@ -1040,7 +1311,7 @@ document.onclick = async e => {
         method: 'PATCH',
         body: JSON.stringify({ status: t.checked ? 'closed' : 'open', closed_at: t.checked ? new Date().toISOString() : null })
       });
-      await finds(); scrollTo(0, y);
+      await loadFinds(); scrollTo(0, y);
     } catch (er) { alert(er.message); }
   }
   else if (a == 'zoom') {
@@ -1052,6 +1323,12 @@ document.onclick = async e => {
 document.oninput = async e => {
   const t = e.target, y = scrollY;
   if (t.dataset.rf) { const k = t.dataset.rf; R[k] = ['days', 'per', 'jy', 'jm'].includes(k) ? +t.value : t.value; renderManagementReport(); return; }
+  if (t.dataset.sf == 'thr') { localStorage.thr = Math.max(50, +t.value || 800); refreshUsage(); return; }
+  if (t.dataset.ff) {
+    const k = t.dataset.ff; FQ[k] = ['jy', 'jm', 'size'].includes(k) ? +t.value : t.value; FQ.page = 0;
+    if (k == 'per') $('#fj').hidden = FQ.per != 'j';
+    clearTimeout(FTM); FTM = setTimeout(loadFinds, (k == 'q' || k == 'loc') ? 400 : 0); return;
+  }
   if (t.dataset.code) { t.nextElementSibling.hidden = !t.value.trim(); return; }
   if (t.id == 'ls') { D.oth = t.value == '__o'; D.loc = D.oth ? '' : t.value; save(); form(); scrollTo(0, y); return; }
   if (t.id == 'sh') { D.shift = t.value; save(); return; }
