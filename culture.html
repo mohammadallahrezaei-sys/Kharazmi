@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نردبان فرهنگ ایمنی - نرم‌افزار جامع HSE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.step{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:10px;margin-bottom:4px;color:#111;font-weight:700;opacity:.35}
+.step.on{opacity:1;box-shadow:0 0 0 2px #fff}
+.step b{font-size:18px;width:22px}
+.opt{border:1px solid #334155;border-right:5px solid var(--c);border-radius:10px;padding:8px 10px;margin:6px 0;cursor:pointer;font-size:12px;white-space:pre-line}
+.opt.sel{background:#0f172a;box-shadow:0 0 0 2px var(--c)}
+.opt .n{font-weight:800;color:var(--c)}
+.bar{height:8px;background:#334155;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%}
+@media print{body{background:#fff;color:#000}.np{display:none}.card,.top{border-color:#ccc;background:#fff}.mu{color:#444}}
+</style>
+</head>
+<body>
+<div class="w">
+  <div class="top np">
+    <div><h1>🪜 نردبان فرهنگ ایمنی</h1><p>پرسشنامه‌ی ۱۸ محوری — سنجش دوره‌ای سطح فرهنگ ایمنی سازمان (ارزیابی هر ۳ تا ۶ ماه)</p></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="p" id="bNew">+ ارزیابی جدید</button><button onclick="print()">🖨 چاپ</button><a class="btn" href="index.html">← بازگشت</a></div>
+  </div>
+  <div id="err" class="err"></div>
+  <div id="view"><div class="card">در حال بارگذاری...</div></div>
+  <div id="form" style="display:none"></div>
+</div>
+<script src="eval_core.js"></script>
+<script src="culture_data.js"></script>
+<script>
+const {esc,fa,req,LV,levelOf,loadCulture,jdInit,jdGet,jdHTML}=HSE;
+const $=id=>document.getElementById(id);
+let list=[],cur=null,ans={};
+const fday=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
+const avgOf=a=>{const v=Object.values(a);return v.length?v.reduce((s,x)=>s+x,0)/v.length:0};
+async function load(){
+  const r=await loadCulture();
+  if(r==null){$('err').style.display='block';$('err').textContent='جدول ارزیابی پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';list=[]}else{$('err').style.display='none';list=r}
+  cur=list[0]||null;show();
+}
+function show(){
+  $('form').style.display='none';$('view').style.display='block';
+  const a=cur;
+  const ladder=`<div class="card"><h2>نردبان فرهنگ</h2>${[5,4,3,2,1].map(i=>`<div class="step ${a&&Math.round(a.avg)===i?'on':''}" style="background:${LV[i-1][1]}"><b>${fa(i)}</b>${LV[i-1][0]}${a&&Math.round(a.avg)===i?' ◀ سطح فعلی':''}</div>`).join('')}<div class="mu">هر پله، سطح توسعه‌یافتگی سازمان در زمینه‌ی آگاهی ایمنی را نشان می‌دهد.</div></div>`;
+  if(!a){$('view').innerHTML=ladder+'<div class="card mu">هنوز ارزیابی ثبت نشده. با «ارزیابی جدید» شروع کنید.</div>';return}
+  const [ln,lc]=levelOf(a.avg),rows=CQ.map(q=>({q,l:+a.answers[q.n]||0})),weak=rows.filter(r=>r.l).sort((x,y)=>x.l-y.l).slice(0,3);
+  const prev=list[list.indexOf(a)+1];
+  $('view').innerHTML=`<div class="card"><div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center"><div><div class="mu">میانگین سطح فرهنگ — ${fday(a.assessed_at)}${a.assessor?' · '+esc(a.assessor):''}</div><div style="font-size:40px;font-weight:800;color:${lc}">${fa(Math.round(a.avg*10)/10)}</div><b style="color:${lc}">${ln}</b></div>
+   <div class="mu">${prev?`ارزیابی قبل (${fday(prev.assessed_at)}): ${fa(Math.round(prev.avg*10)/10)} — ${levelOf(prev.avg)[0]}${a.avg>prev.avg?'<span class="ok">روند: بهبود</span>':a.avg<prev.avg?'<span class="bad">روند: افت</span>':'روند: بدون تغییر'}`:'ارزیابی قبلی برای مقایسه وجود ندارد.'}</div></div>
+   ${weak.length?`<div style="margin-top:8px"><b>ضعیف‌ترین محورها:</b><ul style="margin:4px 0">${weak.map(r=>`<li>${fa(r.q.n)}. ${esc(r.q.t)} — سطح ${fa(r.l)} (${LV[r.l-1][0]})</li>`).join('')}</ul></div>`:''}
+   ${a.notes?`<div class="mu">یادداشت: ${esc(a.notes)}</div>`:''}</div>
+   ${ladder}
+   <div class="card"><h2>نتیجه‌ی هر محور</h2>${rows.map(r=>`<div style="margin:6px 0"><div style="font-size:12px">${fa(r.q.n)}. ${esc(r.q.t)} <b style="color:${r.l?LV[r.l-1][1]:'#64748b'}">${r.l?fa(r.l)+' — '+LV[r.l-1][0]:'—'}</b></div><div class="bar"><i style="width:${r.l*20}%;background:${r.l?LV[r.l-1][1]:'#334155'}"></i></div></div>`).join('')}</div>
+   <div class="card np"><h2>تاریخچه ارزیابی‌ها</h2><table>${list.map(x=>`<tr><td>${fday(x.assessed_at)}</td><td>${esc(x.assessor||'')}</td><td><b style="color:${levelOf(x.avg)[1]}">${fa(Math.round(x.avg*10)/10)} — ${levelOf(x.avg)[0]}</b></td><td><button data-v="${x.id}">نمایش</button> <button class="d" data-d="${x.id}">حذف</button></td></tr>`).join('')}</table></div>`;
+}
+$('view').addEventListener('click',async ev=>{const t=ev.target;
+  if(t.dataset.v){cur=list.find(x=>x.id===t.dataset.v);show();scrollTo(0,0)}
+  if(t.dataset.d&&confirm('این ارزیابی حذف شود؟')){try{await req('culture_assessments?id=eq.'+t.dataset.d,'DELETE',null,'return=minimal');load()}catch(e){alert(e.message)}}});
+/* ---- ارزیابی جدید ---- */
+$('bNew').onclick=()=>{
+  ans={};$('view').style.display='none';$('form').style.display='block';
+  $('form').innerHTML=`<div class="card"><h2>ارزیابی جدید</h2><div class="g2"><div><label class="l">ارزیاب / کمیته</label><input type="text" id="aWho" placeholder="نام ارزیاب یا کمیته"></div><div><label class="l">تاریخ ارزیابی</label>${jdHTML('aDate')}</div></div><div class="mu" style="margin-top:6px">برای هر محور، توصیفی را انتخاب کنید که بیشتر با وضعیت فعلی سازمان می‌خواند. <b id="prog">۰ از ${fa(CQ.length)}</b></div></div>
+   ${CQ.map(q=>`<div class="card"><b>${fa(q.n)}. ${esc(q.t)}</b>${q.l.map((x,i)=>x?`<div class="opt" data-q="${q.n}" data-l="${i+1}" style="--c:${LV[i][1]}"><span class="n">${fa(i+1)} — ${LV[i][0]}:</span> ${esc(x)}</div>`:'').join('')}</div>`).join('')}
+   <div class="card"><label class="l">یادداشت (اختیاری)</label><textarea id="aNotes" rows="2"></textarea><div style="display:flex;gap:6px;margin-top:10px"><button class="p" id="aSave">ثبت ارزیابی</button><button id="aCancel">انصراف</button></div></div>`;
+  jdInit($('aDate'));scrollTo(0,0);
+  $('aCancel').onclick=show;
+  $('aSave').onclick=async()=>{
+    if(Object.keys(ans).length<CQ.length){alert('همه‌ی ۱۸ محور باید پاسخ داده شود. پاسخ‌داده‌شده: '+Object.keys(ans).length);return}
+    const date=jdGet($('aDate'));if(!date){alert('تاریخ را انتخاب کنید.');return}
+    try{await req('culture_assessments','POST',{assessed_at:date,assessor:$('aWho').value.trim()||null,answers:ans,avg:Math.round(avgOf(ans)*100)/100,notes:$('aNotes').value.trim()||null},'return=minimal');await load();scrollTo(0,0)}catch(e){alert('خطا در ثبت: '+e.message)}};
+};
+$('form').addEventListener('click',ev=>{const o=ev.target.closest('.opt');if(!o)return;const q=o.dataset.q;ans[q]=+o.dataset.l;
+  document.querySelectorAll(`.opt[data-q="${q}"]`).forEach(x=>x.classList.toggle('sel',x===o));$('prog').textContent=fa(Object.keys(ans).length)+' از '+fa(CQ.length)});
+load();
+</script>
+</body>
+</html>
