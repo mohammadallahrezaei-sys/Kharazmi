@@ -611,7 +611,7 @@ function fcard(x) {
       <button data-a="fcancel" style="min-height:42px;">انصراف</button>
     </div>` : `
     <p>${esc(x.question)}</p>
-    <small style="margin-top:4px;">${mn(x.module)} · ${esc(x.location)} · ${fd(x.created_at)} · <span dir="ltr">${esc(x.qid || '')}</span> · 👤 ثبت: <b>${esc(iname(x.inspector))}</b></small>
+    <small style="margin-top:4px;">${mn(x.module)} · ${esc(x.location)} · ${fd(x.created_at)} · <span dir="ltr">${esc(x.qid || '')}</span> · 👤 ثبت: <b>${esc({'m.mohammadi@gmail.com':'محمدی','m.rezaei@gmail.com':'اله‌رضایی'}[x.inspector] || x.inspector || 'نامشخص')}</b>
     <div style="margin-top:6px;">${sevB(x)}${x.category ? `<span class="ct">${esc(x.category)}</span>` : ''}${x.responsible ? `<span class="bg g">مسئول: ${esc(x.responsible)}</span>` : ''} ${dueB(x)}${ph ? '<span class="ct">بدون عکس در گزارش اصلی</span>' : ''}</div>
     <p style="font-size:13px; font-weight:400; color:var(--mu); margin-top:6px;">${esc(x.note)}</p>`;
   return `
