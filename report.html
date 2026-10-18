@@ -2,6 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
+<script src="auth.js" data-roles="manager"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>گزارش دوره‌ای HSE - گسترش فناوری خوارزمی</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,7 +33,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 <div class="w">
   <div class="top">
     <div><h1>گزارش دوره‌ای HSE</h1><div class="mu">گسترش فناوری خوارزمی · <span id="mname"></span></div></div>
-    <div class="np"><select id="msel"></select> <button onclick="print()">چاپ / PDF</button> <a class="b" href="checklists.html#rep">📑 اسلایدهای قبل/بعد</a> <a class="b" href="index.html">← بازگشت</a></div>
+    <div class="np"><select id="msel"></select> <button onclick="print()">چاپ / PDF</button> <a class="b" href="expert_eval.html">👤 ارزیابی کارشناسان</a> <a class="b" href="reward_eval.html">🏅 شایستگی تشویق</a> <a class="b" href="checklists.html#rep">📑 اسلایدهای قبل/بعد</a> <a class="b" href="index.html">← بازگشت</a></div>
   </div>
   <div id="out" class="card">در حال دریافت اطلاعات...</div>
 </div>
@@ -43,8 +44,6 @@ const H={apikey:KEY,Authorization:`Bearer ${KEY}`};
 const ROUND_LOC='گشت کل کارخانه';
 const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 const QN=['بهار','تابستان','پاییز','زمستان'];
-const NAME_MAP={'m.mohammadi@gmail.com':'محمدی','m.rezaei@gmail.com':'اله‌رضایی'};
-const nm=s=>NAME_MAP[s]||(s&&s!=='نامشخص'?s:'ثبت‌نشده');
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 const nd=s=>String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 const PF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric'});
@@ -159,19 +158,7 @@ function metricsRange(fromDate,toDate){
   const leg=I.some(r=>r.module==='D'&&r.location!==ROUND_LOC),rnd=I.some(r=>r.module==='D'&&r.location===ROUND_LOC);
   m.regime=leg&&rnd?'mixed':leg?'legacy':rnd?'round':'none';
 
-  /* ---- عملکرد کارشناسان ---- */
-  const expMap={};
-  const ensure=k=>{k=k||'نامشخص';if(!expMap[k])expMap[k]={rounds:new Set(),legacy:new Set(),regular:0,ok:0,nc:0,created:0,closed:0};return expMap[k];};
-  I.forEach(r=>{const e=ensure(r.inspector);e.rounds.add(day(r));
-    if(r.module==='D'&&r.location!==ROUND_LOC)e.legacy.add(day(r));else e.regular++;
-    e.ok+=(r.ok||0);e.nc+=(r.nc||0);});
   const FN=inR(fin,'created_at');
-  FN.forEach(f=>{const e=ensure(f.inspector);e.created++;if(f.status==='closed')e.closed++;});
-  m.experts=Object.entries(expMap).map(([name,v])=>({
-    name,rounds:v.rounds.size,checks:v.legacy.size+v.regular,
-    comp:pct(v.ok,v.ok+v.nc),created:v.created,closed:v.closed
-  })).filter(e=>e.rounds>0||e.created>0)
-    .sort((a,b)=>(b.rounds+b.created)-(a.rounds+a.created));
 
   /* ---- عدم‌انطباق ---- */
   const FC=inR(fin,'closed_at');
@@ -262,36 +249,6 @@ function render(selVal){
   const cultureCard=!D.cu?`<div class="card"><h2>نردبان فرهنگ ایمنی</h2><div class="mu">ثبت نشده (جدول ارزیابی فرهنگ راه‌اندازی نشده است)</div></div>`:!cu.latest?`<div class="card"><h2>نردبان فرهنگ ایمنی</h2><div class="mu">تا پایان این ${pw} ارزیابی ثبت نشده است.</div></div>`:
    `<div class="card"><h2>نردبان فرهنگ ایمنی</h2><div class="score"><div><div class="big" style="color:${HSE.levelOf(cu.latest.avg)[1]}">${fa(Math.round(cu.latest.avg*10)/10)}</div></div><div><b>سطح «${HSE.levelOf(cu.latest.avg)[0]}»</b><div class="mu">آخرین ارزیابی: ${new Date(cu.latest.assessed_at+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}${cu.prev?` · قبلی: ${fa(Math.round(cu.prev.avg*10)/10)} (${HSE.levelOf(cu.prev.avg)[0]}) — ${cu.latest.avg>cu.prev.avg?'بهبود':cu.latest.avg<cu.prev.avg?'افت':'بدون تغییر'}`:''}</div></div></div>${evalNote}</div>`;
 
-  /* ---- کارت عملکرد کارشناسان ---- */
-  const expertsCard=c.experts.length?`
-    <div class="card">
-      <h2>عملکرد کارشناسان HSE در ${labelOf(type,y,n)}</h2>
-      <table>
-        <thead><tr>
-          <th>کارشناس</th>
-          <th style="text-align:center">گشت</th>
-          <th style="text-align:center">چک‌لیست</th>
-          <th style="text-align:center">انطباق</th>
-          <th style="text-align:center">ثبت عدم‌انطباق</th>
-          <th style="text-align:center">بسته‌شده</th>
-        </tr></thead>
-        <tbody>
-          ${c.experts.map(e=>`
-            <tr>
-              <td>${esc(nm(e.name))}</td>
-              <td style="text-align:center">${fa(e.rounds)}</td>
-              <td style="text-align:center">${fa(e.checks)}</td>
-              <td style="text-align:center" class="${col(e.comp)}">${P(e.comp)}</td>
-              <td style="text-align:center">${fa(e.created)}</td>
-              <td style="text-align:center" class="${e.created&&e.closed===e.created?'ok':e.closed?'wa':''}">${fa(e.closed)}${e.created?` / ${fa(e.created)}`:''}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <div class="mu" style="margin-top:6px">بازدید و چک‌لیست از ماژول بازرسی‌ها؛ ثبت و بسته‌شده از موارد ثبت‌شده در ماژول عدم‌انطباق‌ها. نام‌ها بر پایه‌ی ایمیل بازرس نگاشت شده‌اند.</div>
-    </div>
-  `:`<div class="card"><h2>عملکرد کارشناسان HSE</h2><div class="mu">در این ${pw} هیچ بازدید یا عدم‌انطباقی با بازرس مشخص ثبت نشده است.</div></div>`;
-
   /* ---- کارت روند ---- */
   const nonEmpty=trend.filter(t=>t.m.has||t.m.inc||t.m.fNew);
   const trendWord=type==='m'?'شش‌ماهه':type==='q'?'شش فصل اخیر':'پنج سال اخیر';
@@ -338,8 +295,7 @@ function render(selVal){
   document.getElementById('out').outerHTML=`<div id="out">
   ${cultureCard}${evalCard}
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
-  ${expertsCard}
-  ${trendCard}
+    ${trendCard}
   <div class="card"><h2>عملکرد واحد HSE در این ${pw}</h2><div class="g">
    ${k(fa(c.rounds),'گشت بازرسی',0,fa(p.rounds))}${k(fa(c.checks),'چک‌لیست تکمیل‌شده',0,fa(p.checks))}${k(fa(c.fNew),'عدم‌انطباق ثبت‌شده',0,fa(p.fNew))}${k(fa(c.fClosed),'عدم‌انطباق بسته‌شده','ok',fa(p.fClosed))}${k(fa(c.notice),'اعلان به مسئولین',0,fa(p.notice))}
    ${k(fa(c.inc),'حادثه بررسی‌شده',0,fa(p.inc))}${k(fa(c.fuNew),'پیگیری طب کار ایجاد‌شده',0,fa(p.fuNew))}${k(fa(c.fuDone),'پیگیری انجام‌شده','ok',fa(p.fuDone))}${k(fa(c.eN),'اخطار/تشویق ثبت‌شده',0,fa(p.eN))}</div></div>

@@ -2,6 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
+<script src="auth.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ارزیابی و خودکنترلی کارشناس HSE</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800&display=swap">
@@ -23,13 +24,13 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 <body>
 <div class="w">
  <div class="top"><div><h1>ارزیابی و خودکنترلی کارشناس HSE</h1><div class="mu" id="who"></div></div>
-  <div class="np"><select id="esel"></select> <select id="msel"></select> <button onclick="print()">چاپ / PDF</button> <button onclick="logout()">خروج</button></div></div>
+  <div class="np"><select id="esel"></select> <select id="msel"></select> <a href="index.html" style="color:var(--ac)">← صفحه اصلی</a> <a href="report.html" style="color:var(--ac)">گزارش ماهانه</a> <button onclick="print()">چاپ / PDF</button> <button onclick="logout()">خروج</button></div></div>
  <div id="out"></div>
 </div>
 <script>
 /* ================= تنظیمات (قابل ویرایش) ================= */
 const URL_='https://priopguwfjawybffarhd.supabase.co',KEY='sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
-const NAME_MAP={'m.mohammadi@gmail.com':'محمدی','m.rezaei@gmail.com':'اله‌رضایی'}; // هر ایمیل خارج از این لیست = مدیر
+const NAME_MAP=HSEAuth.EXPERTS; // از auth.js
 const CFG={
   W:{sched:30,finds:15,close:15,disc:10,quality:10,train:10,fup:10}, // وزن شاخص‌ها (جمع ۱۰۰)
   WORKDAYS:[6,0,1,2,3], HOLIDAYS:[],  // فقط برای چک‌لیست روزانه‌ی رستوران
@@ -56,21 +57,11 @@ const lab=K=>MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
 const pd=d=>new Date(d+'T12:00:00').toLocaleDateString('fa-IR',{weekday:'short',month:'long',day:'numeric'});
 const col=v=>v>=85?'ok':v>=65?'wa':'bad';
 let TOK=null,ME=null,D=null;
-try{TOK=sessionStorage.getItem('t');ME=sessionStorage.getItem('e')}catch(e){}
 const hd=()=>({apikey:KEY,Authorization:'Bearer '+(TOK||KEY),'Content-Type':'application/json'});
-const isMgr=()=>ME&&!NAME_MAP[ME];
+const isMgr=()=>HSEAuth.role==='manager';
 
-function loginUI(msg){document.getElementById('out').innerHTML=`<div class="card" style="max-width:360px;margin:40px auto"><h2>ورود</h2>
- <input id="em" placeholder="ایمیل" style="width:100%;margin-bottom:8px" dir="ltr"><input id="pw" type="password" placeholder="رمز عبور" style="width:100%;margin-bottom:8px" dir="ltr">
- <button onclick="login()" style="width:100%">ورود</button><div class="bad">${esc(msg||'')}</div></div>`}
-async function login(){
-  const r=await fetch(`${URL_}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},
-   body:JSON.stringify({email:em.value.trim().toLowerCase(),password:pw.value})}).catch(()=>null);
-  const j=r&&await r.json();if(!j||!j.access_token)return loginUI('ایمیل یا رمز اشتباه است');
-  TOK=j.access_token;ME=(j.user.email||'').toLowerCase();try{sessionStorage.setItem('t',TOK);sessionStorage.setItem('e',ME)}catch(e){}
-  start();
-}
-function logout(){try{sessionStorage.clear()}catch(e){}TOK=ME=null;loginUI()}
+function loginUI(m){document.getElementById('out').innerHTML='<div class="card bad">'+esc(m||'')+'</div>'}
+const logout=()=>HSEAuth.logout();
 async function getAll(t){let all=[],o=0;for(let n=0;n<50;n++){
   const r=await fetch(`${URL_}/rest/v1/${t}${t.includes('?')?'&':'?'}limit=1000&offset=${o}`,{headers:hd()}).catch(()=>null);
   if(!r||!r.ok)return null;const j=await r.json();if(!j.length)break;all=all.concat(j);o+=j.length}return all}
@@ -89,7 +80,10 @@ async function start(){
   const es=document.getElementById('esel'),ms=document.getElementById('msel');
   const mine=isMgr()?Object.keys(NAME_MAP):[ME];
   es.innerHTML=mine.map(e=>`<option value="${esc(e)}">${esc(nm(e))}</option>`).join('');es.style.display=isMgr()?'':'none';
-  let K=nowK,o='';for(let i=0;i<12;i++){o+=`<option value="${K}">${lab(K)}</option>`;let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}K=y+'-'+String(m).padStart(2,'0')}
+  const QN=['بهار','تابستان','پاییز','زمستان'];let K=nowK,o='<optgroup label="ماهانه">';
+  for(let i=0;i<12;i++){o+=`<option value="m:${K}">${lab(K)}</option>`;K=prevK(K)}
+  o+='</optgroup><optgroup label="فصلی">';{let y=+nowK.slice(0,4),q=Math.ceil(+nowK.slice(5)/3);for(let i=0;i<4;i++){o+=`<option value="q:${y}:${q}">فصل ${QN[q-1]} ${fa(y)}</option>`;if(--q<1){q=4;y--}}}
+  o+=`</optgroup><optgroup label="سالانه"><option value="y:${nowK.slice(0,4)}">سال ${fa(nowK.slice(0,4))}</option></optgroup>`;
   ms.innerHTML=o;es.onchange=ms.onchange=render;
   document.getElementById('who').textContent=isMgr()?'نمای مدیر — همه کارشناسان':'نمای شخصی — فقط عملکرد خودتان';
   render();
@@ -163,8 +157,9 @@ function calc(email,K){
     train:0.5*Math.min(1,TR.length/CFG.MIN_TRAIN)+0.5*Math.min(1,cov/CFG.COV_TARGET),
     fup:Math.max(0,1-0.1*(capaO+fuO))};
   const pts={};let total=0;for(const k in s){pts[k]=Math.round(s[k]*CFG.W[k]);total+=pts[k]}
-  return{items,s,pts,total,zero,un,cr,tgtNc,over,ot,otN:cl.length,ek:E.length,rw,tgtEk,trN:TR.length,cov,capaO,fuO,doneN,rate,flags}}
+  return{items,s,pts,total,zero,un,cr,tgtNc,over,ot,otN:cl.length,ek:E.length,rw,tgtEk,trN:TR.length,cov,capaO,fuO,doneN,rate,flags,na:!items.length}}
 
+const tv=(e,x)=>{const c=calc(e,x);return c.na?null:c.total};const fm=v=>v==null?'—':fa(v);const cc=v=>v==null?'mu':col(v);
 const NAMES={sched:'رعایت جدول زمان‌بندی چک‌لیست‌ها',finds:'عدم‌انطباق ثبت‌شده نسبت به کار انجام‌شده',close:'پیگیری و بستن به‌موقع',disc:'تشویق/تذکر/اخطار',quality:'کیفیت بازدید (بدون «چک‌لیست خالی»)',train:'آموزش (مشترک واحد)',fup:'اقدام اصلاحی و پیگیری طب کار (مشترک واحد)'};
 
 function card(email,K){
@@ -179,7 +174,7 @@ function card(email,K){
   if(c.ek<c.tgtEk||c.rw<CFG.MIN_RW)weak.push(`${fa(c.ek)} تشویق/تذکر/اخطار (${fa(c.rw)} تشویق)؛ انتظار حداقل ${fa(c.tgtEk)} مورد و ${fa(CFG.MIN_RW)} تشویق.${D.ekAttr?'':' (ثبت‌کننده در جدول نیست؛ عدد کل واحد است)'}`);
   if(c.s.train<.8)weak.push(`آموزش: ${fa(c.trN)} جلسه در ماه (حداقل ${fa(CFG.MIN_TRAIN)}) و پوشش ۱۲ ماهه‌ی پرسنل ${fa(Math.round(c.cov*100))}٪ (هدف ${fa(Math.round(CFG.COV_TARGET*100))}٪).`);
   if(c.capaO+c.fuO)weak.push(`${fa(c.capaO)} اقدام اصلاحی حوادث و ${fa(c.fuO)} پیگیری طب کار معوق است.`);
-  const trend=[];let k=K;for(let i=0;i<6;i++){trend.unshift([k,calc(email,k).total]);k=prevK(k)}
+  const trend=[];let k=K;for(let i=0;i<6;i++){trend.unshift([k,tv(email,k)]);k=prevK(k)}
   const icon={ok:'✓',wa:'⚠',bad:'✗',mu:'…'};
   return `<div class="card"><h2>${esc(nm(email))} — ${lab(K)}</h2>
    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div class="big ${col(c.total)}">${fa(c.total)}<span class="mu"> / ۱۰۰</span></div>
@@ -191,20 +186,29 @@ function card(email,K){
    ${isMgr()&&c.un.size?`<div class="wa" style="margin-top:6px">⚠ ثبت‌هایی که با هیچ چک‌لیست جدول تطبیق نخوردند: ${[...c.un].map(esc).join('، ')} — اگر چک‌لیست جدول هستند، کلمه‌ی کلیدی‌شان را در KW اضافه کنید.</div>`:''}</div>
   ${c.flags.length?`<div class="card"><h2>الگوهای نیازمند بررسی (بدون کسر امتیاز)</h2><ul>${c.flags.map(f=>`<li class="wa">${f}</li>`).join('')}</ul><div class="mu">زمان ثبت = زمان ورود به سامانه است، نه لزوماً زمان بازدید. پیش از هر اقدام انضباطی با خود کارشناس و فرم‌های کاغذی تطبیق دهید.</div></div>`:''}
   <div class="card"><h2>روند ۶ ماه اخیر (خودکنترلی)</h2><table><tr>${trend.map(t=>`<th class="c">${MN[+t[0].slice(5)-1]}</th>`).join('')}</tr>
-   <tr>${trend.map((t,i)=>`<td class="c ${col(t[1])}">${fa(t[1])} ${i&&t[1]>trend[i-1][1]?'↗':i&&t[1]<trend[i-1][1]?'↘':''}</td>`).join('')}</tr></table></div>`;
+   <tr>${trend.map((t,i)=>`<td class="c ${cc(t[1])}">${fm(t[1])} ${i&&t[1]!=null&&trend[i-1][1]!=null?(t[1]>trend[i-1][1]?'↗':t[1]<trend[i-1][1]?'↘':''):''}</td>`).join('')}</tr></table></div>`;
 }
+const keysOf=v=>{const [t,a,b]=v.split(':');if(t==='m')return[a];const r=t==='q'?[(b-1)*3+1,b*3]:[1,12],o=[];
+  for(let m=r[0];m<=r[1];m++){const k=a+'-'+String(m).padStart(2,'0');if(k<=nowK&&k>='1405-07')o.push(k)}return o};
 function render(){
-  const K=document.getElementById('msel').value,out=document.getElementById('out');let h='';
+  const ms=document.getElementById('msel'),ks=keysOf(ms.value),out=document.getElementById('out'),ex=isMgr()?Object.keys(NAME_MAP):[ME];let h='';
+  if(!ks.length){out.innerHTML='<div class="card mu">این دوره هنوز شروع نشده است.</div>';return}
+  if(ks.length>1){
+    h+=`<div class="card"><h2>امتیاز کارشناسان — ${esc(ms.selectedOptions[0].text)}</h2><table><tr><th></th>${ks.map(x=>`<th class="c">${MN[+x.slice(5)-1]}</th>`).join('')}<th class="c">میانگین</th></tr>
+     ${ex.map(e=>{const t=ks.map(x=>tv(e,x)),tt=t.filter(v=>v!=null),av=tt.length?Math.round(tt.reduce((a,b)=>a+b,0)/tt.length):null;return `<tr><td>${esc(nm(e))}</td>${t.map(v=>`<td class="c ${cc(v)}">${fm(v)}</td>`).join('')}<td class="c ${cc(av)}"><b>${fm(av)}</b></td></tr>`}).join('')}</table>
+     <div class="mu" style="margin-top:6px">امتیاز دوره‌ی فصلی/سالانه میانگین امتیاز ماه‌های گذشته‌ی آن است (جدول زمان‌بندی از مهر ۱۴۰۵ شروع می‌شود)؛ برای جزئیات و نقاط ضعف یک ماه را انتخاب کنید. دوره‌ها با «گزارش ماهانه HSE» یکسان‌اند.</div></div>`;
+    out.innerHTML=h;return}
+  const K=ks[0];
   if(isMgr()){
-    const ex=Object.keys(NAME_MAP),ks=[];let k=K;for(let i=0;i<6;i++){ks.unshift(k);k=prevK(k)}
-    h+=`<div class="card"><h2>مقایسه کارشناسان (امتیاز ماهانه)</h2><table><tr><th></th>${ks.map(x=>`<th class="c">${MN[+x.slice(5)-1]}</th>`).join('')}</tr>
-     ${ex.map(e=>`<tr><td>${esc(nm(e))}</td>${ks.map(x=>{const t=calc(e,x).total;return `<td class="c ${col(t)}">${fa(t)}</td>`}).join('')}</tr>`).join('')}</table></div>`;
+    const kk=[];let k=K;for(let i=0;i<6;i++){kk.unshift(k);k=prevK(k)}
+    h+=`<div class="card"><h2>مقایسه کارشناسان (امتیاز ماهانه)</h2><table><tr><th></th>${kk.map(x=>`<th class="c">${MN[+x.slice(5)-1]}</th>`).join('')}</tr>
+     ${ex.map(e=>`<tr><td>${esc(nm(e))}</td>${kk.map(x=>{const t=tv(e,x);return `<td class="c ${cc(t)}">${fm(t)}</td>`}).join('')}</tr>`).join('')}</table></div>`;
     h+=card(document.getElementById('esel').value,K);
   }else h+=card(ME,K);
-  h+=`<div class="mu">وزن‌ها: ${Object.keys(CFG.W).map(k=>NAMES[k]+' '+fa(CFG.W[k])).join('، ')}. حداقل‌ها در بخش CFG بالای فایل قابل تنظیم است. چک‌لیست «انجام‌شده» یعنی آخرین ثبت آن در همان ماه؛ ثبت ماه بعد برای ماه قبل حساب نمی‌شود.</div>`;
+  h+=`<div class="mu">وزن‌ها: ${Object.keys(CFG.W).map(k=>NAMES[k]+' '+fa(CFG.W[k])).join('، ')}. حداقل‌ها در بخش CFG بالای فایل قابل تنظیم است. چک‌لیست «انجام‌شده» یعنی آخرین ثبت آن در همان ماه.</div>`;
   out.innerHTML=h;
 }
-if(TOK&&ME)start();else loginUI();
+HSEAuth.ready.then(()=>{ME=HSEAuth.email;start()});
 </script>
 </body>
 </html>
