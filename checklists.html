@@ -118,8 +118,6 @@ body div#app { display: flex; flex-direction: column; }
 .pager button:disabled { opacity: .4; }
 details > summary { list-style: none; } 
 textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--ln); border-radius: 10px; padding: 10px; margin-top: 8px; }
-.eqr { max-height: 230px; overflow: auto; }
-.eqr button { display: block; width: 100%; text-align: right; min-height: 40px; margin-top: 4px; padding: 6px 10px; font-size: 13px; font-weight: 400; }
 </style>
 </head>
 <body>
@@ -165,7 +163,6 @@ const SHIFTS = ['صبح','عصر','شب'];
 const SEVN = {1:'کم',2:'متوسط',3:'زیاد',4:'بحرانی'}, SEVC = {1:'#94a3b8',2:'#f59e0b',3:'#f97316',4:'#ef4444'};
 const SLA = {1:30,2:14,3:3,4:1};
 const RCS = ['آموزش/آگاهی نیروی انسانی','خرابی/فرسودگی تجهیزات','نبود یا ضعف رویه و دستورالعمل','نظارت و پیگیری ناکافی','بودجه/تأمین ناکافی','شرایط محیطی/طراحی'];
-let EQ = {}; /* تجهیز انتخاب‌شده برای هر عدم‌انطباق: { id: {code,title} } */
 let SV = {}, RS = {}, LC = {}, EX = {}; /* EX: محل‌های اضافه برای یک سؤال در گشت روزانه */
 const baseId = k => String(k).split('#')[0];
 const ROUND_LOC = 'گشت کل کارخانه'; /* بازدید روزانه ایمنی (D) یک‌بار برای کل کارخانه ثبت می‌شود */
@@ -282,7 +279,7 @@ function getSession() {
 const SS = getSession();
 let tok = SS.t || KEY, mail = SS.e || 'کاربر سامانه', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
-const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS, LC, EX, EQ });
+const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS, LC, EX });
 const AH = () => ({ apikey: KEY, Authorization: 'Bearer ' + tok });
 
 async function api(p, o = {}) {
@@ -355,88 +352,11 @@ async function historyList() {
   } catch (e) { alert(e.message); }
 }
 
-
-/* ===== انتخاب تجهیز از فهرست اعلان‌ها + هشدار موارد تکراری ===== */
-let EQL = [], EQERR = '';
-const NW = {};                                   /* کش اعلان‌ها و عدم‌انطباق‌های باز هر تجهیز */
-const CLOSED_ST = ['خاتمه یافته', 'انجام شده', 'باطل شده'];
-const nz = s => String(s || '').replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/[‌ً-ٟ]/g, '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).toLowerCase();
-const STOPW = new Set(['برای', 'این', 'های', 'شده', 'است', 'باید', 'دستگاه', 'تجهیز', 'نیاز', 'مورد', 'سالن', 'سوله']);
-const toks = s => new Set(nz(s).split(/[^a-z0-9؀-ۿ]+/).filter(w => w.length >= 3 && !STOPW.has(w)));
-const overlap = (a, b) => { let n = 0; a.forEach(w => { if (b.has(w)) n++; }); return n; };
-
-async function loadEq() {
-  try {
-    const rows = await fetchAll('equipment_list?select=code,title,is_equipment,notice_count,open_count&order=code');
-    EQL = rows.map(r => ({ ...r, _k: nz(r.code + ' ' + (r.title || '')) })); EQERR = '';
-  } catch (e) { EQERR = 'فهرست تجهیزات بارگذاری نشد: ' + e.message; }
-}
-function eqFind(q) {
-  q = nz(q).trim(); if (!q) return [];
-  const ws = q.split(/\s+/);
-  return EQL.filter(e => ws.every(w => e._k.includes(w)))
-    .sort((a, b) => (nz(b.code).startsWith(q) - nz(a.code).startsWith(q)) || (b.is_equipment - a.is_equipment))
-    .slice(0, 12);
-}
-function eqResults(id, q) {
-  if (EQERR) return `<small style="color:var(--nc)">${esc(EQERR)}</small>`;
-  if (!EQL.length) return '<small>فهرست تجهیزات هنوز بارگذاری نشده است...</small>';
-  const r = eqFind(q);
-  if (!r.length) return '<small>موردی پیدا نشد. می‌توانید بدون انتخاب تجهیز ادامه دهید.</small>';
-  return r.map(e => `<button data-a="eqpick" data-id="${esc(id)}" data-code="${esc(e.code)}"><b dir="ltr">${esc(e.code)}</b> — ${esc(e.title || '')}${e.is_equipment ? '' : ' <span class="ct">محل/سالن</span>'}${+e.open_count ? ` <span class="bg r">${fa(e.open_count)} اعلان باز</span>` : ''}</button>`).join('');
-}
-async function eqLoad(id) {
-  const e = EQ[id]; if (!e) return;
-  if (!NW[e.code]) {
-    try {
-      const c = encodeURIComponent(e.code);
-      const [n, f] = await Promise.all([
-        api('notices?select=no,description,status,jdate,created_on&equipment_code=eq.' + c + '&order=created_on.desc&limit=80'),
-        api('findings?select=id,qid,module,question,notice_code,created_at&status=eq.open&equipment_code=eq.' + c + '&order=created_at.desc&limit=30')
-      ]);
-      NW[e.code] = { n, f };
-    } catch (er) { NW[e.code] = { err: er.message, n: [], f: [] }; }
-  }
-  eqRender(id);
-}
-function eqSim(id) {
-  const e = EQ[id], w = e && NW[e.code]; if (!w) return { n: [], f: [] };
-  const t = toks(N[id] || '');
-  const sim = x => t.size && overlap(t, toks(x)) >= 2;
-  return { n: w.n.filter(x => !CLOSED_ST.includes(x.status) && sim(x.description)), f: w.f.filter(x => sim(x.question)) };
-}
-function eqHtml(id) {
-  const e = EQ[id]; if (!e) return '';
-  const w = NW[e.code]; if (!w) return '<small>در حال بررسی اعلان‌های قبلی این تجهیز...</small>';
-  if (w.err) return `<small style="color:var(--nc)">خطا در خواندن اعلان‌ها: ${esc(w.err)}</small>`;
-  const op = w.n.filter(x => !CLOSED_ST.includes(x.status)), cl = w.n.filter(x => CLOSED_ST.includes(x.status)).slice(0, 5);
-  const t = toks(N[id] || ''), sim = x => t.size && overlap(t, toks(x)) >= 2;
-  const row = (x, closed) => `<div style="font-size:12px; padding:4px 0; border-top:1px dashed var(--ln); ${closed ? 'opacity:.7;' : ''}">
-      <b dir="ltr">${esc(x.no)}</b> · ${esc(x.jdate || '')} · ${esc(x.status || '')} ${sim(x.description) ? '<span class="bg r">احتمالاً مشابه</span>' : ''}<br>${esc((x.description || '').slice(0, 140))}</div>`;
-  if (!op.length && !w.f.length && !cl.length) return '<small style="color:var(--ok)">✓ برای این تجهیز اعلان یا عدم‌انطباقی ثبت نشده است.</small>';
-  return `<div style="border:1.5px solid ${(op.length || w.f.length) ? 'var(--warn)' : 'var(--ln)'}; border-radius:10px; padding:8px 10px; margin-top:8px;">
-    <b style="font-size:13px;">${(op.length || w.f.length) ? '⚠ پیش از ثبت بررسی کنید: ' : ''}${fa(op.length)} اعلان باز و ${fa(w.f.length)} عدم‌انطباق باز برای این تجهیز وجود دارد</b>
-    ${op.slice(0, 8).map(x => row(x)).join('')}
-    ${op.length > 8 ? `<small>و ${fa(op.length - 8)} اعلان باز دیگر...</small>` : ''}
-    ${w.f.slice(0, 5).map(x => `<div style="font-size:12px; padding:4px 0; border-top:1px dashed var(--ln);">عدم‌انطباق باز (${esc(x.module)}) ${x.notice_code ? '· اعلان <b dir="ltr">' + esc(x.notice_code) + '</b>' : ''} ${sim(x.question) ? '<span class="bg r">احتمالاً مشابه</span>' : ''}<br>${esc((x.question || '').slice(0, 140))}</div>`).join('')}
-    ${cl.length ? `<details style="margin-top:6px;"><summary style="font-size:12px; color:var(--mu); cursor:pointer;">آخرین اعلان‌های بسته‌شده (${fa(cl.length)})</summary>${cl.map(x => row(x, 1)).join('')}</details>` : ''}
-  </div>`;
-}
-function eqRender(id) {
-  const el = document.querySelector('[data-eqw="' + id + '"]'); if (el) el.innerHTML = eqHtml(id);
-}
-
 function ncFields(id, qtext, rd, n) {
   const sv = SV[id] || dsev(qtext);
   return `<div style="${n ? 'border-top:1px dashed var(--ln); margin-top:10px; padding-top:8px;' : ''}">
             ${n ? `<small>محل ${fa(n + 1)} <b data-a="rmloc" data-id="${id}" style="color:var(--nc); cursor:pointer;">✕ حذف</b></small>` : ''}
             ${rd ? `<input data-lc="${id}" list="locs" placeholder="محل عدم‌انطباق (الزامی)" value="${esc(LC[id])}">` : ''}
-            <div>
-              <input data-eqs="${esc(id)}" placeholder="🔎 تجهیز / دستگاه: کد یا نام را بنویسید (اختیاری)" value="${EQ[id] ? esc(EQ[id].code + ' — ' + (EQ[id].title || '')) : ''}" autocomplete="off">
-              <div class="eqr" data-eqr="${esc(id)}"></div>
-              ${EQ[id] ? `<b data-a="eqclr" data-id="${esc(id)}" style="color:var(--nc); cursor:pointer; font-size:12px;">✕ حذف تجهیز انتخاب‌شده</b>` : ''}
-              <div data-eqw="${esc(id)}">${eqHtml(id)}</div>
-            </div>
             <input data-note="${id}" placeholder="شرح مشخص عدم‌انطباق (الزامی)" value="${esc(N[id])}">
             <select data-sv="${id}">${[1, 2, 3, 4].map(v => `<option value="${v}" ${sv == v ? 'selected' : ''}>شدت: ${SEVN[v]}</option>`).join('')}</select>
             <small style="margin-top:6px;">مهلت اصلاح بر اساس شدت: ${fa(SLA[sv])} روز</small>
@@ -495,7 +415,6 @@ function form() {
     ${rd ? `<datalist id="locs">${LOCS.map(l => `<option value="${l}">`).join('')}</datalist>` : ''}
     <button class="p" data-a="send" style="margin-top:20px;">ثبت نهایی بازدید</button>
   `);
-  Object.keys(EQ).forEach(k => { if (EQ[k] && !NW[EQ[k].code]) eqLoad(k); });
 }
 
 async function send() {
@@ -510,8 +429,6 @@ async function send() {
   if (bad.length) return alert('ثبت توضیحات و عکس برای موارد عدم‌انطباق الزامی است.\nناقص: سوال ' + bad.map(pos).join('، '));
   if (rd) { const nloc = ncs.filter(i => !(LC[i] || '').trim()); if (nloc.length) return alert('محل هر عدم‌انطباق را بنویسید.\nسوال: ' + nloc.map(pos).join('، ')); }
 
-  const dupl = ncs.filter(i => EQ[i] && (eqSim(i).n.length || eqSim(i).f.length));
-  if (dupl.length && !confirm('برای ' + fa(dupl.length) + ' مورد، اعلان یا عدم‌انطباق باز و مشابه روی همان تجهیز وجود دارد (سوال: ' + dupl.map(pos).join('، ') + ').\nآیا مطمئنید که باز هم ثبت شود؟')) return;
   const sb = $('[data-a=send]'); sb.disabled = true; sb.textContent = 'در حال ذخیره‌سازی داده‌ها...';
   const un = ids.filter(i => !A[i]).length;
   if (un && !confirm(un + ' سوال بدون پاسخ باقی مانده است. ادامه می‌دهید؟')) { sb.disabled = false; sb.textContent = 'ثبت نهایی بازدید'; return; }
@@ -528,12 +445,12 @@ async function send() {
       if (extras.length) extNote += ' | ' + extras.map(ex => `${ex.ph.replace('(الزامی)', '')}: ${D.extra[ex.key] || ''}`).join(' - ');
       f.push({
         inspection_id: r.id, module: m[0], location: rd ? LC[i].trim() : loc, qid: baseId(i), question: qt(baseId(i)), note: extNote,
-        severity: sv(i), category: cat(m[0], qt(baseId(i))), responsible: null, due_date: addDays(SLA[sv(i)]), equipment_code: EQ[i] ? EQ[i].code : null, equipment_title: EQ[i] ? EQ[i].title : null,
+        severity: sv(i), category: cat(m[0], qt(baseId(i))), responsible: null, due_date: addDays(SLA[sv(i)]),
         photos_before: await Promise.all((PH[i] || []).map(p => up(p.b)))
       });
     }
     if (f.length) await api('findings', { method: 'POST', body: JSON.stringify(f) });
-    localStorage.removeItem('draft'); Object.keys(PH).forEach(k => delete PH[k]); SV = {}; RS = {}; LC = {}; EX = {}; EQ = {};
+    localStorage.removeItem('draft'); Object.keys(PH).forEach(k => delete PH[k]); SV = {}; RS = {}; LC = {}; EX = {};
     alert('بازدید با موفقیت ثبت شد.');
     home();
   } catch (e) {
@@ -618,7 +535,7 @@ fi.onchange = async () => {
       const key = FT.m == 'addbf' ? 'photos_before' : 'photos_after';
       const ps = []; for (const f of fs) ps.push(await up(await shrink(f)));
       const [x] = await api('findings?select=' + key + '&id=eq.' + FT.id);
-      await api('findings?id=eq.' + FT.id, { method: 'PATCH', body: JSON.stringify({ [key]: [...(x[key] || []), ...ps] }) });
+      await api('findings?id=eq.' + FT.id, { method: 'PATCH', body: JSON.stringify({ [key]: [...(x[key] || []).filter(p => !/^no-photo/.test(p)), ...ps] }) });
       await loadFinds(); scrollTo(0, y);
     }
   } catch (e) { alert(e.message); }
@@ -651,12 +568,13 @@ function fQuery(skipSt) {
   if (lc) q += '&location=ilike.' + encodeURIComponent('*' + lc + '*');
   if (FQ.ntc == 'yes') q += '&notice_at=not.is.null'; else if (FQ.ntc == 'no') q += '&notice_at=is.null';
   if (FQ.ph == 'noafter') q += '&photos_after=eq.%7B%7D';
+  else if (FQ.ph == 'phafter') q += '&photos_after=cs.%7Bno-photo-after-placeholder.jpg%7D';
   else if (FQ.ph == 'ph') q += '&photos_before=cs.%7Bno-photo-placeholder.jpg%7D';
   const r = fRange();
   if (r.from) q += '&created_at=gte.' + encodeURIComponent(r.from.toISOString());
   if (r.to) q += '&created_at=lt.' + encodeURIComponent(r.to.toISOString());
   const s = FQ.q.trim().replace(/[,()*%\\:"]/g, ' ').trim();
-  if (s) q += '&or=(' + ['question', 'note', 'qid', 'location', 'notice_code', 'responsible', 'equipment_code', 'equipment_title'].map(c => c + '.ilike.' + encodeURIComponent('*' + s + '*')).join(',') + ')';
+  if (s) q += '&or=(' + ['question', 'note', 'qid', 'location', 'notice_code', 'responsible'].map(c => c + '.ilike.' + encodeURIComponent('*' + s + '*')).join(',') + ')';
   return q;
 }
 function fOrder() {
@@ -685,7 +603,6 @@ function fcard(x) {
       <div><label style="font-size:12px; color:var(--mu);">چک‌لیست / ماژول</label><select data-ef="module">${M.map(m => optH(m[0], m[1], x.module)).join('')}</select></div>
       <div><label style="font-size:12px; color:var(--mu);">شدت</label><select data-ef="severity">${[1, 2, 3, 4].map(s => optH(s, SEVN[s], x.severity || 2)).join('')}</select></div>
       <div><label style="font-size:12px; color:var(--mu);">دسته</label><select data-ef="category">${CATN.concat(x.category && !CATN.includes(x.category) ? [x.category] : []).map(c => optH(c, c, x.category)).join('')}</select></div>
-      <div style="grid-column:1/-1;"><label style="font-size:12px; color:var(--mu);">تجهیز / دستگاه (کد یا نام را انتخاب کنید)</label><input data-ef="equipment" list="eqdl" dir="auto" value="${esc(x.equipment_code ? x.equipment_code + ' — ' + (x.equipment_title || '') : '')}"><datalist id="eqdl">${EQL.map(e => `<option value="${esc(e.code + ' — ' + (e.title || ''))}">`).join('')}</datalist></div>
       <div><label style="font-size:12px; color:var(--mu);">مسئول پیگیری</label><input data-ef="responsible" value="${esc(x.responsible || '')}"></div>
       <div><label style="font-size:12px; color:var(--mu);">مهلت اصلاح</label><input type="date" data-ef="due_date" value="${esc(x.due_date || '')}"></div>
     </div>
@@ -695,7 +612,6 @@ function fcard(x) {
     </div>` : `
     <p>${esc(x.question)}</p>
     <small style="margin-top:4px;">${mn(x.module)} · ${esc(x.location)} · ${fd(x.created_at)} · <span dir="ltr">${esc(x.qid || '')}</span></small>
-    ${x.equipment_code ? `<small style="margin-top:2px;">🔧 تجهیز: <b dir="ltr">${esc(x.equipment_code)}</b> — ${esc(x.equipment_title || '')}</small>` : ''}
     <div style="margin-top:6px;">${sevB(x)}${x.category ? `<span class="ct">${esc(x.category)}</span>` : ''}${x.responsible ? `<span class="bg g">مسئول: ${esc(x.responsible)}</span>` : ''} ${dueB(x)}${ph ? '<span class="ct">بدون عکس در گزارش اصلی</span>' : ''}</div>
     <p style="font-size:13px; font-weight:400; color:var(--mu); margin-top:6px;">${esc(x.note)}</p>`;
   return `
@@ -716,7 +632,7 @@ function fcard(x) {
       <select data-rc="${x.id}"><option value="">علت ریشه‌ای (الزامی برای بستن)</option>${RCS.map(rc => `<option ${x.root_cause == rc ? 'selected' : ''}>${rc}</option>`).join('')}</select>
       <div class="ph">${th(x.photos_after, x.id, 'after', ed)}<button class="ad" data-a="addaf" data-id="${x.id}">+ تصویر پس از اصلاح</button></div>
       ${(x.photos_after || []).length ? `
-        <label class="fx"><input type="checkbox" data-a="fix" data-id="${x.id}" data-pa="${x.photos_after.length}" ${x.status == 'closed' ? 'checked' : ''}> تایید انجام اقدام اصلاحی (${x.closed_at ? fd(x.closed_at) : ''})</label>
+        <label class="fx"><input type="checkbox" data-a="fix" data-id="${x.id}" data-pa="${x.photos_after.filter(p => !/^no-photo/.test(p)).length}" ${x.status == 'closed' ? 'checked' : ''}> تایید انجام اقدام اصلاحی (${x.closed_at ? fd(x.closed_at) : ''})</label>
       ` : '<small style="margin-top:6px;">برای ثبت نهایی اصلاح، بارگذاری حداقل یک عکس الزامی است.</small>'}
     </div>`;
 }
@@ -836,7 +752,7 @@ async function finds(iid) {
         <select data-ff="cat">${optH('', 'همه دسته‌ها', FQ.cat)}${CATN.map(c => optH(c, c, FQ.cat)).join('')}</select>
         <select data-ff="sev">${optH('', 'همه شدت‌ها', FQ.sev)}${[4, 3, 2, 1].map(s => optH(s, 'شدت ' + SEVN[s], FQ.sev)).join('')}</select>
         <select data-ff="ntc">${optH('', 'اعلان: همه', FQ.ntc)}${optH('yes', 'اعلان ثبت شده', FQ.ntc)}${optH('no', 'بدون اعلان', FQ.ntc)}</select>
-        <select data-ff="ph">${optH('', 'عکس: همه', FQ.ph)}${optH('noafter', 'بدون عکس پس از اصلاح', FQ.ph)}${optH('ph', 'بدون عکس قبل (جایگزین)', FQ.ph)}</select>
+        <select data-ff="ph">${optH('', 'عکس: همه', FQ.ph)}${optH('noafter', 'بدون عکس پس از اصلاح', FQ.ph)}${optH('phafter', 'بسته‌شده با عکس جایگزین (برای تکمیل)', FQ.ph)}${optH('ph', 'بدون عکس قبل (جایگزین)', FQ.ph)}</select>
         <input data-ff="loc" list="locs" placeholder="محل..." value="${esc(FQ.loc)}">
         <select data-ff="per">${optH('all', 'همه زمان‌ها', FQ.per)}${optH('d7', '۷ روز گذشته', FQ.per)}${optH('d30', '۳۰ روز گذشته', FQ.per)}${optH('d90', '۹۰ روز گذشته', FQ.per)}${optH('j', 'ماه / سال شمسی', FQ.per)}</select>
         <div id="fj" class="fgrid2" ${FQ.per == 'j' ? '' : 'hidden'}>
@@ -1067,10 +983,7 @@ async function findingSlide(f, n, tot, logo) {
   const qLines = wrapText(x, f.question, SW - 120).slice(0, 3);
   qLines.forEach((l, idx) => x.fillText(l, SW - 60, 180 + idx * 46));
   x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
-  { const parts = ['محل: ' + f.location]; if (f.equipment_code) parts.push('تجهیز: ' + f.equipment_code + (f.equipment_title ? ' ' + f.equipment_title : ''));
-    parts.push('تاریخ ثبت: ' + fl(f.created_at)); if (f.responsible) parts.push('مسئول پیگیری: ' + f.responsible);
-    while (parts.length > 2 && x.measureText(parts.join('  |  ')).width > SW - 120) parts.pop();
-    x.fillText(parts.join('  |  '), SW - 60, 180 + qLines.length * 46 + 10); }
+  x.fillText('محل: ' + f.location + '  |  تاریخ ثبت: ' + fl(f.created_at) + (f.responsible ? '  |  مسئول پیگیری: ' + f.responsible : ''), SW - 60, 180 + qLines.length * 46 + 10);
   const pw = (SW - 140) / 2, ph = 620, py = 320;
   const get = a => Promise.all((a || []).slice(0, 4).map(photoImg)).then(r => r.filter(Boolean));
   const [bp, ap] = await Promise.all([get(f.photos_before), get(f.photos_after)]);
@@ -1147,7 +1060,7 @@ async function genSlides() {
     <div id="parts" style="margin-top:12px;"></div>`;
   const prog = t => { const el = $('#slides-progress'); if (el) el.textContent = t; };
   try {
-    const FS = 'module,location,qid,question,status,created_at,closed_at,notice_at,severity,category,responsible,due_date,equipment_code,equipment_title,photos_before,photos_after';
+    const FS = 'module,location,qid,question,status,created_at,closed_at,notice_at,severity,category,responsible,due_date,photos_before,photos_after';
     const dq = rDateQ(), mq = rModQ(), r = rRange();
     const [P, OF, I] = await Promise.all([
       fetchAll('findings?select=' + FS + '&order=created_at.desc,id.asc' + rQuery()),
@@ -1201,21 +1114,16 @@ document.onclick = async e => {
   else if (a == 'open') {
     cur = M.find(m => m[0] == t.dataset.k);
     const d = JSON.parse(localStorage.draft || '{}');
-    if (d.k == cur[0]) { A = d.A || {}; N = d.N || {}; SV = d.SV || {}; RS = d.RS || {}; LC = d.LC || {}; EX = d.EX || {}; EQ = d.EQ || {}; D.loc = d.loc || ''; D.extra = d.extra || {}; D.shift = d.shift || ''; }
-    else { A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; EQ = {}; D.loc = ''; D.extra = {}; D.shift = ''; D.oth = false; }
+    if (d.k == cur[0]) { A = d.A || {}; N = d.N || {}; SV = d.SV || {}; RS = d.RS || {}; LC = d.LC || {}; EX = d.EX || {}; D.loc = d.loc || ''; D.extra = d.extra || {}; D.shift = d.shift || ''; }
+    else { A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; D.loc = ''; D.extra = {}; D.shift = ''; D.oth = false; }
     form();
   }
   else if (a == 'ans') { A[t.dataset.id] = t.dataset.v; save(); form(); scrollTo(0, y); }
   else if (a == 'addloc') { const b = t.dataset.id; EX[b] = EX[b] || []; const nx = Math.max(0, ...EX[b].map(k => +k.split('#')[1])) + 1; EX[b].push(b + '#' + nx); save(); form(); scrollTo(0, y); }
-  else if (a == 'rmloc') { const k = t.dataset.id, b = baseId(k); EX[b] = (EX[b] || []).filter(x => x != k); delete N[k]; delete SV[k]; delete RS[k]; delete LC[k]; delete EQ[k]; delete PH[k]; save(); form(); scrollTo(0, y); }
+  else if (a == 'rmloc') { const k = t.dataset.id, b = baseId(k); EX[b] = (EX[b] || []).filter(x => x != k); delete N[k]; delete SV[k]; delete RS[k]; delete LC[k]; delete PH[k]; save(); form(); scrollTo(0, y); }
   else if (a == 'addph') { FT = { m: 'addph', id: t.dataset.id }; fi.click(); }
   else if (a == 'rmph') { PH[t.dataset.id].splice(+t.dataset.j, 1); form(); scrollTo(0, y); }
   else if (a == 'send') send();
-  else if (a == 'eqpick') {
-    const e = EQL.find(x => x.code == t.dataset.code); if (!e) return;
-    EQ[t.dataset.id] = { code: e.code, title: e.title || '' }; save(); form(); scrollTo(0, y);
-  }
-  else if (a == 'eqclr') { delete EQ[t.dataset.id]; save(); form(); scrollTo(0, y); }
   else if (a == 'finds') finds();
   else if (a == 'edit-insp') {
     const box = t.closest('.q').querySelector('.edit-area');
@@ -1274,9 +1182,6 @@ document.onclick = async e => {
   else if (a == 'fsave') {
     const card = t.closest('.q'), v = k => card.querySelector('[data-ef=' + k + ']').value;
     const body = { question: v('question').trim(), note: v('note').trim(), location: v('location').trim() || 'نامشخص', module: v('module'), severity: +v('severity'), category: v('category'), responsible: v('responsible').trim() || null, due_date: v('due_date') || null };
-    { const ev = v('equipment').trim(), code = ev.split(' — ')[0].trim(), e = EQL.find(z => z.code == code);
-      if (ev && !e) return alert('تجهیز را از فهرست پیشنهادی انتخاب کنید یا فیلد را خالی بگذارید.');
-      body.equipment_code = e ? e.code : null; body.equipment_title = e ? (e.title || null) : null; }
     if (!body.question) return alert('متن عدم‌انطباق نمی‌تواند خالی باشد.');
     try { await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify(body) }); EDIT = null; await loadFinds(); scrollTo(0, y); }
     catch (er) { alert('خطا در ذخیره: ' + er.message); }
@@ -1326,12 +1231,6 @@ document.oninput = async e => {
     if (k == 'per') $('#fj').hidden = FQ.per != 'j';
     clearTimeout(FTM); FTM = setTimeout(loadFinds, (k == 'q' || k == 'loc') ? 400 : 0); return;
   }
-  if (t.dataset.eqs) {
-    const id = t.dataset.eqs, box = document.querySelector('[data-eqr="' + id + '"]');
-    if (EQ[id] && t.value != EQ[id].code + ' — ' + (EQ[id].title || '')) { delete EQ[id]; save(); const w = document.querySelector('[data-eqw="' + id + '"]'); if (w) w.innerHTML = ''; }
-    if (box) box.innerHTML = t.value.trim() ? eqResults(id, t.value) : '';
-    return;
-  }
   if (t.dataset.code) { t.nextElementSibling.hidden = !t.value.trim(); return; }
   if (t.id == 'ls') { D.oth = t.value == '__o'; D.loc = D.oth ? '' : t.value; save(); form(); scrollTo(0, y); return; }
   if (t.id == 'sh') { D.shift = t.value; save(); return; }
@@ -1342,14 +1241,13 @@ document.oninput = async e => {
   }
   if (t.id == 'loc') D.loc = t.value;
   else if (t.dataset.ex) { D.extra = D.extra || {}; D.extra[t.dataset.ex] = t.value; }
-  else if (t.dataset.note) { N[t.dataset.note] = t.value; eqRender(t.dataset.note); }
+  else if (t.dataset.note) N[t.dataset.note] = t.value;
   else if (t.dataset.rs) RS[t.dataset.rs] = t.value;
   else if (t.dataset.lc) LC[t.dataset.lc] = t.value;
   else return;
   save();
 };
 
-loadEq();
 home().then(() => { if (location.hash == '#rep') renderManagementReport(); });
 </script>
 </body>
