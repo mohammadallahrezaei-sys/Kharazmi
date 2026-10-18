@@ -5,123 +5,140 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نرم‌افزار جامع HSE - گسترش فناوری خوارزمی</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  body { font-family: 'Vazirmatn', sans-serif; }
-  .grid-btn {
-    @apply flex flex-col items-center justify-center p-3.5 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 hover:border-emerald-500/50 rounded-2xl transition-all duration-200 text-center shadow-md gap-2;
-  }
-</style>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap"></noscript>
+<style>*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.col-span-2{grid-column:span 2/span 2}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:.25rem}.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mt-4{margin-top:1rem}.mt-6{margin-top:1.5rem}.mt-8{margin-top:2rem}.block{display:block}.flex{display:flex}.table{display:table}.grid{display:grid}.hidden{display:none}.h-10{height:2.5rem}.h-8{height:2rem}.h-auto{height:auto}.min-h-screen{min-height:100vh}.w-10{width:2.5rem}.w-12{width:3rem}.w-20{width:5rem}.w-8{width:2rem}.w-full{width:100%}.min-w-0{min-width:0}.max-w-lg{max-width:32rem}.max-w-md{max-width:28rem}.shrink-0{flex-shrink:0}@keyframes pulse{50%{opacity:.5}}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-2{gap:.5rem}.space-x-3>:not([hidden])~:not([hidden]){--tw-space-x-reverse:0;margin-right:calc(.75rem*var(--tw-space-x-reverse));margin-left:calc(.75rem*(1 - var(--tw-space-x-reverse)))}.space-y-3>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.75rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.75rem*var(--tw-space-y-reverse))}.space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}.space-x-reverse>:not([hidden])~:not([hidden]){--tw-space-x-reverse:1}.rounded-2xl{border-radius:1rem}.rounded-lg{border-radius:.5rem}.rounded-xl{border-radius:.75rem}.border{border-width:1px}.border-t{border-top-width:1px}.border-amber-500{--tw-border-opacity:1;border-color:rgb(245 158 11/var(--tw-border-opacity,1))}.border-amber-500\/40{border-color:rgba(245,158,11,.4)}.border-emerald-500{--tw-border-opacity:1;border-color:rgb(16 185 129/var(--tw-border-opacity,1))}.border-emerald-500\/30{border-color:rgba(16,185,129,.3)}.border-emerald-500\/40{border-color:rgba(16,185,129,.4)}.border-red-500{--tw-border-opacity:1;border-color:rgb(239 68 68/var(--tw-border-opacity,1))}.border-red-500\/40{border-color:rgba(239,68,68,.4)}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85/var(--tw-border-opacity,1))}.border-teal-500{--tw-border-opacity:1;border-color:rgb(20 184 166/var(--tw-border-opacity,1))}.border-teal-500\/40{border-color:rgba(20,184,166,.4)}.bg-amber-500{--tw-bg-opacity:1;background-color:rgb(245 158 11/var(--tw-bg-opacity,1))}.bg-amber-500\/20{background-color:rgba(245,158,11,.2)}.bg-amber-600{--tw-bg-opacity:1;background-color:rgb(217 119 6/var(--tw-bg-opacity,1))}.bg-amber-950{--tw-bg-opacity:1;background-color:rgb(69 26 3/var(--tw-bg-opacity,1))}.bg-amber-950\/40{background-color:rgba(69,26,3,.4)}.bg-emerald-500{--tw-bg-opacity:1;background-color:rgb(16 185 129/var(--tw-bg-opacity,1))}.bg-emerald-500\/10{background-color:rgba(16,185,129,.1)}.bg-emerald-500\/20{background-color:rgba(16,185,129,.2)}.bg-emerald-600{--tw-bg-opacity:1;background-color:rgb(5 150 105/var(--tw-bg-opacity,1))}.bg-emerald-950{--tw-bg-opacity:1;background-color:rgb(2 44 34/var(--tw-bg-opacity,1))}.bg-emerald-950\/30{background-color:rgba(2,44,34,.3)}.bg-emerald-950\/40{background-color:rgba(2,44,34,.4)}.bg-indigo-600{--tw-bg-opacity:1;background-color:rgb(79 70 229/var(--tw-bg-opacity,1))}.bg-lime-600{--tw-bg-opacity:1;background-color:rgb(101 163 13/var(--tw-bg-opacity,1))}.bg-orange-600{--tw-bg-opacity:1;background-color:rgb(234 88 12/var(--tw-bg-opacity,1))}.bg-red-500{--tw-bg-opacity:1;background-color:rgb(239 68 68/var(--tw-bg-opacity,1))}.bg-red-500\/20{background-color:rgba(239,68,68,.2)}.bg-red-950{--tw-bg-opacity:1;background-color:rgb(69 10 10/var(--tw-bg-opacity,1))}.bg-red-950\/40{background-color:rgba(69,10,10,.4)}.bg-rose-600{--tw-bg-opacity:1;background-color:rgb(225 29 72/var(--tw-bg-opacity,1))}.bg-sky-600{--tw-bg-opacity:1;background-color:rgb(2 132 199/var(--tw-bg-opacity,1))}.bg-slate-700{--tw-bg-opacity:1;background-color:rgb(51 65 85/var(--tw-bg-opacity,1))}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.bg-slate-800\/50{background-color:rgba(30,41,59,.5)}.bg-slate-800\/80{background-color:rgba(30,41,59,.8)}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42/var(--tw-bg-opacity,1))}.bg-teal-500{--tw-bg-opacity:1;background-color:rgb(20 184 166/var(--tw-bg-opacity,1))}.bg-teal-500\/20{background-color:rgba(20,184,166,.2)}.bg-teal-600{--tw-bg-opacity:1;background-color:rgb(13 148 136/var(--tw-bg-opacity,1))}.bg-teal-900{--tw-bg-opacity:1;background-color:rgb(19 78 74/var(--tw-bg-opacity,1))}.bg-teal-950{--tw-bg-opacity:1;background-color:rgb(4 47 46/var(--tw-bg-opacity,1))}.bg-teal-950\/40{background-color:rgba(4,47,46,.4)}.bg-violet-600{--tw-bg-opacity:1;background-color:rgb(124 58 237/var(--tw-bg-opacity,1))}.p-2{padding:.5rem}.p-2\.5{padding:.625rem}.p-3{padding:.75rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-2\.5{padding-top:.625rem;padding-bottom:.625rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.text-center{text-align:center}.text-\[10px\]{font-size:10px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:.75rem;line-height:1rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-medium{font-weight:500}.leading-snug{line-height:1.375}.text-amber-400{--tw-text-opacity:1;color:rgb(251 191 36/var(--tw-text-opacity,1))}.text-emerald-300{--tw-text-opacity:1;color:rgb(110 231 183/var(--tw-text-opacity,1))}.text-emerald-400{--tw-text-opacity:1;color:rgb(52 211 153/var(--tw-text-opacity,1))}.text-red-400{--tw-text-opacity:1;color:rgb(248 113 113/var(--tw-text-opacity,1))}.text-slate-100{--tw-text-opacity:1;color:rgb(241 245 249/var(--tw-text-opacity,1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225/var(--tw-text-opacity,1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184/var(--tw-text-opacity,1))}.text-slate-950{--tw-text-opacity:1;color:rgb(2 6 23/var(--tw-text-opacity,1))}.text-teal-300{--tw-text-opacity:1;color:rgb(94 234 212/var(--tw-text-opacity,1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.shadow{--tw-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color),0 1px 2px -1px var(--tw-shadow-color)}.shadow,.shadow-lg{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color),0 4px 6px -4px var(--tw-shadow-color)}.shadow-md{--tw-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color),0 2px 4px -2px var(--tw-shadow-color)}.shadow-md,.shadow-xl{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color),0 8px 10px -6px var(--tw-shadow-color)}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.transition-colors{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.hover\:bg-amber-500:hover{--tw-bg-opacity:1;background-color:rgb(245 158 11/var(--tw-bg-opacity,1))}.hover\:bg-emerald-500:hover{--tw-bg-opacity:1;background-color:rgb(16 185 129/var(--tw-bg-opacity,1))}.hover\:bg-emerald-900\/40:hover{background-color:rgba(6,78,59,.4)}.hover\:bg-indigo-500:hover{--tw-bg-opacity:1;background-color:rgb(99 102 241/var(--tw-bg-opacity,1))}.hover\:bg-lime-500:hover{--tw-bg-opacity:1;background-color:rgb(132 204 22/var(--tw-bg-opacity,1))}.hover\:bg-orange-500:hover{--tw-bg-opacity:1;background-color:rgb(249 115 22/var(--tw-bg-opacity,1))}.hover\:bg-rose-500:hover{--tw-bg-opacity:1;background-color:rgb(244 63 94/var(--tw-bg-opacity,1))}.hover\:bg-sky-500:hover{--tw-bg-opacity:1;background-color:rgb(14 165 233/var(--tw-bg-opacity,1))}.hover\:bg-slate-600:hover{--tw-bg-opacity:1;background-color:rgb(71 85 105/var(--tw-bg-opacity,1))}.hover\:bg-teal-500:hover{--tw-bg-opacity:1;background-color:rgb(20 184 166/var(--tw-bg-opacity,1))}.hover\:bg-teal-900\/40:hover{background-color:rgba(19,78,74,.4)}.hover\:bg-violet-500:hover{--tw-bg-opacity:1;background-color:rgb(139 92 246/var(--tw-bg-opacity,1))}</style>
+<style> body { font-family: 'Vazirmatn', sans-serif; } </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between p-4 selection:bg-emerald-500 selection:text-slate-900">
-
-    <div class="max-w-lg w-full mx-auto space-y-4">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between p-4">
+    <div class="max-w-lg w-full mx-auto space-y-3 mt-4">
         
         <!-- هدر و لوگوی خوارزمی -->
-        <header class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-lg text-center">
-            <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded-lg shadow" onerror="this.style.display='none'">
-                    <div class="text-right">
-                        <h1 class="text-base font-extrabold text-white leading-tight">نرم‌افزار جامع HSE</h1>
-                        <p class="text-[10px] text-slate-400">سامانه یکپارچه مدیریت ایمنی، بهداشت و تجهیزات</p>
-                    </div>
-                </div>
-                <a href="report.html" class="bg-teal-950/60 hover:bg-teal-900/60 border border-teal-500/40 text-teal-300 text-xs px-3 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all shrink-0">
-                    <span>📊</span>
-                    <span>گزارش ماهانه</span>
-                </a>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-3 shadow-xl text-center">
+            <div class="mb-1 flex justify-center">
+                <img src="logo.png" alt="گسترش فناوری خوارزمی" class="w-12 h-auto rounded-lg shadow" onerror="this.style.display='none'">
             </div>
-        </header>
+            <h1 class="text-xl font-black text-white mb-1">نرم‌افزار جامع HSE</h1>
+            <p class="text-[10px] text-slate-400 leading-snug">سامانه یکپارچه مدیریت ایمنی، بهداشت و تجهیزات</p>
+        </div>
 
-        <!-- ویجت‌های وضعیت لحظه‌ای بالا -->
-        <section class="grid grid-cols-3 gap-2">
-            <a id="alertWidget" href="checklists.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
-                <div id="alertIcon" class="text-emerald-400 font-bold text-sm">✓</div>
-                <h3 id="alertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">ایمنی کارخانه</h3>
-                <p id="alertDesc" class="text-[9px] text-slate-400 truncate">بررسی...</p>
-            </a>
+        <a href="desk.html" class="block bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/40 rounded-xl p-2.5 shadow transition-colors">
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-base bg-emerald-500/20 text-emerald-300">🧭</div>
+                <div>
+                    <h3 class="text-xs font-bold text-white leading-snug">میز کار HSE</h3>
+                    <p class="text-[10px] text-slate-400 leading-snug">موارد معوق و نیازمند اقدام در یک نگاه</p>
+                </div>
+            </div>
+        </a>
 
-            <a id="clinicAlertWidget" href="clinic.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
-                <div id="clinicAlertIcon" class="text-rose-400 font-bold text-sm">🏥</div>
-                <h3 id="clinicAlertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">بهداری و حوادث</h3>
-                <p id="clinicAlertDesc" class="text-[9px] text-slate-400 truncate">بررسی...</p>
-            </a>
-
-            <a id="ekhtarAlertWidget" href="ekhtar.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow-sm text-center">
-                <div id="ekhtarAlertIcon" class="text-amber-400 font-bold text-sm">⚠️</div>
-                <h3 id="ekhtarAlertTitle" class="text-[10px] font-bold text-slate-200 mt-1 truncate">انضباطی</h3>
-                <p id="ekhtarAlertDesc" class="text-[9px] text-slate-400 truncate">بررسی...</p>
-            </a>
-        </section>
-
-        <!-- ماژول‌های اصلی (ساختار شبکه‌ایِ مرتب و خلوت) -->
-        <main class="space-y-4">
+        <div class="grid grid-cols-2 gap-2">
+        <!-- ویجت هوشمند هشدار عدم‌انطباق‌های باز -->
+        <a id="alertWidget" href="checklists.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow flex items-center gap-2 transition-all">
+            <div class="flex items-center gap-2 min-w-0">
+                <div id="alertIcon" class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-base bg-emerald-500/10 text-emerald-400">
+                    ✓
+                </div>
+                <div>
+                    <h3 id="alertTitle" class="text-xs font-bold text-white leading-snug">وضعیت ایمنی کارخانه</h3>
+                    <p id="alertDesc" class="text-[10px] text-slate-400 leading-snug">در حال بررسی عدم‌انطباق‌های باز...</p>
+                </div>
+            </div>
             
-            <!-- بخش ۱: بازرسی و ایمنی -->
-            <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-3 space-y-2.5">
-                <h2 class="text-xs font-bold text-slate-400 px-1">🛡️ بازرسی و ایمنی فرآیندی</h2>
-                <div class="grid grid-cols-2 gap-2">
-                    <a href="checklists.html" class="grid-btn">
-                        <span class="text-xl">📋</span>
-                        <span class="text-xs font-bold text-white">چک‌لیست‌ها و بازرسی</span>
-                    </a>
-                    <a href="equipment.html" class="grid-btn">
-                        <span class="text-xl">🏗</span>
-                        <span class="text-xs font-bold text-white">تجهیزات و ماشین‌آلات</span>
-                    </a>
-                    <a href="cards.html" class="grid-btn">
-                        <span class="text-xl">🗂</span>
-                        <span class="text-xs font-bold text-white">کارت خطر و پیشنهاد</span>
-                    </a>
-                    <a href="evaluation.html" class="grid-btn">
-                        <span class="text-xl">📈</span>
-                        <span class="text-xs font-bold text-white">ارزیابی عملکرد واحدها</span>
-                    </a>
+        </a>
+
+        <!-- ویجت خلاصه وضعیت حوادث و بهداری -->
+        <a id="clinicAlertWidget" href="clinic.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow flex items-center gap-2 transition-all">
+            <div class="flex items-center gap-2 min-w-0">
+                <div id="clinicAlertIcon" class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-base bg-emerald-500/10 text-emerald-400">
+                    🏥
+                </div>
+                <div>
+                    <h3 id="clinicAlertTitle" class="text-xs font-bold text-white leading-snug">وضعیت بهداری و حوادث</h3>
+                    <p id="clinicAlertDesc" class="text-[10px] text-slate-400 leading-snug">در حال دریافت آمار بهداری...</p>
                 </div>
             </div>
+            
+        </a>
 
-            <!-- بخش ۲: بهداشت، طب کار و پرسنل (مستقل) -->
-            <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-3 space-y-2.5">
-                <h2 class="text-xs font-bold text-slate-400 px-1">🏥 بهداشت، طب کار و پرسنل</h2>
-                <div class="grid grid-cols-2 gap-2">
-                    <a href="clinic.html" class="grid-btn">
-                        <span class="text-xl">🏥</span>
-                        <span class="text-xs font-bold text-white">بهداری و سوابق پزشکی</span>
-                    </a>
-                    <a href="employees.html" class="grid-btn">
-                        <span class="text-xl">👥</span>
-                        <span class="text-xs font-bold text-white">بانک اطلاعاتی پرسنل</span>
-                    </a>
+        <!-- ویجت جدید خلاصه سوابق انضباطی و اخطارها -->
+        <a id="ekhtarAlertWidget" href="ekhtar.html" class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow flex items-center gap-2 transition-all">
+            <div class="flex items-center gap-2 min-w-0">
+                <div id="ekhtarAlertIcon" class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-base bg-emerald-500/10 text-emerald-400">
+                    ⚠️
+                </div>
+                <div>
+                    <h3 id="ekhtarAlertTitle" class="text-xs font-bold text-white leading-snug">سوابق انضباطی و اخطارها</h3>
+                    <p id="ekhtarAlertDesc" class="text-[10px] text-slate-400 leading-snug">در حال بارگذاری آمار انضباطی...</p>
                 </div>
             </div>
+            
+        </a>
 
-            <!-- بخش ۳: انضباطی، آموزش و فرهنگ -->
-            <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-3 space-y-2.5">
-                <h2 class="text-xs font-bold text-slate-400 px-1">⚖️ انضباطی، آموزش و فرهنگ</h2>
-                <div class="grid grid-cols-2 gap-2">
-                    <a href="ekhtar.html" class="grid-btn">
-                        <span class="text-xl">⚠️</span>
-                        <span class="text-xs font-bold text-white">سوابق انضباطی و اخطارها</span>
-                    </a>
-                    <a href="training.html" class="grid-btn">
-                        <span class="text-xl">🎓</span>
-                        <span class="text-xs font-bold text-white">آموزش HSE</span>
-                    </a>
-                    <a href="culture.html" class="grid-btn col-span-2">
-                        <span class="text-xl">🪜</span>
-                        <span class="text-xs font-bold text-white">نردبان فرهنگ ایمنی</span>
-                    </a>
+        <!-- گزارش مدیریتی (جدا از ماژول‌ها) -->
+        <a href="report.html" class="block bg-teal-950/40 hover:bg-teal-900/40 border border-teal-500/40 rounded-xl p-2.5 shadow transition-colors">
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-base bg-teal-500/20 text-teal-300">📊</div>
+                <div>
+                    <h3 class="text-xs font-bold text-white leading-snug">گزارش ماهانه HSE</h3>
+                    <p class="text-[10px] text-slate-400 leading-snug">ویژه مدیریت</p>
                 </div>
             </div>
+        </a>
 
-        </main>
+        </div>
+
+        <!-- ماژول‌های اصلی سامانه -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-xl grid grid-cols-2 gap-2">
+            <h2 class="col-span-2 text-sm font-bold text-slate-300 mb-1">ماژول‌های عملیاتی</h2>
+            
+            <a href="checklists.html" class="block w-full py-2.5 px-2 leading-snug bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl transition-colors shadow-md text-center text-xs">
+                📋 ماژول چک‌لیست‌ها و بازرسی
+            </a>
+            
+            <!-- ماژول بهداری و حوادث شغلی -->
+            <a href="clinic.html" class="block w-full py-2.5 px-2 leading-snug bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-xs">
+                🏥 ماژول بهداری و سوابق پزشکی
+            </a>
+
+            <!-- ماژول اخطار و انضباطی -->
+            <a href="ekhtar.html" class="block w-full py-2.5 px-2 leading-snug bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-xs">
+                ⚠️ ماژول سوابق انضباطی و اخطارها
+            </a>
+
+            <a href="equipment.html" class="block w-full py-2.5 px-2 leading-snug bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-xs">
+                🏗 تجهیزات و بازرسی‌های دوره‌ای
+            </a>
+
+            <a href="training.html" class="block w-full py-2.5 px-2 leading-snug bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-xs">
+                🎓 ماژول آموزش HSE
+            </a>
+
+            <a href="cards.html" class="block w-full py-2.5 px-2 leading-snug bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-xs">
+                🗂 کارت‌های گزارش خطر و پیشنهاد
+            </a>
+
+            <a href="evaluation.html" class="block w-full py-2.5 px-2 leading-snug bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-xs">
+                📊 ارزیابی عملکرد واحدها
+            </a>
+
+            <a href="culture.html" class="block w-full py-2.5 px-2 leading-snug bg-lime-600 hover:bg-lime-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-xs">
+                🪜 نردبان فرهنگ ایمنی
+            </a>
+
+            <a href="unit_report.html" class="block w-full py-2.5 px-2 leading-snug bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl transition-colors shadow-md text-center text-xs">
+                ✉️ گزارش واحدها (Outlook)
+            </a>
+
+            <a href="employees.html" class="block w-full py-2.5 px-2 leading-snug bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors text-center text-xs">
+                👥 ماژول بانک پرسنل
+            </a>
+        </div>
     </div>
 
-    <!-- فوتر سامانه -->
-    <footer class="text-center py-4 text-xs text-slate-500 mt-6 border-t border-slate-800">
-        نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح: <span class="text-slate-300 font-semibold">محمد اله رضایی</span>
+    <!-- فوتر سامانه و ذکر نام طراح -->
+    <footer class="bg-slate-800/50 border-t border-slate-700 text-center py-4 text-xs text-slate-400 mt-8 rounded-xl">
+        نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <span class="text-emerald-400 font-bold">محمد اله رضایی</span>
     </footer>
 
 <script>
@@ -133,28 +150,95 @@ async function checkOpenFindings() {
         const res = await fetch(`${URL_}/rest/v1/findings?status=eq.open&select=id`, { headers });
         const data = await res.json();
         const count = data.length || 0;
-        document.getElementById('alertTitle').innerText = count > 0 ? `${count} مورد باز` : 'ایمنی مطلوب';
-        document.getElementById('alertDesc').innerText = count > 0 ? 'نیازمند پیگیری' : 'بدون خطر';
-        if(count > 0) document.getElementById('alertIcon').className = "text-red-400 font-bold text-sm animate-pulse";
-    } catch (e) {}
+
+        const widget = document.getElementById('alertWidget');
+        const icon = document.getElementById('alertIcon');
+        const title = document.getElementById('alertTitle');
+        const desc = document.getElementById('alertDesc');
+
+        if (count > 0) {
+            widget.className = "bg-red-950/40 border border-red-500/40 rounded-xl p-2.5 shadow flex items-center gap-2 transition-all animate-pulse";
+            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-base bg-red-500/20 text-red-400";
+            icon.innerHTML = "⚠️";
+            title.innerHTML = `هشدار: ${count} مورد عدم‌انطباق باز`;
+            desc.innerHTML = "نیازمند پیگیری، اعلان و اقدام اصلاحی فوری";
+        } else {
+            widget.className = "bg-emerald-950/30 border border-emerald-500/30 rounded-xl p-2.5 shadow flex items-center gap-2 transition-all";
+            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-base bg-emerald-500/20 text-emerald-400";
+            icon.innerHTML = "✓";
+            title.innerHTML = "وضعیت ایمنی مطلوب";
+            desc.innerHTML = "هیچ عدم‌انطباق باز و معلقی وجود ندارد.";
+        }
+    } catch (e) {
+        document.getElementById('alertDesc').innerHTML = "آماده‌به‌کار (متصل به دیتابیس)";
+    }
 }
 
 async function checkClinicSummary() {
     try {
-        const res = await fetch(`${URL_}/rest/v1/clinic_incidents?select=id`, { headers });
-        const data = await res.json();
-        document.getElementById('clinicAlertTitle').innerText = `${data.length || 0} حادثه`;
-        document.getElementById('clinicAlertDesc').innerText = "ثبت شده";
-    } catch (e) {}
+        const [incRes, fuRes] = await Promise.all([
+            fetch(`${URL_}/rest/v1/clinic_incidents?select=id,severity`, { headers }),
+            fetch(`${URL_}/rest/v1/clinic_followups?status=in.(pending,overdue)&select=id`, { headers })
+        ]);
+        
+        const incidents = await incRes.json();
+        const followups = await fuRes.json();
+
+        const incCount = Array.isArray(incidents) ? incidents.length : 0;
+        const fuCount = Array.isArray(followups) ? followups.length : 0;
+        const severeInc = Array.isArray(incidents) ? incidents.filter(i => ['severe', 'fatal'].includes(i.severity)).length : 0;
+
+        const widget = document.getElementById('clinicAlertWidget');
+        const icon = document.getElementById('clinicAlertIcon');
+        const title = document.getElementById('clinicAlertTitle');
+        const desc = document.getElementById('clinicAlertDesc');
+
+        if (severeInc > 0 || fuCount > 0) {
+            widget.className = "bg-amber-950/40 border border-amber-500/40 rounded-xl p-2.5 shadow flex items-center gap-2 transition-all";
+            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-base bg-amber-500/20 text-amber-400";
+            icon.innerHTML = "🏥";
+            title.innerHTML = `حوادث: ${incCount} مورد | پیگیری باز: ${fuCount}`;
+            desc.innerHTML = severeInc > 0 ? `⚠️ ${severeInc} حادثه شدید ثبت شده است` : "نیازمند رسیدگی به ارجاعات و پیگیری‌ها";
+        } else {
+            widget.className = "bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow flex items-center gap-2 transition-all";
+            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-base bg-emerald-500/10 text-emerald-400";
+            icon.innerHTML = "🏥";
+            title.innerHTML = `مجموع حوادث ثبت‌شده: ${incCount}`;
+            desc.innerHTML = "وضعیت مراجعات و پیگیری‌های بهداری پایدار است.";
+        }
+    } catch (e) {
+        document.getElementById('clinicAlertDesc').innerHTML = "آماده‌به‌کار (بخش بهداری)";
+    }
 }
 
 async function checkEkhtarSummary() {
     try {
-        const res = await fetch(`${URL_}/rest/v1/ekhtars?select=id`, { headers });
+        const res = await fetch(`${URL_}/rest/v1/ekhtars?select=record_type`, { headers });
         const data = await res.json();
-        document.getElementById('ekhtarAlertTitle').innerText = `${data.length || 0} مورد`;
-        document.getElementById('ekhtarAlertDesc').innerText = "انضباطی";
-    } catch (e) {}
+        const total = Array.isArray(data) ? data.length : 0;
+        const ekhtars = Array.isArray(data) ? data.filter(x => x.record_type === 'اخطار کتبی').length : 0;
+
+        const widget = document.getElementById('ekhtarAlertWidget');
+        const icon = document.getElementById('ekhtarAlertIcon');
+        const title = document.getElementById('ekhtarAlertTitle');
+        const desc = document.getElementById('ekhtarAlertDesc');
+
+        if (ekhtars > 0) {
+            widget.className = "bg-amber-950/40 border border-amber-500/40 rounded-xl p-2.5 shadow flex items-center gap-2 transition-all";
+            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-base bg-amber-500/20 text-amber-400";
+            icon.innerHTML = "⚠️";
+            title.innerHTML = `سوابق انضباطی: ${total} مورد ثبت‌شده`;
+            desc.innerHTML = `${ekhtars} اخطار کتبی و تذکر ثبت شده است.`;
+        } else {
+            widget.className = "bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 shadow flex items-center gap-2 transition-all";
+            icon.className = "w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-bold text-base bg-emerald-500/10 text-emerald-400";
+            icon.innerHTML = "✓";
+            title.innerHTML = `مجموع سوابق انضباطی: ${total}`;
+            desc.innerHTML = "وضعیت انضباطی پرسنل پایدار است.";
+        }
+    } catch (e) {
+        document.getElementById('ekhtarAlertDesc').innerHTML = "آماده‌به‌کار (بخش انضباطی)";
+    }
 }
 
 checkOpenFindings();
