@@ -108,6 +108,7 @@ async function load(){
   const K=HSE.nowK(),rem=[];
   if(units&&mon){const act=units.filter(u=>u.active!==false),done=new Set(mon.filter(m=>m.month_key===K).map(m=>m.unit_id)),miss=act.filter(u=>!done.has(u.id));if(miss.length)rem.push({k:'y',h:row('ورودی ماهانه PPE و رفتار ناایمن ثبت نشده',`${miss.length} از ${act.length} واحد: ${esc(miss.slice(0,5).map(u=>u.name).join('، '))}${miss.length>5?' ...':''}`,'این ماه','y')})}
   if(cul){const last=cul.map(c=>c.assessed_at).sort().pop();const age=last?dd(TODAY,last):null;if(age==null||age>180)rem.push({k:'y',h:row('ارزیابی نردبان فرهنگ ایمنی',last?'آخرین ارزیابی '+fday(last):'هنوز ارزیابی ثبت نشده',age==null?'ثبت نشده':fa(Math.round(age/30))+' ماه پیش','y')})}
+  rem.push({k:'y',h:row('بررسی شایستگی تشویق پرسنل','کسانی که شایسته‌ی تشویق‌اند ولی هنوز تشویق ثبت نشده','ماهانه','y')});
   sec('rm','یادآورها','evaluation.html',rem);
   draw();
 }
