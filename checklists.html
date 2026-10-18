@@ -1126,7 +1126,8 @@ async function printFinds(_a, kind) {
     let list = all;
     if (kind == 'photo') list = all.filter(x => nob(x) || noa(x));
     const L = x => (!x.location || x.location == 'نامشخص') ? 'محل نامشخص' : x.location;
-    list.sort((a, b) => (L(a) == 'محل نامشخص') - (L(b) == 'محل نامشخص') || L(a).localeCompare(L(b), 'fa') || String(a.notice_code || '~').localeCompare(String(b.notice_code || '~'), undefined, { numeric: true }) || String(a.qid).localeCompare(String(b.qid)));
+    const hn = x => { const l = L(x); if (l == 'محل نامشخص') return 99999; const m = l.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).match(/\d+/); return m ? +m[0] : 5000; };
+    list.sort((a, b) => hn(a) - hn(b) || L(a).localeCompare(L(b), 'fa') || String(a.notice_code || '~').localeCompare(String(b.notice_code || '~'), undefined, { numeric: true }) || String(a.qid).localeCompare(String(b.qid)));
     const title = kind == 'open' ? 'موارد باز عدم‌انطباق — بررسی میدانی' : 'موارد با عکس ناقص — برای تکمیل';
     const cnt = {}; list.forEach(x => cnt[L(x)] = (cnt[L(x)] || 0) + 1);
     let n = 0, cur = null, rowsH = '';
