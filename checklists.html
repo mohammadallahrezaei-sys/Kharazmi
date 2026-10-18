@@ -1108,7 +1108,7 @@ async function genSlides() {
 }
 
 
-/* ===== گزارش چاپی: موارد باز و موارد با عکس ناقص ===== */
+/* ===== گزارش چاپی فشرده: موارد باز و موارد با عکس ناقص ===== */
 async function printFinds(_a, kind) {
   const w = window.open('', '_blank');
   if (!w) return alert('مرورگر پنجره‌ی گزارش را مسدود کرد؛ اجازه‌ی باز شدن پنجره (Pop-up) بدهید و دوباره بزنید.');
@@ -1127,22 +1127,26 @@ async function printFinds(_a, kind) {
     if (kind == 'photo') list = all.filter(x => nob(x) || noa(x));
     const L = x => (!x.location || x.location == 'نامشخص') ? 'محل نامشخص' : x.location;
     list.sort((a, b) => (L(a) == 'محل نامشخص') - (L(b) == 'محل نامشخص') || L(a).localeCompare(L(b), 'fa') || String(a.notice_code || '~').localeCompare(String(b.notice_code || '~'), undefined, { numeric: true }) || String(a.qid).localeCompare(String(b.qid)));
-    const title = kind == 'open' ? 'فهرست موارد باز عدم‌انطباق — برای بررسی میدانی' : 'گزارش مواردی که عکسشان ناقص است — برای تکمیل';
+    const title = kind == 'open' ? 'موارد باز عدم‌انطباق — بررسی میدانی' : 'موارد با عکس ناقص — برای تکمیل';
+    const cnt = {}; list.forEach(x => cnt[L(x)] = (cnt[L(x)] || 0) + 1);
     let n = 0, cur = null, rowsH = '';
     for (const x of list) {
       const loc = L(x);
-      if (loc != cur) { cur = loc; rowsH += `<tr class="g"><td colspan="8">${esc(loc)} (${fa(list.filter(y => L(y) == loc).length)} مورد)</td></tr>`; }
+      if (loc != cur) { cur = loc; rowsH += `<tr class="g"><td colspan="6">${esc(loc)} — ${fa(cnt[loc])} مورد</td></tr>`; }
       n++;
-      const eq = x.equipment_title && x.equipment_title != '0' ? esc(x.equipment_title) + (x.equipment_code && x.equipment_code != '0' ? ' (' + esc(x.equipment_code) + ')' : '') : '';
-      const last = kind == 'open'
-        ? '☐ انجام شده<br>☐ انجام نشده<br><span class="s">توضیح:</span>'
-        : [nob(x) ? '☐ عکس قبل گرفته شد' : '', noa(x) ? '☐ عکس پس از اصلاح گرفته شد' : ''].filter(Boolean).join('<br>');
-      const miss = [nob(x) ? 'عکس قبل ندارد' : '', noa(x) ? 'عکس پس از اصلاح ندارد' : ''].filter(Boolean).join(' / ');
-      rowsH += `<tr><td class="c">${fa(n)}</td><td class="c">${x.notice_code ? 'اعلان ' + fa(x.notice_code) : 'بدون اعلان'}<br><span class="s">${esc(x.qid)}</span></td><td>${esc(String(x.question || '').replace(/\s+/g, ' '))}</td><td>${eq}</td><td class="c">${x.notice_at ? fd(x.notice_at) : ''}</td><td class="c">${kind == 'open' ? esc(x.notice_status || '—') : (x.status == 'closed' ? 'اصلاح‌شده' : 'باز') + '<br><span class="s">' + miss + '</span>'}</td><td class="c">${SEVN[x.severity] || ''}</td><td class="ck">${last}</td></tr>`;
+      const eqc = x.equipment_code && x.equipment_code != '0' ? x.equipment_code : '';
+      const qt = String(x.question || '').replace(/\s+/g, ' ');
+      const eq = eqc && !qt.includes(eqc) ? ` <span class="s">[${esc(eqc)}]</span>` : '';
+      const id = x.notice_code ? fa(x.notice_code) : '<span class="s">' + esc(x.qid) + '</span>';
+      const st = kind == 'open' ? (x.notice_status ? esc(x.notice_status) : '—')
+        : [nob(x) ? 'بدون عکس قبل' : '', noa(x) ? 'بدون عکس بعد' : ''].filter(Boolean).join('، ');
+      const ck = kind == 'open' ? '☐ شد &nbsp;☐ نشد'
+        : [nob(x) ? '☐ قبل' : '', noa(x) ? '☐ بعد' : ''].filter(Boolean).join(' &nbsp;');
+      rowsH += `<tr><td class="c">${fa(n)}</td><td class="c">${id}</td><td>${esc(qt)}${eq}</td><td class="c">${st}${kind == 'photo' ? ' <span class="s">(' + (x.status == 'closed' ? 'بسته' : 'باز') + ')</span>' : ''}</td><td class="ck">${ck}</td><td class="nt"></td></tr>`;
     }
-    const th5 = kind == 'open' ? 'وضعیت اعلان' : 'وضعیت / کمبود', th8 = kind == 'open' ? 'نتیجه بررسی' : 'تکمیل شد';
-    const css = '@page{size:A4 landscape;margin:10mm 8mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:10pt;margin:12px;color:#000;background:#fff}h1{font-size:16pt;margin:0 0 4px}.m{color:#333;margin-bottom:10px;font-size:9.5pt}.pb{font:inherit;padding:8px 18px;margin-bottom:10px;cursor:pointer;border:1px solid #444;border-radius:6px;background:#eee}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#ddd;border:1px solid #555;padding:4px;font-size:9pt}td{border:1px solid #777;padding:4px 6px;vertical-align:top}tr{page-break-inside:avoid}.c{text-align:center}.s{color:#555;font-size:7.5pt}.g td{background:#e6e6e6;font-weight:bold;font-size:10.5pt}.ck{white-space:nowrap;line-height:1.9}@media print{.pb{display:none}body{margin:0}}';
-    const html = `<!doctype html><html dir="rtl" lang="fa"><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body><button class="pb" onclick="window.print()">🖨️ چاپ</button><h1>${title}</h1><div class="m">تعداد: ${fa(list.length)} | تاریخ تهیه: ${fd(Date.now())} | مرتب‌شده بر اساس محل</div><table><thead><tr><th style="width:3%">ردیف</th><th style="width:9%">شماره اعلان / شناسه</th><th>شرح مورد</th><th style="width:15%">تجهیز</th><th style="width:8%">تاریخ ثبت</th><th style="width:11%">${th5}</th><th style="width:5%">شدت</th><th style="width:12%">${th8}</th></tr></thead><tbody>${rowsH || '<tr><td colspan="8" class="c">موردی یافت نشد.</td></tr>'}</tbody></table></body></html>`;
+    const css = '@page{size:A4 landscape;margin:6mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:8pt;line-height:1.25;margin:6px;color:#000;background:#fff}h1{font-size:11pt;margin:0 0 2px;display:inline}.m{display:inline;color:#333;font-size:8pt;margin-right:10px}.pb{font:inherit;padding:5px 14px;margin:0 0 6px;cursor:pointer;border:1px solid #444;border-radius:5px;background:#eee}table{width:100%;border-collapse:collapse;margin-top:3px}thead{display:table-header-group}th{background:#ddd;border:1px solid #555;padding:1px 3px;font-size:7.5pt}td{border:1px solid #888;padding:1px 3px;vertical-align:middle}tr{page-break-inside:avoid}.c{text-align:center}.s{color:#555;font-size:6.5pt}.g td{background:#e6e6e6;font-weight:bold;font-size:8.5pt;padding:1px 4px}.ck{white-space:nowrap;text-align:center;width:19%}.nt{width:16%}@media print{.pb{display:none}body{margin:0}}';
+    const th5 = kind == 'open' ? 'وضعیت اعلان' : 'وضعیت / کمبود', th6 = kind == 'open' ? 'نتیجه' : 'تکمیل شد';
+    const html = `<!doctype html><html dir="rtl" lang="fa"><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body><button class="pb" onclick="window.print()">🖨️ چاپ</button><div><h1>${title}</h1><span class="m">تعداد: ${fa(list.length)} | ${fd(Date.now())}</span></div><table><thead><tr><th style="width:2.5%">#</th><th style="width:6%">اعلان</th><th>شرح مورد</th><th style="width:11%">${th5}</th><th>${th6}</th><th>توضیح</th></tr></thead><tbody>${rowsH || '<tr><td colspan="6" class="c">موردی یافت نشد.</td></tr>'}</tbody></table></body></html>`;
     w.document.open(); w.document.write(html); w.document.close(); w.focus();
   } catch (er) { w.close(); alert(er.message); }
 }
