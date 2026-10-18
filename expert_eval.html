@@ -3,7 +3,6 @@
 <head>
     <script src="auth.js"></script>
 <meta charset="utf-8">
-<script src="auth.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ارزیابی و خودکنترلی کارشناس HSE</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800&display=swap">
@@ -41,12 +40,19 @@ const CFG={
   RATE_FACTOR:0.7,     // انتظار = ۷۰٪ میانگین ۶ ماه گذشته‌ی واحد × تعداد چک‌لیست انجام‌شده
   MAX_ZERO:0.3,        // حداکثر سهم چک‌لیست بدون هیچ عدم‌انطباق
   MIN_EK:10, EK_PER_EMP:0.1, MIN_RW:3, // حداقل تشویق/تذکر/اخطار = بیشینه‌ی ۱۰ و ۱۰٪ تعداد پرسنل؛ حداقل تشویق ۳
-  MIN_TRAIN:4, COV_TARGET:0.8          // حداقل جلسه‌ی آموزشی ماهانه و هدف پوشش ۱۲ ماهه‌ی پرسنل
+  MIN_TRAIN:4, COV_TARGET:0.8,         // حداقل جلسه‌ی آموزشی ماهانه و هدف پوشش ۱۲ ماهه‌ی پرسنل
+  SHARED_IN_SCORE:false                // false: «آموزش» و «اقدام اصلاحی/طب کار» (مشترک واحد) از امتیاز شخصی بیرون‌اند و جدا نمایش داده می‌شوند؛ true: مثل قبل در امتیاز می‌آیند
 };
+const SHARED=['train','fup'];
+const OWN_NAMES={'m.rezaei@gmail.com':'محمد اله رضایی','m.mohammadi@gmail.com':'محمدی'};
+const IMPORT_LOC='ورود دسته‌ای'; // بازرسی‌های واردشده با ابزار ورود دسته‌ای از امتیاز کارشناس حذف می‌شوند
+const eqm=(a,b)=>String(a||'').toLowerCase()===String(b||'').toLowerCase();
 /* ======================================================== */
 const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
-const nm=s=>NAME_MAP[s]||s;
+const nm=s=>NAME_MAP[s]||OWN_NAMES[String(s||'').toLowerCase()]||(s===ME?'خودم':s);
+/* فهرست افراد: کارشناسان + خود مدیر (اگر در فهرست کارشناسان نیست) */
+const people=()=>{const a=Object.keys(NAME_MAP);if(ME&&!a.some(e=>eqm(e,ME)))a.unshift(ME);return a};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PFU=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',timeZone:'UTC'});
 const key=p=>p.find(x=>x.type==='year').value+'-'+String(+p.find(x=>x.type==='month').value).padStart(2,'0');
@@ -70,16 +76,16 @@ async function getAll(t){let all=[],o=0;for(let n=0;n<50;n++){
 async function start(){
   document.getElementById('out').innerHTML='<div class="card">در حال دریافت اطلاعات...</div>';
   const since=encodeURIComponent(new Date(Date.now()-400*864e5).toISOString());
-  let ek=await getAll('ekhtars?select=record_type,record_date,created_by');const ekAttr=ek!=null;
+  let ek=await getAll('ekhtars?select=record_type,record_date,registered_by');const ekAttr=ek!=null;
   if(!ek)ek=await getAll('ekhtars?select=record_type,record_date')||[];
   const [ins,fin]=await Promise.all([getAll('inspections?select=module,location,total,ok,nc,na,created_at,inspector&created_at=gte.'+since),
     getAll('findings?select=status,created_at,closed_at,due_date,inspector')]);
   if(!ins||!fin)return loginUI('دریافت اطلاعات ناموفق بود (دسترسی یا اتصال)');
   const [tr,ta,emp,inc,fu]=await Promise.all(['trainings?select=id,training_date','training_attendees?select=training_id,employee_id','employees?select=id',
     'clinic_incidents?select=corrective_action,action_status,action_due_date','clinic_followups?select=status,due_date'].map(getAll));
-  D={ins,fin,ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc||[],fu:fu||[]};
+  D={ins:ins.filter(r=>!String(r.location||'').startsWith(IMPORT_LOC)),fin,ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc||[],fu:fu||[]};
   const es=document.getElementById('esel'),ms=document.getElementById('msel');
-  const mine=isMgr()?Object.keys(NAME_MAP):[ME];
+  const mine=isMgr()?people():[ME];
   es.innerHTML=mine.map(e=>`<option value="${esc(e)}">${esc(nm(e))}</option>`).join('');es.style.display=isMgr()?'':'none';
   const QN=['بهار','تابستان','پاییز','زمستان'];let K=nowK,o='<optgroup label="ماهانه">';
   for(let i=0;i<12;i++){o+=`<option value="m:${K}">${lab(K)}</option>`;K=prevK(K)}
@@ -104,13 +110,16 @@ const nowP=pk(today),d10=v=>String(v||'').slice(0,10);
 const prevK=k=>{let y=+k.slice(0,4),m=+k.slice(5)-1;if(m<1){m=12;y--}return y+'-'+String(m).padStart(2,'0')};
 const wtxt=(w,K)=>(w[0]===w[1]?fa(w[0]):fa(w[0])+' تا '+fa(w[1]))+' '+MN[+K.slice(5)-1];
 
+/* تاریخ ثبت در جدول ekhtars شمسی است (مثل 1405/07/20)؛ مقایسه با مهر/ماه شمسی انجام می‌شود */
+function ekIn(v,K){const t=String(v||'').replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[٠-٩]/g,c=>'٠١٢٣٤٥٦٧٨٩'.indexOf(c)),m=/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(t);
+  if(!m)return false;return m[1]+'-'+m[2].padStart(2,'0')===K&&(K!==nowK||+m[3]<=nowP.d)}
 /* ---------- محاسبه ---------- */
 function workdays(R){const end=R.b<today?R.b:today,o=[];
   for(let t=new Date(R.a+'T12:00:00');;t.setDate(t.getDate()+1)){const s=t.toLocaleDateString('en-CA');if(s>end)break;
     if(CFG.WORKDAYS.includes(t.getDay())&&!CFG.HOLIDAYS.includes(s))o.push(s)}return o}
 function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
-  D.ins.forEach(r=>{if(r.inspector!==email)return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
+  D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
     mine.push({t:new Date(r.created_at).getTime(),m:r.module,k:[r.total,r.ok,r.nc,r.na].join(' - ')});
     const ii=itemsOf(r);if(!ii.length){if(r.module!=='D'&&r.module!=='CT'&&r.module!=='CH')un.add((r.module||'')+' | '+(r.location||''));return}
     ii.forEach(i=>{const o=recs[i]||(recs[i]={days:new Set(),nc:0});o.days.add(d);o.nc+=(r.nc||0)})});
@@ -120,9 +129,9 @@ function core(email,K){
   const ts=mine.map(x=>x.t).sort((a,b)=>a-b);let mx=0;for(let i=0,j=0;i<ts.length;i++){while(ts[i]-ts[j]>30*6e4)j++;mx=Math.max(mx,i-j+1)}
   if(mx>=15)flags.push(`${fa(mx)} ثبت در یک بازه‌ی ۳۰ دقیقه‌ای (ممکن است ثبت دسته‌ای بعد از بازدید باشد)`);
   return{R,recs,un,flags}}
-const created=(e,R)=>D.fin.filter(f=>f.inspector===e&&d10(f.created_at)>=R.a&&d10(f.created_at)<=R.b).length;
+const created=(e,R)=>D.fin.filter(f=>eqm(f.inspector,e)&&d10(f.created_at)>=R.a&&d10(f.created_at)<=R.b).length;
 function baseRate(K){if(CFG.RATE_FIXED)return CFG.RATE_FIXED;let n=0,c=0,k=K;
-  for(let i=0;i<6;i++){k=prevK(k);Object.keys(NAME_MAP).forEach(e=>{const x=core(e,k);n+=Object.keys(x.recs).length;c+=created(e,x.R)})}
+  for(let i=0;i<6;i++){k=prevK(k);people().forEach(e=>{const x=core(e,k);n+=Object.keys(x.recs).length;c+=created(e,x.R)})}
   return n>=10?c/n:CFG.RATE_DEFAULT}
 function calc(email,K){
   const {R,recs,un,flags}=core(email,K),end=R.b<today?R.b:today,inR=d=>d>=R.a&&d<=end,past=K<nowK,cur=K===nowK;
@@ -131,7 +140,7 @@ function calc(email,K){
     if(it.daily){if(K<'1405-07'||K>'1405-12')return;const wd=workdays(R),dn=wd.filter(d=>recs[i]&&recs[i].days.has(d)).length;
       if(wd.length)items.push({i,t:it.t,daily:1,sc:dn/wd.length,st:dn<wd.length?'bad':'ok',txt:`روزانه: ${fa(dn)} از ${fa(wd.length)} روز کاری`});return}
     const w=it.m[K];if(!w)return;const o=recs[i];
-    if(!MAPPED.has(i)){items.push({i,t:it.t,w,st:'mu',txt:'کد ماژول تعریف نشده — در امتیاز نیامده'});return}
+    if(!MAPPED.has(i)){items.push({i,t:it.t,w,st:'wa',txt:'کد ماژول تعریف نشده — از امتیاز خارج است (به مدیر اطلاع دهید)'});return}
     if(o){const last=pk([...o.days].sort().pop()).d,late=Math.max(0,last-w[1]);
       items.push({i,t:it.t,w,sc:Math.max(0,1-CFG.LATE_PEN*late),st:late?'wa':'ok',txt:late?`${fa(late)} روز تأخیر`:'به‌موقع'})}
     else if(past||(cur&&nowP.d>w[1]))items.push({i,t:it.t,w,sc:0,miss:1,st:'bad',txt:'انجام نشده'});
@@ -140,11 +149,11 @@ function calc(email,K){
   const doneN=Object.keys(recs).length,zero=items.filter(x=>!x.daily&&recs[x.i]&&recs[x.i].nc===0);
   const nDone=items.filter(x=>!x.daily&&recs[x.i]).length;
   const cr=created(email,R),rate=baseRate(K),tgtNc=Math.max(1,Math.ceil(CFG.RATE_FACTOR*rate*doneN));
-  const F=D.fin.filter(f=>f.inspector===email);
+  const F=D.fin.filter(f=>eqm(f.inspector,email));
   const cl=F.filter(f=>f.closed_at&&inR(d10(f.closed_at))&&f.due_date),ot=cl.filter(f=>d10(f.closed_at)<=f.due_date).length;
   const over=F.filter(f=>d10(f.created_at)<=end&&(f.status==='open'||(f.closed_at&&d10(f.closed_at)>end))&&f.due_date&&f.due_date<end).length;
   const close=Math.max(0,(cl.length?ot/cl.length:1)-0.1*over);
-  const E=D.ek.filter(x=>inR(d10(x.record_date))&&(!D.ekAttr||x.created_by===email)),rw=E.filter(x=>x.record_type==='تشویق').length;
+  const E=D.ek.filter(x=>ekIn(x.record_date,K)&&(!D.ekAttr||eqm(x.registered_by,email))),rw=E.filter(x=>x.record_type==='تشویق').length;
   const tgtEk=Math.max(CFG.MIN_EK,Math.ceil(D.emp.length*CFG.EK_PER_EMP));
   /* شاخص‌های مشترک واحد HSE */
   const TR=D.tr.filter(t=>inR(d10(t.training_date))),cut=new Date(new Date(end).getTime()-365*864e5).toISOString().slice(0,10);
@@ -157,8 +166,10 @@ function calc(email,K){
     quality:nDone?Math.max(0,1-Math.max(0,zero.length/nDone-CFG.MAX_ZERO)/(1-CFG.MAX_ZERO)):1,
     train:0.5*Math.min(1,TR.length/CFG.MIN_TRAIN)+0.5*Math.min(1,cov/CFG.COV_TARGET),
     fup:Math.max(0,1-0.1*(capaO+fuO))};
-  const pts={};let total=0;for(const k in s){pts[k]=Math.round(s[k]*CFG.W[k]);total+=pts[k]}
-  return{items,s,pts,total,zero,un,cr,tgtNc,over,ot,otN:cl.length,ek:E.length,rw,tgtEk,trN:TR.length,cov,capaO,fuO,doneN,rate,flags,na:!items.length}}
+  const pts={};let raw=0,wsum=0;for(const k in s){pts[k]=Math.round(s[k]*CFG.W[k]);if(CFG.SHARED_IN_SCORE||!SHARED.includes(k)){raw+=s[k]*CFG.W[k];wsum+=CFG.W[k]}}
+  const total=Math.round(raw/wsum*100);
+  const unitScore=Math.round(SHARED.reduce((a,k)=>a+s[k]*CFG.W[k],0)/SHARED.reduce((a,k)=>a+CFG.W[k],0)*100);
+  return{unitScore,items,s,pts,total,zero,un,cr,tgtNc,over,ot,otN:cl.length,ek:E.length,rw,tgtEk,trN:TR.length,cov,capaO,fuO,doneN,rate,flags,na:!items.length}}
 
 const tv=(e,x)=>{const c=calc(e,x);return c.na?null:c.total};const fm=v=>v==null?'—':fa(v);const cc=v=>v==null?'mu':col(v);
 const NAMES={sched:'رعایت جدول زمان‌بندی چک‌لیست‌ها',finds:'عدم‌انطباق ثبت‌شده نسبت به کار انجام‌شده',close:'پیگیری و بستن به‌موقع',disc:'تشویق/تذکر/اخطار',quality:'کیفیت بازدید (بدون «چک‌لیست خالی»)',train:'آموزش (مشترک واحد)',fup:'اقدام اصلاحی و پیگیری طب کار (مشترک واحد)'};
@@ -167,32 +178,31 @@ function card(email,K){
   const c=calc(email,K),weak=[];
   c.items.filter(x=>x.miss).forEach(x=>weak.push(`«${x.t}» تا ${wtxt(x.w,K)} انجام نشده است.`));
   c.items.filter(x=>x.sc>0&&x.st==='wa').forEach(x=>weak.push(`«${x.t}» ${x.txt} (مهلت: ${wtxt(x.w,K)}).`));
-  c.items.filter(x=>x.daily&&x.st==='bad').forEach(x=>weak.push(`«${x.t}» ${x.txt}.`));
   if(c.cr<c.tgtNc)weak.push(`${fa(c.cr)} عدم‌انطباق ثبت شده؛ با توجه به ${fa(c.doneN)} چک‌لیست انجام‌شده و میانگین ۶ ماه گذشته‌ی واحد، انتظار حداقل ${fa(c.tgtNc)} مورد بود.`);
   if(c.zero.length)weak.push(`${fa(c.zero.length)} چک‌لیست بدون هیچ عدم‌انطباقی ثبت شده: ${c.zero.map(x=>x.t).join('، ')}.`);
   if(c.over)weak.push(`${fa(c.over)} عدم‌انطباق ثبت‌شده‌ی شما از مهلت گذشته و هنوز باز است.`);
   if(c.otN>c.ot)weak.push(`${fa(c.otN-c.ot)} مورد از ${fa(c.otN)} عدم‌انطباق بسته‌شده با تأخیر بسته شده است.`);
-  if(c.ek<c.tgtEk||c.rw<CFG.MIN_RW)weak.push(`${fa(c.ek)} تشویق/تذکر/اخطار (${fa(c.rw)} تشویق)؛ انتظار حداقل ${fa(c.tgtEk)} مورد و ${fa(CFG.MIN_RW)} تشویق.${D.ekAttr?'':' (ثبت‌کننده در جدول نیست؛ عدد کل واحد است)'}`);
+  if(c.ek<c.tgtEk||c.rw<CFG.MIN_RW)weak.push(`${fa(c.ek)} تشویق/تذکر/اخطار (${fa(c.rw)} تشویق)؛ انتظار حداقل ${fa(c.tgtEk)} مورد و ${fa(CFG.MIN_RW)} تشویق.${D.ekAttr?'':' (ستون ثبت‌کننده در جدول نیست؛ SQL ستون registered_by را اجرا کنید)'}`);
   if(c.s.train<.8)weak.push(`آموزش: ${fa(c.trN)} جلسه در ماه (حداقل ${fa(CFG.MIN_TRAIN)}) و پوشش ۱۲ ماهه‌ی پرسنل ${fa(Math.round(c.cov*100))}٪ (هدف ${fa(Math.round(CFG.COV_TARGET*100))}٪).`);
   if(c.capaO+c.fuO)weak.push(`${fa(c.capaO)} اقدام اصلاحی حوادث و ${fa(c.fuO)} پیگیری طب کار معوق است.`);
   const trend=[];let k=K;for(let i=0;i<6;i++){trend.unshift([k,tv(email,k)]);k=prevK(k)}
   const icon={ok:'✓',wa:'⚠',bad:'✗',mu:'…'};
-  return `<div class="card"><h2>${esc(nm(email))} — ${lab(K)}</h2>
+  return `<div class="card"><h2>${esc(nm(email))} — ${lab(K)}${K===nowK?' <span class="mu">(ماه جاری؛ هنوز تمام نشده)</span>':''}</h2>
    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div class="big ${col(c.total)}">${fa(c.total)}<span class="mu"> / ۱۰۰</span></div>
    <div class="mu">${fa(c.doneN)} چک‌لیست انجام‌شده · ${fa(c.cr)} عدم‌انطباق ثبت‌شده</div></div>
-   <table style="margin-top:8px">${Object.keys(NAMES).map(k=>`<tr><td>${NAMES[k]}</td><td style="width:30%"><div class="bar"><i style="width:${c.s[k]*100}%;background:var(--${c.s[k]>=.85?'ok':c.s[k]>=.65?'wa':'bad'})"></i></div></td><td class="c ${col(c.s[k]*100)}">${fa(c.pts[k])} از ${fa(CFG.W[k])}</td></tr>`).join('')}</table></div>
+   <div class="mu">امتیاز شخصی${CFG.SHARED_IN_SCORE?'':' (بدون شاخص‌های مشترک واحد؛ نرمال‌شده روی ۱۰۰)'}</div><table style="margin-top:8px">${Object.keys(NAMES).filter(k=>CFG.SHARED_IN_SCORE||!SHARED.includes(k)).map(k=>`<tr><td>${NAMES[k]}</td><td style="width:30%"><div class="bar"><i style="width:${c.s[k]*100}%;background:var(--${c.s[k]>=.85?'ok':c.s[k]>=.65?'wa':'bad'})"></i></div></td><td class="c ${col(c.s[k]*100)}">${fa(c.pts[k])} از ${fa(CFG.W[k])}</td></tr>`).join('')}</table>${CFG.SHARED_IN_SCORE?'':`<div class="mu" style="margin-top:10px">شاخص‌های مشترک واحد HSE (به کارشناس نسبت داده نمی‌شود) — امتیاز واحد: <b class="${col(c.unitScore)}">${fa(c.unitScore)}</b> / ۱۰۰</div><table>${SHARED.map(k=>`<tr><td>${NAMES[k]}</td><td style="width:30%"><div class="bar"><i style="width:${c.s[k]*100}%;background:var(--${c.s[k]>=.85?'ok':c.s[k]>=.65?'wa':'bad'})"></i></div></td><td class="c ${col(c.s[k]*100)}">${fa(c.pts[k])} از ${fa(CFG.W[k])}</td></tr>`).join('')}</table>`}</div>
   <div class="card"><h2>نقاط ضعف و کم‌کاری این ماه</h2>${weak.length?`<ul>${weak.map(w=>`<li class="bad">${w}</li>`).join('')}</ul>`:'<div class="ok">مورد قابل‌توجهی ثبت نشده است.</div>'}</div>
   <div class="card"><h2>تطبیق با جدول زمان‌بندی ${lab(K)}</h2>${c.items.length?`<table>${c.items.map(x=>`<tr><td>${icon[x.st]} ${esc(x.t)}</td><td class="mu">${x.w?'مهلت: '+wtxt(x.w,K):''}</td><td class="${x.st==='mu'?'mu':x.st}">${x.txt}</td></tr>`).join('')}</table>
    <div class="mu" style="margin-top:6px">هر روز تأخیر ${fa(Math.round(CFG.LATE_PEN*100))}٪ از امتیاز آن چک‌لیست کم می‌کند. انجام زودتر از مهلت جریمه ندارد.</div>`:'<div class="mu">برای این ماه در جدول ۱۴۰۵ برنامه‌ای نیست.</div>'}
    ${isMgr()&&c.un.size?`<div class="wa" style="margin-top:6px">⚠ ثبت‌هایی که با هیچ چک‌لیست جدول تطبیق نخوردند: ${[...c.un].map(esc).join('، ')} — اگر چک‌لیست جدول هستند، کلمه‌ی کلیدی‌شان را در KW اضافه کنید.</div>`:''}</div>
   ${c.flags.length?`<div class="card"><h2>الگوهای نیازمند بررسی (بدون کسر امتیاز)</h2><ul>${c.flags.map(f=>`<li class="wa">${f}</li>`).join('')}</ul><div class="mu">زمان ثبت = زمان ورود به سامانه است، نه لزوماً زمان بازدید. پیش از هر اقدام انضباطی با خود کارشناس و فرم‌های کاغذی تطبیق دهید.</div></div>`:''}
-  <div class="card"><h2>روند ۶ ماه اخیر (خودکنترلی)</h2><table><tr>${trend.map(t=>`<th class="c">${MN[+t[0].slice(5)-1]}</th>`).join('')}</tr>
+  <div class="card"><h2>روند ۶ ماه اخیر (خودکنترلی)</h2><table><tr>${trend.map(t=>`<th class="c">${MN[+t[0].slice(5)-1]}${t[0]===nowK?'<span class="mu">جاری</span>':''}</th>`).join('')}</tr>
    <tr>${trend.map((t,i)=>`<td class="c ${cc(t[1])}">${fm(t[1])} ${i&&t[1]!=null&&trend[i-1][1]!=null?(t[1]>trend[i-1][1]?'↗':t[1]<trend[i-1][1]?'↘':''):''}</td>`).join('')}</tr></table></div>`;
 }
 const keysOf=v=>{const [t,a,b]=v.split(':');if(t==='m')return[a];const r=t==='q'?[(b-1)*3+1,b*3]:[1,12],o=[];
   for(let m=r[0];m<=r[1];m++){const k=a+'-'+String(m).padStart(2,'0');if(k<=nowK&&k>='1405-07')o.push(k)}return o};
 function render(){
-  const ms=document.getElementById('msel'),ks=keysOf(ms.value),out=document.getElementById('out'),ex=isMgr()?Object.keys(NAME_MAP):[ME];let h='';
+  const ms=document.getElementById('msel'),ks=keysOf(ms.value),out=document.getElementById('out'),ex=isMgr()?people():[ME];let h='';
   if(!ks.length){out.innerHTML='<div class="card mu">این دوره هنوز شروع نشده است.</div>';return}
   if(ks.length>1){
     h+=`<div class="card"><h2>امتیاز کارشناسان — ${esc(ms.selectedOptions[0].text)}</h2><table><tr><th></th>${ks.map(x=>`<th class="c">${MN[+x.slice(5)-1]}</th>`).join('')}<th class="c">میانگین</th></tr>
