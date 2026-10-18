@@ -764,6 +764,11 @@ async function finds(iid) {
         <select data-ff="size">${[20, 50, 100].map(v => optH(v, fa(v) + ' مورد در صفحه', FQ.size)).join('')}</select>
       </div>
       <button class="l" data-a="fclear" style="margin-top:8px;">✖ پاک‌کردن فیلترها</button>
+      <div class="fgrid2" style="margin-top:8px;">
+        <button class="l" data-a="rprint" data-k="open">🖨️ گزارش چاپی موارد باز</button>
+        <button class="l" data-a="rprint" data-k="photo">📷 گزارش عکس‌های ناقص</button>
+      </div>
+      <small id="rpmsg" style="margin-top:4px;">گزارش چاپی طبق فیلترهای بالا (محل، چک‌لیست، شدت و ...) ساخته می‌شود؛ وضعیت را خودش تعیین می‌کند.</small>
     </div>
     <div id="fchips" class="chips"></div>
     <div id="fl"></div>
@@ -1103,6 +1108,45 @@ async function genSlides() {
 }
 
 
+/* ===== گزارش چاپی: موارد باز و موارد با عکس ناقص ===== */
+async function printFinds(_a, kind) {
+  const w = window.open('', '_blank');
+  if (!w) return alert('مرورگر پنجره‌ی گزارش را مسدود کرد؛ اجازه‌ی باز شدن پنجره (Pop-up) بدهید و دوباره بزنید.');
+  w.document.write('<p style="font-family:Tahoma;direction:rtl;padding:20px">در حال آماده‌سازی گزارش...</p>');
+  try {
+    const sel = 'id,qid,question,location,equipment_title,equipment_code,notice_code,notice_at,notice_status,severity,status,photos_before,photos_after,created_at';
+    let q = fQuery(true); if (kind == 'open') q += '&status=eq.open';
+    let all = [];
+    for (let off = 0; ; off += 1000) {
+      const { rows } = await fFetch('findings?select=' + sel + q + '&order=created_at.desc,id.asc&limit=1000&offset=' + off);
+      all = all.concat(rows); if (rows.length < 1000) break;
+    }
+    const isPH = p => /^no-photo/.test(p), nob = x => !(x.photos_before || []).length || (x.photos_before || []).every(isPH),
+      noa = x => x.status == 'closed' && (!(x.photos_after || []).length || (x.photos_after || []).every(isPH));
+    let list = all;
+    if (kind == 'photo') list = all.filter(x => nob(x) || noa(x));
+    const L = x => (!x.location || x.location == 'نامشخص') ? 'محل نامشخص' : x.location;
+    list.sort((a, b) => (L(a) == 'محل نامشخص') - (L(b) == 'محل نامشخص') || L(a).localeCompare(L(b), 'fa') || String(a.notice_code || '~').localeCompare(String(b.notice_code || '~'), undefined, { numeric: true }) || String(a.qid).localeCompare(String(b.qid)));
+    const title = kind == 'open' ? 'فهرست موارد باز عدم‌انطباق — برای بررسی میدانی' : 'گزارش مواردی که عکسشان ناقص است — برای تکمیل';
+    let n = 0, cur = null, rowsH = '';
+    for (const x of list) {
+      const loc = L(x);
+      if (loc != cur) { cur = loc; rowsH += `<tr class="g"><td colspan="8">${esc(loc)} (${fa(list.filter(y => L(y) == loc).length)} مورد)</td></tr>`; }
+      n++;
+      const eq = x.equipment_title && x.equipment_title != '0' ? esc(x.equipment_title) + (x.equipment_code && x.equipment_code != '0' ? ' (' + esc(x.equipment_code) + ')' : '') : '';
+      const last = kind == 'open'
+        ? '☐ انجام شده<br>☐ انجام نشده<br><span class="s">توضیح:</span>'
+        : [nob(x) ? '☐ عکس قبل گرفته شد' : '', noa(x) ? '☐ عکس پس از اصلاح گرفته شد' : ''].filter(Boolean).join('<br>');
+      const miss = [nob(x) ? 'عکس قبل ندارد' : '', noa(x) ? 'عکس پس از اصلاح ندارد' : ''].filter(Boolean).join(' / ');
+      rowsH += `<tr><td class="c">${fa(n)}</td><td class="c">${x.notice_code ? 'اعلان ' + fa(x.notice_code) : 'بدون اعلان'}<br><span class="s">${esc(x.qid)}</span></td><td>${esc(String(x.question || '').replace(/\s+/g, ' '))}</td><td>${eq}</td><td class="c">${x.notice_at ? fd(x.notice_at) : ''}</td><td class="c">${kind == 'open' ? esc(x.notice_status || '—') : (x.status == 'closed' ? 'اصلاح‌شده' : 'باز') + '<br><span class="s">' + miss + '</span>'}</td><td class="c">${SEVN[x.severity] || ''}</td><td class="ck">${last}</td></tr>`;
+    }
+    const th5 = kind == 'open' ? 'وضعیت اعلان' : 'وضعیت / کمبود', th8 = kind == 'open' ? 'نتیجه بررسی' : 'تکمیل شد';
+    const css = '@page{size:A4 landscape;margin:10mm 8mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:10pt;margin:12px;color:#000;background:#fff}h1{font-size:16pt;margin:0 0 4px}.m{color:#333;margin-bottom:10px;font-size:9.5pt}.pb{font:inherit;padding:8px 18px;margin-bottom:10px;cursor:pointer;border:1px solid #444;border-radius:6px;background:#eee}table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#ddd;border:1px solid #555;padding:4px;font-size:9pt}td{border:1px solid #777;padding:4px 6px;vertical-align:top}tr{page-break-inside:avoid}.c{text-align:center}.s{color:#555;font-size:7.5pt}.g td{background:#e6e6e6;font-weight:bold;font-size:10.5pt}.ck{white-space:nowrap;line-height:1.9}@media print{.pb{display:none}body{margin:0}}';
+    const html = `<!doctype html><html dir="rtl" lang="fa"><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body><button class="pb" onclick="window.print()">🖨️ چاپ</button><h1>${title}</h1><div class="m">تعداد: ${fa(list.length)} | تاریخ تهیه: ${fd(Date.now())} | مرتب‌شده بر اساس محل</div><table><thead><tr><th style="width:3%">ردیف</th><th style="width:9%">شماره اعلان / شناسه</th><th>شرح مورد</th><th style="width:15%">تجهیز</th><th style="width:8%">تاریخ ثبت</th><th style="width:11%">${th5}</th><th style="width:5%">شدت</th><th style="width:12%">${th8}</th></tr></thead><tbody>${rowsH || '<tr><td colspan="8" class="c">موردی یافت نشد.</td></tr>'}</tbody></table></body></html>`;
+    w.document.open(); w.document.write(html); w.document.close(); w.focus();
+  } catch (er) { w.close(); alert(er.message); }
+}
+
 document.onclick = async e => {
   const t = e.target.closest('[data-a]'); if (!t) return;
   const a = t.dataset.a, y = scrollY;
@@ -1200,6 +1244,7 @@ document.onclick = async e => {
   else if (a == 'fst') { FQ.st = t.dataset.v; FQ.page = 0; await loadFinds(); }
   else if (a == 'fpage') { FQ.page = Math.max(0, FQ.page + +t.dataset.d); await loadFinds(); scrollTo(0, 0); }
   else if (a == 'fclear') { Object.assign(FQ, { q: '', mod: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', grp: '', ord: 'new', page: 0 }); finds(); }
+  else if (a == 'rprint') printFinds(a, t.dataset.k);
   else if (a == 'lpick') { try { await localPick(); renderLocalState(); } catch (er) { if (er.name != 'AbortError') alert(er.message); } }
   else if (a == 'lallow') { await localAllow(); renderLocalState(); await loadFinds(); }
   else if (a == 'susage') refreshUsage();
