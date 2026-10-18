@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>شایستگی تشویق پرسنل</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800&display=swap">
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ok:#059669;--wa:#d97706;--bad:#dc2626;--ac:#0f766e}
+@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155;--ok:#34d399;--wa:#fbbf24;--bad:#f87171;--ac:#2dd4bf}}
+*{box-sizing:border-box}body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.8}
+.w{max-width:1000px;margin:auto;padding:16px}.top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 8px;color:var(--ac)}
+select,button{font-family:inherit;font-size:13px;padding:6px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px;overflow-x:auto}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.k{border:1px solid var(--bd);border-radius:10px;padding:8px 10px}.k b{display:block;font-size:22px}.k span{font-size:12px;color:var(--mu)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;border-bottom:1px solid var(--bd);text-align:right;white-space:nowrap}.c{text-align:center}
+.mu{color:var(--mu);font-size:12px}.ok{color:var(--ok)}.wa{color:var(--wa)}.bad{color:var(--bad)}
+@media print{body{background:#fff;color:#000}.np{display:none}}
+</style>
+</head>
+<body>
+<div class="w">
+ <div class="top"><div><h1>شایستگی تشویق پرسنل</h1><div class="mu">مدل هم‌خانواده با «واحد نمونه»: ایمنی × مشارکت</div></div>
+  <div class="np"><select id="psel"></select> <button onclick="print()">چاپ / PDF</button></div></div>
+ <div id="out" class="card">در حال دریافت اطلاعات...</div>
+</div>
+<script src="eval_core.js"></script>
+<script>
+/* ============ پارامترها (پیشنهادی؛ قابل ویرایش) ============ */
+const P={
+  SAFETY_T:80, PART_T:20,   // مثل واحد نمونه: ایمنی ≥ ۸۰ و مشارکت ≥ ۲۰
+  PEN:{verbal:10, written:40, minor:10, major:50},  // کسر امتیاز ایمنی
+  TIER:n=>n<=0?0:n===1?3:n===2?6:n===3?8:10         // امتیاز هر عامل مشارکتی (حداکثر ۱۰) بر اساس تعداد در دوره
+};
+/* ========================================================= */
+const {fa,esc,jk,getAll,norm,MN}=HSE;
+let B=null;
+const QN=['بهار','تابستان','پاییز','زمستان'];
+function periods(){
+  const ks=HSE.monthKeys(12),o=ks.slice(0,6).map(k=>[k,[k],HSE.monthLabel(k)]);
+  let [y,m]=HSE.nowK().split('-').map(Number),q=Math.ceil(m/3);
+  for(let i=0;i<4;i++){const ms=[0,1,2].map(j=>y+'-'+String((q-1)*3+1+j).padStart(2,'0'));o.push(['q'+y+q,ms,'فصل '+QN[q-1]+' '+fa(y)]);if(--q<1){q=4;y--}}
+  return o}
+async function load(){
+  const [emp,cards,tr,ta,ek,inc]=await Promise.all(['employees?select=*','hse_cards?select=*','trainings?select=id,training_type,training_date',
+    'training_attendees?select=training_id,employee_id','ekhtars?select=record_type,record_date,employee_id','clinic_incidents?select=incident_date,severity,employee_id'].map(getAll));
+  B={emp:emp||[],cards:cards||[],tr:tr||[],ta:ta||[],ek:ek||[],inc:inc||[],miss:[['employees',emp],['hse_cards',cards],['trainings',tr],['ekhtars',ek]].filter(x=>x[1]==null).map(x=>x[0])};
+  const ps=periods(),s=document.getElementById('psel');s.innerHTML=ps.map(p=>`<option value="${p[0]}">${p[2]}</option>`).join('');
+  s.onchange=()=>render(ps.find(p=>p[0]===s.value));render(ps[0]);
+}
+function calc(keys){
+  const inP=v=>keys.includes(jk(v)),ck=B.cards[0]&&Object.keys(B.cards[0]).find(k=>/^(employee_id|emp_id|reporter_id|reported_by|reporter|submitted_by|person_id|employee|reporter_name|employee_name)$/i.test(k));
+  const nk=B.emp[0]&&Object.keys(B.emp[0]).find(k=>/^(name|full_name|fullname|employee_name)$/i.test(k));
+  const nameOf=e=>(nk&&e[nk])||((e.first_name||'')+' '+(e.last_name||'')).trim()||String(e.id);
+  const byId={},byName={};B.emp.forEach(e=>{byId[String(e.id)]=e;byName[norm(nameOf(e))]=e});
+  const R={};B.emp.forEach(e=>R[e.id]={e,name:nameOf(e),hz:0,nm:0,sg:0,talks:new Set(),trn:new Set(),vb:0,wr:0,mi:0,mj:0,rw:0});
+  if(ck)B.cards.filter(c=>c.status!=='rejected'&&inP(c.card_date)).forEach(c=>{const v=c[ck],e=byId[String(v)]||byName[norm(v)];if(!e)return;const r=R[e.id];
+    if(c.card_type==='hazard')r.hz++;else if(c.card_type==='near_miss')r.nm++;else if(c.card_type==='suggestion')r.sg++});
+  const trs={};B.tr.filter(t=>inP(t.training_date)).forEach(t=>trs[t.id]=t);
+  B.ta.forEach(a=>{const t=trs[a.training_id],r=R[a.employee_id];if(!t||!r)return;(t.training_type==='safety_talk'?r.talks:r.trn).add(a.training_id)});
+  B.ek.filter(x=>inP(x.record_date)&&R[x.employee_id]).forEach(x=>{const r=R[x.employee_id];if(x.record_type==='تشویق')r.rw++;else if(x.record_type==='اخطار کتبی')r.wr++;else r.vb++});
+  B.inc.filter(x=>inP(x.incident_date)&&R[x.employee_id]).forEach(x=>{const r=R[x.employee_id];if(x.severity==='minor')r.mi++;else r.mj++});
+  const rows=Object.values(R).map(r=>{
+    const T=P.TIER,pts={hz:T(r.hz),nm:T(r.nm),sg:T(r.sg),tk:T(r.talks.size),tr:T(r.trn.size)};
+    const part=Math.min(100,(pts.hz+pts.nm+pts.sg+pts.tk+pts.tr)/50*100);
+    const safety=Math.max(0,100-r.vb*P.PEN.verbal-r.wr*P.PEN.written-r.mi*P.PEN.minor-r.mj*P.PEN.major);
+    const elig=r.wr===0&&r.mj===0&&safety>=P.SAFETY_T&&part>=P.PART_T;
+    return{...r,tk:r.talks.size,tn:r.trn.size,safety,part,elig,score:elig?Math.sqrt(safety*part):0}});
+  return{rows,ck}}
+function render(p){
+  if(B.miss.length){out.innerHTML=`<div class="bad">دریافت این جدول‌ها ممکن نشد: ${B.miss.join('، ')}</div>`;return}
+  const {rows,ck}=calc(p[1]),E=rows.filter(r=>r.elig).sort((a,b)=>b.score-a.score),
+    pend=E.filter(r=>!r.rw),noCrit=rows.filter(r=>!r.elig&&r.rw),rwN=rows.filter(r=>r.rw).length;
+  const k=(n,l,c)=>`<div class="k"><b class="${c||''}">${fa(n)}</b><span>${l}</span></div>`;
+  const tr=(r,tag)=>`<tr><td>${esc(r.name)}</td><td class="c">${fa(r.hz)}</td><td class="c">${fa(r.nm)}</td><td class="c">${fa(r.sg)}</td><td class="c">${fa(r.tk)}</td><td class="c">${fa(r.tn)}</td>
+    <td class="c ${r.vb+r.wr+r.mi+r.mj?'bad':''}">${fa(r.vb)}/${fa(r.wr)}</td><td class="c">${fa(r.mi+r.mj)}</td><td class="c">${fa(Math.round(r.safety))}</td><td class="c">${fa(Math.round(r.part))}</td><td class="c">${fa(Math.round(r.score))}</td><td>${tag}</td></tr>`;
+  const head='<tr><th>نام</th><th class="c">خطر</th><th class="c">شبه‌حادثه</th><th class="c">پیشنهاد</th><th class="c">گفتگوی ایمنی</th><th class="c">آموزش</th><th class="c">تذکر/اخطار</th><th class="c">حادثه</th><th class="c">ایمنی</th><th class="c">مشارکت</th><th class="c">امتیاز</th><th>وضعیت</th></tr>';
+  out.outerHTML=`<div id="out">
+  ${ck?`<div class="mu" style="margin-bottom:8px">ستون گزارش‌دهنده‌ی کارت‌ها: <b>${esc(ck)}</b> (اگر درست نیست، در کد تغییر دهید)</div>`:
+   `<div class="card wa">⚠ جدول hse_cards ستونی برای «گزارش‌دهنده» ندارد (کارت‌ها فقط به واحد وصل‌اند). تا این ستون اضافه نشود، خطر/شبه‌حادثه/پیشنهاد صفر حساب می‌شود و فقط آموزش و رفتار ایمن اثر دارد.</div>`}
+  <div class="card"><div class="g">${k(rows.length,'پرسنل')}${k(E.length,'واجد شرایط تشویق','ok')}${k(rwN,'تشویق ثبت‌شده')}${k(pend.length,'شایسته ولی تشویق ثبت‌نشده',pend.length?'wa':'ok')}${k(noCrit.length,'تشویق بدون احراز معیار',noCrit.length?'bad':'ok')}</div></div>
+  <div class="card"><h2>واجدین شرایط (رتبه‌بندی)</h2>${E.length?`<table>${head}${E.map(r=>tr(r,r.rw?'<span class="ok">✓ تشویق شده</span>':'<span class="wa">⏳ ثبت نشده</span>')).join('')}</table>`:'<div class="mu">در این دوره فردی معیارها را کسب نکرده است.</div>'}</div>
+  ${noCrit.length?`<div class="card"><h2>تشویق ثبت‌شده بدون احراز معیار</h2><table>${head}${noCrit.map(r=>tr(r,'<span class="bad">⚠ بررسی شود</span>')).join('')}</table></div>`:''}
+  <div class="card mu">معیار: <b>ایمنی</b> = ۱۰۰ منهای ${fa(P.PEN.verbal)} به ازای هر تذکر، ${fa(P.PEN.written)} هر اخطار کتبی، ${fa(P.PEN.minor)} هر حادثه‌ی جزئی و ${fa(P.PEN.major)} هر حادثه‌ی غیرجزئی. <b>مشارکت</b> = مجموع امتیاز (حداکثر ۱۰ برای هر یک) از خطر، شبه‌حادثه، پیشنهاد، گفتگوی ایمنی و سایر آموزش‌ها، از ۵۰. <b>شرط ورود</b>: ایمنی ≥ ${fa(P.SAFETY_T)}، مشارکت ≥ ${fa(P.PART_T)}، بدون اخطار کتبی و بدون حادثه‌ی غیرجزئی. <b>امتیاز</b> = جذر(ایمنی × مشارکت)، مثل واحد نمونه. کارت‌های ردشده شمرده نمی‌شوند. ستون تذکر/اخطار به شکل «تذکر/اخطار کتبی» است.</div></div>`;
+}
+load();
+</script>
+</body>
+</html>
