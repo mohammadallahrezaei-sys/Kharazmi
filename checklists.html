@@ -692,7 +692,7 @@ async function moveToLocal() {
   const log = t => { const l = $('#smlog'); if (l) { l.textContent += t + '\n'; l.scrollTop = l.scrollHeight; } };
   if (!LDIR) return alert('اول پوشه‌ی ذخیره روی کامپیوتر را انتخاب کنید.');
   if (!LPERM && !(await localAllow())) return alert('دسترسی به پوشه داده نشد.');
-  const del = $('#sdel').checked;
+  const del = false; /* حذف از سوپابیس از رابط کاربری برداشته شد */
   if (del && !confirm('پس از کپی موفق، تصاویر از سوپابیس حذف می‌شوند و فقط روی همین کامپیوتر (و همین پوشه) قابل مشاهده می‌مانند. موبایل و کامپیوترهای دیگر آن‌ها را نمی‌بینند. ادامه می‌دهید؟')) return;
   const btn = $('[data-a=smove]'); btn.disabled = true; $('#smlog').textContent = '';
   try {
@@ -776,9 +776,9 @@ async function finds(iid) {
       <input type="number" data-sf="thr" value="${thrMB()}" min="50">
       <p style="margin:12px 0 4px;">پوشه روی کامپیوتر: <span id="sl"></span></p>
       <button data-a="lpick" style="width:100%;" ${FSA ? '' : 'disabled'}>📁 انتخاب / تغییر پوشه</button>
-      <label class="fx"><input type="checkbox" id="sdel"> بعد از کپی موفق، از سوپابیس حذف شود (فضا خالی شود)</label>
+      
       <button class="p" data-a="smove" ${FSA ? '' : 'disabled'}>⬇️ انتقال تصاویر به کامپیوتر</button>
-      <small style="margin-top:6px;">با کپی بدون حذف، هیچ چیز از دست نمی‌رود. بعد از حذف از سوپابیس، تصاویر فقط روی همین کامپیوتر و با پوشه‌ی متصل دیده می‌شوند (گزارش مدیریتی هم از همین پوشه می‌خواند).</small>
+      <small style="margin-top:6px;">این عملیات فقط از تصاویر نسخه‌ی پشتیبان روی کامپیوتر می‌گیرد و هیچ چیز از سوپابیس حذف نمی‌شود.</small>
       <progress id="smp" value="0" max="1" style="width:100%; margin-top:8px;" hidden></progress>
       <pre id="smlog" style="white-space:pre-wrap; font-size:12px; max-height:160px; overflow:auto; margin:8px 0 0;"></pre>
     </details>
