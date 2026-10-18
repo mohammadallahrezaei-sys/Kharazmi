@@ -177,11 +177,12 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                         <th class="p-3">علت / موضوع</th>
                         <th class="p-3">تاریخ</th>
                         <th class="p-3">توضیحات</th>
+                        <th class="p-3">ثبت‌کننده</th>
                         <th class="p-3 text-center">عملیات</th>
                     </tr>
                 </thead>
                 <tbody id="ektTableBody" class="divide-y divide-slate-700/50">
-                    <tr><td colspan="7" class="p-4 text-center text-slate-500">در حال بارگذاری اطلاعات...</td></tr>
+                    <tr><td colspan="8" class="p-4 text-center text-slate-500">در حال بارگذاری اطلاعات...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -295,6 +296,23 @@ async function api(path, opts) {
 }
 
 let employees = [], records = [], myChart = null, selEmp = null;
+/* ثبت‌کننده: از ایمیل کاربر واردشده (همان سشن سایر ماژول‌ها) */
+const REG_NAMES = { 'm.rezaei@gmail.com': 'محمد اله رضایی', 'm.mohammadi@gmail.com': 'محمدی' };
+const regName = m => REG_NAMES[String(m || '').toLowerCase()] || m || '—';
+function sessionEmail() {
+    for (const st of [localStorage, sessionStorage]) {
+        try {
+            for (let i = 0; i < st.length; i++) {
+                const raw = st.getItem(st.key(i)) || '';
+                if (raw[0] !== '{') continue;
+                const j = JSON.parse(raw), f = (o, d) => { if (!o || typeof o !== 'object' || d > 4) return ''; if (typeof o.email === 'string' && o.email.includes('@')) return o.email; for (const k in o) { const r = f(o[k], d + 1); if (r) return r; } return ''; };
+                const e = f(j, 0); if (e) return e.toLowerCase();
+            }
+            const m = st.getItem('em') || st.getItem('email'); if (m && m.includes('@')) return m.toLowerCase();
+        } catch (e) { }
+    }
+    return '';
+}
 const empById = id => employees.find(e => e.id === id) || {};
 
 const isWarn = r => r.record_type === 'اخطار کتبی' || r.record_type === 'تذکر شفاهی';
@@ -439,11 +457,11 @@ function renderTable() {
     const q = $('ektSearchBox').value.toLowerCase().trim();
     const rows = records.filter(item => {
         const e = empById(item.employee_id);
-        return !q || [e.emp_id, empName(e), item.reason, item.record_type, item.description].join(' ').toLowerCase().includes(q);
+        return !q || [e.emp_id, empName(e), item.reason, item.record_type, item.description, regName(item.registered_by)].join(' ').toLowerCase().includes(q);
     });
     const tbody = $('ektTableBody');
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">هیچ سوابقی یافت نشد.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-500">هیچ سوابقی یافت نشد.</td></tr>';
         return;
     }
     tbody.innerHTML = rows.map(item => {
@@ -459,6 +477,7 @@ function renderTable() {
             <td class="p-3 text-slate-200">${esc(item.reason || '-')}</td>
             <td class="p-3 font-mono text-slate-300"><span dir="ltr" style="unicode-bidi:isolate;display:inline-block">${esc(item.record_date || '-')}</span></td>
             <td class="p-3 text-slate-400">${esc(item.description || '-')}</td>
+            <td class="p-3 text-slate-300 whitespace-nowrap">${esc(regName(item.registered_by))}</td>
             <td class="p-3 text-center whitespace-nowrap">
                 <button data-print="${esc(item.id)}" class="px-2 py-1 bg-blue-900/60 hover:bg-blue-800 text-blue-200 rounded text-[10px]">🖨 فرم</button>
                 <button data-del="${esc(item.id)}" class="px-2 py-1 bg-rose-900/50 hover:bg-rose-800 text-rose-300 rounded text-[10px]">حذف</button>
@@ -482,10 +501,13 @@ $('ekhtarForm').addEventListener('submit', async e => {
         record_date: normDigits($('ektDate').value.trim()),
         description: $('ektDesc').value.trim() || null
     };
+    const me = sessionEmail(); if (me) body.registered_by = me;
     const btn = $('ektSubmit');
     btn.disabled = true; btn.textContent = 'در حال ثبت...';
     try {
-        await api('ekhtars', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(body) });
+        const post = b => api('ekhtars', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(b) });
+        try { await post(body); }
+        catch (er) { if (body.registered_by && /registered_by/.test(er.message)) { delete body.registered_by; await post(body); alert('توجه: ستون registered_by هنوز در دیتابیس ساخته نشده؛ ثبت‌کننده ذخیره نشد.'); } else throw er; }
         alert('سابقه انضباطی با موفقیت ثبت شد.');
         $('ekhtarForm').reset();
         $('ektEmpInput').value = label;          // فرد انتخاب‌شده باقی بماند تا بتوان فرم را چاپ کرد
