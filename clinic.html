@@ -18,7 +18,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
 .chip { font-size:11px; padding:.25rem .65rem; border-radius:9999px; background:#0f172a; border:1px solid #334155; color:#cbd5e1; }
 .chip:hover { border-color:#10b981; color:#fff; }
 .dayhead { display:flex; justify-content:space-between; align-items:center; padding:.5rem .25rem .35rem; margin-top:.5rem; border-bottom:1px solid #334155; color:#94a3b8; font-size:.75rem; font-weight:700; }
-.qty { width:5rem !important; }
+.qty { width:5rem !important; border-color:#d97706; }
 .nw { white-space:nowrap; }
 .vcard { background:#1e293b; border:1px solid #334155; border-radius:.75rem; padding:.85rem 1rem; }
 </style>
@@ -106,6 +106,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
                     <p class="text-xs font-bold text-slate-300">داروهای تحویلی</p>
                     <p class="text-[11px] text-slate-400">دارو را از لیست انتخاب کنید تا خودکار به فهرست زیر اضافه شود، سپس تعداد را وارد کنید. (برای داروی خارج از لیست: نام را تایپ و «افزودن» بزنید.)</p>
+                    <p class="text-[11px] text-amber-400 font-bold">⚠️ تعداد تحویلی را دقیق وارد کنید؛ همین مقدار خودکار از موجودی کمد و آمار بهداری کسر می‌شود.</p>
                     <div class="flex gap-2">
                         <input id="medInput" list="medOptions" class="fld" placeholder="نام دارو را جستجو یا تایپ کنید..." autocomplete="off">
                         <datalist id="medOptions"></datalist>
@@ -233,6 +234,16 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                     <div><label class="block text-xs text-slate-300 mb-1">شرایط ناامن (Unsafe Condition)</label><input id="incCond" class="fld" placeholder="نقص تجهیزات، محیط ناامن..."></div>
                 </div>
                 <div><label class="block text-xs text-slate-300 mb-1">علت ریشه‌ای (۵ چرا)</label><textarea id="incRoot" rows="2" class="fld" placeholder="چرا رخ داد؟ ... چرا؟ ... ریشه اصلی چیست؟"></textarea></div>
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
+                    <p class="text-xs font-bold text-slate-300">مواد و داروی مصرف‌شده در درمان حادثه</p>
+                    <p class="text-[11px] text-slate-400">از لیست انتخاب کنید (مثلاً گاز استریل، بتادین، سرم شستشو) تا اضافه شود، سپس تعداد را وارد کنید. اقلام کمد از موجودی کسر می‌شوند.</p>
+                    <p class="text-[11px] text-amber-400 font-bold">⚠️ تعداد را دقیق وارد کنید؛ همین مقدار خودکار از موجودی کمد و آمار بهداری کسر می‌شود.</p>
+                    <div class="flex gap-2">
+                        <input id="incMedInput" list="medOptions" class="fld" placeholder="نام ماده یا دارو را جستجو یا تایپ کنید..." autocomplete="off">
+                        <button type="button" id="incAddMedBtn" class="px-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs shrink-0">+ افزودن</button>
+                    </div>
+                    <div id="incMedList" class="space-y-2"></div>
+                </div>
                 <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-3">
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="incSsRep" class="w-4 h-4"><span class="text-xs text-slate-300 font-bold">گزارش شده به بیمه تامین اجتماعی؟</span></label>
                     <div id="ssBox" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -406,6 +417,31 @@ const reasonOf = v => {
 const medsOf = v => Array.isArray(v.prescribed_meds) ? v.prescribed_meds : [];
 const medName = m => typeof m === 'string' ? m : ((m && m.name) || '');
 const medUsage = m => (m && typeof m === 'object') ? (m.usage || '') : '';
+/* تعداد دارو مستقیم از موجودی کسر می‌شود؛ پس قبل از ثبت، دقت و تأیید اجباری است */
+function validateMeds(arr) {
+    for (const m of arr) {
+        const it = medItemOf(m.name);
+        if (it && it.unit_kind === 'open') continue;
+        const q = Number(m.qty);
+        if (!Number.isInteger(q) || q < 1) return 'تعداد «' + m.name + '» را درست وارد کنید (عدد صحیح، حداقل ۱).';
+    }
+    return '';
+}
+function confirmMeds(arr) {
+    if (!arr.length) return true;
+    const lines = arr.map(m => {
+        const it = medItemOf(m.name), open = it && it.unit_kind === 'open';
+        const st = it && STOCK[it.id] !== undefined ? +STOCK[it.id] : null;
+        const q = open ? (m.open ? 'یک واحد جدید' : 'بدون کسر') : Number(m.qty);
+        return '• ' + m.name + ' × ' + q + (it ? (st !== null && !open && q > st ? '   ⚠️ بیشتر از موجودی کمد (' + st + ')' : '   (از موجودی کسر می‌شود)') : '   (کسر نمی‌شود)');
+    });
+    return confirm('مقادیر زیر ثبت می‌شود و به‌طور خودکار از موجودی و آمار بهداری کسر می‌گردد. درست است؟\n\n' + lines.join('\n'));
+}
+const incMedsOf = i => {
+    const m = /مواد\/داروی مصرف‌شده: ([^\n]*)/.exec(i.description || '');
+    if (!m) return [];
+    return m[1].split('، ').map(x => { const k = x.lastIndexOf(' × '); if (k < 0) return { name: x.trim(), qty: 1 }; const q = x.slice(k + 3).trim(); return { name: x.slice(0, k).trim(), qty: /^\d+$/.test(q) ? Number(q) : (q === '-' ? 0 : 1) }; }).filter(x => x.name && x.qty > 0);
+};
 const medQty = m => (m && typeof m === 'object') ? (Number(m.qty) || 0) : 0;
 const medTotals = list => { const t = {}; list.forEach(v => medsOf(v).forEach(m => { const n = medName(m).trim(); if (n) t[n] = (t[n] || 0) + (medQty(m) || 1); })); return t; };
 const CK_TYPES = { periodic: 'معاینه دوره‌ای', pre_employment: 'معاینه بدو استخدام', post_incident: 'معاینه پس از حادثه', return_to_work: 'معاینه بازگشت به کار', special: 'معاینه تخصصی شغلی', other: 'سایر معاینات' };
@@ -595,7 +631,7 @@ async function loadStock() { try { const st = await api('med_stock?select=id,nam
 function refreshMedOptions() { const names = [...new Set([...MEDITEMS.map(i => i.name), ...MEDS])]; $('medOptions').innerHTML = names.map(m => `<option value="${esc(m)}"></option>`).join(''); }
 async function loadMedItems() {
     try { MEDITEMS = await api('med_items?select=id,name,reorder,unit_kind&active=eq.true&limit=500'); } catch (e) { MEDITEMS = []; }
-    await loadStock(); refreshMedOptions(); renderMeds();
+    await loadStock(); refreshMedOptions(); renderMeds(); renderIncMeds();
 }
 /* نام دارو در فهرست بهداری → نام قلم در موجودی کمد (فقط اقلام مشترک؛ بقیه کسر نمی‌شوند) */
 const MEDMAP = {
@@ -607,12 +643,13 @@ const MEDMAP = {
  'پماد سوختگی (سیلورسولفادیازین)': 'پماد سوختگی سیلور', 'قطره چشمی کلرامفنیکل': 'قطره نفازولین چشمی'
 };
 const medItemOf = name => MEDITEMS.find(i => i.name === name) || MEDITEMS.find(i => i.name === MEDMAP[name]) || null;
-async function deductMeds(visitId, list) {
+async function deductMeds(visitId, list, prefix) {
+    prefix = prefix || 'visit';
     const moves = [], touched = new Set();
     list.forEach(m => {
-        const it = medItemOf(m.name); if (!it || !m.deduct) return;
+        const it = medItemOf(m.name); if (!it) return;
         const q = it.unit_kind === 'open' ? (m.open ? 1 : 0) : Number(m.qty) || 0;
-        if (q > 0) { moves.push({ item_id: it.id, kind: 'use', qty: q, note: 'visit:' + visitId, by_email: sessionEmail() || null, appearance: null }); touched.add(it.id); }
+        if (q > 0) { moves.push({ item_id: it.id, kind: 'use', qty: q, note: prefix + ':' + visitId, by_email: sessionEmail() || null, appearance: null }); touched.add(it.id); }
     });
     if (!moves.length) return '';
     await api('med_moves', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(moves) });
@@ -621,11 +658,12 @@ async function deductMeds(visitId, list) {
     st.forEach(x => { STOCK[x.id] = x.stock; });
     return '\n📦 از موجودی کمد کسر شد.\nموجودی فعلی: ' + st.map(x => x.name + ' = ' + x.stock).join('، ') + (low.length ? '\n⚠️ کمبود: ' + low.map(x => x.name + ' (موجودی ' + x.stock + ')').join('، ') + ' — به سفارش برسانید.' : '');
 }
-async function restoreMeds(visitId) {
+async function restoreMeds(visitId, prefix) {
+    prefix = prefix || 'visit';
     try {
-        const mv = await api('med_moves?select=item_id,qty&kind=eq.use&note=eq.' + encodeURIComponent('visit:' + visitId));
+        const mv = await api('med_moves?select=item_id,qty&kind=eq.use&note=eq.' + encodeURIComponent(prefix + ':' + visitId));
         if (!mv.length) return;
-        await api('med_moves', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(mv.map(x => ({ item_id: x.item_id, kind: 'adjust', qty: x.qty, note: 'بازگشت به موجودی: حذف مراجعه ' + visitId }))) });
+        await api('med_moves', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(mv.map(x => ({ item_id: x.item_id, kind: 'adjust', qty: x.qty, note: 'بازگشت به موجودی: حذف ' + (prefix === 'incident' ? 'حادثه ' : 'مراجعه ') + visitId }))) });
     } catch (e) { showDebug('بازگرداندن موجودی دارو: ' + e.message); }
 }
 function sessionEmail() {
@@ -664,8 +702,8 @@ const isKnownMed = n => MEDS.includes(n) || MEDITEMS.some(i => i.name === n);
 $('medInput').addEventListener('input', () => { if (isKnownMed($('medInput').value.trim())) addMed(); });
 $('addMedBtn').onclick = addMed;
 $('medInput').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addMed(); } };
-function renderMeds() {
-    $('medList').innerHTML = meds.map((m, i) => {
+function medRowsHTML(arr) {
+    return arr.map((m, i) => {
         const it = medItemOf(m.name);
         const open = it && it.unit_kind === 'open';
         const stock = it && STOCK[it.id] !== undefined ? STOCK[it.id] : null;
@@ -679,14 +717,15 @@ function renderMeds() {
             </div>
             <div class="flex gap-2 items-center flex-wrap">
                 ${open ? `<label class="text-[11px] text-slate-300 nw"><input type="checkbox" data-op="${i}" ${m.open ? 'checked' : ''}> واحد جدید باز شد</label>`
-                       : `<label class="text-[11px] text-slate-300 nw">تعداد تحویلی:</label><input type="number" min="1" step="1" data-q="${i}" value="${esc(m.qty)}" class="fld qty !py-1 !text-xs" dir="ltr">`}
-                ${it ? `<label class="text-[11px] text-emerald-400 nw"><input type="checkbox" data-dd="${i}" ${m.deduct ? 'checked' : ''}> 📦 کسر از موجودی کمد</label>`
+                       : `<label class="text-[11px] text-amber-400 font-bold nw">تعداد تحویلی (الزامی):</label><input type="number" min="1" step="1" data-q="${i}" value="${esc(m.qty)}" class="fld qty !py-1 !text-xs" dir="ltr">`}
+                ${it ? `<span class="text-[11px] text-emerald-400 nw">📦 از موجودی کمد کسر می‌شود</span>`
                      : '<span class="text-[11px] text-amber-400">در موجودی کمد تعریف نشده؛ فقط ثبت می‌شود، کسر نمی‌شود</span>'}
                 <input data-i="${i}" value="${esc(m.usage)}" placeholder="دستور مصرف" class="fld !w-56 !py-1 !text-xs">
             </div>
         </div>`;
     }).join('');
 }
+function renderMeds() { $('medList').innerHTML = medRowsHTML(meds); }
 $('medList').addEventListener('input', e => { if (e.target.dataset.i !== undefined) meds[e.target.dataset.i].usage = e.target.value; });
 $('medList').addEventListener('input', e => { if (e.target.dataset.q !== undefined) meds[e.target.dataset.q].qty = e.target.value; });
 $('medList').addEventListener('change', e => {
@@ -710,6 +749,7 @@ $('clinicForm').onsubmit = async function (e) {
     if ((sys && !dia) || (!sys && dia)) { alert('فشار بالا و پایین هر دو باید وارد شوند.'); return; }
     if (sys && (+sys <= +dia)) { alert('فشار بالا باید از فشار پایین بیشتر باشد.'); return; }
     if ($('isReferred').checked && !$('refDest').value.trim()) { alert('محل اعزام را وارد کنید.'); return; }
+    { const er = validateMeds(meds); if (er) { alert(er); return; } if (!confirmMeds(meds)) return; }
 
     const num = id => $(id).value === '' ? null : Number($(id).value);
     const leave = num('leaveDays') || 0;
@@ -911,15 +951,38 @@ $('ckForm').onsubmit = async function (e) {
     finally { btn.disabled = false; btn.textContent = 'ثبت معاینه'; }
 };
 
+/* ---------- مواد مصرفی حادثه ---------- */
+let incMeds = [];
+function renderIncMeds() { $('incMedList').innerHTML = medRowsHTML(incMeds); }
+function addIncMed() {
+    const name = $('incMedInput').value.trim();
+    if (!name) return;
+    const dup = incMeds.findIndex(m => m.name === name);
+    if (dup >= 0) incMeds[dup].qty = (Number(incMeds[dup].qty) || 0) + 1;
+    else incMeds.push({ name, usage: '', qty: 1, deduct: !!medItemOf(name), open: false });
+    $('incMedInput').value = '';
+    renderIncMeds();
+    const q = $('incMedList').querySelector('[data-q="' + (dup >= 0 ? dup : incMeds.length - 1) + '"]');
+    if (q) { q.focus(); q.select(); }
+}
+$('incAddMedBtn').onclick = addIncMed;
+$('incMedInput').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addIncMed(); } };
+$('incMedInput').addEventListener('input', () => { if (isKnownMed($('incMedInput').value.trim())) addIncMed(); });
+$('incMedList').addEventListener('input', e => { const d = e.target.dataset; if (d.i !== undefined) incMeds[d.i].usage = e.target.value; if (d.q !== undefined) incMeds[d.q].qty = e.target.value; });
+$('incMedList').addEventListener('change', e => { const d = e.target.dataset; if (d.op !== undefined) incMeds[d.op].open = e.target.checked; if (d.dd !== undefined) incMeds[d.dd].deduct = e.target.checked; });
+$('incMedList').addEventListener('click', e => { if (e.target.dataset.del !== undefined) { incMeds.splice(+e.target.dataset.del, 1); renderIncMeds(); } });
+
 /* ---------- مدیریت حوادث شغلی ---------- */
 $('toggleIncForm').onclick = () => $('incFormCard').classList.toggle('hidden');
-$('incCancel').onclick = () => { $('incFormCard').classList.add('hidden'); $('incForm').reset(); $('ssBox').classList.add('hidden'); };
+$('incCancel').onclick = () => { $('incFormCard').classList.add('hidden'); $('incForm').reset(); $('ssBox').classList.add('hidden'); incMeds = []; renderIncMeds(); };
 $('incSsRep').onchange = function () { $('ssBox').classList.toggle('hidden', !this.checked); };
 
 $('incForm').onsubmit = async function (e) {
     e.preventDefault();
     const emp = employees.find(x => label(x) === $('incEmp').value);
     if (!emp) { alert('پرسنل را از لیست پیشنهادی انتخاب کنید.'); return; }
+    if ($('incMedInput').value.trim()) addIncMed();
+    { const er = validateMeds(incMeds); if (er) { alert(er); return; } if (!confirmMeds(incMeds)) return; }
 
     // علت ریشه‌ای و نوع حادثه داخل شرح ذخیره می‌شوند تا نیازی به ستون جدید در دیتابیس نباشد
     let desc = $('incDesc').value.trim();
@@ -931,6 +994,8 @@ $('incForm').onsubmit = async function (e) {
     if (lost) extra.push('روز از دست رفته: ' + lost);
     if (root) extra.push('علت ریشه‌ای: ' + root);
     if (extra.length) desc += '\n[' + extra.join(' | ') + ']';
+    const usedMeds = incMeds.filter(m => medName(m));
+    if (usedMeds.length) desc += '\nمواد/داروی مصرف‌شده: ' + usedMeds.map(m => m.name + ' × ' + ((medItemOf(m.name) || {}).unit_kind === 'open' ? (m.open ? 'یک واحد جدید' : '-') : (Number(m.qty) || 1))).join('، ');
 
     const body = {
         employee_id: emp.id,
@@ -952,7 +1017,10 @@ $('incForm').onsubmit = async function (e) {
     const btn = $('incSubmit');
     btn.disabled = true; btn.textContent = 'در حال ثبت...';
     try {
-        await api('clinic_incidents', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=representation' }), body: JSON.stringify(body) });
+        const savedInc = await api('clinic_incidents', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=representation' }), body: JSON.stringify(body) });
+        let medMsg = '';
+        try { if (savedInc[0] && savedInc[0].id) medMsg = await deductMeds(savedInc[0].id, incMeds, 'incident'); }
+        catch (er) { showDebug('کسر از موجودی دارو: ' + er.message); medMsg = '\n⚠️ کسر از موجودی انجام نشد.'; }
 
         if (body.corrective_action && body.action_due_date) {
             try {
@@ -969,7 +1037,8 @@ $('incForm').onsubmit = async function (e) {
             } catch (er) { showDebug('ساخت پیگیری CAPA: ' + er.message); }
         }
 
-        alert('حادثه شغلی با موفقیت ثبت شد.');
+        alert('حادثه شغلی با موفقیت ثبت شد.' + medMsg);
+        incMeds = []; renderIncMeds();
         $('incForm').reset(); $('incFormCard').classList.add('hidden'); $('ssBox').classList.add('hidden');
         await loadIncidents();
         await loadFollowups();
@@ -1091,7 +1160,11 @@ function renderStats() {
     const totalVisits = visits.length;
     const totalIncidents = incidents.length;
     const totalCheckups = visits.filter(isCheckup).length;
-    const medTot = medTotals(visits), totalMeds = Object.values(medTot).reduce((a, b) => a + b, 0);
+    const medTot = {};
+    visits.forEach(v => medsOf(v).forEach(m => { const n = medName(m).trim(); if (!n) return; (medTot[n] = medTot[n] || { v: 0, i: 0 }).v += (medQty(m) || 1); }));
+    incidents.forEach(i => incMedsOf(i).forEach(m => { (medTot[m.name] = medTot[m.name] || { v: 0, i: 0 }).i += m.qty; }));
+    const medSum = n => medTot[n].v + medTot[n].i;
+    const totalMeds = Object.keys(medTot).reduce((a, n) => a + medSum(n), 0);
     const totalLeaves = visits.reduce((a, v) => a + (Number(v.medical_leave_days) || 0), 0);
     const openCapa = incidents.filter(i => i.corrective_action && i.action_status !== 'done').length;
 
@@ -1128,7 +1201,7 @@ function renderStats() {
         ${card('کل حوادث شغلی', totalIncidents, 'text-rose-400')}
         ${card('مجموع روزهای استعلاجی', totalLeaves, 'text-amber-400')}
         ${card('معاینات پزشکی', totalCheckups, 'text-blue-400')}
-        ${card('داروی تحویل‌شده', totalMeds, 'text-emerald-400')}
+        ${card('دارو و مواد مصرفی', totalMeds, 'text-emerald-400')}
         ${card('CAPA باز', openCapa, 'text-amber-400')}
     </div>
 
@@ -1168,8 +1241,8 @@ function renderStats() {
             <div class="space-y-2">${topDiag.length ? topDiag.map(([d, c]) => row(d, c + ' مورد', 'text-emerald-400')).join('') : '<p class="text-xs text-slate-500">داده‌ای ثبت نشده است.</p>'}</div>
         </div>
         <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3 md:col-span-2">
-            <h3 class="text-sm font-bold text-white">داروهای تحویل‌شده (به تفکیک قلم)</h3>
-            <div class="space-y-2">${Object.keys(medTot).length ? Object.entries(medTot).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([n, c]) => row(n, c + ' عدد', 'text-emerald-400')).join('') : '<p class="text-xs text-slate-500">داده‌ای ثبت نشده است.</p>'}</div>
+            <h3 class="text-sm font-bold text-white">دارو و مواد مصرفی (مراجعات + حوادث)</h3>
+            <div class="space-y-2">${Object.keys(medTot).length ? Object.keys(medTot).sort((a, b) => medSum(b) - medSum(a)).slice(0, 25).map(n => row(n, medSum(n) + ' عدد (مراجعات ' + medTot[n].v + ' · حوادث ' + medTot[n].i + ')', 'text-emerald-400')).join('') : '<p class="text-xs text-slate-500">داده‌ای ثبت نشده است.</p>'}</div>
         </div>
     </div>`;
     renderRates();
@@ -1351,7 +1424,7 @@ document.addEventListener('click', e => {
     else if (d.fucancel !== undefined) cancelFu(d.fucancel);
     else if (d.capadone !== undefined) closeCapa(d.capadone);
     else if (d.delvisit !== undefined) deleteRow('clinic_visits', d.delvisit, 'این مراجعه حذف شود؟ این کار قابل بازگشت نیست. (داروی کسرشده از موجودی کمد برمی‌گردد.)', async () => { await loadVisits(); await loadFollowups(); }, () => restoreMeds(d.delvisit));
-    else if (d.delinc !== undefined) deleteRow('clinic_incidents', d.delinc, 'این حادثه حذف شود؟ این کار قابل بازگشت نیست.', loadIncidents);
+    else if (d.delinc !== undefined) deleteRow('clinic_incidents', d.delinc, 'این حادثه حذف شود؟ این کار قابل بازگشت نیست. (مواد مصرفی کسرشده به موجودی کمد برمی‌گردد.)', loadIncidents, () => restoreMeds(d.delinc, 'incident'));
 });
 
 // بارگذاری اولیه کل داده‌ها
