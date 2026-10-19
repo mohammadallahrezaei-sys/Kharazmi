@@ -119,6 +119,11 @@ body div#app { display: flex; flex-direction: column; }
 .pager button:disabled { opacity: .4; }
 details > summary { list-style: none; } 
 textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--ln); border-radius: 10px; padding: 10px; margin-top: 8px; }
+.eqb { margin-top: 8px; }
+.eqr button { display: block; width: 100%; text-align: right; min-height: 40px; margin-top: 4px; padding: 6px 10px; font-size: 13px; }
+.eqn { margin-top: 8px; font-size: 12px; }
+.eqrow { background: var(--bg); border: 1px solid var(--ln); border-radius: 8px; padding: 6px 10px; margin-top: 6px; }
+.eqrow.warn { border-color: var(--warn); }
 </style>
 </head>
 <body>
@@ -148,6 +153,7 @@ const M = [
   ['SAN', 'اماکن بهداشتی و کمک‌های اولیه', 'ماهانه', 'L14038/01', ['رختکن: مناسب، تمیز، دارای سطل، تهویه، روشنایی، کمد و جاکفشی', 'سرویس بهداشتی: نظافت، مایع دست، آب گرم و سرد، فلاش‌تانک، تعداد کافی', 'حمام: شیر و دوش سالم، تهویه، کف سرامیکی، کلید و پریز بیرون حمام', 'آبدارخانه: کارت بهداشت، نظافت، پوشش فاضلاب، تابلو دخانیات، MSDS', 'نمازخانه: نظافت، جاکفشی، تهویه و روشنایی', 'جعبه کمک‌های اولیه کامل و بدون داروی منقضی (L14030)', 'ثبت مراجعات بهداری انجام می‌شود (L14042)'], []],
   ['KIT', 'رستوران و آشپزخانه', 'روزانه', 'L14018', ['کارگران: ظاهر و لباس مناسب، کلاه و دستکش، کارت بهداشت معتبر', 'مواد اولیه با تایید HSE، دارای تاریخ مصرف و بسته‌بندی سالم', 'نگهداری مواد: یخچال/سردخانه دارای دماسنج و دما کنترل و تمیز', 'خودرو حمل مواد (مجاز، تمیز، راننده دارای کارت بهداشت، مناسب مواد فاسدشدنی)', 'میز، کف، دیوار، تجهیزات و ظروف تمیز و ضدعفونی شده', 'حشرات و جوندگان دیده نمی‌شود؛ ورود متفرقه و سیگار ممنوع', 'شعله گاز آبی؛ تهویه و کپسول و جعبه کمک‌های اولیه موجود', 'پسماند تفکیک؛ سبزیجات ضدعفونی؛ استفاده از غذای مانده ممنوع'], []],
   ['ENV', 'پساب، فاضلاب و پسماند', 'ماهانه', 'L14010/01', ['پسماند تر و خشک تفکیک می‌شود', 'سطل زباله دارای درب و کیسه؛ به‌موقع تخلیه و شسته می‌شود', 'محل جمع‌آوری پسماند مانع آلودگی هوا، خاک و آب است', 'پسماند صنعتی در محل ایمن دپو و دفع تحت نظارت است', 'پسماند پزشکی جدا و با شرکت مجاز منتقل می‌شود', 'نشت سوخت یا مواد شیمیایی به شبکه فاضلاب دیده نمی‌شود', 'آشغالگیر و حوض یکنواخت‌ساز: پمپ و هوادهی کار می‌کند؛ لجن و بوی بد نیست', 'حوض ته‌نشینی بدون حباب و مواد معلق؛ محوطه محصور و پلکان دارای حفاظ', 'برنامه آنالیز و پایش پساب انجام شده است'], []]
+  ,['MED', 'کنترل و موجودی داروها', 'ماهانه', 'L14030/01A', [], []]
 ];
 
 const LOCS = [
@@ -280,7 +286,8 @@ function getSession() {
 const SS = getSession();
 let tok = SS.t || KEY, mail = SS.e || 'کاربر سامانه', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
-const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS, LC, EX });
+let EQP = {}, LNK = {}, EQ_OK = null, ENC = {};
+const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS, LC, EX, EQP, LNK, eq: D.eq });
 const AH = () => ({ apikey: KEY, Authorization: 'Bearer ' + tok });
 
 async function api(p, o = {}) {
@@ -294,6 +301,7 @@ async function home() {
   view('<p style="text-align:center; padding:40px;">در حال بارگذاری چک‌لیست‌ها...</p>');
   let L = {};
   try { (await lastVisits()).forEach(r => L[r.module] = L[r.module] || r.created_at); } catch (e) { }
+  let MA = 0; try { MA = (await api('findings?select=id&module=eq.MED&status=eq.open&limit=1000')).length; } catch (e) { }
   view(`
     <div class="hdr">
       <div class="hdr-r">
@@ -314,7 +322,7 @@ async function home() {
     ${M.map(m => `
       <button class="m" data-a="open" data-k="${m[0]}">
         <b>${m[1]}</b>
-        <small>${m[2]}${m[3] ? ' · کد: ' + m[3] : ''} · آخرین بازدید: ${L[m[0]] ? fd(L[m[0]]) : 'ثبت نشده'}</small>
+        <small>${m[2]}${m[3] ? ' · کد: ' + m[3] : ''} · آخرین بازدید: ${L[m[0]] ? fd(L[m[0]]) : 'ثبت نشده'}${m[0] == 'MED' && MA ? ' · ⚠ ' + fa(MA) + ' هشدار' : ''}</small>
       </button>
     `).join('')}
   `);
@@ -353,12 +361,99 @@ async function historyList() {
   } catch (e) { alert(e.message); }
 }
 
+/* ===== انتخاب تجهیز از فهرست اعلان‌ها + هشدار اعلان/مورد تکراری ===== */
+async function eqInit() {
+  if (EQ_OK !== null) return EQ_OK;
+  try { await api('equipment_list?select=code&limit=1'); EQ_OK = true; } catch (e) { EQ_OK = false; }
+  return EQ_OK;
+}
+const clean_ = s => String(s || '').replace(/[ي]/g, 'ی').replace(/[ك]/g, 'ک').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[‌]/g, ' ').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+const toks_ = s => new Set(clean_(s).split(' ').filter(w => w.length > 2));
+function sim_(a, b) { const A_ = toks_(a), B_ = toks_(b); if (!A_.size || !B_.size) return 0; let i = 0; A_.forEach(w => { if (B_.has(w)) i++; }); return i / Math.min(A_.size, B_.size); }
+const eqOf = id => EQP[id] || D.eq || null;
+const stOpen = s => !['خاتمه یافته', 'انجام شده', 'باطل شده'].includes(s);
+
+async function eqLoad(code) {
+  if (ENC[code]) return ENC[code];
+  const q = encodeURIComponent(code);
+  const [nt, fd_] = await Promise.all([
+    api('notices?select=no,jdate,created_on,status,description&equipment_code=eq.' + q + '&status=neq.' + encodeURIComponent('باطل شده') + '&order=created_on.desc&limit=40').catch(() => []),
+    api('findings?select=qid,question,status,notice_code,created_at&equipment_code=eq.' + q + '&status=eq.open&limit=20').catch(() => [])
+  ]);
+  return ENC[code] = { nt, fd: fd_ };
+}
+function eqNoticesHtml(id) {
+  const e = eqOf(id); if (!e) return '';
+  const c = ENC[e.code]; if (!c) return '<small>در حال بررسی اعلان‌های قبلی این تجهیز...</small>';
+  const txt = (N[id] || '') + ' ' + ((cur && cur[6].find(q => cur[0] + '-' + q.id == baseId(id)) || {}).t || '');
+  const ln = LNK[id];
+  const rows = c.nt.map(x => ({ ...x, s: sim_(txt, x.description), op: stOpen(x.status) })).sort((a, b) => (b.op - a.op) || (b.s - a.s)).slice(0, 8);
+  const fr = c.fd.filter(x => !ln || x.notice_code != ln.no);
+  const open = c.nt.filter(x => stOpen(x.status)).length;
+  return `<div class="eqn">
+    ${ln ? `<div class="chip on" style="margin-bottom:6px;">🔗 به اعلان ${fa(ln.no)} پیوند شد (اعلان جدید ثبت نمی‌شود) <b data-a="equnlink" data-id="${esc(id)}">✕</b></div>` : ''}
+    <small><b>سوابق این تجهیز:</b> ${fa(c.nt.length)} اعلان${open ? ` (<span style="color:var(--warn);">${fa(open)} باز</span>)` : ''}${fr.length ? ` · ${fa(fr.length)} عدم‌انطباق باز در این ماژول` : ''}</small>
+    ${rows.map(x => `<div class="eqrow ${x.op && x.s >= .5 ? 'warn' : ''}">
+        <span dir="ltr">#${esc(x.no)}</span> · ${esc(x.jdate)} · <span class="bg ${x.op ? 'r' : 'g'}">${esc(x.status)}</span>
+        ${x.s >= .5 ? '<span class="bg r">⚠ مشابه</span>' : ''}<br>${esc((x.description || '').slice(0, 110))}
+        ${x.op && !ln ? `<button class="l" data-a="eqlink" data-id="${esc(id)}" data-no="${esc(x.no)}" data-d="${esc(x.created_on)}" data-s="${esc(x.status)}" style="display:inline;">🔗 همین اعلان است؛ پیوند بزن</button>` : ''}
+      </div>`).join('')}
+    ${fr.map(x => `<div class="eqrow warn">عدم‌انطباق باز: ${esc((x.question || '').slice(0, 100))}${x.notice_code ? ` (اعلان ${esc(x.notice_code)})` : ''}</div>`).join('')}
+  </div>`;
+}
+function eqBlock(id) {
+  if (!EQ_OK) return '';
+  const e = eqOf(id);
+  return `<div class="eqb">
+    ${e ? `<div class="chip on">🔧 <span dir="ltr">${esc(e.code)}</span> — ${esc(e.title || '')} ${EQP[id] ? `<b data-a="eqclear" data-id="${esc(id)}">✕</b>` : ''}</div>` : ''}
+    <input data-eqs="${esc(id)}" placeholder="🔎 تجهیز/دستگاه را بر اساس کد یا نام جستجو کنید (اعلان‌های قبلی نمایش داده می‌شود)" autocomplete="off">
+    <div class="eqr" data-eqr="${esc(id)}"></div>
+    <div data-eqn="${esc(id)}">${eqNoticesHtml(id)}</div>
+  </div>`;
+}
+async function eqPost() {
+  if (!EQ_OK) return;
+  const ids = new Set([...document.querySelectorAll('[data-eqn]')].map(el => el.dataset.eqn));
+  for (const id of ids) {
+    const e = eqOf(id); if (!e) continue;
+    try { await eqLoad(e.code); const el = document.querySelector('[data-eqn="' + id + '"]'); if (el) el.innerHTML = eqNoticesHtml(id); } catch (er) { }
+  }
+}
+let EQT = null;
+function eqSearch(id, v) {
+  clearTimeout(EQT);
+  const box = document.querySelector('[data-eqr="' + id + '"]'); if (!box) return;
+  const s = v.trim().replace(/[,()*%\\:"]/g, ' ').trim();
+  if (s.length < 2) { box.innerHTML = ''; return; }
+  EQT = setTimeout(async () => {
+    try {
+      const f = encodeURIComponent('*' + s + '*');
+      const r = await api('equipment_list?select=code,title,is_equipment,notice_count,open_count&or=(code.ilike.' + f + ',title.ilike.' + f + ')&order=notice_count.desc&limit=12');
+      box.innerHTML = r.map(x => `<button data-a="eqpick" data-id="${esc(id)}" data-code="${esc(x.code)}" data-title="${esc(x.title || '')}"><b dir="ltr">${esc(x.code)}</b> — ${esc(x.title || '')} <small style="display:inline;">(${fa(x.notice_count)} اعلان${x.open_count ? '، ' + fa(x.open_count) + ' باز' : ''})</small></button>`).join('') || '<small>موردی یافت نشد.</small>';
+    } catch (e) { box.innerHTML = '<small>خطا در جستجو: ' + esc(e.message) + '</small>'; }
+  }, 300);
+}
+/* پیش از ثبت: اگر برای تجهیز، اعلان باز مشابه هست و پیوند نشده، تایید بگیر */
+async function eqCheckDup(ncs, qt) {
+  const lines = [];
+  for (const i of ncs) {
+    const e = eqOf(i); if (!e || LNK[i]) continue;
+    try {
+      const c = await eqLoad(e.code), txt = (N[i] || '') + ' ' + qt(baseId(i));
+      c.nt.filter(x => stOpen(x.status) && sim_(txt, x.description) >= .5).forEach(x => lines.push(`• ${e.code}: اعلان ${x.no} (باز) — ${(x.description || '').slice(0, 70)}`));
+      c.fd.filter(x => sim_(txt, x.question) >= .5).forEach(x => lines.push(`• ${e.code}: عدم‌انطباق باز — ${(x.question || '').slice(0, 70)}`));
+    } catch (er) { }
+  }
+  return lines.length ? confirm('برای این تجهیز مورد باز مشابهی قبلاً ثبت شده است:\n' + [...new Set(lines)].slice(0, 6).join('\n') + '\n\nبا این حال مورد جدید ثبت شود؟\n(برای جلوگیری از تکرار «انصراف» بزنید و از دکمه «پیوند بزن» استفاده کنید)') : true;
+}
+
 function ncFields(id, qtext, rd, n) {
   const sv = SV[id] || dsev(qtext);
   return `<div style="${n ? 'border-top:1px dashed var(--ln); margin-top:10px; padding-top:8px;' : ''}">
             ${n ? `<small>محل ${fa(n + 1)} <b data-a="rmloc" data-id="${id}" style="color:var(--nc); cursor:pointer;">✕ حذف</b></small>` : ''}
             ${rd ? `<input data-lc="${id}" list="locs" placeholder="محل عدم‌انطباق (الزامی)" value="${esc(LC[id])}">` : ''}
             <input data-note="${id}" placeholder="شرح مشخص عدم‌انطباق (الزامی)" value="${esc(N[id])}">
+            ${eqBlock(id)}
             <select data-sv="${id}">${[1, 2, 3, 4].map(v => `<option value="${v}" ${sv == v ? 'selected' : ''}>شدت: ${SEVN[v]}</option>`).join('')}</select>
             <small style="margin-top:6px;">مهلت اصلاح بر اساس شدت: ${fa(SLA[sv])} روز</small>
             <div class="ph">
@@ -391,7 +486,12 @@ function form() {
         <label style="font-size:12px; font-weight:700;">شیفت کاری:</label>
         <select id="sh">${SHIFTS.map(h => `<option ${D.shift == h ? 'selected' : ''}>${h}</option>`).join('')}</select>
       </div>
-      ${extras.map(ex => `
+      ${extras.map(ex => ex.key == 'eq_code' && EQ_OK ? `
+        <div style="grid-column:1/-1;">
+          <label style="font-size:12px; font-weight:700;">${ex.ph.replace('(الزامی)', '')}: (از فهرست اعلان‌ها انتخاب کنید)</label>
+          ${D.eq ? `<div class="chip on">🔧 <span dir="ltr">${esc(D.eq.code)}</span> — ${esc(D.eq.title || '')} <b data-a="eqclear" data-id="__insp">✕</b></div>` : ''}
+          <input data-eqs="__insp" placeholder="🔎 کد یا نام تجهیز..." autocomplete="off"><div class="eqr" data-eqr="__insp"></div>
+        </div>` : `
         <div>
           <label style="font-size:12px; font-weight:700;">${ex.ph.replace('(الزامی)', '')}:</label>
           <input data-ex="${ex.key}" placeholder="${ex.ph}" value="${esc(D.extra[ex.key] || '')}">
@@ -416,12 +516,16 @@ function form() {
     ${rd ? `<datalist id="locs">${LOCS.map(l => `<option value="${l}">`).join('')}</datalist>` : ''}
     <button class="p" data-a="send" style="margin-top:20px;">ثبت نهایی بازدید</button>
   `);
+  setTimeout(eqPost, 0);
 }
 
 async function send() {
   const m = cur, rd = m[0] == 'D', loc = rd ? ROUND_LOC : D.loc.trim(), extras = m[5] || [], Q = m[6], ids = Q.map(q => m[0] + '-' + q.id);
   if (!loc) return alert('لطفاً محل بازدید را مشخص کنید.');
-  for (const ex of extras) if (!(D.extra[ex.key] || '').trim()) return alert(`لطفاً فیلد «${ex.ph}» را تکمیل کنید.`);
+  for (const ex of extras) {
+    if (ex.key == 'eq_code' && EQ_OK) { if (!D.eq) return alert('لطفاً تجهیز را از فهرست انتخاب کنید.'); D.extra.eq_code = D.eq.code + ' ' + (D.eq.title || ''); continue; }
+    if (!(D.extra[ex.key] || '').trim()) return alert(`لطفاً فیلد «${ex.ph}» را تکمیل کنید.`);
+  }
 
   const qt = id => Q.find(q => m[0] + '-' + q.id == id).t, sv = id => SV[id] || dsev(qt(baseId(id))), pos = id => ids.indexOf(baseId(id)) + 1;
   const ncs = [];
@@ -430,6 +534,7 @@ async function send() {
   if (bad.length) return alert('ثبت توضیحات و عکس برای موارد عدم‌انطباق الزامی است.\nناقص: سوال ' + bad.map(pos).join('، '));
   if (rd) { const nloc = ncs.filter(i => !(LC[i] || '').trim()); if (nloc.length) return alert('محل هر عدم‌انطباق را بنویسید.\nسوال: ' + nloc.map(pos).join('، ')); }
 
+  if (EQ_OK && !(await eqCheckDup(ncs, qt))) return;
   const sb = $('[data-a=send]'); sb.disabled = true; sb.textContent = 'در حال ذخیره‌سازی داده‌ها...';
   const un = ids.filter(i => !A[i]).length;
   if (un && !confirm(un + ' سوال بدون پاسخ باقی مانده است. ادامه می‌دهید؟')) { sb.disabled = false; sb.textContent = 'ثبت نهایی بازدید'; return; }
@@ -447,16 +552,175 @@ async function send() {
       f.push({
         inspection_id: r.id, module: m[0], location: rd ? LC[i].trim() : loc, qid: baseId(i), question: qt(baseId(i)), note: extNote,
         severity: sv(i), category: cat(m[0], qt(baseId(i))), responsible: null, due_date: addDays(SLA[sv(i)]),
-        photos_before: await Promise.all((PH[i] || []).map(p => up(p.b)))
+        photos_before: await Promise.all((PH[i] || []).map(p => up(p.b))),
+        ...(EQ_OK && eqOf(i) ? { equipment_code: eqOf(i).code, equipment_title: eqOf(i).title || null } : {}),
+        ...(EQ_OK && LNK[i] ? { notice_code: LNK[i].no, notice_at: LNK[i].created_on ? LNK[i].created_on + 'T08:00:00+03:30' : new Date().toISOString(), notice_status: LNK[i].status } : {})
       });
     }
     if (f.length) await api('findings', { method: 'POST', body: JSON.stringify(f) });
-    localStorage.removeItem('draft'); Object.keys(PH).forEach(k => delete PH[k]); SV = {}; RS = {}; LC = {}; EX = {};
+    localStorage.removeItem('draft'); Object.keys(PH).forEach(k => delete PH[k]); SV = {}; RS = {}; LC = {}; EX = {}; EQP = {}; LNK = {}; D.eq = null;
     alert('بازدید با موفقیت ثبت شد.');
     home();
   } catch (e) {
     alert('خطا در ثبت: ' + e.message); sb.disabled = false; sb.textContent = 'ثبت نهایی بازدید';
   }
+}
+
+/* ===== کنترل و موجودی داروها (فرم L14030/01A): موجودی اولیه، دریافت، مصرف، هشدار کمبود/انقضا ===== */
+const MEDPH = 'no-photo-placeholder.jpg', MEDPHA = 'no-photo-after-placeholder.jpg', MEDLOC = 'کمد دارو و کمک‌های اولیه', SOON = 60;
+const MED = { items: [], moves: [], dr: {}, init: false };
+const dg = s => String(s ?? '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g, '.').trim();
+const mnum = v => { const s = dg(v); if (s === '') return null; const n = Number(s); return isFinite(n) && n >= 0 ? n : NaN; };
+function j2g(jy, jm, jd) {
+  const jdm = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29], gdm = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  jy -= 979; jm -= 1; jd -= 1; let n = 365 * jy + Math.floor(jy / 33) * 8 + Math.floor((jy % 33 + 3) / 4);
+  for (let i = 0; i < jm; i++) n += jdm[i]; n += jd; let g = n + 79, gy = 1600 + 400 * Math.floor(g / 146097); g %= 146097; let leap = true;
+  if (g >= 36525) { g--; gy += 100 * Math.floor(g / 36524); g %= 36524; if (g >= 365) g++; else leap = false; }
+  gy += 4 * Math.floor(g / 1461); g %= 1461; if (g >= 366) { leap = false; g--; gy += Math.floor(g / 365); g %= 365; }
+  let i = 0; for (; g >= gdm[i] + (i == 1 && leap ? 1 : 0); i++) g -= gdm[i] + (i == 1 && leap ? 1 : 0);
+  return [gy, i + 1, g + 1];
+}
+/* ورودی تاریخ انقضا: شمسی (۱۴۰۶/۰۳ یا ۱۴۰۶/۰۳/۱۵) یا میلادی؛ بدون روز = آخر همان ماه. خروجی ISO میلادی یا null */
+function medDate(s) {
+  s = dg(s); let m;
+  if ((m = /^(1[34]\d\d)[\/\-.](\d{1,2})(?:[\/\-.](\d{1,2}))?$/.exec(s))) {
+    const y = +m[1], mo = +m[2], d = m[3] ? +m[3] : (mo <= 6 ? 31 : mo <= 11 ? 30 : 29);
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return null; const g = j2g(y, mo, d); return g[0] + '-' + String(g[1]).padStart(2, '0') + '-' + String(g[2]).padStart(2, '0');
+  }
+  if ((m = /^(20\d\d)-(\d{2})(?:-(\d{2}))?$/.exec(s))) return m[1] + '-' + m[2] + '-' + (m[3] || '28');
+  return null;
+}
+const fexp = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fa-IR', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—';
+const qf = n => fa(Math.round(n * 100) / 100);
+
+async function medLoad() {
+  MED.items = await api('med_items?select=*&active=eq.true&order=sort.asc,id.asc&limit=500');
+  const out = []; for (let off = 0; ; off += 1000) { const r = await api('med_moves?select=*&order=id.asc&limit=1000&offset=' + off); out.push(...r); if (r.length < 1000) break; }
+  MED.moves = out; MED.init = out.length > 0;
+}
+function medConsume(o, q) {
+  for (const b of o.batches.filter(b => b.q > 0).sort((a, b) => (a.exp || '9999') < (b.exp || '9999') ? -1 : 1)) { if (q <= 0) break; const t = Math.min(b.q, q); b.q -= t; q -= t; }
+}
+function medCalc() {
+  const by = {}, td = new Date().toISOString().slice(0, 10), soon = new Date(Date.now() + SOON * 864e5).toISOString().slice(0, 10);
+  MED.items.forEach(i => by[i.id] = { i, stock: 0, batches: [], has: false });
+  MED.moves.forEach(m => {
+    const o = by[m.item_id]; if (!o) return; o.has = true; const q = +m.qty;
+    if (m.kind == 'init' || m.kind == 'receive') { o.stock += q; o.batches.push({ q, exp: m.expiry || null }); }
+    else if (m.kind == 'adjust') { o.stock += q; if (q > 0) o.batches.push({ q, exp: null }); else medConsume(o, -q); }
+    else { o.stock -= q; medConsume(o, q); }
+  });
+  Object.values(by).forEach(o => {
+    const live = o.batches.filter(b => b.q > 0 && b.exp);
+    o.near = live.map(b => b.exp).sort()[0] || null;
+    o.expQ = live.filter(b => b.exp < td).reduce((s, b) => s + b.q, 0);
+    o.soonQ = live.filter(b => b.exp >= td && b.exp <= soon).reduce((s, b) => s + b.q, 0);
+    o.zero = o.has && o.stock <= 0; o.low = o.has && (+o.i.reorder > 0 ? o.stock <= +o.i.reorder : o.stock <= 0);
+    o.bad = o.low || o.expQ > 0;
+  });
+  return by;
+}
+const medBadges = o => [o.zero ? '<span class="bg r">تمام شده</span>' : o.low ? '<span class="bg r">کمتر از نقطه سفارش</span>' : '', o.expQ > 0 ? `<span class="bg r">منقضی: ${qf(o.expQ)}</span>` : '', o.soonQ > 0 ? `<span class="bg" style="background:#f59e0b;color:#0f172a;">انقضا تا ${fa(SOON)} روز: ${qf(o.soonQ)}</span>` : '', !o.has ? '<span class="bg">موجودی اولیه ثبت نشده</span>' : !o.bad && !o.soonQ ? '<span class="bg g">مناسب</span>' : ''].join(' ');
+
+async function medHome() {
+  view('<p style="text-align:center;padding:40px;">در حال بارگذاری موجودی داروها...</p>');
+  try { await medLoad(); } catch (e) { return view(`<div style="margin-bottom:12px;"><button class="l" data-a="home" style="margin:0;">‹ بازگشت</button></div><div class="q"><b>جدول‌های داروها آماده نیست</b><small>فایل med_schema.sql را یک‌بار در SQL Editor سوپابیس اجرا کنید.<br>${esc(e.message).slice(0, 200)}</small></div>`); }
+  const by = medCalc(), L = Object.values(by), bad = L.filter(o => o.bad), soon = L.filter(o => !o.bad && o.soonQ > 0);
+  if (MED.init) medSync(null, by, new Set(), new Set()).catch(() => { });
+  view(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button><a href="index.html" class="back">← داشبورد اصلی</a></div>
+    <h2>💊 کنترل و موجودی داروها</h2><small>فرم L14030/01A — موجودی با ثبت دریافت و شمارش به‌روز می‌شود</small>
+    <div class="top-grid" style="margin-top:10px;">
+      <button class="p" data-a="medform">${MED.init ? '📝 ثبت کنترل ماهانه / دریافت جدید' : '📦 ثبت موجودی اولیه'}</button>
+      <button class="l" data-a="medprint" style="margin:0;">🖨️ چاپ فرم و موجودی</button></div>
+    ${!MED.init ? '<div class="q" style="border-color:var(--warn);"><b>هنوز موجودی اولیه ثبت نشده</b><small>اول تعداد فعلی هر قلم و تاریخ انقضای آن را وارد کنید؛ از آن پس هشدارها خودکار کار می‌کنند.</small></div>' : ''}
+    ${bad.length ? `<div class="q" style="border-color:var(--bad,#ef4444);"><b>⚠ ${fa(bad.length)} هشدار فعال</b><small>${bad.map(o => esc(o.i.name) + (o.low ? ' (موجودی ' + qf(o.stock) + ' از ' + qf(o.i.reorder) + ')' : '') + (o.expQ > 0 ? ' (منقضی)' : '')).join('، ')}</small></div>` : MED.init ? '<div class="q"><b class="ok">✓ هیچ هشدار کمبود یا انقضایی نیست</b></div>' : ''}
+    ${soon.length ? `<div class="q"><b>⏳ نزدیک انقضا (${fa(SOON)} روز)</b><small>${soon.map(o => esc(o.i.name) + ' — ' + fexp(o.near)).join('، ')}</small></div>` : ''}
+    ${L.map(o => `<div class="q"><div style="display:flex;justify-content:space-between;gap:8px;"><b>${esc(o.i.name)}</b><b dir="ltr">${qf(o.stock)}</b></div>
+      <small>نقطه سفارش: ${qf(o.i.reorder)} · نزدیک‌ترین انقضا: ${fexp(o.near)}</small><div style="margin-top:4px;">${medBadges(o)}</div></div>`).join('')}`);
+}
+function medForm() {
+  const by = medCalc(), init = !MED.init; MED.dr = MED.dr || {};
+  view(`
+    <div style="margin-bottom:12px;"><button class="l" data-a="med" style="margin:0;">‹ بازگشت</button></div>
+    <h2>${init ? '📦 ثبت موجودی اولیه' : '📝 کنترل ماهانه داروها'}</h2>
+    <small>${init ? 'تعداد فعلی و تاریخ انقضای نزدیک‌ترین قلم را وارد کنید (خالی = ثبت نشود).' : 'فقط اقلامی را پر کنید که تغییر کرده‌اند یا شمارش شده‌اند. مصرف = موجودی قبلی + دریافتی − دورریز − شمارش فعلی (خودکار).'} تاریخ انقضا: مثل ۱۴۰۶/۰۳ یا ۱۴۰۶/۰۳/۱۵.</small>
+    ${MED.items.map(i => { const o = by[i.id], d = MED.dr[i.id] || {}; return `<div class="q"><div style="display:flex;justify-content:space-between;gap:8px;"><b>${esc(i.name)}</b>${init ? '' : `<small>موجودی سیستم: <b dir="ltr">${qf(o.stock)}</b> · نقطه سفارش ${qf(i.reorder)}</small>`}</div>
+      <div class="fgrid2" style="margin-top:6px;">
+        ${init ? `<input data-mf="cn" data-mi="${i.id}" inputmode="decimal" placeholder="تعداد فعلی" value="${esc(d.cn || '')}"><input data-mf="rx" data-mi="${i.id}" placeholder="انقضا (۱۴۰۶/۰۳)" value="${esc(d.rx || '')}">` : `
+        <input data-mf="rc" data-mi="${i.id}" inputmode="decimal" placeholder="دریافت جدید (تعداد)" value="${esc(d.rc || '')}"><input data-mf="rx" data-mi="${i.id}" placeholder="انقضای دریافتی (۱۴۰۶/۰۳)" value="${esc(d.rx || '')}">
+        <input data-mf="ds" data-mi="${i.id}" inputmode="decimal" placeholder="دورریز (منقضی/خراب)" value="${esc(d.ds || '')}"><input data-mf="cn" data-mi="${i.id}" inputmode="decimal" placeholder="شمارش فعلی (باقیمانده)" value="${esc(d.cn || '')}">
+        <select data-mf="ap" data-mi="${i.id}" style="grid-column:1/-1;"><option ${!d.ap || d.ap == 'سالم' ? 'selected' : ''}>سالم</option><option ${d.ap == 'آسیب‌دیده/نشتی' ? 'selected' : ''}>آسیب‌دیده/نشتی</option><option ${d.ap == 'بسته‌بندی نامناسب' ? 'selected' : ''}>بسته‌بندی نامناسب</option></select>`}
+      </div>${init ? '' : `<small id="mu-${i.id}"></small>`}</div>`; }).join('')}
+    <button class="p" data-a="medsave" style="margin-top:16px;">ثبت نهایی</button>`);
+  if (!init) MED.items.forEach(i => medPrev(i.id));
+}
+function medPrev(id) {
+  const el = document.getElementById('mu-' + id); if (!el) return; const d = MED.dr[id] || {}, o = medCalc()[id];
+  const rc = mnum(d.rc) || 0, ds = mnum(d.ds) || 0, cn = mnum(d.cn);
+  if (cn == null || isNaN(cn)) { el.textContent = rc || ds ? 'موجودی پس از ثبت: ' + fa(Math.round((o.stock + rc - ds) * 100) / 100) : ''; return; }
+  const use = o.stock + rc - ds - cn; el.textContent = use >= 0 ? `مصرف محاسبه‌شده: ${fa(Math.round(use * 100) / 100)}` : `⚠ شمارش ${fa(Math.round(-use * 100) / 100)} بیشتر از انتظار است (به‌عنوان مازاد ثبت می‌شود)`;
+}
+document.addEventListener('input', e => {
+  const t = e.target; if (!t.dataset || !t.dataset.mf) return;
+  (MED.dr[t.dataset.mi] = MED.dr[t.dataset.mi] || {})[t.dataset.mf] = t.value; medPrev(t.dataset.mi);
+});
+document.addEventListener('change', e => { const t = e.target; if (t.dataset && t.dataset.mf == 'ap') { (MED.dr[t.dataset.mi] = MED.dr[t.dataset.mi] || {}).ap = t.value; } });
+
+async function medSave() {
+  const init = !MED.init, by = medCalc(), moves = [], touched = new Set(), appBad = new Set(), appOk = new Set(); let err = '';
+  MED.items.forEach(i => {
+    const d = MED.dr[i.id] || {}, o = by[i.id], rc = mnum(d.rc), ds = mnum(d.ds), cn = mnum(d.cn), rxs = String(d.rx || '').trim(), ap = d.ap && d.ap != 'سالم' ? d.ap : null;
+    if ([rc, ds, cn].some(v => Number.isNaN(v))) return err = err || `«${i.name}»: عدد نامعتبر است.`;
+    const rx = rxs ? medDate(rxs) : null;
+    if (rxs && !rx) return err = err || `«${i.name}»: تاریخ انقضا نامعتبر است (مثل ۱۴۰۶/۰۳).`;
+    const base = { item_id: i.id, by_email: mail };
+    if (init) { if (cn == null) return; if (cn > 0 && !rx) return err = err || `«${i.name}»: تاریخ انقضا را وارد کنید.`; moves.push({ ...base, kind: 'init', qty: cn, expiry: rx }); touched.add(i.id); return; }
+    if (rc == null && ds == null && cn == null && !ap) return;
+    touched.add(i.id); (ap ? appBad : appOk).add(i.id);
+    if (rc > 0) { if (!rx) return err = err || `«${i.name}»: برای دریافت جدید، تاریخ انقضا لازم است.`; moves.push({ ...base, kind: 'receive', qty: rc, expiry: rx }); }
+    if (ds > 0) moves.push({ ...base, kind: 'discard', qty: ds, note: 'دورریز (منقضی/خراب)' });
+    if (cn != null) { const use = o.stock + (rc || 0) - (ds || 0) - cn; if (use > 0) moves.push({ ...base, kind: 'use', qty: use, appearance: ap }); else if (use < 0) moves.push({ ...base, kind: 'adjust', qty: -use, note: 'مازاد شمارش نسبت به موجودی سیستم', appearance: ap }); }
+    if (ap && !moves.some(m => m.item_id == i.id && m.appearance)) moves.push({ ...base, kind: 'adjust', qty: 0, appearance: ap, note: 'ثبت وضعیت ظاهری' });
+  });
+  if (err) return alert(err);
+  if (!touched.size) return alert('هیچ موردی وارد نشده است.');
+  const sb = $('[data-a=medsave]'); sb.disabled = true; sb.textContent = 'در حال ذخیره...';
+  try {
+    if (moves.length) await api('med_moves', { method: 'POST', body: JSON.stringify(moves) });
+    await medLoad(); const after = medCalc();
+    const nBad = [...touched].filter(id => after[id].bad || appBad.has(id)).length;
+    const [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ module: 'MED', location: MEDLOC, freq: 'ماهانه', total: touched.size, ok: touched.size - nBad, nc: nBad, na: 0, inspector: mail, shift: SHIFTS[0] }) });
+    await medSync(r.id, after, appBad, appOk);
+    MED.dr = {}; alert('کنترل داروها ثبت شد.' + (nBad ? `\n${nBad} مورد هشدار (کمبود/انقضا/وضعیت ظاهری) ثبت یا به‌روز شد.` : '')); medHome();
+  } catch (e) { alert('خطا در ثبت: ' + e.message); sb.disabled = false; sb.textContent = 'ثبت نهایی'; }
+}
+/* هشدار → عدم‌انطباق خودکار (بدون تکرار)؛ پس از شارژ/اصلاح خودکار بسته می‌شود */
+async function medSync(inspId, by, appBad, appOk) {
+  const open = await api('findings?select=id,qid&module=eq.MED&status=eq.open&limit=1000'), has = new Set(open.map(x => x.qid)), want = {};
+  Object.values(by).forEach(o => {
+    const n = o.i.name, id = o.i.id;
+    if (o.low) want[`MED-${id}-low`] = { q: `موجودی «${n}» ${o.zero ? 'تمام شده است' : 'کمتر از نقطه سفارش است'}`, note: `موجودی ${qf(o.stock)} — نقطه سفارش ${qf(o.i.reorder)}؛ تأمین و شارژ شود.`, sev: o.zero ? 3 : 2 };
+    if (o.expQ > 0) want[`MED-${id}-exp`] = { q: `«${n}» دارای قلم منقضی‌شده است`, note: `${qf(o.expQ)} عدد منقضی (نزدیک‌ترین انقضا ${fexp(o.near)})؛ دورریز و جایگزین شود.`, sev: 3 };
+    if (appBad.has(id)) want[`MED-${id}-app`] = { q: `وضعیت ظاهری «${n}» نامناسب است`, note: (MED.dr[id] || {}).ap || '', sev: 2 };
+  });
+  const add = Object.entries(want).filter(([k]) => !has.has(k)).map(([k, w]) => ({ inspection_id: inspId, module: 'MED', location: MEDLOC, qid: k, question: w.q, note: w.note, severity: w.sev, category: 'بهداشت و محیط‌زیست', responsible: null, due_date: addDays(SLA[w.sev]), photos_before: [MEDPH] }));
+  if (add.length && !inspId) { /* هشدار ناشی از مصرف بهداری: بازرسی سیستمی (به نام هیچ کارشناسی حساب نمی‌شود) */
+    const [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ module: 'MED', location: MEDLOC, freq: 'ماهانه', total: 0, ok: 0, nc: add.length, na: 0, inspector: 'سیستم موجودی دارو', shift: SHIFTS[0] }) });
+    add.forEach(x => x.inspection_id = r.id);
+  }
+  if (add.length) await api('findings', { method: 'POST', body: JSON.stringify(add) });
+  for (const x of open) {
+    const m = /^MED-(\d+)-(low|exp|app)$/.exec(x.qid || ''); if (!m) continue;
+    const gone = !want[x.qid] && (m[2] != 'app' || appOk.has(+m[1]));
+    if (gone) await api('findings?id=eq.' + x.id, { method: 'PATCH', body: JSON.stringify({ status: 'closed', closed_at: new Date().toISOString(), photos_after: [MEDPHA] }) });
+  }
+}
+function medPrint() {
+  const by = medCalc(), w = window.open('', '_blank'); if (!w) return alert('پنجره‌ی چاپ مسدود شد؛ Pop-up را مجاز کنید.');
+  const rows = MED.items.map((i, k) => { const o = by[i.id]; return `<tr><td>${fa(k + 1)}</td><td>${esc(i.name)}</td><td>${qf(o.stock)}</td><td>${fexp(o.near)}</td><td>${qf(i.reorder)}</td><td>${o.zero ? 'تمام شده' : o.low ? 'کمبود' : ''}${o.expQ > 0 ? ' منقضی' : ''}</td><td></td></tr>`; }).join('');
+  w.document.write(`<!doctype html><html dir="rtl" lang="fa"><head><meta charset="utf-8"><title>فرم کنترل داروها L14030/01A</title><style>@page{size:A4;margin:10mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:11pt}table{width:100%;border-collapse:collapse}td,th{border:1px solid #000;padding:3px 6px;text-align:center}h2{text-align:center}</style></head><body><h2>فرم کنترل داروها و تجهیزات کمک‌های اولیه (L14030/01A)</h2><p>تاریخ: ${fd(Date.now())} &nbsp; تکمیل‌کننده: کارشناس HSE &nbsp; تأییدکننده: رئیس HSE</p><table><tr><th>ردیف</th><th>نام دارو</th><th>موجودی</th><th>نزدیک‌ترین انقضا</th><th>نقطه سفارش</th><th>وضعیت</th><th>توضیح</th></tr>${rows}</table><p>در صورتی که دارو یا وسیله‌ی مورد استفاده منقضی شده است، داخل سطل زباله ریخته شود.</p><script>onload=()=>print()<\/script></body></html>`); w.document.close();
 }
 
 const PH = {}; let FT; const fi = $('#fi');
@@ -1161,16 +1425,29 @@ document.onclick = async e => {
     else if (a == 'rep') renderManagementReport();
   else if (a == 'gen-slides') genSlides();
   else if (a == 'gen-cancel') GEN.cancel = true;
+  else if (a == 'med') medHome();
+  else if (a == 'medform') medForm();
+  else if (a == 'medsave') medSave();
+  else if (a == 'medprint') medPrint();
   else if (a == 'open') {
+    if (t.dataset.k == 'MED') return medHome();
     cur = M.find(m => m[0] == t.dataset.k);
     const d = JSON.parse(localStorage.draft || '{}');
-    if (d.k == cur[0]) { A = d.A || {}; N = d.N || {}; SV = d.SV || {}; RS = d.RS || {}; LC = d.LC || {}; EX = d.EX || {}; D.loc = d.loc || ''; D.extra = d.extra || {}; D.shift = d.shift || ''; }
-    else { A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; D.loc = ''; D.extra = {}; D.shift = ''; D.oth = false; }
-    form();
+    if (d.k == cur[0]) { A = d.A || {}; N = d.N || {}; SV = d.SV || {}; RS = d.RS || {}; LC = d.LC || {}; EX = d.EX || {}; D.loc = d.loc || ''; D.extra = d.extra || {}; D.shift = d.shift || ''; EQP = d.EQP || {}; LNK = d.LNK || {}; D.eq = d.eq || null; }
+    else { A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; D.loc = ''; D.extra = {}; D.shift = ''; D.oth = false; EQP = {}; LNK = {}; D.eq = null; }
+    await eqInit(); form();
   }
   else if (a == 'ans') { A[t.dataset.id] = t.dataset.v; save(); form(); scrollTo(0, y); }
   else if (a == 'addloc') { const b = t.dataset.id; EX[b] = EX[b] || []; const nx = Math.max(0, ...EX[b].map(k => +k.split('#')[1])) + 1; EX[b].push(b + '#' + nx); save(); form(); scrollTo(0, y); }
   else if (a == 'rmloc') { const k = t.dataset.id, b = baseId(k); EX[b] = (EX[b] || []).filter(x => x != k); delete N[k]; delete SV[k]; delete RS[k]; delete LC[k]; delete PH[k]; save(); form(); scrollTo(0, y); }
+  else if (a == 'eqpick') {
+    const e = { code: t.dataset.code, title: t.dataset.title };
+    if (t.dataset.id == '__insp') D.eq = e; else { EQP[t.dataset.id] = e; delete LNK[t.dataset.id]; }
+    save(); form(); scrollTo(0, y);
+  }
+  else if (a == 'eqclear') { if (t.dataset.id == '__insp') D.eq = null; else { delete EQP[t.dataset.id]; delete LNK[t.dataset.id]; } save(); form(); scrollTo(0, y); }
+  else if (a == 'eqlink') { LNK[t.dataset.id] = { no: t.dataset.no, created_on: t.dataset.d, status: t.dataset.s }; save(); const el = document.querySelector('[data-eqn="' + t.dataset.id + '"]'); if (el) el.innerHTML = eqNoticesHtml(t.dataset.id); }
+  else if (a == 'equnlink') { delete LNK[t.dataset.id]; save(); const el = document.querySelector('[data-eqn="' + t.dataset.id + '"]'); if (el) el.innerHTML = eqNoticesHtml(t.dataset.id); }
   else if (a == 'addph') { FT = { m: 'addph', id: t.dataset.id }; fi.click(); }
   else if (a == 'rmph') { PH[t.dataset.id].splice(+t.dataset.j, 1); form(); scrollTo(0, y); }
   else if (a == 'send') send();
@@ -1276,6 +1553,7 @@ document.onclick = async e => {
 document.oninput = async e => {
   const t = e.target, y = scrollY;
   if (t.dataset.rf) { const k = t.dataset.rf; R[k] = ['days', 'per', 'jy', 'jm'].includes(k) ? +t.value : t.value; renderManagementReport(); return; }
+  if (t.dataset.eqs) { eqSearch(t.dataset.eqs, t.value); return; }
   if (t.dataset.sf == 'thr') { localStorage.thr = Math.max(50, +t.value || 800); refreshUsage(); return; }
   if (t.dataset.ff) {
     const k = t.dataset.ff; FQ[k] = ['jy', 'jm', 'size'].includes(k) ? +t.value : t.value; FQ.page = 0;
