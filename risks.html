@@ -217,7 +217,7 @@ async function save(approve){
   try{if(editId)await req('risks?id=eq.'+editId,'PATCH',b,'return=minimal');else{b.status=approve?'approved':'draft';b.created_by=HSEAuth.email;await req('risks','POST',b,'return=minimal')}
     $('modal').classList.remove('on');load()}catch(e){alert('خطا در ذخیره: '+e.message)}}
 $('mSave').onclick=()=>save(false);$('mApprove').onclick=()=>save(true);
-load();
+load().then(()=>{if(location.hash==='#new')openM(null)});
 </script>
 </body>
 </html>
