@@ -95,7 +95,7 @@ $('bPrint').onclick=()=>{
    <div class="h"><b>بخش تکمیل توسط واحد HSE</b><div class="r"><span>شماره ثبت: ......</span><span>تاریخ دریافت: ......</span><span>امتیاز: ......</span></div><div>☐ در حال بررسی &nbsp; ☐ اقدام انجام شد &nbsp; ☐ رد شده</div><div>اقدام انجام‌شده / دلیل رد: ...............................</div><div>امضای HSE: ........</div></div></div>`;
   const w=window.open('','_blank');if(!w){alert('اجازه‌ی باز شدن پنجره را بدهید.');return}
   w.document.write(`<html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>چاپ کارت‌ها</title><style>body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;font-size:10.5px;line-height:2}.p{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;width:210mm;height:297mm;page-break-after:always}.c{border:1px dashed #555;padding:5mm;overflow:hidden}.t{font-weight:800;font-size:12.5px;color:#0b3d6b;border-bottom:2px solid #0b3d6b;margin-bottom:2px}.m{font-size:9px;color:#444}.r{display:flex;justify-content:space-between;gap:6px}.h{border:1px solid #0b3d6b;padding:2mm;margin-top:3px}@page{size:A4;margin:0}</style></head><body><div class="p">${one.repeat(4)}</div><div class="p">${one.repeat(4)}</div><script>setTimeout(()=>print(),400)<\/script></body></html>`);w.document.close()};
-load();
+load().then(()=>{if(location.hash==='#new')$('bNew').click()});
 </script>
 </body>
 </html>
