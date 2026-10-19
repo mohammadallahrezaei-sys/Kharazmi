@@ -34,7 +34,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 <div class="w">
   <div class="top">
     <div><h1>گزارش دوره‌ای HSE</h1><div class="mu">گسترش فناوری خوارزمی · <span id="mname"></span></div></div>
-    <div class="np"><select id="msel"></select> <button onclick="print()">چاپ / PDF</button> <a class="b" href="expert_eval.html">👤 ارزیابی کارشناسان</a> <a class="b" href="reward_eval.html">🏅 شایستگی تشویق</a> <a class="b" href="checklists.html#rep">📑 اسلایدهای قبل/بعد</a> <a class="b" href="index.html">← بازگشت</a></div>
+    <div class="np"><select id="msel"></select> <button onclick="print()">چاپ / PDF</button> <a class="b" href="checklists.html#rep">📑 اسلایدهای قبل/بعد</a> <a class="b" href="index.html">← بازگشت</a></div>
   </div>
   <div id="out" class="card">در حال دریافت اطلاعات...</div>
 </div>
@@ -292,23 +292,33 @@ function render(selVal){
   const tr=c.trOk?`<div class="card"><h2>آموزش</h2><div class="g">${k(fa(c.trN),'جلسه آموزشی',0,p.trOk?fa(p.trN):null)}${k(fa(c.trAtt),'حضور ثبت‌شده',0,p.trOk?fa(p.trAtt):null)}${k(fa(c.trHrs),'نفر-ساعت آموزش',0,p.trOk?fa(p.trHrs):null)}${k(P(c.covP),'پوشش آموزش پرسنل (۱۲ ماه)',col(c.covP),p.trOk?P(p.covP):null)}</div>
    <table style="margin-top:10px">${Object.entries({onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران'}).map(([a,b])=>`<tr><th>${b}</th><td>${fa((c.trType||{})[a]||0)} جلسه</td></tr>`).join('')}</table>
    ${c.inc?`<div class="mu" style="margin-top:6px">${fa(c.inc)} حادثه در دوره، ${fa(c.trPost)} جلسه آموزش پس از حادثه${c.trPost<c.inc?' — برای همه حوادث آموزش ثبت نشده':''}</div>`:''}</div>`:'<div class="card"><h2>آموزش</h2><div class="mu">ثبت نشده (ماژول آموزش راه‌اندازی نشده است)</div></div>';
+  /* ---- کارت «نیازمند توجه»: فقط مواردی که اقدام می‌خواهند ---- */
+  const AT=[];
+  if(c.sev.severe+c.sev.fatal)AT.push(`<b class="bad">${fa(c.sev.severe+c.sev.fatal)}</b> حادثه شدید یا فوتی در این ${pw}`);
+  if(c.fOver)AT.push(`<b class="bad">${fa(c.fOver)}</b> عدم‌انطباق معوق در پایان ${pw}`);
+  if(c.capaOver)AT.push(`<b class="bad">${fa(c.capaOver)}</b> اقدام اصلاحی حوادث از مهلت گذشته`);
+  if(c.fuOver)AT.push(`<b class="bad">${fa(c.fuOver)}</b> پیگیری طب کار معوق`);
+  if(hasPrev&&c.inc>p.inc)AT.push(`افزایش حوادث نسبت به ${pw} قبل (${fa(p.inc)} ← ${fa(c.inc)})`);
+  if(c.trOk&&c.inc&&c.trPost<c.inc)AT.push(`برای ${fa(c.inc-c.trPost)} حادثه آموزش پس از حادثه ثبت نشده است`);
+  const attnCard=`<div class="card" style="border-color:${AT.length?'var(--wa)':'var(--bd)'}"><h2>نیازمند توجه</h2>${AT.length?`<ul>${AT.map(a=>`<li>${a}</li>`).join('')}</ul>`:`<div class="ok">مورد معوق یا هشداری برای این ${pw} ثبت نشده است.</div>`}</div>`;
   const bad=['inspections','findings','clinic_incidents','clinic_followups','ekhtars'].filter((t,i)=>[D.ins,D.fin,D.inc,D.fu,D.ek][i]==null);
   document.getElementById('out').outerHTML=`<div id="out">
-  ${cultureCard}${evalCard}
+  ${attnCard}
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
-    ${trendCard}
-  <div class="card"><h2>عملکرد واحد HSE در این ${pw}</h2><div class="g">
-   ${k(fa(c.rounds),'گشت بازرسی',0,fa(p.rounds))}${k(fa(c.checks),'چک‌لیست تکمیل‌شده',0,fa(p.checks))}${k(fa(c.fNew),'عدم‌انطباق ثبت‌شده',0,fa(p.fNew))}${k(fa(c.fClosed),'عدم‌انطباق بسته‌شده','ok',fa(p.fClosed))}${k(fa(c.notice),'اعلان به مسئولین',0,fa(p.notice))}
-   ${k(fa(c.inc),'حادثه بررسی‌شده',0,fa(p.inc))}${k(fa(c.fuNew),'پیگیری طب کار ایجاد‌شده',0,fa(p.fuNew))}${k(fa(c.fuDone),'پیگیری انجام‌شده','ok',fa(p.fuDone))}${k(fa(c.eN),'اخطار/تشویق ثبت‌شده',0,fa(p.eN))}</div></div>
   <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="g">
    ${k(P(c.comp),'نرخ انطباق چک‌لیست‌ها',col(c.comp),comparable?P(p.comp):null)}${k(fa(c.fOpen),'عدم‌انطباق باز (پایان دوره)',c.fOpen?'wa':'ok',fa(p.fOpen))}${k(fa(c.fOver),'عدم‌انطباق معوق (پایان دوره)',c.fOver?'bad':'ok',fa(p.fOver))}
    ${k(fa(c.inc),'حوادث دوره',c.inc?'wa':'ok',fa(p.inc))}${k(fa(c.lost),'روز کاری از دست‌رفته',c.lost?'bad':'ok',fa(p.lost))}${k(fa(c.sev.severe+c.sev.fatal),'حادثه شدید/فوتی',c.sev.severe+c.sev.fatal?'bad':'ok',fa(p.sev.severe+p.sev.fatal))}
    ${k(fa(c.ss),'گزارش به تأمین اجتماعی',0,fa(p.ss))}${k(fa(c.capaOpen),'اقدام اصلاحی باز حوادث (تا امروز)',c.capaOpen?'wa':'ok')}${k(fa(c.capaOver),'اقدام اصلاحی معوق (تا امروز)',c.capaOver?'bad':'ok')}${k(fa(c.fuOpen),'پیگیری باز طب کار (پایان دوره)',c.fuOpen?'wa':'ok',fa(p.fuOpen))}${k(fa(c.fuOver),'پیگیری معوق طب کار (پایان دوره)',c.fuOver?'bad':'ok',fa(p.fuOver))}</div>
    ${warn.map(w=>`<div class="wa" style="margin-top:6px">⚠ ${w}</div>`).join('')}<table style="margin-top:10px"><tr><th>شدت حوادث</th><td>جزئی ${fa(c.sev.minor)}</td><td>متوسط ${fa(c.sev.moderate)}</td><td>شدید ${fa(c.sev.severe)}</td><td>فوتی ${fa(c.sev.fatal)}</td></tr></table></div>
+  ${trendCard}
+  <div class="card"><h2>عملکرد واحد HSE در این ${pw}</h2><div class="g">
+   ${k(fa(c.rounds),'گشت بازرسی',0,fa(p.rounds))}${k(fa(c.checks),'چک‌لیست تکمیل‌شده',0,fa(p.checks))}${k(fa(c.fNew),'عدم‌انطباق ثبت‌شده',0,fa(p.fNew))}${k(fa(c.fClosed),'عدم‌انطباق بسته‌شده','ok',fa(p.fClosed))}${k(fa(c.notice),'اعلان به مسئولین',0,fa(p.notice))}
+   ${k(fa(c.inc),'حادثه بررسی‌شده',0,fa(p.inc))}${k(fa(c.fuNew),'پیگیری طب کار ایجاد‌شده',0,fa(p.fuNew))}${k(fa(c.fuDone),'پیگیری انجام‌شده','ok',fa(p.fuDone))}${k(fa(c.eN),'اخطار/تشویق ثبت‌شده',0,fa(p.eN))}</div></div>
   <div class="card"><h2>فرهنگ ایمنی و رفتار</h2><div class="g">
    ${k(fa(c.rw),'تشویق','ok',fa(p.rw))}${k(fa(c.wr-c.wk),'تذکر شفاهی','wa',fa(p.wr-p.wk))}${k(fa(c.wk),'اخطار کتبی',c.wk?'bad':'ok',fa(p.wk))}${k(fa(c.repeat),'نفر تکرارشونده',c.repeat?'bad':'ok',fa(p.repeat))}</div>
    <div class="mu" style="margin-top:6px">همه‌ی سوابق ماژول اخطارها شمرده می‌شود (ستون جدا برای موارد HSE وجود ندارد).</div></div>
   ${tr}
+  ${evalCard}${cultureCard}
   <div class="mu">تعریف‌ها: ارزیابی واحدها بر پایه‌ی فرمول‌های فایل «ارزیابی عملکرد» و نردبان فرهنگ بر پایه‌ی پرسشنامه‌ی ۱۸ محوری است. گشت بازرسی = یک بازرس در یک روز. موارد «باز/معوق (پایان دوره)» وضعیت آخرین روز همان دوره است (برای دوره جاری: امروز). اقدام اصلاحی حوادث تاریخ بسته‌شدن ندارد و فقط وضعیت تا امروز دیده می‌شود. روز از دست‌رفته از متن توضیح حادثه استخراج می‌شود. برای دوره‌های فصلی/سالانه، ارزیابی واحدها و فرهنگ آخرین ماه دوره را نشان می‌دهد.${bad.length?'⚠ جدول‌های قابل‌دریافت‌نبود: '+bad.join('، '):''}</div>
   </div>`;
 }
