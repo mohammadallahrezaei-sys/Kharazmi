@@ -40,16 +40,16 @@ const {esc,fa,jk,req,getAll,monthKeys,monthLabel,jdInit,jdGet,jdSet,jdHTML,unitM
 const $=id=>document.getElementById(id);
 const TY={hazard:'خطر ایمنی',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد'},ST={pending:'ثبت‌شده',in_review:'در حال بررسی',done:'اقدام انجام شد',rejected:'رد شده'};
 const STC={pending:'',in_review:'wa',done:'ok',rejected:'bad'};
-let cards=[],units=[],emps=[],match=()=>null,who=null;
+let RK=[],cards=[],units=[],emps=[],match=()=>null,who=null;
 const fday=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
 const nm=e=>`${e.first_name||''} ${e.last_name||''}`.trim();
 $('fM').innerHTML=monthKeys(12).map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join('');
 $('cDateW').innerHTML=jdHTML('cDate');jdInit($('cDate'));
 async function load(){
-  const [c,u,e]=await Promise.all([getAll('hse_cards?select=*'),getAll('hse_units?select=id,name,aliases&order=name.asc'),getAll('employees?select=id,emp_id,first_name,last_name,department')]);
+  const [c,u,e,rk]=await Promise.all([getAll('hse_cards?select=*'),getAll('hse_units?select=id,name,aliases&order=name.asc'),getAll('employees?select=id,emp_id,first_name,last_name,department'),getAll('risks?select=id,unit,hazard,score&status=neq.archived')]);
   if(c==null||u==null){$('err').style.display='block';$('err').textContent='جدول‌ها پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';cards=[];units=u||[]}
   else{$('err').style.display='none';cards=c;units=u}
-  emps=e||[];match=unitMatcher(units);
+  emps=e||[];RK=rk||[];match=unitMatcher(units);
   $('cUnit').innerHTML='<option value="">— انتخاب واحد —</option>'+units.slice().sort((a,b)=>a.name.localeCompare(b.name,'fa')).map(x=>`<option>${esc(x.name)}</option>`).join('');
   render();
 }
@@ -65,7 +65,7 @@ function render(){
    <div class="g3" style="margin-top:6px"><div><label class="l">وضعیت</label><select data-f="status" data-id="${c.id}">${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${c.status===k?'selected':''}>${v}</option>`).join('')}</select></div>
    <div><label class="l">امتیاز HSE</label><input type="number" step="0.5" data-f="hse_score" data-id="${c.id}" value="${c.hse_score??''}"></div>
    <div><label class="l">شماره ثبت</label><input type="text" data-f="reg_no" data-id="${c.id}" value="${esc(c.reg_no||'')}"></div></div>
-   <label class="l">اقدام انجام‌شده / دلیل رد</label><input type="text" data-f="hse_note" data-id="${c.id}" value="${esc(c.hse_note||'')}">
+   <label class="l">اقدام انجام‌شده / دلیل رد</label><input type="text" data-f="hse_note" data-id="${c.id}" value="${esc(c.hse_note||'')}">${RK.length?`<label class="l">ریسک مرتبط</label><select data-f="risk_id" data-id="${c.id}"><option value="">— بدون ارتباط —</option>${RK.map(r=>`<option value="${r.id}" ${c.risk_id==r.id?'selected':''}>${esc(r.unit)} — ${esc(String(r.hazard).slice(0,50))} (${fa(r.score)})</option>`).join('')}</select>`:''}
    <button class="d" data-del="${c.id}" style="margin-top:8px">حذف کارت</button></div></details>`).join(''):'<div class="card mu">کارتی برای این فیلتر ثبت نشده.</div>';
 }
 ['fM','fT','fS'].forEach(i=>$(i).onchange=render);
