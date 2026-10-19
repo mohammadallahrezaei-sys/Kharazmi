@@ -290,6 +290,7 @@ let EQP = {}, LNK = {}, EQ_OK = null, ENC = {};
 const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS, LC, EX, EQP, LNK, eq: D.eq });
 const AH = () => ({ apikey: KEY, Authorization: 'Bearer ' + tok });
 
+let RISKS = [];
 async function api(p, o = {}) {
   const r = await fetch(URL_ + '/rest/v1/' + p, { ...o, headers: { ...AH(), 'Content-Type': 'application/json', Prefer: 'return=representation' } });
   if (r.status == 401) throw new Error('دسترسی غیرمجاز (401). تنظیمات دسترسی دیتابیس را بررسی کنید.');
@@ -870,6 +871,7 @@ function fcard(x) {
       <div><label style="font-size:12px; color:var(--mu);">دسته</label><select data-ef="category">${CATN.concat(x.category && !CATN.includes(x.category) ? [x.category] : []).map(c => optH(c, c, x.category)).join('')}</select></div>
       <div><label style="font-size:12px; color:var(--mu);">مسئول پیگیری</label><input data-ef="responsible" value="${esc(x.responsible || '')}"></div>
       <div><label style="font-size:12px; color:var(--mu);">مهلت اصلاح</label><input type="date" data-ef="due_date" value="${esc(x.due_date || '')}"></div>
+      ${RISKS.length ? `<div style="grid-column:1/-1"><label style="font-size:12px; color:var(--mu);">ریسک مرتبط (اختیاری)</label><select data-ef="risk_id"><option value="">— بدون ارتباط —</option>${RISKS.map(r => optH(r.id, r.unit + ' — ' + String(r.hazard).slice(0, 50) + ' (' + r.score + ')', x.risk_id)).join('')}</select></div>` : ''}
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
       <button class="p" data-a="fsave" data-id="${x.id}" style="margin:0; min-height:42px;">💾 ذخیره</button>
@@ -904,6 +906,7 @@ function fcard(x) {
 
 async function loadFinds() {
   const box = $('#fl'); if (!box) return;
+  try { RISKS = await api('risks?select=id,unit,hazard,score&status=neq.archived&order=score.desc'); } catch (e) { RISKS = []; }
   box.style.opacity = .5;
   try {
     const [pg, cOpen, cAll] = await Promise.all([
@@ -1508,7 +1511,7 @@ document.onclick = async e => {
   else if (a == 'fcancel') { EDIT = null; await loadFinds(); scrollTo(0, y); }
   else if (a == 'fsave') {
     const card = t.closest('.q'), v = k => card.querySelector('[data-ef=' + k + ']').value;
-    const body = { question: v('question').trim(), note: v('note').trim(), location: v('location').trim() || 'نامشخص', module: v('module'), severity: +v('severity'), category: v('category'), responsible: v('responsible').trim() || null, due_date: v('due_date') || null };
+    const body = { question: v('question').trim(), note: v('note').trim(), location: v('location').trim() || 'نامشخص', module: v('module'), severity: +v('severity'), category: v('category'), responsible: v('responsible').trim() || null, due_date: v('due_date') || null, ...(card.querySelector('[data-ef=risk_id]') ? { risk_id: v('risk_id') ? +v('risk_id') : null } : {}) };
     if (!body.question) return alert('متن عدم‌انطباق نمی‌تواند خالی باشد.');
     try { await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify(body) }); EDIT = null; await loadFinds(); scrollTo(0, y); }
     catch (er) { alert('خطا در ذخیره: ' + er.message); }
