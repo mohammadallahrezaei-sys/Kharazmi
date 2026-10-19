@@ -61,19 +61,28 @@ function sec(id,title,link,items,note){SECS.push({id,title,link,items,note})}
 const row=(t,sub,badge,cls)=>`<div class="it"><div>${t}<small>${sub||''}</small></div><span class="bd ${cls}">${badge}</span></div>`;
 async function load(){
   SECS.length=0;$('secs').innerHTML='<div class="card">در حال بارگذاری...</div>';
-  const [fin,inc,fu,emp,eq,ins,cards,units,mon,cul]=await Promise.all([
-    getAll('findings?select=id,status,created_at,due_date,location,question,severity,module'),
+  const [fin,inc,fu,emp,eq,ins,cards,units,mon,cul,rk]=await Promise.all([
+    getAll('findings?select=id,status,created_at,due_date,location,question,severity,module,risk_id'),
     getAll('clinic_incidents?select=incident_date,body_part,corrective_action,action_status,action_due_date,location'),
     getAll('clinic_followups?select=*'),getAll('employees?select=id,first_name,last_name'),
     getAll('equipment?select=code,category,title,hall,location,active,requires_inspection,interval_months'),
     getAll('equipment_inspections?select=equipment_code,inspected_on,result,next_due,defects'),
     getAll('hse_cards?select=card_type,card_date,status,unit,description,reporter_name'),
     getAll('hse_units?select=id,name,active'),getAll('hse_unit_monthly?select=unit_id,month_key'),
-    getAll('culture_assessments?select=assessed_at')]);
+    getAll('culture_assessments?select=assessed_at'),getAll('risks?select=*&status=neq.archived')]);
+  const RM={};(rk||[]).forEach(r=>RM[r.id]=r);
+  // ۰) ریسک‌های نیازمند اقدام
+  if(rk){
+    const L=[];rk.forEach(r=>{const t=esc(r.hazard),sub=esc(r.unit)+' · امتیاز '+fa(r.score);
+      if(r.status==='draft')L.push({k:r.high?'r':'y',s:r.score,h:row(t,sub,'در انتظار تأیید',r.high?'r':'y')});
+      if(r.review_date&&r.review_date<TODAY)L.push({k:'r',s:r.score,h:row(t,sub,'بازبینی معوق','r')});
+      if(r.high&&r.method!=='reba'&&r.method!=='rula'&&!(r.existing_controls||'').trim())L.push({k:'r',s:r.score,h:row(t,sub,'بدون کنترل فعلی','r')})});
+    L.sort((a,b)=>b.s-a.s);sec('rk','ریسک‌های نیازمند اقدام','risks.html',L);
+  } else sec('rk','ریسک‌های نیازمند اقدام','risks.html',null);
   // ۱) عدم‌انطباق‌های باز
   if(fin){
-    const L=fin.filter(x=>x.status==='open').map(x=>{const over=x.due_date?dd(TODAY,x.due_date):dd(TODAY,x.created_at.slice(0,10))-14;return{x,over}}).sort((a,b)=>b.over-a.over||(b.x.severity||0)-(a.x.severity||0));
-    sec('fin','عدم‌انطباق‌های باز','checklists.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(x.question||'—'),`${esc(x.location||'')} · ثبت: ${fday(x.created_at)}${x.severity?' · شدت '+fa(x.severity):''}`,over>0?fa(over)+' روز معوق':(x.due_date?'تا '+fday(x.due_date):'در مهلت'),over>0?'r':'y')})),'پیگیری در «پیگیری عدم‌انطباق‌ها»');
+    const L=fin.filter(x=>x.status==='open').map(x=>{const over=x.due_date?dd(TODAY,x.due_date):dd(TODAY,x.created_at.slice(0,10))-14;return{x,over}}).sort((a,b)=>((RM[b.x.risk_id]||{}).high?1:0)-((RM[a.x.risk_id]||{}).high?1:0)||b.over-a.over||(b.x.severity||0)-(a.x.severity||0));
+    sec('fin','عدم‌انطباق‌های باز','checklists.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(x.question||'—'),`${esc(x.location||'')} · ثبت: ${fday(x.created_at)}${x.severity?' · شدت '+fa(x.severity):''}${RM[x.risk_id]?' · ریسک '+fa(RM[x.risk_id].score):''}`,over>0?fa(over)+' روز معوق':(x.due_date?'تا '+fday(x.due_date):'در مهلت'),over>0?'r':'y')})),'پیگیری در «پیگیری عدم‌انطباق‌ها»');
   } else sec('fin','عدم‌انطباق‌های باز','checklists.html',null);
   // ۲) اقدام اصلاحی حوادث
   if(inc){

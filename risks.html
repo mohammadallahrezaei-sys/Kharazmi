@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ثبت ریسک - نرم‌افزار جامع HSE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.lv{display:inline-block;padding:0 8px;border-radius:99px;font-size:12px;font-weight:700;color:#0f172a}
+.ev span{display:inline-block;margin-inline-end:10px;font-size:12px}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin-top:6px}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+</style>
+</head>
+<body>
+<div class="w">
+  <div class="top">
+    <div><h1>⚠️ ثبت ریسک</h1><p>روش رسمی شرکت: FMEA (شدت × احتمال × کشف) — آستانه RPN ≥ ۹۰ · به‌علاوه HAZOP، REBA و RULA</p></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="p" id="bNew">+ ریسک جدید</button><button id="bAll" style="display:none"></button><a class="btn" href="index.html">← بازگشت</a></div>
+  </div>
+  <div id="err" class="err"></div>
+  <div class="card">
+    <div class="g4">
+      <div><label class="l">روش</label><select id="fM"><option value="">همه</option><option value="fmea">FMEA</option><option value="hazop">HAZOP</option><option value="reba">REBA</option><option value="rula">RULA</option></select></div>
+      <div><label class="l">دسته ریسک</label><select id="fK"></select></div>
+      <div><label class="l">سوله / واحد</label><select id="fU"></select></div>
+      <div><label class="l">سطح</label><select id="fL"><option value="">همه</option><option value="1">فقط بالا / اولویت‌دار</option></select></div>
+      <div><label class="l">وضعیت</label><select id="fS"><option value="">فعال (بدون بایگانی)</option><option value="draft">در انتظار تأیید</option><option value="approved">تأییدشده</option><option value="archived">بایگانی</option></select></div>
+    </div>
+    <div class="mu" id="stats" style="margin-top:10px"></div>
+    <div class="bar" id="bar"></div>
+  </div>
+  <div id="list"><div class="card">در حال بارگذاری...</div></div>
+</div>
+
+<div class="modal" id="modal"><div>
+  <h2 style="margin:0 0 8px;font-size:15px" id="mT">ریسک جدید</h2>
+  <div class="g2"><div><label class="l">روش ارزیابی</label><select id="mM"><option value="fmea">FMEA — روش رسمی شرکت (S×O×D)</option><option value="hazop">HAZOP (S×L، ۱ تا ۵)</option><option value="reba">REBA (ارگونومی کل بدن)</option><option value="rula">RULA (ارگونومی اندام فوقانی)</option></select></div>
+  <div><label class="l">سوله / واحد (الزامی)</label><input type="text" id="mU" list="ul"><datalist id="ul"></datalist></div></div>
+  <div class="g2"><div><label class="l">دسته ریسک</label><select id="mK"></select></div><div><label class="l">فرآیند</label><input type="text" id="mPr"></div></div>
+  <label class="l" id="lAct">فعالیت</label><input type="text" id="mA">
+  <label class="l" id="lHz">خطر (الزامی)</label><textarea id="mH" rows="2" placeholder="مثلاً: سقوط مخزن اسید هنگام جابه‌جایی با لیفتراک"></textarea>
+  <div class="m-sod">
+  <label class="l">اثرات / پیامد</label><textarea id="mC" rows="2"></textarea>
+  <label class="l">علل بالقوه</label><textarea id="mCa" rows="2"></textarea>
+  <label class="l">کنترل موجود</label><textarea id="mE" rows="2"></textarea>
+  <div class="g3"><div><label class="l" id="lS">شدت (S)</label><select id="mS"></select></div><div><label class="l" id="lO">احتمال (O)</label><select id="mL"></select></div><div id="dW"><label class="l">کشف (D)</label><select id="mD2"></select></div></div>
+  <div class="g2" style="margin-top:6px"><div><label class="l">الزام قانونی مرتبط</label><input type="text" id="mLg"></div><div><label class="l">&nbsp;</label><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="mGap"> الزام قانونی رعایت نشده</label></div></div>
+  </div>
+  <div id="rW" style="display:none"><label class="l" id="lSc">امتیاز نهایی</label><input type="number" id="mSc" min="1" max="15"></div>
+  <div class="mu" id="mScore" style="margin:6px 0"></div>
+  <div class="g2"><div><label class="l">نوع اقدام</label><select id="mAT"><option value="">—</option><option>حذف</option><option>جایگزینی</option><option>کنترل مهندسی</option><option>کنترل اداری</option><option>کنترل</option><option>وسایل حفاظت فردی</option></select></div><div><label class="l">مسئول</label><input type="text" id="mO"></div></div>
+  <label class="l">شرح اقدام اصلاحی / کنترل برنامه‌ریزی‌شده</label><textarea id="mP" rows="2"></textarea>
+  <div class="m-sod"><div class="g3"><div><label class="l">S بعد از اقدام</label><select id="mRS"></select></div><div><label class="l">O بعد از اقدام</label><select id="mRL"></select></div><div id="rdW"><label class="l">D بعد از اقدام</label><select id="mRD"></select></div></div>
+  <div class="mu" id="mRScore" style="margin:6px 0"></div></div>
+  <div class="g2"><div><label class="l">تاریخ ارزیابی (شمسی)</label><input type="text" id="mAs" placeholder="1405/07/27" dir="ltr"></div><div><label class="l">تاریخ بازبینی بعدی</label><div id="mDW"></div></div></div>
+  <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="p" id="mSave" style="flex:1">ذخیره</button><button class="p" id="mApprove" style="flex:1;display:none">ذخیره و تأیید</button><button id="mCancel">انصراف</button></div>
+  <div class="mu" id="mNote" style="margin-top:6px"></div>
+</div></div>
+
+<script src="eval_core.js"></script>
+<script>
+const {esc,fa,getAll,req,jdInit,jdGet,jdSet,jdHTML,toJal}=HSE;
+const $=id=>document.getElementById(id);
+/* ---- مقیاس‌ها: جدول‌های دستورالعمل شرکت (بند ۵-۳) ---- */
+const SEV10=['','بدون آسیب (شبه‌حادثه)','آسیب خیلی جزئی، بدون درمان','آسیب جزئی، کمک‌های اولیه','نیاز به مرکز درمانی (بخیه)','حاد: اورژانس/بیمارستان','شکستگی، بستری','کاهش موقت عملکرد بدن','کاهش دائم (قطع عضو)','از دست دادن کامل عملکرد (کوری)','فوت'];
+const OCC10=['','فقط در شرایط نادر','هر ۱۰ تا ۱۵ سال','هر ۵ تا ۱۰ سال','هر ۲ تا ۴ سال','هر ۱ تا ۲ سال','هر ۶ ماه تا ۱ سال','هر ۳ ماه','هر ماه','هر هفته','هر روز'];
+const DET10=['','حتماً قابل شناسایی','احتمال بسیار بالا','احتمال بالا','معمولاً شناسایی می‌شود','پنجاه‌پنجاه','شانس کم','شانس ناچیز','شانس بسیار ناچیز','شانس بعید','غیرقابل شناسایی'];
+const SEV5=['','ناچیز','جزئی','متوسط','شدید','فاجعه‌بار'],LIK5=['','بسیار نادر','نادر','ممکن','محتمل','تقریباً حتمی'];
+const MN={fmea:'FMEA',hazop:'HAZOP',reba:'REBA',rula:'RULA'};
+const CATS=[
+['ایمنی',['مکانیکی (ماشین‌آلات، قطعات متحرک)','برق و برق‌گرفتگی','سقوط از ارتفاع و لغزش','آتش‌سوزی و انفجار','حمل‌ونقل داخلی و لیفتراک','جرثقیل و بالابری','فضای بسته','کار گرم و جوشکاری','فشار (مخزن، بویلر، کمپرسور)','ابزار دستی و تجهیزات']],
+['بهداشت شغلی',['شیمیایی (اسید، گاز سمی، آمونیاک، گرد و غبار)','فیزیکی: صدا','فیزیکی: گرما و سرما','فیزیکی: روشنایی و ارتعاش','فیزیکی: پرتو','بیولوژیک','روانی-اجتماعی (استرس، شیفت، خستگی)']],
+['ارگونومی',['حمل دستی بار','وضعیت بدنی نامناسب','حرکات تکراری','طراحی ایستگاه کار']],
+['محیط زیست',['پساب و آلودگی آب','انتشار هوا و گاز','پسماند','نشت و ریزش مواد','مصرف انرژی و منابع','سر و صدای محیطی']],
+['اضطراری',['نشت گاز یا مواد سمی','آتش‌سوزی گسترده','زلزله و بلایای طبیعی','قطع برق و خدمات','تخلیه و کمک‌های اولیه']],
+['سایر',['امنیت و ورود غیرمجاز','پیمانکاران','قانونی و الزامات','سایر']]];
+const GRP=c=>(CATS.find(g=>g[1].includes(c))||[])[0]||'بدون دسته';
+/* ---- سطح ریسک بر اساس روش ---- */
+const RED='#f87171',ORG='#fb923c',YEL='#fbbf24',GRN='#34d399';
+function lvl(r){
+  const s=r.score||0;
+  if(r.method==='fmea'){
+    if(s>=90)return{t:'بالا (RPN ≥ ۹۰)',c:RED,h:1};
+    if(r.legal_gap)return{t:'اولویت: الزام قانونی رعایت نشده',c:ORG,h:1};
+    if(r.severity===10)return{t:'اولویت: شدت ۱۰',c:ORG,h:1};
+    return{t:'پایین',c:GRN,h:0}}
+  if(r.method==='hazop')return s>=15?{t:'خیلی زیاد',c:RED,h:1}:s>=10?{t:'زیاد',c:ORG,h:1}:s>=5?{t:'متوسط',c:YEL,h:0}:{t:'کم',c:GRN,h:0};
+  if(r.method==='reba')return s>=11?{t:'خیلی زیاد',c:RED,h:1}:s>=8?{t:'زیاد',c:ORG,h:1}:s>=4?{t:'متوسط',c:YEL,h:0}:s>=2?{t:'کم',c:GRN,h:0}:{t:'ناچیز',c:GRN,h:0};
+  return s>=7?{t:'تغییر فوری',c:RED,h:1}:s>=5?{t:'بررسی و تغییر به‌زودی',c:ORG,h:1}:s>=3?{t:'نیاز به بررسی بیشتر',c:YEL,h:0}:{t:'قابل قبول',c:GRN,h:0}}
+const calc=(m,s,o,d)=>m==='fmea'?s*o*(d||1):s*o;
+const TODAY=new Date().toISOString().slice(0,10);
+const fday=d=>{try{return new Date(String(d).slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
+let R=[],F=[],I=[],C=[],units=[],editId=null;
+const isMgr=()=>window.HSEAuth&&HSEAuth.role==='manager';
+const opts=(arr,v)=>arr.map((t,i)=>i?`<option value="${i}" ${v==i?'selected':''}>${fa(i)} — ${t}</option>`:'').join('');
+const catOpts=f=>`<option value="">${f}</option>`+CATS.map(g=>`<optgroup label="${g[0]}">${g[1].map(c=>`<option>${c}</option>`).join('')}</optgroup>`).join('');
+$('fK').innerHTML='<option value="">همه</option>'+CATS.map(g=>`<option value="g:${g[0]}">همه‌ی ${g[0]}</option>`).join('')+CATS.map(g=>`<optgroup label="${g[0]}">${g[1].map(c=>`<option>${c}</option>`).join('')}</optgroup>`).join('');
+$('mK').innerHTML=catOpts('— انتخاب دسته —');
+$('mDW').innerHTML=jdHTML('mD');jdInit($('mD'),true);
+
+async function load(){
+  await HSEAuth.ready;
+  const [r,f,i,c,u]=await Promise.all([getAll('risks?select=*'),getAll('findings?select=id,risk_id,status&risk_id=not.is.null'),getAll('clinic_incidents?select=id,risk_id,incident_date&risk_id=not.is.null'),getAll('hse_cards?select=id,risk_id,status&risk_id=not.is.null'),getAll('hse_units?select=name&order=name.asc')]);
+  if(r==null){$('err').style.display='block';$('err').textContent='جدول ریسک پیدا نشد. فایل‌های SQL شماره ۰۱ تا ۰۴ را به‌ترتیب در Supabase اجرا کنید.';R=[]}else{$('err').style.display='none';R=r}
+  F=f||[];I=i||[];C=c||[];units=u||[];
+  const names=[...new Set([...units.map(x=>x.name),...R.map(x=>x.unit)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fa',{numeric:true}));
+  $('fU').innerHTML='<option value="">همه</option>'+names.map(n=>`<option>${esc(n)}</option>`).join('');
+  $('ul').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
+  render();
+}
+function evid(id){const f=F.filter(x=>x.risk_id==id),y=Date.now()-365*864e5;
+  return{fo:f.filter(x=>x.status==='open').length,fa:f.length,inc:I.filter(x=>x.risk_id==id&&new Date(x.incident_date)>=y).length,cd:C.filter(x=>x.risk_id==id).length}}
+const hasRes=r=>r.residual_severity&&r.residual_likelihood&&(r.method!=='fmea'||r.residual_detection);
+const resScore=r=>hasRes(r)?calc(r.method,r.residual_severity,r.residual_likelihood,r.residual_detection):null;
+function flags(r){const e=evid(r.id),o=[],L=lvl(r),sod=r.method==='fmea'||r.method==='hazop';
+  if(L.h&&sod&&!(r.existing_controls||'').trim())o.push('ریسک بالا بدون کنترل موجود');
+  if(L.h&&!(r.planned_controls||'').trim())o.push('برای ریسک بالا اقدام اصلاحی ثبت نشده');
+  if(sod&&(r.planned_controls||'').trim()&&!hasRes(r))o.push('اقدام ثبت شده ولی ارزیابی مجدد (ریسک باقیمانده) انجام نشده؛ اثربخشی اقدام معلوم نیست');
+  if(r.method==='fmea'&&!r.detection)o.push('کشف (D) ثبت نشده؛ RPN ناقص است');
+  if(r.review_date&&r.review_date<TODAY)o.push('بازبینی معوق');
+  if(r.status==='approved'&&e.inc>0&&!L.h)o.push('حادثه رخ داده ولی سطح ریسک پایین است؛ ارزیابی را بازبینی کنید');
+  if(sod&&hasRes(r)&&resScore(r)>=r.score)o.push('ریسک باقیمانده کمتر از ریسک اولیه نشده؛ اقدام مؤثر نبوده');
+  return o}
+function filtered(){const u=$('fU').value,l=$('fL').value,s=$('fS').value,k=$('fK').value,m=$('fM').value;
+  const kf=r=>!k||(k.startsWith('g:')?GRP(r.category)===k.slice(2):r.category===k);
+  const ord={fmea:0,hazop:1,reba:2,rula:3};
+  return R.filter(r=>kf(r)&&(!m||r.method===m)&&(!u||r.unit===u)&&(!l||lvl(r).h)&&(s?r.status===s:r.status!=='archived'))
+   .sort((a,b)=>lvl(b).h-lvl(a).h||ord[a.method]-ord[b.method]||b.score-a.score||b.id-a.id)}
+function render(){
+  const L=filtered(),act=R.filter(r=>r.status!=='archived');
+  const hi=L.filter(r=>lvl(r).h).length,pend=L.filter(r=>r.status==='draft').length,od=L.filter(r=>r.review_date&&r.review_date<TODAY).length,
+    noRes=L.filter(r=>(r.method==='fmea'||r.method==='hazop')&&(r.planned_controls||'').trim()&&!hasRes(r)).length;
+  $('stats').innerHTML=`${fa(L.length)} ریسک (از ${fa(act.length)} فعال) — بالا/اولویت‌دار: <b>${fa(hi)}</b> · در انتظار تأیید: ${fa(pend)} · اقدام بدون ارزیابی مجدد: ${fa(noRes)} · بازبینی معوق: ${fa(od)}`;
+  const bar=[RED,ORG,YEL,GRN].map(c=>[c,L.filter(r=>lvl(r).c===c).length]);
+  $('bar').innerHTML=L.length?bar.map(b=>b[1]?`<div style="flex:${b[1]};background:${b[0]}"></div>`:'').join(''):'';
+  $('bAll').style.display=isMgr()&&pend?'':'none';$('bAll').textContent=`✔ تأیید همه‌ی در انتظار تأیید (${fa(pend)})`;
+  $('list').innerHTML=L.length?L.map(r=>{const v=lvl(r),e=evid(r.id),fl=flags(r),rs=resScore(r);
+   const sc=r.method==='fmea'?`S ${fa(r.severity)} × O ${fa(r.likelihood)} × D ${r.detection?fa(r.detection):'؟'} = <b>RPN ${fa(r.score)}</b>`:r.method==='hazop'?`S ${fa(r.severity)} × L ${fa(r.likelihood)} = <b>${fa(r.score)}</b>`:`امتیاز نهایی ${MN[r.method]}: <b>${fa(r.score)}</b>`;
+   return`<details class="card"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:8px"><span><b>${esc(r.hazard)}</b> <span class="tag">${esc(r.category||'بدون دسته')}</span> <span class="tag">${MN[r.method]}</span> <span class="mu">· ${esc(r.unit)}${r.activity?' · '+esc(r.activity):''}</span></span><span style="text-align:left;white-space:nowrap"><span class="lv" style="background:${v.c}">${v.t} · ${fa(r.score)}</span> ${r.status==='draft'?'<span class="tag wa">در انتظار تأیید</span>':r.status==='archived'?'<span class="tag">بایگانی</span>':''}</span></summary>
+   <div style="margin-top:8px;border-top:1px solid #334155;padding-top:8px">
+   ${r.process?`<div class="mu">فرآیند: ${esc(r.process)}${r.assessed_on?' · تاریخ ارزیابی: '+esc(r.assessed_on):''}</div>`:''}
+   ${r.consequence?`<div><b>پیامد:</b> ${esc(r.consequence)}</div>`:''}${r.causes?`<div><b>علل:</b> ${esc(r.causes)}</div>`:''}
+   <div><b>کنترل موجود:</b> ${esc(r.existing_controls||'—')}</div>
+   ${r.planned_controls?`<div><b>اقدام اصلاحی${r.action_type?' ('+esc(r.action_type)+')':''}:</b> ${esc(r.planned_controls)}</div>`:''}
+   ${r.legal_ref?`<div class="mu">الزام قانونی: ${esc(r.legal_ref)}${r.legal_gap?' — <span class="bad">رعایت نشده</span>':''}</div>`:''}
+   ${r.detail&&r.detail.guideword?`<div class="mu">HAZOP: ${esc(r.detail.guideword)} · ${esc(r.detail.parameter||'')}</div>`:''}
+   ${r.detail&&r.detail.level?`<div class="mu">نتیجه فایل: ${esc(r.detail.level)}</div>`:''}
+   <div class="mu">${sc}${rs!=null?` · پس از اقدام: <b>${fa(rs)}</b>`:''}${r.review_date?' · بازبینی: '+fday(r.review_date):''}${r.approved_by&&r.status==='approved'?' · تأیید: '+esc(r.approved_by.split('@')[0]):''}</div>
+   <div class="ev" style="margin-top:6px"><span>عدم‌انطباق باز: <b>${fa(e.fo)}</b> از ${fa(e.fa)}</span><span>حادثه ۱۲ ماه اخیر: <b>${fa(e.inc)}</b></span><span>کارت: <b>${fa(e.cd)}</b></span></div>
+   ${fl.map(x=>`<div class="wa">⚠ ${x}</div>`).join('')}
+   <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button data-edit="${r.id}">ویرایش</button>${isMgr()&&r.status==='draft'?`<button class="p" data-ok="${r.id}">تأیید</button>`:''}${isMgr()&&r.status!=='archived'?`<button data-arc="${r.id}">بایگانی</button>`:''}${isMgr()?`<button class="d" data-del="${r.id}">حذف</button>`:''}</div></div></details>`}).join(''):'<div class="card mu">ریسکی برای این فیلتر ثبت نشده.</div>';
+}
+['fM','fK','fU','fL','fS'].forEach(i=>$(i).onchange=render);
+$('bAll').onclick=async()=>{const ids=filtered().filter(r=>r.status==='draft').map(r=>r.id);
+  if(!ids.length||!confirm(`${ids.length} ریسک در انتظار تأیید، تأیید شوند؟`))return;
+  try{for(let i=0;i<ids.length;i+=100)await req('risks?id=in.('+ids.slice(i,i+100).join(',')+')','PATCH',{status:'approved'},'return=minimal');load()}catch(e){alert('خطا: '+e.message)}};
+$('list').onclick=async e=>{const d=e.target.dataset;
+  try{
+  if(d.edit)openM(R.find(r=>r.id==d.edit));
+  else if(d.ok){await req('risks?id=eq.'+d.ok,'PATCH',{status:'approved'},'return=minimal');load()}
+  else if(d.arc&&confirm('این ریسک بایگانی شود؟')){await req('risks?id=eq.'+d.arc,'PATCH',{status:'archived'},'return=minimal');load()}
+  else if(d.del&&confirm('این ریسک حذف شود؟ (اتصال رکوردهای مرتبط برداشته می‌شود)')){await req('risks?id=eq.'+d.del,'DELETE',null,'return=minimal');load()}
+  }catch(er){alert('خطا: '+er.message)}};
+/* ---- فرم ---- */
+function fillScales(m,k){
+  const f=m==='fmea',S=f?SEV10:SEV5,O=f?OCC10:LIK5;
+  const set=(id,a,v,blank)=>$(id).innerHTML=(blank?'<option value="">—</option>':'')+opts(a,v);
+  set('mS',S,k.s||3);set('mL',O,k.o||3);set('mD2',DET10,k.d||5);
+  set('mRS',S,k.rs||'',true);set('mRL',O,k.ro||'',true);set('mRD',DET10,k.rd||'',true);
+  $('lO').textContent=f?'احتمال وقوع (O)':'احتمال (L)';}
+function applyMethod(){const m=$('mM').value,sod=m==='fmea'||m==='hazop';
+  document.querySelectorAll('.m-sod').forEach(x=>x.style.display=sod?'':'none');
+  $('rW').style.display=sod?'none':'';$('dW').style.display=$('rdW').style.display=m==='fmea'?'':'none';
+  $('lHz').textContent=sod?'خطر (الزامی)':'نام وظیفه / ایستگاه کار (الزامی)';$('lAct').textContent=m==='hazop'?'Node / مرحله فرآیند':'فعالیت';
+  $('lSc').textContent=m==='reba'?'امتیاز نهایی REBA (۱ تا ۱۵)':'امتیاز نهایی RULA (۱ تا ۷)';$('mSc').max=m==='reba'?15:7;sc()}
+function sc(){const m=$('mM').value;
+  if(m==='fmea'||m==='hazop'){const s=+$('mS').value,o=+$('mL').value,d=m==='fmea'?+$('mD2').value:null,v=calc(m,s,o,d),L=lvl({method:m,score:v,severity:s,legal_gap:$('mGap').checked});
+    $('mScore').innerHTML=`${m==='fmea'?'RPN':'امتیاز'} = ${fa(v)} — <span class="lv" style="background:${L.c}">${L.t}</span> ${m==='fmea'?'(آستانه شرکت: RPN ≥ ۹۰؛ شدت ۱۰ یا الزام قانونی رعایت‌نشده هم اولویت‌دار است)':'(۱ تا ۴ کم · ۵ تا ۹ متوسط · ۱۰ تا ۱۴ زیاد · ۱۵ به بالا خیلی زیاد)'}`;
+    const a=+$('mRS').value,b=+$('mRL').value,c=m==='fmea'?+$('mRD').value:1;
+    $('mRScore').textContent=a&&b&&c?`ریسک باقیمانده پس از اقدام: ${fa(calc(m,a,b,c))}`:'پس از اجرای اقدام، ارزیابی مجدد را ثبت کنید تا اثربخشی اقدام معلوم شود.';
+  }else{const v=+$('mSc').value||0,L=lvl({method:m,score:v});$('mScore').innerHTML=v?`<span class="lv" style="background:${L.c}">${L.t}</span>`:''}}
+['mS','mL','mD2','mRS','mRL','mRD','mGap'].forEach(i=>$(i).onchange=sc);
+$('mM').onchange=()=>{fillScales($('mM').value,{});applyMethod()};
+$('mSc').oninput=sc;
+function openM(r){editId=r?r.id:null;$('mT').textContent=r?'ویرایش ریسک':'ریسک جدید';
+  const m=r?r.method:'fmea';$('mM').value=m;$('mM').disabled=!!r;
+  fillScales(m,r?{s:r.severity,o:r.likelihood,d:r.detection,rs:r.residual_severity,ro:r.residual_likelihood,rd:r.residual_detection}:{});
+  const v=(id,x)=>$(id).value=x==null?'':x;
+  v('mU',r?r.unit:$('fU').value);v('mK',r&&r.category);v('mPr',r&&r.process);v('mA',r&&r.activity);v('mH',r&&r.hazard);v('mC',r&&r.consequence);v('mCa',r&&r.causes);v('mE',r&&r.existing_controls);
+  v('mLg',r&&r.legal_ref);$('mGap').checked=!!(r&&r.legal_gap);v('mSc',r&&r.manual_score);v('mAT',r&&r.action_type);v('mO',r&&r.owner);v('mP',r&&r.planned_controls);
+  const p=toJal(new Date());v('mAs',r?r.assessed_on:`${p[0]}/${String(p[1]).padStart(2,'0')}/${String(p[2]).padStart(2,'0')}`);
+  const ss=$('mD').querySelectorAll('select');if(r&&r.review_date)jdSet($('mD'),r.review_date);else ss.forEach(s=>s.value='');
+  $('mApprove').style.display=isMgr()?'':'none';
+  $('mNote').textContent=isMgr()?'':'ریسک ثبت‌شده توسط کارشناس «در انتظار تأیید» می‌ماند تا مدیر تأیید کند. ویرایش ریسک تأییدشده هم آن را به این حالت برمی‌گرداند.';
+  applyMethod();$('modal').classList.add('on')}
+$('bNew').onclick=()=>openM(null);$('mCancel').onclick=()=>$('modal').classList.remove('on');
+async function save(approve){
+  const m=$('mM').value,sod=m==='fmea'||m==='hazop',unit=$('mU').value.trim(),hz=$('mH').value.trim();
+  if(!unit||!hz){alert('سوله و '+(sod?'خطر':'نام وظیفه')+' الزامی است.');return}
+  const t=x=>$(x).value.trim()||null,n=x=>$(x).value?+$(x).value:null;
+  const b={unit,category:$('mK').value||null,process:t('mPr'),activity:t('mA'),hazard:hz,owner:t('mO'),action_type:t('mAT'),planned_controls:t('mP'),assessed_on:t('mAs'),review_date:jdGet($('mD'))};
+  if(!editId)b.method=m;
+  if(sod){
+    const rs=n('mRS'),rl=n('mRL'),rd=m==='fmea'?n('mRD'):null,any=rs||rl||rd,all=rs&&rl&&(m!=='fmea'||rd);
+    if(any&&!all){alert('ارزیابی مجدد را کامل پر کنید یا کاملاً خالی بگذارید.');return}
+    Object.assign(b,{consequence:t('mC'),causes:t('mCa'),existing_controls:t('mE'),severity:+$('mS').value,likelihood:+$('mL').value,detection:m==='fmea'?+$('mD2').value:null,
+      legal_ref:t('mLg'),legal_gap:$('mGap').checked,residual_severity:rs,residual_likelihood:rl,residual_detection:rd,manual_score:null});
+  }else{
+    const v=+$('mSc').value;if(!(v>=1)){alert('امتیاز نهایی را وارد کنید.');return}
+    Object.assign(b,{manual_score:v,severity:null,likelihood:null,detection:null,legal_gap:false});
+  }
+  if(approve)b.status='approved';
+  try{if(editId)await req('risks?id=eq.'+editId,'PATCH',b,'return=minimal');else{b.status=approve?'approved':'draft';b.created_by=HSEAuth.email;await req('risks','POST',b,'return=minimal')}
+    $('modal').classList.remove('on');load()}catch(e){alert('خطا در ذخیره: '+e.message)}}
+$('mSave').onclick=()=>save(false);$('mApprove').onclick=()=>save(true);
+load();
+</script>
+</body>
+</html>
