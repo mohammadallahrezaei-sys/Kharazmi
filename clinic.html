@@ -254,6 +254,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-3">
                     <p class="text-xs font-bold text-slate-300">اقدام اصلاحی و پیشگیرانه (CAPA)</p>
                     <div><label class="block text-[11px] text-slate-400 mb-1">شرح اقدام اصلاحی</label><input type="text" id="incAction" class="fld" placeholder="اقدام جهت عدم تکرار..."></div>
+                    <div><label class="block text-[11px] text-slate-400 mb-1">ریسک مرتبط (اختیاری؛ این حادثه نتیجه کدام ریسک ثبت‌شده است؟)</label><select id="incRisk" class="fld"><option value="">— بدون ارتباط —</option></select></div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div><label class="block text-[11px] text-slate-400 mb-1">مسئول انجام</label><input type="text" id="incOwner" class="fld" placeholder="نام مسئول..."></div>
                         <div><label class="block text-[11px] text-slate-400 mb-1">سررسید اقدام</label><div id="incDueDate" class="jd" style="display:flex;gap:4px"><select class="fld" style="flex:0 0 28%;min-width:0"></select><select class="fld" style="flex:1;min-width:0"></select><select class="fld" style="flex:0 0 32%;min-width:0"></select></div></div>
@@ -514,8 +515,17 @@ async function loadVisits() {
     } catch (e) { showDebug('سوابق مراجعات: ' + e.message); }
 }
 
+let RISKMAP = {};
+async function loadRisks() {
+    try {
+        const rk = await api('risks?select=id,unit,hazard,score,high&status=neq.archived&order=score.desc');
+        RISKMAP = {}; rk.forEach(r => RISKMAP[r.id] = r);
+        const sel = $('incRisk'); if (sel) sel.innerHTML = '<option value="">— بدون ارتباط —</option>' + rk.map(r => `<option value="${r.id}">${esc(r.unit)} — ${esc(String(r.hazard).slice(0, 50))} (${r.score})</option>`).join('');
+    } catch (e) { RISKMAP = {}; }
+}
 async function loadIncidents() {
     try {
+        await loadRisks();
         incidents = await api('clinic_incidents?order=incident_date.desc&limit=5000');
         if (selEmp) renderSummary();
         if (tab === 'incident') renderIncidents();
@@ -1013,6 +1023,7 @@ $('incForm').onsubmit = async function (e) {
         action_due_date: jdGet('incDueDate') || null,
         action_status: 'pending'
     };
+    if ($('incRisk') && $('incRisk').value) body.risk_id = +$('incRisk').value;
 
     const btn = $('incSubmit');
     btn.disabled = true; btn.textContent = 'در حال ثبت...';
@@ -1091,6 +1102,7 @@ function renderIncidents() {
                     </div>
                     <p class="text-[11px] text-slate-400">مسئول: ${esc(i.action_owner || 'تعیین‌نشده')} · سررسید: ${i.action_due_date ? fday(i.action_due_date) : '-'}</p>
                 </div>` : ''}
+            ${i.risk_id && RISKMAP[i.risk_id] ? `<p class="text-[11px] text-slate-400">ریسک مرتبط: <a href="risks.html" class="text-teal-400">${esc(RISKMAP[i.risk_id].unit)} — ${esc(String(RISKMAP[i.risk_id].hazard).slice(0, 60))}</a> (امتیاز ${esc(RISKMAP[i.risk_id].score)})</p>` : ''}
         </div>`;
     }).join('');
 }
