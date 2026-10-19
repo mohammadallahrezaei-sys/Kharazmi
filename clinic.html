@@ -392,6 +392,7 @@ async function loadAll() {
         $('empInput').placeholder = 'خطا در بارگذاری پرسنل';
         showDebug('بارگذاری پرسنل: ' + e.message);
     }
+    await loadMedItems();
     await loadVisits();
     await loadIncidents();
     await loadFollowups();
@@ -513,12 +514,59 @@ function openProfile(empId) {
     $('profileModal').classList.remove('hidden');
 }
 
+/* ---------- اتصال به موجودی داروی کمد کمک‌های اولیه (جدول med_items در ماژول چک‌لیست) ---------- */
+let MEDITEMS = [];
+async function loadMedItems() { try { MEDITEMS = await api('med_items?select=id,name,reorder,unit_kind&active=eq.true&limit=500'); } catch (e) { MEDITEMS = []; } }
+/* نام دارو در فهرست بهداری → نام قلم در موجودی کمد (فقط اقلام مشترک؛ بقیه کسر نمی‌شوند) */
+const MEDMAP = {
+ 'استامینوفن ۵۰۰ میلی‌گرم قرص': 'قرص استامینوفن', 'ایبوپروفن ۴۰۰ قرص': 'کپسول ژلوفن', 'لوزارتان ۵۰ قرص': 'قرص لوزارتان', 'پودر ORS': 'پودر O.R.S',
+ 'متوکلوپرامید قرص': 'قرص متوکلوپرامید', 'هیوسین قرص': 'قرص هیوسین ان', 'نیتروگلیسیرین زیرزبانی': 'قرص نیتروگلیسیرین',
+ 'آلومینیوم ام‌جی‌اس قرص جویدنی': 'قرص آلومینیوم ام جی', 'قرص سرماخوردگی بزرگسال': 'قرص آدلت کلد (سرماخوردگی)',
+ 'سیتریزین ۱۰ قرص': 'قرص آنتی هیستامین', 'لوراتادین قرص': 'قرص آنتی هیستامین', 'کلرفنیرامین قرص': 'قرص آنتی هیستامین',
+ 'سالبوتامول اسپری': 'اسپری سالبوتامون', 'بتادین محلول': 'محلول بتادین', 'سرم شستشو': 'سرم شستشو', 'محلول شستشوی چشم': 'قطره شستشو چشم',
+ 'پماد سوختگی (سیلورسولفادیازین)': 'پماد سوختگی سیلور', 'قطره چشمی کلرامفنیکل': 'قطره نفازولین چشمی'
+};
+const medItemOf = name => MEDITEMS.find(i => i.name === MEDMAP[name]) || null;
+async function deductMeds(visitId, list) {
+    const moves = [], touched = new Set();
+    list.forEach(m => {
+        const it = medItemOf(m.name); if (!it || !m.deduct) return;
+        const q = it.unit_kind === 'open' ? (m.open ? 1 : 0) : Number(m.qty) || 0;
+        if (q > 0) { moves.push({ item_id: it.id, kind: 'use', qty: q, note: 'visit:' + visitId, by_email: sessionEmail() || null, appearance: null }); touched.add(it.id); }
+    });
+    if (!moves.length) return '';
+    await api('med_moves', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(moves) });
+    const st = await api('med_stock?select=id,name,reorder,stock&id=in.(' + [...touched].join(',') + ')');
+    const low = st.filter(x => +x.reorder > 0 ? +x.stock <= +x.reorder : +x.stock <= 0);
+    return '\n📦 از موجودی کمد کسر شد.' + (low.length ? '\n⚠️ کمبود: ' + low.map(x => x.name + ' (موجودی ' + x.stock + ')').join('، ') + ' — به سفارش برسانید.' : '');
+}
+async function restoreMeds(visitId) {
+    try {
+        const mv = await api('med_moves?select=item_id,qty&kind=eq.use&note=eq.' + encodeURIComponent('visit:' + visitId));
+        if (!mv.length) return;
+        await api('med_moves', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(mv.map(x => ({ item_id: x.item_id, kind: 'adjust', qty: x.qty, note: 'بازگشت به موجودی: حذف مراجعه ' + visitId }))) });
+    } catch (e) { showDebug('بازگرداندن موجودی دارو: ' + e.message); }
+}
+function sessionEmail() {
+    for (const st of [localStorage, sessionStorage]) {
+        try {
+            for (let i = 0; i < st.length; i++) {
+                const raw = st.getItem(st.key(i)) || ''; if (raw[0] !== '{') continue;
+                const f = (o, d) => { if (!o || typeof o !== 'object' || d > 4) return ''; if (typeof o.email === 'string' && o.email.includes('@')) return o.email; for (const k in o) { const r = f(o[k], d + 1); if (r) return r; } return ''; };
+                const e = f(JSON.parse(raw), 0); if (e) return e.toLowerCase();
+            }
+        } catch (e) { }
+    }
+    return '';
+}
+
 /* ---------- داروها ---------- */
 $('medOptions').innerHTML = MEDS.map(m => `<option value="${esc(m)}"></option>`).join('');
 function addMed() {
     const name = $('medInput').value.trim();
     if (!name) return;
-    meds.push({ name, usage: '' });
+    const it = medItemOf(name);
+    meds.push({ name, usage: '', qty: 1, deduct: !!it, open: false });
     $('medInput').value = '';
     renderMeds();
 }
@@ -528,11 +576,20 @@ function renderMeds() {
     $('medList').innerHTML = meds.map((m, i) => `
         <div class="flex gap-2 items-center bg-slate-900 border border-slate-700 rounded-xl p-2">
             <span class="text-xs flex-1">${esc(m.name)}</span>
+            ${(() => { const it = medItemOf(m.name); if (!it) return ''; return it.unit_kind === 'open'
+                ? `<label class="text-[11px] text-slate-300 whitespace-nowrap"><input type="checkbox" data-op="${i}" ${m.open ? 'checked' : ''}> واحد جدید باز شد</label>`
+                : `<input type="number" min="0" step="1" data-q="${i}" value="${esc(m.qty)}" class="fld !w-16 !py-1 !text-xs" dir="ltr" title="تعداد تحویلی">`; })()}
+            ${medItemOf(m.name) ? `<label class="text-[11px] text-emerald-400 whitespace-nowrap" title="از موجودی کمد کسر می‌شود"><input type="checkbox" data-dd="${i}" ${m.deduct ? 'checked' : ''}> 📦 کسر</label>` : ''}
             <input data-i="${i}" value="${esc(m.usage)}" placeholder="دستور مصرف (مثلاً هر ۸ ساعت - ۵ روز)" class="fld !w-56 !py-1 !text-xs">
             <button type="button" data-del="${i}" class="text-rose-400 text-xs px-2">حذف</button>
         </div>`).join('');
 }
 $('medList').addEventListener('input', e => { if (e.target.dataset.i !== undefined) meds[e.target.dataset.i].usage = e.target.value; });
+$('medList').addEventListener('input', e => { if (e.target.dataset.q !== undefined) meds[e.target.dataset.q].qty = e.target.value; });
+$('medList').addEventListener('change', e => {
+    if (e.target.dataset.op !== undefined) meds[e.target.dataset.op].open = e.target.checked;
+    if (e.target.dataset.dd !== undefined) meds[e.target.dataset.dd].deduct = e.target.checked;
+});
 $('medList').addEventListener('click', e => { if (e.target.dataset.del !== undefined) { meds.splice(+e.target.dataset.del, 1); renderMeds(); } });
 
 $('isReferred').onchange = function () {
@@ -574,6 +631,7 @@ $('clinicForm').onsubmit = async function (e) {
     try {
         const saved = await api('clinic_visits', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=representation' }), body: JSON.stringify(body) });
         const visitId = saved[0] && saved[0].id;
+        let medMsg = ''; try { medMsg = await deductMeds(visitId, meds); } catch (er) { showDebug('کسر از موجودی دارو: ' + er.message); medMsg = '\n⚠️ کسر از موجودی دارو انجام نشد (جدول‌های داروها را بررسی کنید).'; }
 
         const auto = [];
         const reason = body.diagnosis || body.chief_complaint || null;
@@ -589,7 +647,7 @@ $('clinicForm').onsubmit = async function (e) {
             } catch (er) { failed++; showDebug('ساخت پیگیری خودکار: ' + er.message); }
         }
 
-        alert('مراجعه با موفقیت ثبت شد.' + (auto.length ? '\n' + (auto.length - failed) + ' پیگیری خودکار ایجاد شد.' : '') + (failed ? '\n⚠️ ' + failed + ' پیگیری ساخته نشد؛ دستی ثبت کنید.' : ''));
+        alert('مراجعه با موفقیت ثبت شد.' + (auto.length ? '\n' + (auto.length - failed) + ' پیگیری خودکار ایجاد شد.' : '') + (failed ? '\n⚠️ ' + failed + ' پیگیری ساخته نشد؛ دستی ثبت کنید.' : '') + medMsg);
         $('clinicForm').reset(); meds = []; renderMeds(); $('refDest').classList.add('hidden');
         await loadVisits();
         await loadFollowups();
@@ -809,10 +867,11 @@ async function closeCapa(incId) {
     } catch (err) { showDebug(err.message); alert('خطا: ' + err.message); }
 }
 
-async function deleteRow(table, id, msg, reload) {
+async function deleteRow(table, id, msg, reload, after) {
     if (!confirm(msg)) return;
     try {
         await api(table + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
+        if (after) await after();
         await reload();
     } catch (err) { showDebug(err.message); alert('خطا در حذف (ممکن است دسترسی حذف در دیتابیس بسته باشد): ' + err.message); }
 }
@@ -1092,7 +1151,7 @@ document.addEventListener('click', e => {
     else if (d.fudone !== undefined) openDoneModal(d.fudone);
     else if (d.fucancel !== undefined) cancelFu(d.fucancel);
     else if (d.capadone !== undefined) closeCapa(d.capadone);
-    else if (d.delvisit !== undefined) deleteRow('clinic_visits', d.delvisit, 'این مراجعه حذف شود؟ این کار قابل بازگشت نیست.', async () => { await loadVisits(); await loadFollowups(); });
+    else if (d.delvisit !== undefined) deleteRow('clinic_visits', d.delvisit, 'این مراجعه حذف شود؟ این کار قابل بازگشت نیست. (داروی کسرشده از موجودی کمد برمی‌گردد.)', async () => { await loadVisits(); await loadFollowups(); }, () => restoreMeds(d.delvisit));
     else if (d.delinc !== undefined) deleteRow('clinic_incidents', d.delinc, 'این حادثه حذف شود؟ این کار قابل بازگشت نیست.', loadIncidents);
 });
 
