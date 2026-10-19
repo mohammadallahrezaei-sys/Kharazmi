@@ -4,37 +4,111 @@
        <script src="auth.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>بهداری و سوابق پزشکی - نرم‌افزار جامع HSE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap"></noscript>
 <style>*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.fixed{position:fixed}.inset-0{inset:0}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.my-6{margin-top:1.5rem;margin-bottom:1.5rem}.mb-1{margin-bottom:.25rem}.mb-4{margin-bottom:1rem}.mr-1{margin-right:.25rem}.mt-0\.5{margin-top:.125rem}.mt-1{margin-top:.25rem}.mt-2{margin-top:.5rem}.mt-8{margin-top:2rem}.block{display:block}.flex{display:flex}.table{display:table}.grid{display:grid}.hidden{display:none}.h-4{height:1rem}.h-auto{height:auto}.max-h-80{max-height:20rem}.min-h-screen{min-height:100vh}.\!w-40{width:10rem!important}.\!w-56{width:14rem!important}.w-10{width:2.5rem}.w-4{width:1rem}.w-full{width:100%}.max-w-3xl{max-width:48rem}.max-w-5xl{max-width:64rem}.max-w-lg{max-width:32rem}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.cursor-pointer{cursor:pointer}.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1\.5{gap:.375rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.space-y-1>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.25rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.25rem*var(--tw-space-y-reverse))}.space-y-2>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.5rem*var(--tw-space-y-reverse))}.space-y-3>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.75rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.75rem*var(--tw-space-y-reverse))}.space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}.overflow-y-auto{overflow-y:auto}.whitespace-pre-line{white-space:pre-line}.break-all{word-break:break-all}.rounded{border-radius:.25rem}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:.5rem}.rounded-xl{border-radius:.75rem}.border{border-width:1px}.border-t{border-top-width:1px}.border-amber-500\/30{border-color:rgba(245,158,11,.3)}.border-blue-500\/30{border-color:rgba(59,130,246,.3)}.border-emerald-500\/30{border-color:rgba(16,185,129,.3)}.border-emerald-500\/50{border-color:rgba(16,185,129,.5)}.border-red-500{--tw-border-opacity:1;border-color:rgb(239 68 68/var(--tw-border-opacity,1))}.border-rose-500\/30{border-color:rgba(244,63,94,.3)}.border-rose-500\/50{border-color:rgba(244,63,94,.5)}.border-slate-600{--tw-border-opacity:1;border-color:rgb(71 85 105/var(--tw-border-opacity,1))}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85/var(--tw-border-opacity,1))}.border-slate-700\/50{border-color:rgba(51,65,85,.5)}.bg-amber-500\/10{background-color:rgba(245,158,11,.1)}.bg-black\/80{background-color:rgba(0,0,0,.8)}.bg-blue-500\/10{background-color:rgba(59,130,246,.1)}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235/var(--tw-bg-opacity,1))}.bg-emerald-500{--tw-bg-opacity:1;background-color:rgb(16 185 129/var(--tw-bg-opacity,1))}.bg-emerald-500\/10{background-color:rgba(16,185,129,.1)}.bg-emerald-600{--tw-bg-opacity:1;background-color:rgb(5 150 105/var(--tw-bg-opacity,1))}.bg-emerald-950\/20{background-color:rgba(2,44,34,.2)}.bg-emerald-950\/30{background-color:rgba(2,44,34,.3)}.bg-red-950\/80{background-color:rgba(69,10,10,.8)}.bg-rose-500{--tw-bg-opacity:1;background-color:rgb(244 63 94/var(--tw-bg-opacity,1))}.bg-rose-500\/10{background-color:rgba(244,63,94,.1)}.bg-rose-600{--tw-bg-opacity:1;background-color:rgb(225 29 72/var(--tw-bg-opacity,1))}.bg-slate-700{--tw-bg-opacity:1;background-color:rgb(51 65 85/var(--tw-bg-opacity,1))}.bg-slate-700\/50{background-color:rgba(51,65,85,.5)}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59/var(--tw-bg-opacity,1))}.bg-slate-800\/50{background-color:rgba(30,41,59,.5)}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42/var(--tw-bg-opacity,1))}.bg-slate-900\/40{background-color:rgba(15,23,42,.4)}.bg-slate-900\/60{background-color:rgba(15,23,42,.6)}.object-contain{-o-object-fit:contain;object-fit:contain}.p-2{padding:.5rem}.p-2\.5{padding:.625rem}.p-3{padding:.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.\!py-1{padding-top:.25rem!important;padding-bottom:.25rem!important}.px-1{padding-left:.25rem;padding-right:.25rem}.px-1\.5{padding-left:.375rem;padding-right:.375rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0\.5{padding-top:.125rem;padding-bottom:.125rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-1\.5{padding-top:.375rem;padding-bottom:.375rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-2\.5{padding-top:.625rem;padding-bottom:.625rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.py-8{padding-top:2rem;padding-bottom:2rem}.pb-6{padding-bottom:1.5rem}.pt-1{padding-top:.25rem}.text-center{text-align:center}.\!text-xs{font-size:.75rem!important;line-height:1rem!important}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xs{font-size:.75rem;line-height:1rem}.font-bold{font-weight:700}.font-normal{font-weight:400}.text-amber-300{--tw-text-opacity:1;color:rgb(252 211 77/var(--tw-text-opacity,1))}.text-amber-400{--tw-text-opacity:1;color:rgb(251 191 36/var(--tw-text-opacity,1))}.text-blue-400{--tw-text-opacity:1;color:rgb(96 165 250/var(--tw-text-opacity,1))}.text-emerald-300{--tw-text-opacity:1;color:rgb(110 231 183/var(--tw-text-opacity,1))}.text-emerald-400{--tw-text-opacity:1;color:rgb(52 211 153/var(--tw-text-opacity,1))}.text-red-200{--tw-text-opacity:1;color:rgb(254 202 202/var(--tw-text-opacity,1))}.text-red-300{--tw-text-opacity:1;color:rgb(252 165 165/var(--tw-text-opacity,1))}.text-rose-300{--tw-text-opacity:1;color:rgb(253 164 175/var(--tw-text-opacity,1))}.text-rose-400{--tw-text-opacity:1;color:rgb(251 113 133/var(--tw-text-opacity,1))}.text-slate-200{--tw-text-opacity:1;color:rgb(226 232 240/var(--tw-text-opacity,1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225/var(--tw-text-opacity,1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184/var(--tw-text-opacity,1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139/var(--tw-text-opacity,1))}.text-slate-950{--tw-text-opacity:1;color:rgb(2 6 23/var(--tw-text-opacity,1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.shadow{--tw-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color),0 1px 2px -1px var(--tw-shadow-color)}.shadow,.shadow-md{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color),0 2px 4px -2px var(--tw-shadow-color)}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.hover\:bg-blue-500:hover{--tw-bg-opacity:1;background-color:rgb(59 130 246/var(--tw-bg-opacity,1))}.hover\:bg-emerald-500:hover{--tw-bg-opacity:1;background-color:rgb(16 185 129/var(--tw-bg-opacity,1))}.hover\:bg-slate-600:hover{--tw-bg-opacity:1;background-color:rgb(71 85 105/var(--tw-bg-opacity,1))}@media (min-width:768px){.md\:col-span-2{grid-column:span 2/span 2}.md\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.md\:grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.md\:grid-cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}.md\:grid-cols-6{grid-template-columns:repeat(6,minmax(0,1fr))}}</style>
 <style>
-body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc; }
-.fld { width:100%; background:#0f172a; border:1px solid #334155; border-radius:.75rem; padding:.5rem .75rem; color:#fff; font-size:.875rem; outline:none; }
-.fld:focus { border-color:#10b981; }
-.tab-on { background:#059669 !important; color:#022c22; font-weight:700; }
+/* ===== تم هماهنگ با index.html: روشن/تیره خودکار، رنگ اصلی teal، فونت وزیرمتن ===== */
+:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ok:#059669;--wa:#d97706;--bad:#dc2626;--ac:#0f766e;--acx:#fff;--soft:#f8fafc;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155;--ok:#34d399;--wa:#fbbf24;--bad:#f87171;--ac:#14b8a6;--acx:#042f2e;--soft:#172033}}
+body { font-family: Vazirmatn, Tahoma, sans-serif; background: var(--bg); color: var(--tx); font-size: 15px; line-height: 1.7; }
+input[type=checkbox], input[type=radio] { accent-color: var(--ac); }
+input::placeholder, textarea::placeholder { color: var(--mu); opacity: .75; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
+
+/* هدر مثل ایندکس */
+.hd { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.hd img { width:44px; height:auto; border-radius:8px; }
+.hd h1 { margin:0; font-size:20px; font-weight:800; color:var(--tx); line-height:1.5; }
+.hd .mu { color:var(--mu); font-size:13px; }
+.hd .back { margin-inline-start:auto; border:1px solid var(--ac); color:var(--ac); background:var(--card); border-radius:12px; padding:6px 12px; font-size:12px; font-weight:700; white-space:nowrap; }
+.hd .back:hover { filter:brightness(1.06); }
+footer { text-align:center; color:var(--mu); font-size:12px; padding:6px 0 0; margin-top:2rem; }
+footer b { color:var(--ac); }
+
+/* نگاشت کلاس‌های Tailwind به متغیرهای تم */
+.bg-slate-800 { background-color: var(--card); }
+.bg-slate-900, .bg-slate-800\/50, .bg-slate-700\/50 { background-color: var(--soft); }
+.bg-slate-900\/60, .bg-slate-900\/40 { background-color: var(--soft); }
+.bg-slate-700 { background-color: var(--soft); border: 1px solid var(--bd); color: var(--tx); }
+.hover\:bg-slate-600:hover { background-color: var(--bd); }
+.border-slate-700, .border-slate-600, .border-slate-700\/50 { border-color: var(--bd); }
+.text-white, .text-slate-200, .text-slate-300 { color: var(--tx); }
+.text-slate-400, .text-slate-500 { color: var(--mu); }
+.text-emerald-400, .text-emerald-300, .text-blue-400 { color: var(--ac); }
+.text-amber-400, .text-amber-300 { color: var(--wa); }
+.text-rose-400, .text-rose-300, .text-red-300, .text-red-200 { color: var(--bad); }
+.shadow, .shadow-md { box-shadow: none; }
+.rounded-2xl { border-radius: 14px; }
+.rounded-xl { border-radius: 12px; }
+
+/* دکمه‌های اصلی = رنگ اصلی ایندکس */
+.bg-emerald-600, .bg-emerald-500 { background-color: var(--ac); color: var(--acx); }
+.hover\:bg-emerald-500:hover { background-color: var(--ac); filter: brightness(1.08); }
+.text-slate-950 { color: var(--acx); }
+.bg-blue-600 { background-color: var(--ac); color: var(--acx); }
+.hover\:bg-blue-500:hover { background-color: var(--ac); filter: brightness(1.08); }
+.bg-rose-600, .bg-rose-500 { background-color: var(--bad); color: #fff; }
+
+/* برچسب‌ها و بنرهای رنگی (مثل ویجت‌های ok / wa / bad در ایندکس) */
+.bg-emerald-500\/10, .bg-emerald-950\/20, .bg-emerald-950\/30 { background-color: color-mix(in srgb, var(--ok) 9%, var(--card)); }
+.bg-amber-500\/10 { background-color: color-mix(in srgb, var(--wa) 10%, var(--card)); }
+.bg-rose-500\/10 { background-color: color-mix(in srgb, var(--bad) 10%, var(--card)); }
+.bg-blue-500\/10 { background-color: color-mix(in srgb, var(--ac) 10%, var(--card)); }
+.bg-red-950\/80 { background-color: color-mix(in srgb, var(--bad) 10%, var(--card)); }
+.border-emerald-500\/30, .border-emerald-500\/50 { border-color: color-mix(in srgb, var(--ok) 55%, transparent); }
+.border-amber-500\/30 { border-color: color-mix(in srgb, var(--wa) 55%, transparent); }
+.border-rose-500\/30, .border-rose-500\/50, .border-red-500 { border-color: color-mix(in srgb, var(--bad) 55%, transparent); }
+.border-blue-500\/30 { border-color: color-mix(in srgb, var(--ac) 55%, transparent); }
+.bg-black\/80 { background-color: rgba(15,23,42,.6); }
+
+/* فیلدها */
+.fld { width:100%; background:var(--soft); border:1px solid var(--bd); border-radius:12px; padding:.5rem .75rem; color:var(--tx); font-size:.875rem; outline:none; }
+.fld:focus { border-color:var(--ac); }
+.bg-slate-900 .fld, .bg-slate-900\/60 .fld, .bg-slate-900\/40 .fld { background: var(--card); }
+
+/* تب‌ها مثل دکمه‌های «ثبت سریع» ایندکس */
+.tabBtn { background: var(--card) !important; border: 1px solid var(--ac) !important; color: var(--ac); font-weight: 700; }
+.tabBtn:hover { filter: brightness(1.06); }
+.tab-on { background: var(--ac) !important; color: var(--acx) !important; font-weight: 700; }
+.tab-on span { color: #fff; }
+
 .bar { height:8px; border-radius:9999px; }
-.chip { font-size:11px; padding:.25rem .65rem; border-radius:9999px; background:#0f172a; border:1px solid #334155; color:#cbd5e1; }
-.chip:hover { border-color:#10b981; color:#fff; }
-.dayhead { display:flex; justify-content:space-between; align-items:center; padding:.5rem .25rem .35rem; margin-top:.5rem; border-bottom:1px solid #334155; color:#94a3b8; font-size:.75rem; font-weight:700; }
-.qty { width:5rem !important; border-color:#d97706; }
+.chip { font-size:11px; padding:.25rem .65rem; border-radius:9999px; background:var(--soft); border:1px solid var(--bd); color:var(--tx); }
+.chip:hover { border-color:var(--ac); color:var(--ac); }
+.dayhead { display:flex; justify-content:space-between; align-items:center; padding:.5rem .25rem .35rem; margin-top:.5rem; border-bottom:1px solid var(--bd); color:var(--mu); font-size:.75rem; font-weight:700; }
+.vcard { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:.85rem 1rem; }
+.vbanner { border:1px solid; border-radius:12px; padding:.6rem .85rem; font-size:.75rem; line-height:1.7; color:var(--tx); }
+.vb-red { background:color-mix(in srgb, var(--bad) 10%, var(--card)); border-color:var(--bad); }
+.vb-amber { background:color-mix(in srgb, var(--wa) 10%, var(--card)); border-color:var(--wa); }
+.vb-gray { background:var(--soft); border-color:var(--bd); color:var(--mu); }
+.pchip-d, .pchip-w { font-size:11px; padding:.15rem .6rem; border-radius:9999px; border:1px solid; }
+.pchip-d { background:color-mix(in srgb, var(--bad) 12%, var(--card)); border-color:color-mix(in srgb, var(--bad) 55%, transparent); color:var(--bad); }
+.pchip-w { background:color-mix(in srgb, var(--wa) 12%, var(--card)); border-color:color-mix(in srgb, var(--wa) 55%, transparent); color:var(--wa); }
+.exsys { display:grid; grid-template-columns:9rem 8rem 1fr; gap:.5rem; align-items:center; }
+@media (max-width:640px) { .exsys { grid-template-columns:7rem 1fr; } .exsys .exsn { grid-column:1/-1; } }
+.ttab { border-collapse:collapse; font-size:11px; width:100%; }
+.ttab th, .ttab td { border:1px solid var(--bd); padding:.3rem .5rem; text-align:center; white-space:nowrap; }
+.ttab th { background:var(--soft); color:var(--tx); }
+.ttab td.bad { background:color-mix(in srgb, var(--bad) 14%, var(--card)); color:var(--bad); font-weight:700; }
+.qty { width:5rem !important; border-color:var(--wa); }
 .nw { white-space:nowrap; }
-.vcard { background:#1e293b; border:1px solid #334155; border-radius:.75rem; padding:.85rem 1rem; }
+details > summary { cursor:pointer; }
 </style>
 </head>
-<body class="p-4 max-w-5xl mx-auto flex flex-col min-h-screen justify-between">
+<body class="mx-auto flex flex-col min-h-screen justify-between" style="max-width:900px;padding:16px 14px 40px">
 <div>
-    <div class="flex justify-between items-center mb-4 bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-md">
-        <div class="flex items-center gap-3">
-            <img src="logo.png" alt="لوگو" class="w-10 h-auto rounded shadow object-contain" onerror="this.style.display='none'">
-            <div>
-                <h1 class="text-base font-bold text-white">بهداری و سوابق پزشکی</h1>
-                <p class="text-[11px] text-slate-400">سامانه مدیریت مراجعین، سوابق و حوادث - گسترش فناوری خوارزمی</p>
-            </div>
+    <header class="hd">
+        <img src="logo.png" alt="گسترش فناوری خوارزمی" onerror="this.style.display='none'">
+        <div>
+            <h1>بهداری و سوابق پزشکی</h1>
+            <div class="mu">مراجعات، معاینات طب کار و حوادث · گسترش فناوری خوارزمی</div>
         </div>
-        <a href="index.html" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs shrink-0">← بازگشت</a>
-    </div>
+        <a href="index.html" class="back">← بازگشت</a>
+    </header>
 
     <div id="debugBox" class="hidden mb-4 p-4 bg-red-950/80 border border-red-500 text-red-200 rounded-2xl text-xs">
         <div class="flex justify-between items-start">
@@ -48,7 +122,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
     <div class="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4 text-xs">
         <button data-tab="new" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">ثبت مراجعه</button>
         <button data-tab="illness" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">گزارش مراجعات</button>
-        <button data-tab="checkup" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">معاینات پزشکی</button>
+        <button data-tab="checkup" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">معاینات طب کار</button>
         <button data-tab="incident" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">حوادث شغلی</button>
         <button data-tab="stats" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">گزارش و آمارهای کلان</button>
         <button data-tab="follow" class="tabBtn py-2.5 rounded-xl bg-slate-800 border border-slate-700">پیگیری و ارجاعات <span id="openBadge" class="hidden mr-1 bg-rose-600 text-white rounded-full px-1.5 text-[10px]"></span></button>
@@ -74,6 +148,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-700"><span class="text-[10px] text-slate-400 block mb-1">پیگیری باز</span><span id="sFol" class="font-bold text-sm text-amber-400">0</span></div>
                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-700"><span class="text-[10px] text-slate-400 block mb-1">آخرین مراجعه</span><span id="sLast" class="font-bold text-xs">-</span></div>
             </div>
+            <div id="occBanner" class="space-y-2"></div>
         </div>
 
         <div id="formCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl">
@@ -85,7 +160,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                         <datalist id="reasonOptions"></datalist>
                         <div id="reasonChips" class="flex flex-wrap gap-1.5 mt-2"></div>
                     </div>
-                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-[11px] text-slate-400 space-y-1"><p>معاینه (دوره‌ای، بدو استخدام، پس از حادثه و...) اینجا ثبت نمی‌شود.</p><button type="button" data-gotab="checkup" class="text-blue-400">رفتن به معاینات پزشکی</button></div>
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-[11px] text-slate-400 space-y-1"><p>معاینه (دوره‌ای، بدو استخدام، پس از حادثه و...) اینجا ثبت نمی‌شود.</p><button type="button" data-gotab="checkup" class="text-blue-400">رفتن به معاینات طب کار</button></div>
                 </div>
 
                 <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
@@ -134,43 +209,6 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
             <span>این بخش فقط گزارش مراجعات ثبت‌شده است. برای ثبت مراجعه جدید از تب «ثبت مراجعه» استفاده کنید.</span>
             <button type="button" data-gotab="new" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shrink-0">+ ثبت مراجعه</button>
         </div>
-        <div id="ckWrap" class="hidden space-y-4">
-            <div class="flex justify-between items-center bg-slate-800 border border-slate-700 p-4 rounded-2xl">
-                <h2 class="text-sm font-bold text-white">ثبت معاینه پزشکی</h2>
-                <button type="button" id="toggleCkForm" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs">+ ثبت معاینه جدید</button>
-            </div>
-            <div id="ckFormCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl">
-                <form id="ckForm" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div><label class="block text-xs text-slate-300 mb-1">پرسنل</label><input id="ckEmp" list="empList" class="fld" placeholder="نام، کد یا واحد را تایپ کنید..." autocomplete="off" required></div>
-                        <div><label class="block text-xs text-slate-300 mb-1">نوع معاینه</label><select id="ckType" class="fld"></select></div>
-                    </div>
-                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
-                        <p class="text-xs font-bold text-slate-300">علائم حیاتی (اختیاری)</p>
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-                            <div><label class="block text-[11px] text-slate-400 mb-1">فشار بالا</label><input type="number" id="ckSys" class="fld" dir="ltr" placeholder="120"></div>
-                            <div><label class="block text-[11px] text-slate-400 mb-1">فشار پایین</label><input type="number" id="ckDia" class="fld" dir="ltr" placeholder="80"></div>
-                            <div><label class="block text-[11px] text-slate-400 mb-1">ضربان (bpm)</label><input type="number" id="ckPulse" class="fld" dir="ltr"></div>
-                            <div><label class="block text-[11px] text-slate-400 mb-1">دما (°C)</label><input type="number" step="0.1" id="ckTemp" class="fld" dir="ltr"></div>
-                            <div><label class="block text-[11px] text-slate-400 mb-1">SpO2 (%)</label><input type="number" id="ckSpo2" class="fld" dir="ltr" max="100"></div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div><label class="block text-xs text-slate-300 mb-1">نتیجه: وضعیت صلاحیت کار</label>
-                            <select id="ckFit" class="fld"><option value="">ثبت نشود</option><option value="fit">مجاز به کار</option><option value="fit_restricted">مجاز به کار با محدودیت</option><option value="unfit">ناتوان از کار</option></select></div>
-                        <div id="ckRestrBox" class="hidden"><label class="block text-xs text-slate-300 mb-1">محدودیت‌ها</label><input id="ckRestr" class="fld" placeholder="مثلاً: عدم کار در ارتفاع"></div>
-                    </div>
-                    <div><label class="block text-xs text-slate-300 mb-1">یافته‌ها / نتیجه معاینه</label><textarea id="ckFind" rows="2" class="fld" placeholder="مثلاً: سالم - بدون یافته خاص"></textarea></div>
-                    <div><label class="block text-xs text-slate-300 mb-1">توصیه‌ها / اقدامات</label><textarea id="ckAdvice" rows="2" class="fld" placeholder="مثلاً: ارجاع برای آزمایش خون، کنترل فشار..."></textarea></div>
-                    <div><label class="block text-xs text-slate-300 mb-1">سررسید معاینه بعدی (اگر خالی بماند، برای دوره‌ای و بدو استخدام ۱ سال بعد ثبت می‌شود)</label>
-                        <div id="ckNext" class="jd" style="display:flex;gap:4px"><select class="fld" style="flex:0 0 28%;min-width:0"></select><select class="fld" style="flex:1;min-width:0"></select><select class="fld" style="flex:0 0 32%;min-width:0"></select></div></div>
-                    <div class="flex gap-2">
-                        <button type="submit" id="ckSubmit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm">ثبت معاینه</button>
-                        <button type="button" id="ckCancel" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm">انصراف</button>
-                    </div>
-                </form>
-            </div>
-        </div>
         <div id="listStats" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-center"></div>
         <div class="flex gap-2">
             <input id="listSearch" class="fld py-3" placeholder="جستجو در نام، کد، علت مراجعه، دارو...">
@@ -183,6 +221,83 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
             <button id="exportList" class="px-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs shrink-0">⬇ اکسل</button>
         </div>
         <div id="listBody" class="space-y-3 pb-6"></div>
+    </div>
+
+    <!-- معاینات طب کار -->
+    <div id="paneExam" class="hidden space-y-4">
+        <div id="exStats" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-center"></div>
+        <div id="exAlarms"></div>
+        <div class="flex justify-between items-center gap-3 bg-slate-800 border border-slate-700 p-4 rounded-2xl">
+            <div>
+                <h2 class="text-sm font-bold text-white">معاینات طب کار</h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">بدو استخدام، دوره‌ای، پس از حادثه و...؛ مشکلات و روند هر فرد ثبت می‌شود و هنگام دادن دارو هشدار می‌دهد.</p>
+            </div>
+            <button type="button" id="toggleExForm" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-xs shrink-0">+ ثبت معاینه جدید</button>
+        </div>
+
+        <div id="exFormCard" class="hidden bg-slate-800 border border-slate-700 p-5 rounded-2xl">
+            <form id="exForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div><label class="block text-xs text-slate-300 mb-1">پرسنل</label><input id="exEmp" list="empList" class="fld" placeholder="نام، کد یا واحد را تایپ کنید..." autocomplete="off" required></div>
+                    <div><label class="block text-xs text-slate-300 mb-1">نوع معاینه</label><select id="exType" class="fld"></select></div>
+                    <div><label class="block text-xs text-slate-300 mb-1">تاریخ معاینه</label><div id="exDate" class="jd" data-back="8" style="display:flex;gap:4px"><select class="fld" style="flex:0 0 28%;min-width:0"></select><select class="fld" style="flex:1;min-width:0"></select><select class="fld" style="flex:0 0 32%;min-width:0"></select></div></div>
+                </div>
+                <div id="exPrev"></div>
+
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-3">
+                    <p class="text-xs font-bold text-slate-300">۱. سوابق پزشکی <span class="text-[11px] font-normal text-slate-500">(از معاینه قبلی پر می‌شود؛ فقط تغییرات را اصلاح کنید)</span></p>
+                    <div id="exHist" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div><label class="block text-[11px] text-slate-400 mb-1">آلرژی دارویی / غذایی</label><input id="exAllergy" class="fld" placeholder="مثلاً: پنی‌سیلین، ایبوپروفن"></div>
+                        <div><label class="block text-[11px] text-slate-400 mb-1">داروهای مصرفی مداوم</label><input id="exCur" class="fld" placeholder="مثلاً: آملودیپین، متفورمین، وارفارین"></div>
+                        <div><label class="block text-[11px] text-slate-400 mb-1">سابقه جراحی / بیماری مهم</label><input id="exSurg" class="fld"></div>
+                        <div><label class="block text-[11px] text-slate-400 mb-1">سیگار / قلیان</label><select id="exSmoke" class="fld"><option value="">مشخص نشده</option><option value="no">ندارد</option><option value="ex">سابقه دارد (ترک کرده)</option><option value="yes">مصرف‌کننده</option></select></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
+                    <p class="text-xs font-bold text-slate-300">۲. علائم حیاتی و تن‌سنجی</p>
+                    <div id="exVit" class="grid grid-cols-2 md:grid-cols-6 gap-2"></div>
+                </div>
+
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
+                    <p class="text-xs font-bold text-slate-300">۳. معاینه سیستم‌ها <span class="text-[11px] font-normal text-slate-500">(پیش‌فرض «سالم»؛ فقط موارد مشکل‌دار را تغییر دهید)</span></p>
+                    <div id="exSysBox" class="space-y-2"></div>
+                </div>
+
+                <details class="bg-slate-900/60 p-3 rounded-xl border border-slate-700">
+                    <summary class="text-xs font-bold text-slate-300 cursor-pointer">۴. شنوایی‌سنجی، اسپیرومتری، بینایی و آزمایش‌ها (در صورت انجام)</summary>
+                    <div id="exPara" class="space-y-3 mt-3"></div>
+                </details>
+
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-3">
+                    <p class="text-xs font-bold text-slate-300">۵. نتیجه معاینه</p>
+                    <div id="exProb"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div><label class="block text-[11px] text-slate-400 mb-1">وضعیت صلاحیت کار (الزامی)</label>
+                            <select id="exFit" class="fld"><option value="">انتخاب کنید</option><option value="fit">مجاز به کار</option><option value="fit_restricted">مجاز به کار با محدودیت</option><option value="temp_unfit">موقتاً ناتوان (نیاز به درمان و بازبینی)</option><option value="unfit">ناتوان از کار برای این شغل</option></select></div>
+                        <div><label class="block text-[11px] text-slate-400 mb-1">محدودیت‌ها</label><input id="exRestr" class="fld" placeholder="مثلاً: عدم کار در ارتفاع، عدم کار در محیط پرسروصدا"></div>
+                    </div>
+                    <div><label class="block text-[11px] text-slate-400 mb-1">توصیه‌ها / اقدامات لازم</label><textarea id="exRec" rows="2" class="fld" placeholder="مثلاً: ارجاع به متخصص گوش، استفاده از گوشی محافظ..."></textarea></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div><label class="block text-[11px] text-slate-400 mb-1">سررسید معاینه بعدی (خالی = ۱ سال بعد برای بدو استخدام و دوره‌ای)</label><div id="exNext" class="jd" data-back="1" style="display:flex;gap:4px"><select class="fld" style="flex:0 0 28%;min-width:0"></select><select class="fld" style="flex:1;min-width:0"></select><select class="fld" style="flex:0 0 32%;min-width:0"></select></div></div>
+                        <label class="flex items-center gap-2 cursor-pointer" style="align-self:flex-end"><input type="checkbox" id="exFollow" class="w-4 h-4" checked><span class="text-xs text-slate-300">برای یافته‌های مشکل‌دار، پیگیری ساخته شود</span></label>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="submit" id="exSubmit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm">ثبت معاینه</button>
+                    <button type="button" id="exCancel" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm">انصراف</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="flex gap-2">
+            <input id="exSearch" class="fld py-3" placeholder="جستجو در نام، کد، واحد، مشکل، توصیه...">
+            <select id="exFilter" class="fld !w-40"><option value="all">همه معاینات</option><option value="prob">فقط دارای مشکل</option></select>
+            <button id="exportEx" class="px-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs shrink-0">⬇ اکسل</button>
+        </div>
+        <div id="exBody" class="space-y-3 pb-6"></div>
     </div>
 
     <!-- مدیریت حوادث شغلی -->
@@ -254,7 +369,6 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-3">
                     <p class="text-xs font-bold text-slate-300">اقدام اصلاحی و پیشگیرانه (CAPA)</p>
                     <div><label class="block text-[11px] text-slate-400 mb-1">شرح اقدام اصلاحی</label><input type="text" id="incAction" class="fld" placeholder="اقدام جهت عدم تکرار..."></div>
-                    <div><label class="block text-[11px] text-slate-400 mb-1">ریسک مرتبط (اختیاری؛ این حادثه نتیجه کدام ریسک ثبت‌شده است؟)</label><select id="incRisk" class="fld"><option value="">— بدون ارتباط —</option></select></div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div><label class="block text-[11px] text-slate-400 mb-1">مسئول انجام</label><input type="text" id="incOwner" class="fld" placeholder="نام مسئول..."></div>
                         <div><label class="block text-[11px] text-slate-400 mb-1">سررسید اقدام</label><div id="incDueDate" class="jd" style="display:flex;gap:4px"><select class="fld" style="flex:0 0 28%;min-width:0"></select><select class="fld" style="flex:1;min-width:0"></select><select class="fld" style="flex:0 0 32%;min-width:0"></select></div></div>
@@ -353,9 +467,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
     </div>
 </div>
 
-<footer class="bg-slate-800/50 border-t border-slate-700 text-center py-4 text-xs text-slate-400 mt-8 rounded-xl">
-    نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <span class="text-emerald-400 font-bold">محمد اله رضایی</span>
-</footer>
+<footer>نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <b>محمد اله رضایی</b></footer>
 
 <script>
 const SB_URL = 'https://priopguwfjawybffarhd.supabase.co';
@@ -373,7 +485,7 @@ function jdGet(id) { const [d, m, y] = [...$(id).querySelectorAll('select')].map
 function jdInit(el) { const ty = toJal(new Date())[0], o = (v, t) => `<option value="${v}">${t}</option>`, ss = el.querySelectorAll('select');
   ss[0].innerHTML = o('', 'روز') + Array.from({ length: 31 }, (_, i) => o(i + 1, jfa(i + 1))).join('');
   ss[1].innerHTML = o('', 'ماه') + JMN.map((n, i) => o(i + 1, n)).join('');
-  ss[2].innerHTML = o('', 'سال') + [ty - 1, ty, ty + 1, ty + 2].map(v => o(v, jfa(v))).join(''); }
+  ss[2].innerHTML = o('', 'سال') + Array.from({ length: (+el.dataset.back || 1) + 3 }, (_, i) => ty - (+el.dataset.back || 1) + i).map(v => o(v, jfa(v))).join(''); }
 document.querySelectorAll('.jd').forEach(jdInit);
 
 const MEDS = [
@@ -386,7 +498,7 @@ const MEDS = [
  'کلسیم گلوکونات ژل (سوختگی HF)','گلوکونات کلسیم آمپول','آتروپین آمپول','اکسیژن (ماسک)'
 ];
 
-const TAB_TITLE = { illness: 'گزارش مراجعات', checkup: 'معاینات پزشکی' };
+const TAB_TITLE = { illness: 'گزارش مراجعات' };
 const KIND = {
     referral: 'ارجاع به مرکز درمانی',
     specialist: 'ارجاع به متخصص',
@@ -397,9 +509,9 @@ const KIND = {
     incident_capa: 'اقدام اصلاحی حادثه'
 };
 const SEV_TXT = { minor: 'جزئی', moderate: 'متوسط', severe: 'شدید', fatal: 'فوتی' };
-const FIT = { fit: 'مجاز به کار', fit_restricted: 'مجاز با محدودیت', unfit: 'ناتوان از کار' };
+const FIT = { fit: 'مجاز به کار', fit_restricted: 'مجاز با محدودیت', temp_unfit: 'موقتاً ناتوان', unfit: 'ناتوان از کار' };
 
-let employees = [], visits = [], followups = [], incidents = [], meds = [], selEmp = null, tab = 'new', doneId = null;
+let employees = [], visits = [], followups = [], incidents = [], exams = [], meds = [], selEmp = null, tab = 'new', doneId = null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label = e => `${e.first_name || ''} ${e.last_name || ''} (کد ${e.emp_id} - ${e.department || 'نامشخص'})`;
@@ -428,15 +540,17 @@ function validateMeds(arr) {
     }
     return '';
 }
-function confirmMeds(arr) {
+function confirmMeds(arr, empId) {
     if (!arr.length) return true;
+    const warns = [];
+    arr.forEach(m => drugAlerts(empId, m.name).forEach(a => warns.push((a.lvl === 'd' ? '⛔ ' : '⚠️ ') + m.name + ': ' + a.msg)));
     const lines = arr.map(m => {
         const it = medItemOf(m.name), open = it && it.unit_kind === 'open';
         const st = it && STOCK[it.id] !== undefined ? +STOCK[it.id] : null;
         const q = open ? (m.open ? 'یک واحد جدید' : 'بدون کسر') : Number(m.qty);
         return '• ' + m.name + ' × ' + q + (it ? (st !== null && !open && q > st ? '   ⚠️ بیشتر از موجودی کمد (' + st + ')' : '   (از موجودی کسر می‌شود)') : '   (کسر نمی‌شود)');
     });
-    return confirm('مقادیر زیر ثبت می‌شود و به‌طور خودکار از موجودی و آمار بهداری کسر می‌گردد. درست است؟\n\n' + lines.join('\n'));
+    return confirm((warns.length ? 'هشدار دارویی بر اساس معاینات طب کار این فرد:\n' + warns.join('\n') + '\n\nبا وجود هشدار ادامه می‌دهید؟\n\n' : '') + 'مقادیر زیر ثبت می‌شود و به‌طور خودکار از موجودی و آمار بهداری کسر می‌گردد. درست است؟\n\n' + lines.join('\n'));
 }
 const incMedsOf = i => {
     const m = /مواد\/داروی مصرف‌شده: ([^\n]*)/.exec(i.description || '');
@@ -501,6 +615,7 @@ async function loadAll() {
         showDebug('بارگذاری پرسنل: ' + e.message);
     }
     await loadMedItems();
+    await loadExams();
     await loadVisits();
     await loadIncidents();
     await loadFollowups();
@@ -515,17 +630,8 @@ async function loadVisits() {
     } catch (e) { showDebug('سوابق مراجعات: ' + e.message); }
 }
 
-let RISKMAP = {};
-async function loadRisks() {
-    try {
-        const rk = await api('risks?select=id,unit,hazard,score,high&status=neq.archived&order=score.desc');
-        RISKMAP = {}; rk.forEach(r => RISKMAP[r.id] = r);
-        const sel = $('incRisk'); if (sel) sel.innerHTML = '<option value="">— بدون ارتباط —</option>' + rk.map(r => `<option value="${r.id}">${esc(r.unit)} — ${esc(String(r.hazard).slice(0, 50))} (${r.score})</option>`).join('');
-    } catch (e) { RISKMAP = {}; }
-}
 async function loadIncidents() {
     try {
-        await loadRisks();
         incidents = await api('clinic_incidents?order=incident_date.desc&limit=5000');
         if (selEmp) renderSummary();
         if (tab === 'incident') renderIncidents();
@@ -559,9 +665,10 @@ document.querySelectorAll('.tabBtn').forEach(btn => {
         $('paneIncident').classList.toggle('hidden', tab !== 'incident');
         $('paneStats').classList.toggle('hidden', tab !== 'stats');
         $('paneFollow').classList.toggle('hidden', tab !== 'follow');
-        $('ckWrap').classList.toggle('hidden', tab !== 'checkup');
+        $('paneExam').classList.toggle('hidden', tab !== 'checkup');
         $('outNote').classList.toggle('hidden', tab !== 'illness');
         if (TAB_TITLE[tab]) renderList();
+        if (tab === 'checkup') renderExams();
         if (tab === 'incident') renderIncidents();
         if (tab === 'stats') renderStats();
         if (tab === 'follow') renderFollow();
@@ -575,6 +682,7 @@ $('empInput').oninput = function () {
     $('summaryCard').classList.toggle('hidden', !selEmp);
     $('formCard').classList.toggle('hidden', !selEmp);
     if (selEmp) renderSummary();
+    renderMeds();
 };
 
 function renderSummary() {
@@ -587,6 +695,7 @@ function renderSummary() {
     $('sInc').textContent = inc;
     $('sFol').textContent = openF;
     $('sLast').textContent = mine.length ? fdate(mine[0].visit_date) : '-';
+    $('occBanner').innerHTML = occBannerHTML(selEmp.id);
 }
 
 /* ---------- پرونده کامل پرسنل ---------- */
@@ -612,6 +721,7 @@ function openProfile(empId) {
             ${box('روز استعلاجی', leave, 'text-amber-400')}
             ${box('پیگیری باز', fs.filter(f => ['pending', 'overdue'].includes(effStatus(f))).length, 'text-amber-400')}
         </div>
+        ${sec('طب کار', occBannerHTML(empId))}
         ${sec('سوابق مراجعه', vs.map(v => `
             <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs space-y-1">
                 <p class="text-slate-400">${fdate(v.visit_date)} · <b class="text-slate-200">${esc(reasonOf(v))}</b> ${v.blood_pressure ? '· فشار ' + esc(v.blood_pressure) : ''}</p>
@@ -712,7 +822,7 @@ const isKnownMed = n => MEDS.includes(n) || MEDITEMS.some(i => i.name === n);
 $('medInput').addEventListener('input', () => { if (isKnownMed($('medInput').value.trim())) addMed(); });
 $('addMedBtn').onclick = addMed;
 $('medInput').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addMed(); } };
-function medRowsHTML(arr) {
+function medRowsHTML(arr, empId) {
     return arr.map((m, i) => {
         const it = medItemOf(m.name);
         const open = it && it.unit_kind === 'open';
@@ -732,10 +842,11 @@ function medRowsHTML(arr) {
                      : '<span class="text-[11px] text-amber-400">در موجودی کمد تعریف نشده؛ فقط ثبت می‌شود، کسر نمی‌شود</span>'}
                 <input data-i="${i}" value="${esc(m.usage)}" placeholder="دستور مصرف" class="fld !w-56 !py-1 !text-xs">
             </div>
+            ${alertsHTML(empId, m.name)}
         </div>`;
     }).join('');
 }
-function renderMeds() { $('medList').innerHTML = medRowsHTML(meds); }
+function renderMeds() { $('medList').innerHTML = medRowsHTML(meds, selEmp && selEmp.id); }
 $('medList').addEventListener('input', e => { if (e.target.dataset.i !== undefined) meds[e.target.dataset.i].usage = e.target.value; });
 $('medList').addEventListener('input', e => { if (e.target.dataset.q !== undefined) meds[e.target.dataset.q].qty = e.target.value; });
 $('medList').addEventListener('change', e => {
@@ -759,7 +870,7 @@ $('clinicForm').onsubmit = async function (e) {
     if ((sys && !dia) || (!sys && dia)) { alert('فشار بالا و پایین هر دو باید وارد شوند.'); return; }
     if (sys && (+sys <= +dia)) { alert('فشار بالا باید از فشار پایین بیشتر باشد.'); return; }
     if ($('isReferred').checked && !$('refDest').value.trim()) { alert('محل اعزام را وارد کنید.'); return; }
-    { const er = validateMeds(meds); if (er) { alert(er); return; } if (!confirmMeds(meds)) return; }
+    { const er = validateMeds(meds); if (er) { alert(er); return; } if (!confirmMeds(meds, selEmp.id)) return; }
 
     const num = id => $(id).value === '' ? null : Number($(id).value);
     const leave = num('leaveDays') || 0;
@@ -828,7 +939,7 @@ function inRange(v) {
 
 function filteredVisits() {
     const q = $('listSearch').value.trim().toLowerCase();
-    const all = visits.filter(v => catOf(v) === tab);
+    const all = visits.slice();
     const shown = all.filter(v => {
         if (!inRange(v)) return false;
         const e = empById(v.employee_id) || {};
@@ -874,12 +985,7 @@ function renderList() {
     const recent = all.filter(v => { const d = new Date(v.visit_date); return !isNaN(d) && daysDiff(dstr(d)) >= -30; }).length;
     const stat = (t, n, c) => `<div class="bg-slate-800 border border-slate-700 p-3 rounded-xl"><span class="text-[10px] text-slate-400 block mb-1">${t}</span><span class="font-bold text-sm ${c || ''}">${n}</span></div>`;
     let medSummary = '';
-    if (tab === 'checkup') {
-        const typ = v => (v.visit_reason || '').replace(/^checkup:?/, '') || 'periodic';
-        const per = all.filter(v => typ(v) === 'periodic' || /معاینه\s*دوره/.test(v.visit_reason || '')).length;
-        const pre = all.filter(v => typ(v) === 'pre_employment').length;
-        $('listStats').innerHTML = stat('کل معاینات', all.length) + stat('۳۰ روز اخیر', recent, 'text-emerald-400') + stat('دوره‌ای', per, 'text-blue-400') + stat('بدو استخدام', pre, 'text-blue-400') + stat('سایر انواع', all.length - per - pre);
-    } else {
+    {
         const leave = all.reduce((a, v) => a + (Number(v.medical_leave_days) || 0), 0);
         const mt = medTotals(shown), names = Object.entries(mt).sort((a, b) => b[1] - a[1]);
         const tot = names.reduce((a, x) => a + x[1], 0);
@@ -916,54 +1022,408 @@ $('exportList').onclick = () => {
     exportCSV('visits_' + tab, rows);
 };
 
-/* ---------- ثبت معاینه پزشکی ---------- */
-$('ckType').innerHTML = Object.entries(CK_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
-$('toggleCkForm').onclick = () => $('ckFormCard').classList.toggle('hidden');
-$('ckCancel').onclick = () => { $('ckFormCard').classList.add('hidden'); $('ckForm').reset(); $('ckRestrBox').classList.add('hidden'); };
-$('ckFit').onchange = function () { $('ckRestrBox').classList.toggle('hidden', this.value !== 'fit_restricted'); };
+/* ================= معاینات طب کار ================= */
+const nz = s => String(s == null ? '' : s).replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/\u200c/g, ' ').toLowerCase();
+const num = z => (z === null || z === undefined || z === '' || isNaN(Number(z))) ? null : Number(z);
+const avgN = (...a) => { const v = a.map(num); return v.some(x => x === null) ? null : v.reduce((p, c) => p + c, 0) / v.length; };
+const fx = n => String(Math.round(n * 10) / 10);
+const byDate = (a, b) => a.exam_date < b.exam_date ? -1 : (a.exam_date > b.exam_date ? 1 : 0);
+const monthsAgo = d => Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / (30.44 * 864e5));
+const addDaysTo = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return dstr(d); };
+const sdate = d => { try { return new Date(d + 'T00:00:00').toLocaleDateString('fa-IR', { year: 'numeric', month: 'numeric', day: 'numeric' }); } catch (e) { return d; } };
+function jdSet(id, iso) { const ss = $(id).querySelectorAll('select'), j = toJal(new Date(iso + 'T00:00:00Z')); ss[0].value = j[2]; ss[1].value = j[1]; ss[2].value = j[0]; }
 
-$('ckForm').onsubmit = async function (e) {
-    e.preventDefault();
-    const emp = employees.find(x => label(x) === $('ckEmp').value);
-    if (!emp) { alert('پرسنل را از لیست پیشنهادی انتخاب کنید.'); return; }
-    const sys = $('ckSys').value, dia = $('ckDia').value;
-    if ((sys && !dia) || (!sys && dia)) { alert('فشار بالا و پایین هر دو باید وارد شوند.'); return; }
-    if (sys && (+sys <= +dia)) { alert('فشار بالا باید از فشار پایین بیشتر باشد.'); return; }
-    const num = id => $(id).value === '' ? null : Number($(id).value);
-    const type = $('ckType').value, fit = $('ckFit').value, restr = $('ckRestr').value.trim();
-    const fitTxt = fit ? 'صلاحیت کار: ' + FIT[fit] + (fit === 'fit_restricted' && restr ? ' (' + restr + ')' : '') : '';
-    const findings = $('ckFind').value.trim();
-    const body = {
-        employee_id: emp.id,
-        visit_reason: 'checkup:' + type,
-        blood_pressure: sys ? sys + '/' + dia : null,
-        pulse_rate: num('ckPulse'), temperature: num('ckTemp'), spo2: num('ckSpo2'),
-        chief_complaint: null,
-        diagnosis: [fitTxt, findings].filter(Boolean).join('\n') || null,
-        treatments_given: $('ckAdvice').value.trim() || null,
-        prescribed_meds: [], medical_leave_days: 0, is_referred: false, referral_destination: null
+const EX_SYS = [['eye_r', 'چشم راست'], ['eye_l', 'چشم چپ'], ['ear_r', 'گوش راست'], ['ear_l', 'گوش چپ'], ['nose', 'بینی و حلق'], ['lung', 'ریه و دستگاه تنفس'], ['heart', 'قلب و عروق'], ['abd', 'شکم و گوارش'], ['msk', 'ستون فقرات و مفاصل'], ['skin', 'پوست'], ['neuro', 'اعصاب'], ['psych', 'وضعیت روانی']];
+const HIST = [['htn', 'فشار خون بالا'], ['dm', 'دیابت'], ['cardiac', 'بیماری قلبی'], ['lung', 'آسم / بیماری مزمن ریوی'], ['kidney', 'بیماری کلیه'], ['liver', 'بیماری کبد'], ['ulcer', 'زخم معده / گوارشی'], ['epilepsy', 'صرع / تشنج'], ['glaucoma', 'گلوکوم'], ['pregnancy', 'بارداری / شیردهی']];
+const COND = { htn: 'فشار خون بالا', dm: 'دیابت / قند بالا', cardiac: 'بیماری قلبی', lung: 'بیماری ریوی / آسم', kidney: 'مشکل کلیه', liver: 'مشکل کبد', ulcer: 'زخم معده / گوارشی', epilepsy: 'صرع / تشنج', glaucoma: 'گلوکوم', pregnancy: 'بارداری / شیردهی', hearing: 'مشکل شنوایی', cardiac2: 'مشکل قلبی', safety: 'محدودیت کار در ارتفاع/رانندگی/ماشین‌آلات' };
+
+/* ---------- استخراج شاخص‌ها و مشکلات ---------- */
+function metricsOf(x) {
+    const t = x.tests || {}, v = x.vitals || {}, a = t.aud || {}, sp = t.spiro || {}, vi = t.vision || {}, lb = t.lab || {};
+    const h = num(v.height), w = num(v.weight);
+    return {
+        hl_l: avgN(a.l500, a.l1000, a.l2000), hl_r: avgN(a.r500, a.r1000, a.r2000), hf_l: avgN(a.l2000, a.l4000), hf_r: avgN(a.r2000, a.r4000),
+        fvc: num(sp.fvc), fev1: num(sp.fev1), ratio: num(sp.ratio), sys: num(v.sys), dia: num(v.dia), pulse: num(v.pulse),
+        bmi: (h && w) ? w / ((h / 100) * (h / 100)) : null, va_l: num(vi.l), va_r: num(vi.r),
+        fbs: num(lb.fbs), chol: num(lb.chol), tg: num(lb.tg), creat: num(lb.creat), alt: num(lb.alt), ast: num(lb.ast), hb: num(lb.hb)
     };
-    const btn = $('ckSubmit');
-    btn.disabled = true; btn.textContent = 'در حال ثبت...';
+}
+function computeProblems(x) {
+    const P = [], sys = x.systems || {}, m = metricsOf(x), t = x.tests || {};
+    const add = (k, label, note, sev) => P.push({ k, label, note: note || '', sev: sev || 'w' });
+    EX_SYS.forEach(([k, lbl]) => { const s = sys[k]; if (s && s.s === 'a') add('sys_' + k, lbl, s.note, 'd'); });
+    [['l', 'چپ'], ['r', 'راست']].forEach(([sd, nm]) => {
+        if (m['hl_' + sd] !== null && m['hl_' + sd] > 25) add('hl_' + sd, 'کم‌شنوایی گوش ' + nm, fx(m['hl_' + sd]) + ' dB', 'd');
+        else if (m['hf_' + sd] !== null && m['hf_' + sd] > 25) add('hf_' + sd, 'افت شنوایی فرکانس بالا گوش ' + nm, fx(m['hf_' + sd]) + ' dB', 'w');
+        const va = m['va_' + sd]; if (va !== null && va < 8) add('va_' + sd, 'ضعف بینایی چشم ' + (sd === 'l' ? 'چپ' : 'راست'), va + '/10', 'w');
+    });
+    if (m.ratio !== null && m.ratio < 70) add('obst', 'الگوی انسدادی ریه', 'FEV1/FVC=' + m.ratio, 'd');
+    if (m.fvc !== null && m.fvc < 80) add('restr', 'الگوی محدودکننده ریه', 'FVC=' + m.fvc + '%', 'w');
+    if ((t.vision || {}).color === 'a') add('color', 'اختلال دید رنگ', '', 'w');
+    if (t.ecg === 'a') add('ecg', 'نوار قلب غیرطبیعی', '', 'd');
+    if ((m.sys !== null && m.sys >= 140) || (m.dia !== null && m.dia >= 90)) add('bp', 'فشار خون بالا', m.sys + '/' + m.dia, 'd');
+    if (m.bmi !== null && m.bmi >= 30) add('bmi', 'چاقی', 'BMI=' + fx(m.bmi), 'w');
+    if (m.fbs !== null && m.fbs >= 126) add('fbs', 'قند ناشتا بالا', String(m.fbs), 'd');
+    else if (m.fbs !== null && m.fbs >= 100) add('fbs', 'قند ناشتا مرزی', String(m.fbs), 'w');
+    if (m.chol !== null && m.chol >= 240) add('chol', 'کلسترول بالا', String(m.chol), 'w');
+    if (m.tg !== null && m.tg >= 200) add('tg', 'تری‌گلیسیرید بالا', String(m.tg), 'w');
+    if (m.creat !== null && m.creat > 1.4) add('creat', 'کراتینین بالا', String(m.creat), 'd');
+    if (m.alt !== null && m.alt > 40) add('alt', 'ALT بالا', String(m.alt), 'w');
+    if (m.ast !== null && m.ast > 40) add('ast', 'AST بالا', String(m.ast), 'w');
+    if (m.hb !== null && m.hb < 12) add('hb', 'کم‌خونی (Hb پایین)', String(m.hb), 'w');
+    return P;
+}
+
+/* ---------- پروفایل سلامت فرد و روند ---------- */
+function occProfile(empId) {
+    const ex = exams.filter(x => x.employee_id === empId).slice().sort(byDate);
+    if (!ex.length) return null;
+    const last = ex[ex.length - 1], m = metricsOf(last), sys = last.systems || {};
+    const hist = new Set(), cond = new Set();
+    ex.forEach(x => Object.keys(((x.history || {}).cond) || {}).forEach(k => { hist.add(k); cond.add(k); }));
+    const ab = k => sys[k] && sys[k].s === 'a';
+    if (ab('lung') || (m.ratio !== null && m.ratio < 70) || (m.fvc !== null && m.fvc < 80)) cond.add('lung');
+    if (ab('ear_r') || ab('ear_l') || (m.hl_l !== null && m.hl_l > 25) || (m.hl_r !== null && m.hl_r > 25)) cond.add('hearing');
+    if (ab('heart') || (last.tests || {}).ecg === 'a') cond.add('cardiac');
+    if ((m.sys !== null && m.sys >= 140) || (m.dia !== null && m.dia >= 90)) cond.add('htn');
+    if (m.fbs !== null && m.fbs >= 126) cond.add('dm');
+    if (m.creat !== null && m.creat > 1.4) cond.add('kidney');
+    if ((m.alt !== null && m.alt > 50) || (m.ast !== null && m.ast > 50)) cond.add('liver');
+    if (/ارتفاع|رانندگی|ماشین|برق/.test(last.restrictions || '')) cond.add('safety');
+    const h = last.history || {};
+    return { exam: last, date: last.exam_date, cond, hist, allergy: nz(h.allergy), cur: nz(h.cur_meds), allergyRaw: h.allergy || '', curRaw: h.cur_meds || '' };
+}
+function trendAlarms(empId) {
+    const ex = exams.filter(x => x.employee_id === empId).slice().sort(byDate), out = [];
+    if (!ex.length) return out;
+    const M = ex.map(metricsOf);
+    const series = k => M.map((m, i) => ({ i, v: m[k] })).filter(p => p.v !== null);
+    [['l', 'چپ'], ['r', 'راست']].forEach(([sd, nm]) => {
+        const s = series('hf_' + sd);
+        if (s.length >= 2) {
+            const base = s[0], cur = s[s.length - 1], prev = s[s.length - 2], db = cur.v - base.v, dp = cur.v - prev.v;
+            if (db >= 10) out.push({ lvl: 'd', msg: `افت شنوایی گوش ${nm}: میانگین ۲۰۰۰ و ۴۰۰۰ هرتز از ${fx(base.v)} به ${fx(cur.v)} dB رسیده (${fx(db)} dB بدتر از معاینه پایه)` });
+            else if (dp >= 10) out.push({ lvl: 'd', msg: `افت ناگهانی شنوایی گوش ${nm}: ${fx(dp)} dB نسبت به معاینه قبلی` });
+            else if (s.length >= 3 && db >= 5 && s.every((p, i) => i === 0 || p.v >= s[i - 1].v)) out.push({ lvl: 'w', msg: `روند نزولی شنوایی گوش ${nm} در ${s.length} معاینه متوالی (${fx(db)} dB)` });
+        }
+        const h = series('hl_' + sd), c = h[h.length - 1];
+        if (c && c.v > 25) out.push({ lvl: 'w', msg: `کم‌شنوایی گوش ${nm} (میانگین ۵۰۰–۲۰۰۰ هرتز = ${fx(c.v)} dB)` });
+    });
+    const f = series('fev1');
+    if (f.length >= 2 && f[0].v - f[f.length - 1].v >= 10) out.push({ lvl: 'd', msg: `افت عملکرد ریه: FEV1 از ${f[0].v}% به ${f[f.length - 1].v}% رسیده` });
+    const r = series('ratio'); if (r.length && r[r.length - 1].v < 70) out.push({ lvl: 'w', msg: `الگوی انسدادی در اسپیرومتری (FEV1/FVC = ${r[r.length - 1].v})` });
+    const fv = series('fvc'); if (fv.length && fv[fv.length - 1].v < 80) out.push({ lvl: 'w', msg: `الگوی محدودکننده در اسپیرومتری (FVC = ${fv[fv.length - 1].v}%)` });
+    const sy = series('sys');
+    if (sy.length) {
+        const c = sy[sy.length - 1], dia = M[c.i].dia;
+        if (c.v >= 140 || (dia !== null && dia >= 90)) out.push({ lvl: 'w', msg: `فشار خون بالا در آخرین معاینه (${c.v}/${dia === null ? '-' : dia})` });
+        else if (sy.length >= 3 && c.v - sy[0].v >= 15) out.push({ lvl: 'w', msg: `فشار سیستولیک روندی صعودی دارد (${sy[0].v} ← ${c.v})` });
+    }
+    const mo = monthsAgo(ex[ex.length - 1].exam_date);
+    if (mo >= 13) out.push({ lvl: 'i', msg: `آخرین معاینه ${mo} ماه پیش بوده؛ معاینه دوره‌ای سررسید است` });
+    const ord = { d: 0, w: 1, i: 2 };
+    return out.sort((a, b) => ord[a.lvl] - ord[b.lvl]);
+}
+
+/* ---------- هشدار دارویی بر اساس معاینات ---------- */
+const CLASSES = {
+    nsaid: ['ایبوپروفن', 'ژلوفن', 'ناپروکسن', 'دیکلوفناک', 'کتورولاک', 'پیروکسیکام', 'ملوکسیکام', 'ضدتورم', 'ضدالتهاب', 'ایندومتاسین', 'سلکوکسیب', 'آسپرین'],
+    apap: ['استامینوفن', 'پاراستامول'],
+    decong: ['سرماخوردگی', 'آدلت کلد', 'سودوافدرین', 'فنیل‌افرین', 'نفازولین'],
+    sedah: ['کلرفنیرامین', 'دیفن‌هیدرامین', 'آنتی هیستامین', 'آنتی‌هیستامین', 'هیدروکسی‌زین', 'دایمن‌هیدرینات', 'پرومتازین'],
+    steroid: ['پردنیزولون', 'دگزامتازون', 'هیدروکورتیزون آمپول', 'بتامتازون'],
+    bblock: ['پروپرانولول', 'آتنولول', 'متوپرولول', 'بیسوپرولول'],
+    saba: ['سالبوتامول', 'سالبوتامون', 'ونتولین'],
+    antichol: ['هیوسین', 'بوتیل‌اسکوپولامین', 'آتروپین'],
+    benzo: ['دیازپام', 'آلپرازولام', 'کلونازپام', 'لورازپام'],
+    opioid: ['کدئین', 'ترامادول', 'مورفین', 'پتدین'],
+    metoc: ['متوکلوپرامید', 'دومپریدون'],
+    fq: ['سیپروفلوکساسین', 'لووفلوکساسین', 'نورفلوکساسین'],
+    peni: ['آموکسی', 'پنی‌سیلین', 'آمپی‌سیلین'],
+    cef: ['سفالکسین', 'سفیکسیم', 'سفتریاکسون', 'سفازولین', 'سفوروکسیم'],
+    sulfa: ['کوتریموکسازول', 'کوتریموکساز', 'سولفا', 'تری‌متوپریم'],
+    macro: ['آزیترومایسین', 'اریترومایسین', 'کلاریترومایسین'],
+    metro: ['مترونیدازول'],
+    amino: ['جنتامایسین', 'آمیکاسین', 'استرپتومایسین'],
+    loop: ['فوروزماید']
+};
+const COND_RULES = [
+    ['nsaid', 'ulcer', 'd', 'ضدالتهاب غیراستروئیدی؛ خطر تشدید زخم و خونریزی گوارشی'],
+    ['nsaid', 'kidney', 'd', 'خطر آسیب بیشتر کلیه؛ از تجویز پرهیز شود'],
+    ['nsaid', 'htn', 'w', 'می‌تواند فشار خون را بالا ببرد'],
+    ['nsaid', 'cardiac', 'w', 'احتیاط؛ خطر احتباس مایع و عوارض قلبی'],
+    ['nsaid', 'lung', 'w', 'در آسم ممکن است حمله تنفسی ایجاد کند'],
+    ['nsaid', 'liver', 'w', 'احتیاط در بیماری کبدی'],
+    ['nsaid', 'pregnancy', 'd', 'در بارداری مناسب نیست'],
+    ['nsaid', 'hearing', 'w', 'دوز بالای ضدالتهاب/آسپرین ممکن است به شنوایی آسیب بزند'],
+    ['apap', 'liver', 'd', 'احتیاط؛ دوز را محدود کنید'],
+    ['decong', 'htn', 'd', 'داروی سرماخوردگی ضداحتقان دارد و فشار را بالا می‌برد'],
+    ['decong', 'cardiac', 'd', 'ضداحتقان‌ها ممکن است تپش و فشار را بالا ببرند'],
+    ['decong', 'glaucoma', 'w', 'ضداحتقان در گلوکوم می‌تواند خطرناک باشد'],
+    ['decong', 'dm', 'w', 'احتیاط؛ ممکن است قند را بالا ببرد'],
+    ['sedah', 'safety', 'w', 'خواب‌آلودگی؛ با محدودیت کاری (ارتفاع/رانندگی/ماشین‌آلات) سازگار نیست'],
+    ['sedah', 'glaucoma', 'w', 'احتیاط در گلوکوم'],
+    ['steroid', 'dm', 'd', 'قند خون را بالا می‌برد'],
+    ['steroid', 'htn', 'w', 'ممکن است فشار خون را بالا ببرد'],
+    ['steroid', 'ulcer', 'w', 'خطر تشدید زخم معده'],
+    ['bblock', 'lung', 'd', 'در آسم / بیماری انسدادی ریه ممنوع است'],
+    ['bblock', 'dm', 'w', 'علائم افت قند خون را پنهان می‌کند'],
+    ['saba', 'cardiac', 'w', 'ممکن است تپش و آریتمی ایجاد کند'],
+    ['saba', 'htn', 'w', 'احتیاط؛ ممکن است فشار را بالا ببرد'],
+    ['antichol', 'glaucoma', 'd', 'در گلوکوم خطرناک است'],
+    ['antichol', 'cardiac', 'w', 'ممکن است ضربان قلب را بالا ببرد'],
+    ['benzo', 'lung', 'd', 'تضعیف تنفس؛ در بیماری ریوی خطرناک است'],
+    ['benzo', 'safety', 'd', 'خواب‌آلودگی؛ با کار در ارتفاع/رانندگی/ماشین‌آلات سازگار نیست'],
+    ['benzo', 'liver', 'w', 'احتیاط در بیماری کبدی'],
+    ['benzo', 'pregnancy', 'd', 'در بارداری مناسب نیست'],
+    ['opioid', 'lung', 'd', 'تضعیف تنفس؛ در بیماری ریوی ممنوع است'],
+    ['opioid', 'safety', 'd', 'خواب‌آلودگی؛ با محدودیت‌های ایمنی کار سازگار نیست'],
+    ['metoc', 'epilepsy', 'w', 'ممکن است آستانه تشنج را پایین بیاورد'],
+    ['fq', 'epilepsy', 'd', 'ممکن است تشنج ایجاد کند'],
+    ['fq', 'pregnancy', 'd', 'در بارداری مناسب نیست'],
+    ['fq', 'kidney', 'w', 'نیاز به تنظیم دوز در مشکل کلیه'],
+    ['sulfa', 'kidney', 'w', 'احتیاط و تنظیم دوز در مشکل کلیه'],
+    ['macro', 'cardiac', 'w', 'خطر اختلال ریتم قلب (QT)'],
+    ['macro', 'liver', 'w', 'احتیاط در بیماری کبدی'],
+    ['metro', 'liver', 'w', 'احتیاط و تنظیم دوز در بیماری کبدی'],
+    ['amino', 'hearing', 'd', 'سمّیت گوش؛ در مشکل شنوایی از تجویز پرهیز شود'],
+    ['amino', 'kidney', 'd', 'سمّیت کلیه'],
+    ['loop', 'hearing', 'w', 'می‌تواند به شنوایی آسیب بزند']
+];
+const CUR_RULES = [
+    ['nsaid', ['وارفارین', 'کلوپیدوگرل', 'ریواروکسابان', 'آپیکسابان', 'هپارین', 'آسپرین'], 'd', 'خطر خونریزی با داروهای ضدانعقاد/ضدپلاکت'],
+    ['nsaid', ['کاپتوپریل', 'انالاپریل', 'لیزینوپریل', 'لوزارتان', 'والسارتان', 'فوروزماید', 'هیدروکلروتیازید', 'دیورتیک'], 'w', 'کاهش اثر داروی فشار و فشار روی کلیه'],
+    ['nsaid', ['متوترکسات', 'لیتیوم'], 'd', 'افزایش سمیت دارو'],
+    ['saba', ['پروپرانولول', 'آتنولول', 'متوپرولول', 'بیسوپرولول', 'بتابلاکر'], 'd', 'بتابلاکر اثر سالبوتامول را خنثی می‌کند'],
+    ['bblock', ['سالبوتامول', 'سالبوتامون'], 'w', 'اثر اسپری تنفسی را خنثی می‌کند'],
+    ['benzo', ['فنوباربیتال', 'کلونازپام', 'ترامادول', 'کدئین', 'الکل'], 'w', 'افزایش خواب‌آلودگی و تضعیف تنفس'],
+    ['decong', ['کاپتوپریل', 'آملودیپین', 'لوزارتان', 'متوپرولول', 'آتنولول', 'والسارتان', 'انالاپریل'], 'w', 'کاهش اثر داروی فشار'],
+    ['steroid', ['متفورمین', 'گلی‌بنکلامید', 'انسولین', 'گلیکلازید'], 'w', 'افزایش قند؛ اثر داروی دیابت کم می‌شود'],
+    ['fq', ['وارفارین', 'تئوفیلین'], 'w', 'تداخل دارویی'],
+    ['metro', ['وارفارین'], 'd', 'افزایش خطر خونریزی'],
+    ['macro', ['وارفارین', 'آتورواستاتین', 'سیمواستاتین'], 'w', 'تداخل دارویی']
+];
+function drugAlerts(empId, name) {
+    const P = empId ? occProfile(empId) : null;
+    if (!P || !name) return [];
+    const n = nz(name), out = [], topical = /پماد|ژل|اسپری|موضعی|قطره|محلول/.test(n);
+    const classes = Object.keys(CLASSES).filter(c => CLASSES[c].some(k => n.includes(nz(k))));
+    const pre = 'در معاینه طب کار (' + sdate(P.date) + ') ';
+    classes.forEach(c => {
+        if (CLASSES[c].some(k => P.allergy.includes(nz(k)))) out.push({ lvl: 'd', msg: pre + 'آلرژی/حساسیت به این گروه دارویی ثبت شده: ' + P.allergyRaw });
+        if (!((c === 'nsaid' || c === 'steroid') && topical)) {
+            COND_RULES.filter(r => r[0] === c && P.cond.has(r[1])).forEach(r => out.push({ lvl: r[2], msg: pre + '«' + COND[r[1]] + '» ذکر شده — ' + r[3] }));
+        }
+        CUR_RULES.filter(r => r[0] === c && r[1].some(k => P.cur.includes(nz(k)))).forEach(r => out.push({ lvl: r[2], msg: 'تداخل با داروی مصرفی این فرد (' + P.curRaw + ') — ' + r[3] }));
+    });
+    if (classes.includes('cef') && /پنی|آموکسی|بتالاکتام|بتا لاکتام|آمپی/.test(P.allergy)) out.push({ lvl: 'w', msg: pre + 'حساسیت به پنی‌سیلین ثبت شده؛ احتمال واکنش متقاطع با سفالوسپورین‌ها' });
+    const seen = new Set();
+    return out.filter(a => { const k = a.lvl + a.msg; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+const alertsHTML = (empId, name) => drugAlerts(empId, name).map(a => `<div class="vbanner ${a.lvl === 'd' ? 'vb-red' : 'vb-amber'}">${a.lvl === 'd' ? '⛔' : '⚠️'} ${esc(a.msg)}</div>`).join('');
+
+function occBannerHTML(empId) {
+    const P = occProfile(empId);
+    if (!P) return '<div class="vbanner vb-gray">⚕️ برای این فرد هنوز معاینه طب کار ثبت نشده؛ سوابق بیماری، آلرژی و داروهای مصرفی نامشخص است. <button type="button" data-gotab="checkup" class="text-blue-400">ثبت معاینه</button></div>';
+    const al = trendAlarms(empId), bad = al.some(a => a.lvl === 'd');
+    const chips = [...P.cond].map(k => `<span class="pchip-w">${esc(COND[k] || k)}</span>`).join('');
+    const m = metricsOf(P.exam);
+    const vals = [m.hl_l !== null ? 'شنوایی چپ ' + fx(m.hl_l) + ' dB' : '', m.hl_r !== null ? 'راست ' + fx(m.hl_r) + ' dB' : '', m.fev1 !== null ? 'FEV1 ' + m.fev1 + '%' : '', m.sys !== null ? 'فشار ' + m.sys + '/' + (m.dia === null ? '-' : m.dia) : ''].filter(Boolean).join(' · ');
+    return `<div class="vbanner ${bad ? 'vb-red' : (P.cond.size || al.length ? 'vb-amber' : 'vb-gray')}">
+        <div class="flex justify-between items-center gap-2 flex-wrap"><b>سوابق طب کار — آخرین معاینه: ${esc(sdate(P.date))}</b><button type="button" data-occ="${esc(empId)}" class="text-blue-400">روند و پرونده طب کار</button></div>
+        ${chips ? `<div class="flex flex-wrap gap-1.5 mt-1.5">${chips}</div>` : ''}
+        ${P.allergyRaw ? `<p class="mt-1.5">آلرژی: <b>${esc(P.allergyRaw)}</b></p>` : ''}
+        ${P.curRaw ? `<p class="mt-1">داروی مصرفی: <b>${esc(P.curRaw)}</b></p>` : ''}
+        ${vals ? `<p class="mt-1" style="opacity:.8">${esc(vals)}</p>` : ''}
+        ${al.length ? `<ul class="mt-1.5 space-y-1">${al.map(a => `<li>${a.lvl === 'd' ? '🔴' : (a.lvl === 'w' ? '🟠' : 'ℹ️')} ${esc(a.msg)}</li>`).join('')}</ul>` : ''}
+    </div>`;
+}
+
+/* ---------- پرونده و جدول روند ---------- */
+const TREND_ROWS = [
+    ['hl_l', 'شنوایی چپ ۵۰۰–۲۰۰۰ (dB)', v => v > 25, 1], ['hl_r', 'شنوایی راست ۵۰۰–۲۰۰۰ (dB)', v => v > 25, 1],
+    ['hf_l', 'شنوایی چپ ۲۰۰۰–۴۰۰۰ (dB)', v => v > 25, 1], ['hf_r', 'شنوایی راست ۲۰۰۰–۴۰۰۰ (dB)', v => v > 25, 1],
+    ['fvc', 'FVC (%)', v => v < 80, -1], ['fev1', 'FEV1 (%)', v => v < 80, -1], ['ratio', 'FEV1/FVC', v => v < 70, -1],
+    ['sys', 'فشار سیستولیک', v => v >= 140, 1], ['dia', 'فشار دیاستولیک', v => v >= 90, 1], ['bmi', 'BMI', v => v >= 30, 1],
+    ['va_r', 'بینایی راست (از ۱۰)', v => v < 8, -1], ['va_l', 'بینایی چپ (از ۱۰)', v => v < 8, -1],
+    ['fbs', 'قند ناشتا', v => v >= 126, 1], ['chol', 'کلسترول', v => v >= 240, 1], ['tg', 'تری‌گلیسیرید', v => v >= 200, 1],
+    ['creat', 'کراتینین', v => v > 1.4, 1], ['alt', 'ALT', v => v > 40, 1], ['ast', 'AST', v => v > 40, 1], ['hb', 'هموگلوبین', v => v < 12, -1]
+];
+function spark(vals) {
+    const p = vals.filter(v => v !== null);
+    if (p.length < 2) return '';
+    const mn = Math.min(...p), mx = Math.max(...p), W = 70, H = 20, n = vals.length;
+    const pts = vals.map((v, i) => v === null ? null : [(n === 1 ? 0 : i / (n - 1)) * W, H - 2 - ((mx === mn ? 0.5 : (v - mn) / (mx - mn)) * (H - 4))]).filter(Boolean).map(a => a[0].toFixed(1) + ',' + a[1].toFixed(1)).join(' ');
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><polyline points="${pts}" fill="none" style="stroke:var(--ac)" stroke-width="1.5"/></svg>`;
+}
+function openOcc(empId) {
+    const e = empById(empId); if (!e) return;
+    const ex = exams.filter(x => x.employee_id === empId).slice().sort(byDate), M = ex.map(metricsOf);
+    $('profTitle').textContent = 'پرونده طب کار: ' + (e.first_name || '') + ' ' + (e.last_name || '') + ' (کد ' + e.emp_id + ' - ' + (e.department || 'نامشخص') + ')';
+    const rows = TREND_ROWS.filter(r => M.some(m => m[r[0]] !== null));
+    const table = rows.length ? `<div style="overflow-x:auto"><table class="ttab"><thead><tr><th>شاخص</th>${ex.map(x => `<th>${esc(sdate(x.exam_date))}<br><span style="font-weight:400;color:var(--mu)">${esc((CK_TYPES[x.exam_type] || '').replace('معاینه ', ''))}</span></th>`).join('')}<th>تغییر</th><th>روند</th></tr></thead><tbody>${rows.map(([k, lbl, bad, dir]) => {
+        const vals = M.map(m => m[k]), p = vals.filter(v => v !== null), d = p.length > 1 ? p[p.length - 1] - p[0] : null;
+        const worse = d !== null && d * dir > 0, better = d !== null && d * dir < 0;
+        return `<tr><td style="text-align:right">${esc(lbl)}</td>${vals.map(v => `<td class="${v !== null && bad(v) ? 'bad' : ''}">${v === null ? '-' : fx(v)}</td>`).join('')}<td style="color:${worse ? 'var(--bad)' : (better ? 'var(--ok)' : 'var(--mu)')}">${d === null ? '-' : (d > 0 ? '▲ ' : (d < 0 ? '▼ ' : '')) + fx(Math.abs(d))}</td><td>${spark(vals)}</td></tr>`;
+    }).join('')}</tbody></table></div>` : '<p class="text-xs text-slate-500">مقدار عددی (شنوایی‌سنجی، اسپیرومتری، فشار، آزمایش) برای نمایش روند ثبت نشده است.</p>';
+    $('profBody').innerHTML = `
+        ${occBannerHTML(empId)}
+        <div class="space-y-2"><h4 class="text-xs font-bold text-emerald-400">روند شاخص‌ها در معاینات (سرخ = خارج از محدوده، ▲/▼ = تغییر از معاینه اول)</h4>${table}</div>
+        <div class="space-y-2"><h4 class="text-xs font-bold text-emerald-400">سوابق معاینات</h4>${ex.slice().reverse().map(x => examCard(x, true)).join('') || '<p class="text-xs text-slate-500">معاینه‌ای ثبت نشده است.</p>'}</div>`;
+    $('profileModal').classList.remove('hidden');
+}
+
+/* ---------- فرم ثبت معاینه ---------- */
+function exField(g, k, lbl, ph) { return `<div><label class="block text-[11px] text-slate-400 mb-1">${lbl}</label><input type="number" step="any" class="fld exn" data-g="${g}" data-k="${k}" dir="ltr" placeholder="${ph || ''}"></div>`; }
+(function buildExForm() {
+    $('exType').innerHTML = Object.entries(CK_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+    $('exHist').innerHTML = HIST.map(([k, l]) => `<label class="text-xs text-slate-300"><input type="checkbox" data-h="${k}"> ${l}</label>`).join('');
+    $('exVit').innerHTML = exField('vit', 'sys', 'فشار بالا', '120') + exField('vit', 'dia', 'فشار پایین', '80') + exField('vit', 'pulse', 'ضربان (bpm)') + exField('vit', 'height', 'قد (cm)') + exField('vit', 'weight', 'وزن (kg)') + '<div><label class="block text-[11px] text-slate-400 mb-1">BMI</label><div id="exBmi" class="fld" style="color:var(--mu)">-</div></div>';
+    $('exSysBox').innerHTML = EX_SYS.map(([k, l]) => `<div class="exsys" data-s="${k}"><span class="text-xs text-slate-300">${l}</span><select class="fld exst"><option value="n">سالم</option><option value="a">مشکل دارد</option><option value="x">معاینه نشد</option></select><input class="fld exsn hidden" placeholder="شرح مشکل (مثلاً کاهش شنوایی، خس‌خس، قرمزی...)"></div>`).join('');
+    const aud = (sd, nm) => `<p class="text-[11px] text-slate-400 mt-2">${nm}</p><div class="grid grid-cols-2 md:grid-cols-4 gap-2">${[500, 1000, 2000, 4000].map(f => exField('aud', sd + f, f + ' Hz')).join('')}</div>`;
+    $('exPara').innerHTML = `
+        <div><p class="text-[11px] font-bold text-slate-300">شنوایی‌سنجی (آستانه شنوایی بر حسب dB؛ عدد بیشتر = شنوایی ضعیف‌تر)</p>${aud('r', 'گوش راست')}${aud('l', 'گوش چپ')}</div>
+        <div><p class="text-[11px] font-bold text-slate-300 mb-1">اسپیرومتری</p><div class="grid grid-cols-2 md:grid-cols-4 gap-2">${exField('spiro', 'fvc', 'FVC (٪ پیش‌بینی)')}${exField('spiro', 'fev1', 'FEV1 (٪ پیش‌بینی)')}${exField('spiro', 'ratio', 'FEV1/FVC (٪)')}</div></div>
+        <div><p class="text-[11px] font-bold text-slate-300 mb-1">بینایی</p><div class="grid grid-cols-2 md:grid-cols-4 gap-2">${exField('vision', 'r', 'حدت چشم راست (از ۱۰)')}${exField('vision', 'l', 'حدت چشم چپ (از ۱۰)')}<div><label class="block text-[11px] text-slate-400 mb-1">دید رنگ</label><select id="exColor" class="fld"><option value="">بررسی نشد</option><option value="n">سالم</option><option value="a">مشکل دارد</option></select></div></div></div>
+        <div><p class="text-[11px] font-bold text-slate-300 mb-1">آزمایش‌ها و نوار قلب</p><div class="grid grid-cols-2 md:grid-cols-4 gap-2">${exField('lab', 'fbs', 'قند ناشتا (mg/dL)')}${exField('lab', 'chol', 'کلسترول')}${exField('lab', 'tg', 'تری‌گلیسیرید')}${exField('lab', 'creat', 'کراتینین')}${exField('lab', 'alt', 'ALT')}${exField('lab', 'ast', 'AST')}${exField('lab', 'hb', 'هموگلوبین')}<div><label class="block text-[11px] text-slate-400 mb-1">نوار قلب (ECG)</label><select id="exEcg" class="fld"><option value="">انجام نشد</option><option value="n">سالم</option><option value="a">مشکل دارد</option></select></div></div></div>`;
+})();
+function readExam() {
+    const g = {};
+    document.querySelectorAll('#exForm .exn').forEach(i => { (g[i.dataset.g] = g[i.dataset.g] || {})[i.dataset.k] = num(i.value); });
+    const cond = {}; document.querySelectorAll('#exForm [data-h]').forEach(c => { if (c.checked) cond[c.dataset.h] = true; });
+    const sys = {}; document.querySelectorAll('#exForm .exsys').forEach(r => { sys[r.dataset.s] = { s: r.querySelector('.exst').value, note: r.querySelector('.exsn').value.trim() }; });
+    return {
+        history: { cond, allergy: $('exAllergy').value.trim(), cur_meds: $('exCur').value.trim(), surgery: $('exSurg').value.trim(), smoke: $('exSmoke').value },
+        vitals: g.vit || {}, systems: sys,
+        tests: { aud: g.aud || {}, spiro: g.spiro || {}, vision: Object.assign({}, g.vision || {}, { color: $('exColor').value }), lab: g.lab || {}, ecg: $('exEcg').value }
+    };
+}
+function refreshExProb() {
+    const d = readExam(), P = computeProblems(d), m = metricsOf(d);
+    $('exBmi').textContent = m.bmi !== null ? fx(m.bmi) : '-';
+    $('exProb').innerHTML = P.length
+        ? `<div class="vbanner vb-amber"><b>یافته‌های مشکل‌دار این معاینه (خودکار):</b><div class="flex flex-wrap gap-1.5 mt-1.5">${P.map(p => `<span class="${p.sev === 'd' ? 'pchip-d' : 'pchip-w'}">${esc(p.label)}${p.note ? ' (' + esc(p.note) + ')' : ''}</span>`).join('')}</div></div>`
+        : '<p class="text-[11px] text-slate-500">فعلاً یافتهٔ مشکل‌داری ثبت نشده است.</p>';
+}
+function resetExForm() {
+    $('exForm').reset();
+    document.querySelectorAll('#exForm .exsn').forEach(i => i.classList.add('hidden'));
+    $('exPrev').innerHTML = ''; refreshExProb();
+}
+$('exForm').addEventListener('input', e => { if (e.target.id !== 'exEmp') refreshExProb(); });
+$('exForm').addEventListener('change', e => {
+    if (e.target.classList.contains('exst')) e.target.closest('.exsys').querySelector('.exsn').classList.toggle('hidden', e.target.value !== 'a');
+    refreshExProb();
+});
+$('exEmp').addEventListener('input', function () {
+    const emp = employees.find(x => label(x) === this.value);
+    $('exPrev').innerHTML = emp ? occBannerHTML(emp.id) : '';
+    const P = emp ? occProfile(emp.id) : null;
+    if (P) {
+        const h = P.exam.history || {};
+        document.querySelectorAll('#exForm [data-h]').forEach(c => { c.checked = P.hist.has(c.dataset.h); });
+        $('exAllergy').value = h.allergy || ''; $('exCur').value = h.cur_meds || ''; $('exSurg').value = h.surgery || ''; $('exSmoke').value = h.smoke || '';
+    }
+});
+$('toggleExForm').onclick = () => { $('exFormCard').classList.toggle('hidden'); if (!jdGet('exDate')) jdSet('exDate', todayStr()); };
+$('exCancel').onclick = () => { $('exFormCard').classList.add('hidden'); resetExForm(); };
+
+$('exForm').onsubmit = async function (e) {
+    e.preventDefault();
+    const emp = employees.find(x => label(x) === $('exEmp').value);
+    if (!emp) { alert('پرسنل را از لیست پیشنهادی انتخاب کنید.'); return; }
+    const data = readExam(), v = data.vitals;
+    if ((v.sys === null || v.sys === undefined) !== (v.dia === null || v.dia === undefined)) { alert('فشار بالا و پایین هر دو باید وارد شوند.'); return; }
+    if (v.sys !== null && v.sys !== undefined && v.sys <= v.dia) { alert('فشار بالا باید از فشار پایین بیشتر باشد.'); return; }
+    const fit = $('exFit').value;
+    if (!fit) { alert('وضعیت صلاحیت کار را انتخاب کنید.'); return; }
+    const type = $('exType').value, date = jdGet('exDate') || todayStr();
+    const next = jdGet('exNext') || ((type === 'periodic' || type === 'pre_employment') ? addDaysTo(date, 365) : null);
+    const problems = computeProblems(data);
+    const body = { employee_id: emp.id, exam_date: date, exam_type: type, history: data.history, vitals: data.vitals, systems: data.systems, tests: data.tests, problems, fitness: fit, restrictions: $('exRestr').value.trim() || null, recommendations: $('exRec').value.trim() || null, next_exam_date: next, created_by: (typeof sessionEmail === 'function' ? sessionEmail() : null) || null };
+    const btn = $('exSubmit'); btn.disabled = true; btn.textContent = 'در حال ثبت...';
     try {
-        const saved = await api('clinic_visits', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=representation' }), body: JSON.stringify(body) });
-        const visitId = saved[0] && saved[0].id;
-        const auto = [];
-        const next = jdGet('ckNext') || ((type === 'periodic' || type === 'pre_employment') ? addDays(365) : null);
-        if (next) auto.push({ employee_id: emp.id, visit_id: visitId, kind: 'periodic', priority: 'normal', title: 'معاینه بعدی (' + CK_TYPES[type] + ')', reason: 'سررسید معاینه بعدی', due_date: next });
-        if (sys && (+sys >= 140 || +dia >= 90)) auto.push({ employee_id: emp.id, visit_id: visitId, kind: 'followup', priority: 'normal', title: 'کنترل مجدد فشار خون (' + sys + '/' + dia + ')', reason: 'فشار خون بالا در معاینه', due_date: addDays(7) });
+        const saved = await api('clinic_exams', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=representation' }), body: JSON.stringify(body) });
+        const auto = [], recent = daysDiff(date) >= -60;
+        if (recent && problems.length && $('exFollow').checked) auto.push({ employee_id: emp.id, kind: 'followup', priority: problems.some(p => p.sev === 'd') ? 'urgent' : 'normal', title: 'پیگیری یافته‌های معاینه طب کار: ' + problems.slice(0, 3).map(p => p.label).join('، '), reason: problems.map(p => p.label + (p.note ? ' (' + p.note + ')' : '')).join('، '), due_date: addDays(30) });
+        if (next && next >= todayStr()) auto.push({ employee_id: emp.id, kind: 'periodic', priority: 'normal', title: 'معاینه طب کار بعدی (' + (CK_TYPES[type] || '') + ')', reason: 'سررسید معاینه بعدی', due_date: next });
         let failed = 0;
         for (const item of auto) { try { await api('clinic_followups', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(item) }); } catch (er) { failed++; showDebug('ساخت پیگیری خودکار: ' + er.message); } }
-        alert('معاینه ثبت شد.' + (auto.length ? '\n' + (auto.length - failed) + ' پیگیری خودکار ایجاد شد.' : ''));
-        $('ckForm').reset(); $('ckRestrBox').classList.add('hidden'); $('ckFormCard').classList.add('hidden');
-        await loadVisits(); await loadFollowups();
-    } catch (err) { showDebug(err.message); alert('خطا در ثبت معاینه: ' + err.message); }
+        alert('معاینه ثبت شد.' + (problems.length ? '\n' + problems.length + ' یافتهٔ مشکل‌دار ثبت شد و در هشدار دارویی این فرد لحاظ می‌شود.' : '') + (auto.length ? '\n' + (auto.length - failed) + ' پیگیری خودکار ایجاد شد.' : ''));
+        resetExForm(); $('exFormCard').classList.add('hidden');
+        await loadExams(); await loadFollowups();
+    } catch (err) { showDebug(err.message + ' (اگر جدول clinic_exams ساخته نشده، فایل clinic_exams.sql را اجرا کنید)'); alert('خطا در ثبت معاینه: ' + err.message); }
     finally { btn.disabled = false; btn.textContent = 'ثبت معاینه'; }
 };
 
+/* ---------- لیست و داشبورد معاینات ---------- */
+function examCard(x, compact) {
+    const e = empById(x.employee_id) || {}, probs = x.problems || [];
+    const fitCls = x.fitness === 'fit' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (x.fitness === 'fit_restricted' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30');
+    const line = (t, v) => v ? `<p class="text-xs text-slate-300 mt-1"><span class="text-slate-500">${t}:</span> ${esc(v)}</p>` : '';
+    return `<div class="vcard">
+        <div class="flex justify-between items-start gap-2 flex-wrap">
+            <div>
+                <p class="font-bold text-sm text-white">${esc(CK_TYPES[x.exam_type] || 'معاینه')} <span class="text-slate-500 font-normal text-xs">· ${esc(sdate(x.exam_date))}</span></p>
+                ${compact ? '' : `<p class="text-xs text-slate-300 mt-0.5">${esc(e.first_name || 'نامشخص')} ${esc(e.last_name || '')} <span class="text-slate-500">(کد ${esc(e.emp_id || '-')} - ${esc(e.department || 'نامشخص')})</span></p>`}
+            </div>
+            <div class="flex gap-1.5 flex-wrap items-center">
+                <span class="text-[11px] border px-2 py-0.5 rounded-full ${fitCls}">${esc(FIT[x.fitness] || '-')}</span>
+                ${compact ? '' : `<button data-occ="${esc(x.employee_id)}" class="text-[11px] text-blue-400 px-1">روند / پرونده</button><button data-delexam="${esc(x.id)}" class="text-[11px] text-rose-400 px-1">حذف</button>`}
+            </div>
+        </div>
+        ${probs.length ? `<div class="flex flex-wrap gap-1.5 mt-2">${probs.map(p => `<span class="${p.sev === 'd' ? 'pchip-d' : 'pchip-w'}">${esc(p.label)}${p.note ? ' (' + esc(p.note) + ')' : ''}</span>`).join('')}</div>` : '<p class="text-[11px] text-emerald-400 mt-2">بدون یافتهٔ مشکل‌دار</p>'}
+        ${line('محدودیت‌ها', x.restrictions)}${line('توصیه‌ها', x.recommendations)}${x.next_exam_date ? line('معاینه بعدی', sdate(x.next_exam_date)) : ''}
+    </div>`;
+}
+function filteredExams() {
+    const q = $('exSearch').value.trim().toLowerCase(), f = $('exFilter').value;
+    return exams.filter(x => {
+        const e = empById(x.employee_id) || {};
+        const hay = [e.first_name, e.last_name, e.emp_id, e.department, CK_TYPES[x.exam_type], (x.problems || []).map(p => p.label + ' ' + (p.note || '')).join(' '), x.recommendations, x.restrictions].join(' ').toLowerCase();
+        if (q && !hay.includes(q)) return false;
+        if (f === 'prob' && !(x.problems || []).length) return false;
+        return true;
+    }).sort((a, b) => -byDate(a, b));
+}
+function renderExams() {
+    const byEmp = {}; exams.forEach(x => (byEmp[x.employee_id] = byEmp[x.employee_id] || []).push(x));
+    const ids = Object.keys(byEmp), latest = id => byEmp[id].slice().sort(byDate).pop();
+    const withProb = ids.filter(id => (latest(id).problems || []).length).length;
+    const overdue = ids.filter(id => monthsAgo(latest(id).exam_date) >= 13).length;
+    const alarmList = ids.map(id => ({ id, al: trendAlarms(id).filter(a => a.lvl !== 'i') })).filter(x => x.al.length)
+        .sort((a, b) => (b.al.some(z => z.lvl === 'd') ? 1 : 0) - (a.al.some(z => z.lvl === 'd') ? 1 : 0));
+    const stat = (t, n, c) => `<div class="bg-slate-800 border border-slate-700 p-3 rounded-xl"><span class="text-[10px] text-slate-400 block mb-1">${t}</span><span class="font-bold text-sm ${c || ''}">${n}</span></div>`;
+    $('exStats').innerHTML = stat('معاینه‌شده', ids.length, 'text-emerald-400') + stat('بدون معاینه', Math.max(0, employees.length - ids.filter(id => empById(id)).length), 'text-rose-400') + stat('سررسید گذشته (۱۳+ ماه)', overdue, 'text-amber-400') + stat('دارای یافتهٔ مشکل‌دار', withProb, 'text-amber-400') + stat('هشدار روند', alarmList.length, 'text-rose-400');
+    $('exAlarms').innerHTML = alarmList.length ? `<details open class="bg-slate-800 border border-slate-700 rounded-2xl p-4"><summary class="text-sm font-bold text-rose-400 cursor-pointer">🔔 هشدارهای روند (${alarmList.length} نفر)</summary><div class="space-y-2 mt-3">${alarmList.map(({ id, al }) => { const e = empById(id) || {}; return `<div class="vbanner ${al.some(a => a.lvl === 'd') ? 'vb-red' : 'vb-amber'}"><div class="flex justify-between items-center gap-2 flex-wrap"><b>${esc(e.first_name || 'نامشخص')} ${esc(e.last_name || '')} <span style="font-weight:400;opacity:.7">(کد ${esc(e.emp_id || '-')} - ${esc(e.department || 'نامشخص')})</span></b><button type="button" data-occ="${esc(id)}" class="text-blue-400">روند و پرونده</button></div><ul class="mt-1 space-y-1">${al.map(a => `<li>${a.lvl === 'd' ? '🔴' : '🟠'} ${esc(a.msg)}</li>`).join('')}</ul></div>`; }).join('')}</div></details>` : '';
+    const list = filteredExams();
+    $('exBody').innerHTML = list.length ? list.map(x => examCard(x)).join('') : '<p class="text-center py-8 text-slate-500 text-sm">معاینه‌ای یافت نشد. با «+ ثبت معاینه جدید» شروع کنید.</p>';
+}
+$('exSearch').oninput = renderExams;
+$('exFilter').onchange = renderExams;
+$('exportEx').onclick = () => {
+    const head = ['تاریخ', 'کد', 'نام', 'واحد', 'نوع', 'فشار', 'BMI', 'شنوایی چپ', 'شنوایی راست', 'FEV1', 'FVC', 'قند', 'کلسترول', 'کراتینین', 'مشکلات', 'نتیجه', 'محدودیت', 'توصیه', 'معاینه بعدی'];
+    const rows = filteredExams().map(x => { const e = empById(x.employee_id) || {}, m = metricsOf(x); return [sdate(x.exam_date), e.emp_id, (e.first_name || '') + ' ' + (e.last_name || ''), e.department, CK_TYPES[x.exam_type], m.sys !== null ? m.sys + '/' + m.dia : '', m.bmi !== null ? fx(m.bmi) : '', m.hl_l !== null ? fx(m.hl_l) : '', m.hl_r !== null ? fx(m.hl_r) : '', m.fev1, m.fvc, m.fbs, m.chol, m.creat, (x.problems || []).map(p => p.label + (p.note ? ' (' + p.note + ')' : '')).join(' | '), FIT[x.fitness], x.restrictions, x.recommendations, x.next_exam_date ? sdate(x.next_exam_date) : '']; });
+    const csv = '\ufeff' + [head].concat(rows).map(r => r.map(c => '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'occupational-exams.csv'; a.click();
+};
+async function loadExams() {
+    try { exams = await api('clinic_exams?order=exam_date.desc&limit=5000'); }
+    catch (e) { exams = []; showDebug('معاینات طب کار: ' + e.message + ' (اگر جدول clinic_exams ساخته نشده، فایل clinic_exams.sql را اجرا کنید)'); }
+    if (selEmp) { renderSummary(); renderMeds(); }
+    if (tab === 'checkup') renderExams();
+    if (tab === 'stats') renderStats();
+}
+function topExamProblems() {
+    const seen = new Set(), cnt = {};
+    exams.slice().sort((a, b) => -byDate(a, b)).forEach(x => { if (seen.has(x.employee_id)) return; seen.add(x.employee_id); (x.problems || []).forEach(p => { cnt[p.label] = (cnt[p.label] || 0) + 1; }); });
+    return Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 12);
+}
+
 /* ---------- مواد مصرفی حادثه ---------- */
 let incMeds = [];
-function renderIncMeds() { $('incMedList').innerHTML = medRowsHTML(incMeds); }
+const incEmpId = () => { const e = employees.find(x => label(x) === $('incEmp').value); return e ? e.id : null; };
+function renderIncMeds() { $('incMedList').innerHTML = medRowsHTML(incMeds, incEmpId()); }
 function addIncMed() {
     const name = $('incMedInput').value.trim();
     if (!name) return;
@@ -976,6 +1436,7 @@ function addIncMed() {
     if (q) { q.focus(); q.select(); }
 }
 $('incAddMedBtn').onclick = addIncMed;
+$('incEmp').addEventListener('input', renderIncMeds);
 $('incMedInput').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); addIncMed(); } };
 $('incMedInput').addEventListener('input', () => { if (isKnownMed($('incMedInput').value.trim())) addIncMed(); });
 $('incMedList').addEventListener('input', e => { const d = e.target.dataset; if (d.i !== undefined) incMeds[d.i].usage = e.target.value; if (d.q !== undefined) incMeds[d.q].qty = e.target.value; });
@@ -992,7 +1453,7 @@ $('incForm').onsubmit = async function (e) {
     const emp = employees.find(x => label(x) === $('incEmp').value);
     if (!emp) { alert('پرسنل را از لیست پیشنهادی انتخاب کنید.'); return; }
     if ($('incMedInput').value.trim()) addIncMed();
-    { const er = validateMeds(incMeds); if (er) { alert(er); return; } if (!confirmMeds(incMeds)) return; }
+    { const er = validateMeds(incMeds); if (er) { alert(er); return; } if (!confirmMeds(incMeds, emp.id)) return; }
 
     // علت ریشه‌ای و نوع حادثه داخل شرح ذخیره می‌شوند تا نیازی به ستون جدید در دیتابیس نباشد
     let desc = $('incDesc').value.trim();
@@ -1023,7 +1484,6 @@ $('incForm').onsubmit = async function (e) {
         action_due_date: jdGet('incDueDate') || null,
         action_status: 'pending'
     };
-    if ($('incRisk') && $('incRisk').value) body.risk_id = +$('incRisk').value;
 
     const btn = $('incSubmit');
     btn.disabled = true; btn.textContent = 'در حال ثبت...';
@@ -1102,7 +1562,6 @@ function renderIncidents() {
                     </div>
                     <p class="text-[11px] text-slate-400">مسئول: ${esc(i.action_owner || 'تعیین‌نشده')} · سررسید: ${i.action_due_date ? fday(i.action_due_date) : '-'}</p>
                 </div>` : ''}
-            ${i.risk_id && RISKMAP[i.risk_id] ? `<p class="text-[11px] text-slate-400">ریسک مرتبط: <a href="risks.html" class="text-teal-400">${esc(RISKMAP[i.risk_id].unit)} — ${esc(String(RISKMAP[i.risk_id].hazard).slice(0, 60))}</a> (امتیاز ${esc(RISKMAP[i.risk_id].score)})</p>` : ''}
         </div>`;
     }).join('');
 }
@@ -1171,7 +1630,7 @@ function renderRates() {
 function renderStats() {
     const totalVisits = visits.length;
     const totalIncidents = incidents.length;
-    const totalCheckups = visits.filter(isCheckup).length;
+    const totalCheckups = exams.length;
     const medTot = {};
     visits.forEach(v => medsOf(v).forEach(m => { const n = medName(m).trim(); if (!n) return; (medTot[n] = medTot[n] || { v: 0, i: 0 }).v += (medQty(m) || 1); }));
     incidents.forEach(i => incMedsOf(i).forEach(m => { (medTot[m.name] = medTot[m.name] || { v: 0, i: 0 }).i += m.qty; }));
@@ -1212,7 +1671,7 @@ function renderStats() {
         ${card('کل مراجعات بهداری', totalVisits, 'text-emerald-400')}
         ${card('کل حوادث شغلی', totalIncidents, 'text-rose-400')}
         ${card('مجموع روزهای استعلاجی', totalLeaves, 'text-amber-400')}
-        ${card('معاینات پزشکی', totalCheckups, 'text-blue-400')}
+        ${card('معاینات طب کار', totalCheckups, 'text-blue-400')}
         ${card('دارو و مواد مصرفی', totalMeds, 'text-emerald-400')}
         ${card('CAPA باز', openCapa, 'text-amber-400')}
     </div>
@@ -1255,6 +1714,10 @@ function renderStats() {
         <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3 md:col-span-2">
             <h3 class="text-sm font-bold text-white">دارو و مواد مصرفی (مراجعات + حوادث)</h3>
             <div class="space-y-2">${Object.keys(medTot).length ? Object.keys(medTot).sort((a, b) => medSum(b) - medSum(a)).slice(0, 25).map(n => row(n, medSum(n) + ' عدد (مراجعات ' + medTot[n].v + ' · حوادث ' + medTot[n].i + ')', 'text-emerald-400')).join('') : '<p class="text-xs text-slate-500">داده‌ای ثبت نشده است.</p>'}</div>
+        </div>
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3 md:col-span-2">
+            <h3 class="text-sm font-bold text-white">شایع‌ترین یافته‌های طب کار (آخرین معاینه هر فرد)</h3>
+            <div class="space-y-2">${topExamProblems().length ? topExamProblems().map(([n, c]) => row(n, c + ' نفر', 'text-amber-400')).join('') : '<p class="text-xs text-slate-500">معاینه‌ای ثبت نشده است.</p>'}</div>
         </div>
     </div>`;
     renderRates();
@@ -1432,6 +1895,8 @@ document.addEventListener('click', e => {
     const d = t.dataset;
     if (d.gotab !== undefined) document.querySelector('[data-tab="' + d.gotab + '"]').click();
     else if (d.profile !== undefined) openProfile(d.profile);
+    else if (d.occ !== undefined) openOcc(d.occ);
+    else if (d.delexam !== undefined) deleteRow('clinic_exams', d.delexam, 'این معاینه حذف شود؟ این کار قابل بازگشت نیست.', loadExams);
     else if (d.fudone !== undefined) openDoneModal(d.fudone);
     else if (d.fucancel !== undefined) cancelFu(d.fucancel);
     else if (d.capadone !== undefined) closeCapa(d.capadone);
