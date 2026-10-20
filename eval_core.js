@@ -82,6 +82,7 @@
   /* امتیازدهی یک واحد (تابع خالص؛ مطابق فرمول‌های اکسل) */
   function scoreUnit(i) {
     const C = i.C, hours = i.days * C * PARAM.HOURS_PER_DAY;
+    // ✅ استفاده از امتیازهای وزنی (hz/nm/sg قبلاً به‌صورت وزنی محاسبه شده‌اند)
     const L = ratioPts(i.hz, C, [3, 6, 8, 10]), O = ratioPts(i.nm, C, [3, 6, 8, 10]), R = ratioPts(i.sg, C, [3, 6, 8, 10]), T = ratioPts(i.talks, C, [3, 5, 8, 10]);
     const X = pctPts(i.ppe / C * 100), AB = pctPts(i.unsafe / C * 100);
     const afr = i.ac * 1e6 / hours, AF = afr === 0 ? 10 : afr < 400 ? 5 : afr < 600 ? 0 : afr < 800 ? -5 : -10;
@@ -102,9 +103,24 @@
     const incU = {}; let incNoUnit = 0;
     inM(B.inc, 'incident_date').forEach(i => { const uid = empU[i.employee_id]; if (!uid) { incNoUnit++; return; } (incU[uid] = incU[uid] || []).push(i); });
     const mon = {}; (B.monthly || []).filter(m => m.month_key === K).forEach(m => mon[m.unit_id] = m);
+    
     const rows = B.units.filter(u => u.active !== false && u.headcount > 0).map(u => {
-      const C = u.headcount, ct = t => cards.filter(c => c.unit === u.name && c.card_type === t).length;
-      const hz = ct('hazard'), nm = ct('near_miss'), sg = ct('suggestion'), talks = (talkUnits[u.id] || new Set()).size;
+      const C = u.headcount;
+      
+      // ✅ تابع جدید برای محاسبه‌ی امتیاز وزنی کارت‌ها
+      // گزارش عادی = ۱ امتیاز، گزارش عالی = ۲ امتیاز
+      const getWeightedScore = (type) => {
+        const typeCards = cards.filter(c => c.unit === u.name && c.card_type === type);
+        const standardCount = typeCards.filter(c => c.is_excellent !== true).length;
+        const excellentCount = typeCards.filter(c => c.is_excellent === true).length;
+        return standardCount + (excellentCount * 2);
+      };
+      
+      const hz = getWeightedScore('hazard');
+      const nm = getWeightedScore('near_miss');
+      const sg = getWeightedScore('suggestion');
+      const talks = (talkUnits[u.id] || new Set()).size;
+      
       const m = mon[u.id], entered = !!m, ppe = m ? m.ppe_count : 0, unsafe = m ? m.unsafe_count : 0;
       const ii = incU[u.id] || [], ak = ii.filter(i => i.severity === 'minor').length, ac = ii.length - ak;
       const lost = ii.reduce((s, i) => s + (+((i.description || '').match(/روز از دست رفته:\s*(\d+)/) || [0, 0])[1]), 0);
@@ -115,7 +131,30 @@
     });
     rows.filter(r => r.eligible).sort((a, b) => b.score - a.score).forEach((r, i) => r.rank = i + 1);
     const zones = [0, 1, 2, 3].map(z => rows.filter(r => r.zone === z));
-    return { K, rows, zones, incomplete: rows.filter(r => !r.entered), rank: rows.filter(r => r.eligible).sort((a, b) => a.rank - b.rank), cardsTotal: cards.length, cardTypes: { hazard: cards.filter(c => c.card_type === 'hazard').length, near_miss: cards.filter(c => c.card_type === 'near_miss').length, suggestion: cards.filter(c => c.card_type === 'suggestion').length }, incNoUnit, days: R.days };
+    
+    // ✅ محاسبه‌ی آمار کارت‌ها با در نظر گرفتن امتیاز وزنی
+    const allCardsInMonth = inM(B.cards, 'card_date').filter(c => c.status !== 'rejected');
+    const weightedTotal = allCardsInMonth.reduce((sum, c) => sum + (c.is_excellent ? 2 : 1), 0);
+    const weightedByType = (type) => allCardsInMonth.filter(c => c.card_type === type).reduce((sum, c) => sum + (c.is_excellent ? 2 : 1), 0);
+    
+    return { 
+      K, rows, zones, 
+      incomplete: rows.filter(r => !r.entered), 
+      rank: rows.filter(r => r.eligible).sort((a, b) => a.rank - b.rank), 
+      cardsTotal: allCardsInMonth.length,
+      cardsWeightedTotal: weightedTotal, // ✅ مجموع امتیاز وزنی
+      cardTypes: { 
+        hazard: allCardsInMonth.filter(c => c.card_type === 'hazard').length, 
+        near_miss: allCardsInMonth.filter(c => c.card_type === 'near_miss').length, 
+        suggestion: allCardsInMonth.filter(c => c.card_type === 'suggestion').length 
+      },
+      cardTypesWeighted: { // ✅ آمار وزنی بر اساس نوع
+        hazard: weightedByType('hazard'),
+        near_miss: weightedByType('near_miss'),
+        suggestion: weightedByType('suggestion')
+      },
+      incNoUnit, days: R.days 
+    };
   }
 
   /* ---- نردبان فرهنگ ---- */
