@@ -8,150 +8,233 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="stylesheet" href="hse_ui.css">
-<style>.pv{background:#fff;border-radius:10px;padding:10px;overflow-x:auto;margin-top:8px}.sub{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.sub input{flex:1;min-width:200px}.hint{background:#fef9c3;border:1px solid #fde68a;color:#713f12;border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:8px;display:none}.opt{font-size:12px;display:flex;gap:4px;align-items:center}</style>
+<style>
+.pv{background:#fff;border-radius:10px;padding:10px;overflow-x:auto;margin-top:8px}
+.sub{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sub input{flex:1;min-width:200px}
+.opts{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:13px}
+.opts label{display:inline-flex;gap:5px;align-items:center;cursor:pointer;white-space:nowrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chips span{font-size:11px;padding:2px 9px;border-radius:99px;border:1px solid #334155;color:#94a3b8;background:#0f172a}
+.chips span.bad{border-color:#7f1d1d;color:#f87171}
+.chips span.wa{border-color:#78350f;color:#fbbf24}
+</style>
 </head>
 <body>
 <div class="w">
   <div class="top">
-    <div><h1>✉️ گزارش واحدها برای Outlook</h1><p>کارنامه‌ی کامل ماهانه‌ی هر واحد (شاخص‌ها، حوادث، بهداری، اخطارها، آموزش، کارت‌ها) با اقدام‌های پیشنهادی — کپی کنید و در Outlook بچسبانید</p></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><select id="uSel" style="width:auto"></select><label class="opt"><input type="checkbox" id="showReason" checked>نمایش علت مراجعه به بهداری</label><a class="btn" href="evaluation.html">ارزیابی واحدها</a><a class="btn" href="index.html">← بازگشت</a></div>
+    <div><h1>✉️ گزارش واحدها برای Outlook</h1><p>کارنامه‌ی کامل ماهانه‌ی هر واحد: شاخص‌ها، حوادث، مراجعات بهداری، اخطارها و اقدام‌های پیشنهادی — کپی کنید و در Outlook بچسبانید</p></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><select id="uSel" style="width:auto"></select><a class="btn" href="evaluation.html">ارزیابی واحدها</a><a class="btn" href="index.html">← بازگشت</a></div>
   </div>
   <div id="err" class="err"></div>
-  <div id="hint" class="hint"></div>
+  <div class="card">
+    <div class="opts"><b>بخش‌های گزارش:</b>
+      <label><input type="checkbox" data-o="trend" checked> روند ۳ ماهه</label>
+      <label><input type="checkbox" data-o="inc" checked> حوادث</label>
+      <label><input type="checkbox" data-o="clinic" checked> مراجعین بهداری</label>
+      <label><input type="checkbox" data-o="reason" checked> علت مراجعه</label>
+      <label><input type="checkbox" data-o="fu" checked> پیگیری‌های بهداری</label>
+      <label><input type="checkbox" data-o="occ" checked> معاینات طب کار</label>
+      <label><input type="checkbox" data-o="warn" checked> اخطارها</label>
+      <label><input type="checkbox" data-o="nc" checked> عدم‌انطباق‌ها</label>
+    </div>
+    <div class="mu" style="margin-top:6px;font-size:12px">قبل از ارسال، هر بخشی که نمی‌خواهید در ایمیل بیاید را بردارید. جزئیات پزشکی (تشخیص، دارو، یافته‌های معاینه) هرگز در گزارش واحدها نمی‌آید؛ فقط نام، تاریخ، علت کوتاه مراجعه و روز استراحت.</div>
+  </div>
+  <div id="note" class="mu" style="font-size:12px"></div>
   <div id="out"><div class="card">در حال بارگذاری...</div></div>
 </div>
 <script src="eval_core.js"></script>
 <script>
-const {esc,fa,getAll,jk,monthKeys,monthLabel,loadEval,compute,ZONES,PARAM,unitMatcher,norm}=HSE;
+const {esc,fa,nd,jk,getAll,monthKeys,monthLabel,loadEval,compute,ZONES,PARAM,unitMatcher}=HSE;
 const $=id=>document.getElementById(id);
-
-/* ===== تنظیمات (در صورت تفاوت نام جدول‌ها/ستون‌ها در Supabase اینجا اصلاح کنید) ===== */
-const CFG={
-  TECH:['فنی'],                                   // بخشی از نام واحد فنی؛ عدم‌انطباق‌ها فقط برای این واحد نمایش داده می‌شود
-  CLINIC:['clinic_visits','clinic_visit','clinic_records','clinic_patients'],      // جدول مراجعات بهداری (اولین جدول موجود استفاده می‌شود)
-  WARN:['employee_warnings','warnings','hse_warnings','disciplinary_actions'],     // جدول اخطارها
-  EMP_KEYS:['employee_id','emp_id','personnel_id'],
-  CLINIC_DATE:['visit_date','date','incident_date','created_at'],
-  CLINIC_REASON:['complaint','reason','diagnosis','description','notes'],
-  WARN_DATE:['warning_date','issued_date','date','created_at'],
-  WARN_REASON:['reason','description','title','violation','subject'],
-  WARN_TYPE:['type','warning_type','level','severity']
-};
-/* ================================================================================== */
-
 const TODAY=new Date().toISOString().slice(0,10),dd=(a,b)=>Math.round((new Date(a)-new Date(b))/864e5);
-const fday=d=>{const s=String(d||'').slice(0,10),t=new Date(s+'T00:00:00');return isNaN(t)?s:t.toLocaleDateString('fa-IR',{dateStyle:'medium'})};
 const n1=v=>fa(Math.round(v*10)/10);
 const ZC=['#059669','#0284c7','#d97706','#dc2626'];
-const pick=(o,ks)=>{for(const k of ks){const v=o&&o[k];if(v!==undefined&&v!==null&&String(v).trim()!=='')return v}return''};
-const TYPE_FA={hazard:'کارت خطر',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد',safety_talk:'جلسه‌ی ایمنی'};
-let B=null,FIN=null,EMP=null,INC=null,TR=null,CLI={name:null,rows:null},WRN={name:null,rows:null},K=null,MAIL={};
+const TECH_RE=/فنی/;               /* واحدی که مسئول رفع عدم‌انطباق‌هاست: نامش شامل «فنی» باشد */
+const SEV={minor:'جزئی',moderate:'متوسط',severe:'شدید',fatal:'فوتی'};
+const KIND={referral:'ارجاع به مرکز درمانی',specialist:'ارجاع به متخصص',followup:'پیگیری درمان',lab:'آزمایش / پاراکلینیک',return_to_work:'ارزیابی بازگشت به کار',periodic:'معاینه دوره‌ای',incident_capa:'اقدام اصلاحی حادثه'};
+const ACT={pending:'در انتظار',in_progress:'در حال انجام',done:'انجام شد',completed:'انجام شد',overdue:'معوق'};
+const FITL={fit_restricted:'مجاز با محدودیت',temp_unfit:'موقتاً ناتوان',unfit:'ناتوان از کار'};
+let B=null,FIN=null,EMP=null,VIS=null,INC=null,FU=null,EXM=null,EKH=null,K=null,MAIL={},match=null,EMPBY={},EMPCODE={};
 $('mSel').innerHTML=monthKeys(12).map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join('');
+const g=p=>getAll(p).catch(()=>null);
+const pick=(o,ks)=>{for(const k of ks)if(o[k]!=null&&o[k]!=='')return o[k];return null};
+const nm=e=>e?((e.first_name||'')+' '+(e.last_name||'')).trim()||'—':'—';
+const prevK=k=>{let y=+k.slice(0,4),m=+k.slice(5)-1;if(m<1){m=12;y--}return y+'-'+String(m).padStart(2,'0')};
 
-async function firstOf(names){for(const n of names){const r=await getAll(n+'?select=*');if(r)return{name:n,rows:r}}return{name:null,rows:null}}
+/* ---------- تاریخ: کلید ماه با همان jk هسته‌ی ارزیابی (شمسی، سازگار با تاریخ متنی و میلادی) ---------- */
+const mkOf=v=>jk(v)||'';
+function fday(d){
+  if(!d)return'';const s=nd(String(d)).trim();
+  if(/^1[34]\d\d[\/\-.]\d/.test(s))return fa(s.slice(0,10).replace(/-/g,'/'));
+  try{return new Date(s.slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return s}
+}
+const monthsSince=d=>{const t=new Date(String(d).slice(0,10)+'T00:00:00').getTime();return isNaN(t)?0:Math.floor((Date.now()-t)/(30.44*864e5))};
+
+/* ---------- بارگذاری ---------- */
 async function load(){
-  [B,FIN,EMP,INC,TR,CLI,WRN]=await Promise.all([loadEval(),getAll('findings?select=*'),getAll('employees?select=*'),getAll('clinic_incidents?select=*'),getAll('trainings?select=*'),firstOf(CFG.CLINIC),firstOf(CFG.WARN)]);
+  [B,FIN,EMP,VIS,INC,FU,EXM,EKH]=await Promise.all([loadEval(),g('findings?select=*'),g('employees?select=id,emp_id,first_name,last_name,department,job_title'),g('clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days,is_referred'),g('clinic_incidents?select=*'),g('clinic_followups?select=employee_id,kind,status,due_date'),g('clinic_exams?select=employee_id,exam_date,exam_type,fitness,restrictions'),g('ekhtars?select=*')]);
   if(!B.units){$('err').style.display='block';$('err').textContent='جدول واحدها پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';$('out').innerHTML='';return}
-  const h=[];
-  if(!CLI.rows)h.push('جدول مراجعات بهداری پیدا نشد؛ بخش «مراجعات بهداری» در گزارش نمایش داده نمی‌شود. نام جدول را در CFG.CLINIC اصلاح کنید.');
-  if(!WRN.rows)h.push('جدول اخطارها پیدا نشد؛ بخش «اخطارها» در گزارش نمایش داده نمی‌شود. نام جدول را در CFG.WARN اصلاح کنید.');
-  if(!B.units.some(isTech))h.push('واحد فنی پیدا نشد؛ عدم‌انطباق‌ها در هیچ گزارشی نمایش داده نمی‌شود. مقدار CFG.TECH را با نام واحد فنی تنظیم کنید.');
-  if(h.length){$('hint').style.display='block';$('hint').innerHTML=h.map(esc).join('<br>')}
+  match=unitMatcher(B.units);
+  (EMP||[]).forEach(e=>{e._u=match(e.department||'')||null;EMPBY[e.id]=e;if(e.emp_id!=null)EMPCODE[String(e.emp_id)]=e});
+  const miss=[['عدم‌انطباق‌ها',FIN],['پرسنل',EMP],['مراجعات بهداری',VIS],['حوادث',INC],['پیگیری‌های بهداری',FU],['معاینات طب کار',EXM],['اخطارها',EKH]].filter(x=>!x[1]).map(x=>x[0]);
+  $('note').textContent=miss.length?'⚠️ این منابع خوانده نشد و در گزارش نیامده: '+miss.join('، '):'';
   $('uSel').innerHTML='<option value="">همه‌ی واحدها</option>'+B.units.filter(u=>u.active!==false).slice().sort((a,b)=>a.name.localeCompare(b.name,'fa')).map(u=>`<option value="${esc(u.id)}">${esc(u.name)}</option>`).join('');
+  try{document.querySelectorAll('[data-o]').forEach(c=>{const v=localStorage.getItem('ur_o_'+c.dataset.o);if(v!==null)c.checked=v==='1'})}catch(e){}
   draw();
 }
-const isTech=u=>u.is_technical===true||CFG.TECH.some(t=>norm(u.name).includes(norm(t)));
-const empName=e=>e?(pick(e,['full_name','name','fullname'])||[pick(e,['first_name']),pick(e,['last_name'])].filter(Boolean).join(' ')||('پرسنل '+e.id)):'—';
+const opts=()=>{const o={};document.querySelectorAll('[data-o]').forEach(c=>o[c.dataset.o]=c.checked);return o};
 
-const td=(a,b)=>`<td style="border:1px solid #cbd5e1;padding:4px 8px;background:#f8fafc;color:#475569;font-size:12px">${a}</td><td style="border:1px solid #cbd5e1;padding:4px 8px;font-size:13px"><b>${b}</b></td>`;
-const tbl=(h,rows)=>rows.length?`<table style="width:100%;border-collapse:collapse;margin:4px 0"><tr>${h.map(x=>`<th style="border:1px solid #cbd5e1;padding:4px 6px;background:#e2e8f0;font-size:12px;text-align:right">${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td style="border:1px solid #cbd5e1;padding:4px 6px;font-size:12px">${c}</td>`).join('')}</tr>`).join('')}</table>`:'';
-const sec=(title,cnt,body,empty)=>`<p style="margin:12px 0 2px"><b>${title}</b> <span style="color:#64748b;font-size:12px">(${fa(cnt)} مورد)</span></p>${cnt?body:`<div style="font-size:12px;color:#64748b;margin:0 0 4px">${empty}</div>`}`;
-
-/* ---- گروه‌بندی داده‌ها بر اساس واحد در ماه انتخاب‌شده ---- */
-function indexData(K){
-  const match=unitMatcher(B.units),empById={},empU={};
-  (EMP||[]).forEach(e=>{empById[e.id]=e;const u=match(e.department);if(u)empU[e.id]=u.id});
-  const g=()=>({});
-  const unitOf=r=>empU[pick(r,CFG.EMP_KEYS)];
-  const grp=(rows,dk)=>{const o=g();(rows||[]).filter(r=>jk(pick(r,dk))===K).forEach(r=>{const u=unitOf(r);if(u)(o[u]=o[u]||[]).push(r)});return o};
-  const inc=grp(INC,['incident_date']),cli=grp(CLI.rows,CFG.CLINIC_DATE),wrn=grp(WRN.rows,CFG.WARN_DATE);
-  const sess=(TR||[]).filter(t=>jk(t.training_date)===K),sid=new Set(sess.map(t=>t.id)),tU=g(),attended=g();
-  sess.forEach(t=>{const per={};(B.ta||[]).filter(a=>a.training_id===t.id&&empU[a.employee_id]).forEach(a=>{const u=empU[a.employee_id];per[u]=(per[u]||0)+1;(attended[u]=attended[u]||new Set()).add(a.employee_id)});Object.keys(per).forEach(u=>(tU[u]=tU[u]||[]).push({t,n:per[u]}))});
-  const cards=g();(B.cards||[]).filter(c=>jk(c.card_date)===K&&c.status!=='rejected').forEach(c=>(cards[c.unit]=cards[c.unit]||[]).push(c));
-  return{empById,inc,cli,wrn,tU,attended,cards,match};
+/* ---------- جمع‌آوری داده‌ی هر واحد ---------- */
+const unitOfEmp=id=>{const e=EMPBY[id];return e&&e._u?e._u:null};
+function ekhRec(o){
+  const eid=pick(o,['employee_id','personnel_id']),code=pick(o,['emp_id','employee_code','personnel_code','code']);
+  const e=(eid&&EMPBY[eid])||(code!=null&&EMPCODE[String(code)])||null;
+  const dept=e?e.department:pick(o,['department','unit','unit_name','dept']);
+  return{u:(e&&e._u)||(dept?match(dept):null),name:e?nm(e):(pick(o,['employee_name','full_name','name','person_name'])||'—'),
+    date:pick(o,['record_date','issue_date','issued_at','letter_date','date','created_at']),type:pick(o,['record_type','type','kind'])||'سابقه انضباطی',
+    reason:pick(o,['reason','subject','title','description','note','details'])||''};
 }
+function gather(k){
+  const D={};B.units.forEach(u=>D[u.id]={vis:[],inc:[],fu:[],ekh:[],emps:[]});
+  (EMP||[]).forEach(e=>{if(e._u&&D[e._u.id])D[e._u.id].emps.push(e)});
+  (VIS||[]).forEach(v=>{if(mkOf(v.visit_date)!==k)return;const u=unitOfEmp(v.employee_id);if(u&&D[u.id])D[u.id].vis.push(v)});
+  (INC||[]).forEach(i=>{if(mkOf(i.incident_date)!==k)return;const u=unitOfEmp(i.employee_id);if(u&&D[u.id])D[u.id].inc.push(i)});
+  (FU||[]).forEach(f=>{if(!['pending','overdue'].includes(f.status))return;const u=unitOfEmp(f.employee_id);if(u&&D[u.id])D[u.id].fu.push(f)});
+  const k12=new Set(monthKeys(12));
+  (EKH||[]).forEach(o=>{const r=ekhRec(o);if(!r.u||!D[r.u.id])return;r.k=mkOf(r.date);r.in12=k12.has(r.k);D[r.u.id].ekh.push(r)});
+  return D;
+}
+const isOver=f=>(f.due_date?dd(TODAY,f.due_date):dd(TODAY,String(f.created_at).slice(0,10))-14)>0;
+const ageOf=f=>dd(TODAY,String(f.created_at).slice(0,10));
 
-function build(r,p,K,D,avg,showReason){
-  const u=r.u,hi=u.manager?`جناب آقای/خانم ${esc(u.manager)}`:'سرپرست محترم',M=monthLabel(K),act=[],tech=isTech(u);
-  const inc=(D.inc[u.id]||[]).slice().sort((a,b)=>String(a.incident_date).localeCompare(String(b.incident_date)));
-  const cli=(D.cli[u.id]||[]).slice().sort((a,b)=>String(pick(a,CFG.CLINIC_DATE)).localeCompare(String(pick(b,CFG.CLINIC_DATE))));
-  const wrn=(D.wrn[u.id]||[]).slice().sort((a,b)=>String(pick(a,CFG.WARN_DATE)).localeCompare(String(pick(b,CFG.WARN_DATE))));
-  const tr=D.tU[u.id]||[],att=(D.attended[u.id]||new Set()).size,cards=(D.cards[u.name]||[]).slice().sort((a,b)=>String(a.card_date).localeCompare(String(b.card_date)));
-  const nm=id=>esc(empName(D.empById[id]));
-  /* عدم‌انطباق‌ها فقط به واحد فنی مربوط است */
-  const fnd=tech?(FIN||[]).filter(f=>f.status==='open'):[];
-  const isOver=f=>(f.due_date?dd(TODAY,f.due_date):dd(TODAY,String(f.created_at).slice(0,10))-14)>0;
-  const over=fnd.filter(isOver);
+/* ---------- قالب‌های ایمیل (استایل inline برای Outlook) ---------- */
+const TH='border:1px solid #cbd5e1;padding:4px 8px;background:#f1f5f9;color:#334155;font-size:12px;text-align:right';
+const TD='border:1px solid #cbd5e1;padding:4px 8px;font-size:12px;text-align:right';
+const H3=t=>`<p style="margin:16px 0 4px;font-size:14px;border-bottom:2px solid #0f766e;padding-bottom:2px"><b>${t}</b></p>`;
+const P_=t=>`<p style="margin:3px 0;font-size:12px;color:#334155">${t}</p>`;
+const tbl=(heads,rows)=>`<table style="width:100%;border-collapse:collapse;margin:4px 0"><tr>${heads.map(h=>`<th style="${TH}">${h}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td style="${TD}">${c}</td>`).join('')}</tr>`).join('')}</table>`;
+const more=(n,cap)=>n>cap?P_(`و ${fa(n-cap)} مورد دیگر…`):'';
+const td=(a,b)=>`<td style="border:1px solid #cbd5e1;padding:4px 8px;background:#f8fafc;color:#475569;font-size:12px">${a}</td><td style="border:1px solid #cbd5e1;padding:4px 8px;font-size:13px"><b>${b}</b></td>`;
+const red=t=>`<b style="color:#dc2626">${t}</b>`;
+function reasonTxt(v){const r=(v.visit_reason||'').trim();if(!r||r==='illness')return'—';if(/^checkup/.test(r)||/معاینه\s*دوره/.test(r))return'معاینه طب کار';return esc(r)}
 
-  /* ---- اقدام‌های پیشنهادی ---- */
+/* ---------- بخش‌ها ---------- */
+function secTrend(r,p1,p2,k){
+  if(!r.entered&&!(p1&&p1.entered)&&!(p2&&p2.entered))return'';
+  const cols=[[monthLabel(prevK(prevK(k))),p2],[monthLabel(prevK(k)),p1],[monthLabel(k),r]],f=(x,key)=>x&&x.entered?n1(x[key]):'—';
+  return H3('📈 روند ۳ ماه اخیر')+tbl(['شاخص',...cols.map(c=>c[0])],[['شاخص ایمنی',...cols.map(c=>f(c[1],'safety'))],['شاخص مشارکت',...cols.map(c=>f(c[1],'part'))]]);
+}
+const lostOf=i=>{const m=String(i.description||'').match(/روز از دست رفته:\s*(\d+)/);return m&&+m[1]?fa(m[1]):'—'};
+function secInc(D){
+  const a=D.inc;if(!a.length)return H3('🚑 حوادث این ماه')+P_('حادثه‌ای برای پرسنل این واحد ثبت نشده است. 👏');
+  const rows=a.slice().sort((x,y)=>String(y.incident_date).localeCompare(String(x.incident_date))).slice(0,10).map(i=>[fday(i.incident_date),esc(nm(EMPBY[i.employee_id])),esc(SEV[i.severity]||i.severity||'—'),esc(i.location||'—'),esc(String(i.description||'').split('\n')[0].slice(0,110)||'—'),lostOf(i),i.corrective_action?esc(String(i.corrective_action).slice(0,90))+' ('+esc(ACT[i.action_status]||i.action_status||'')+')':'—']);
+  return H3(`🚑 حوادث این ماه (${fa(a.length)} مورد)`)+tbl(['تاریخ','فرد','شدت','محل','شرح','روز از دست‌رفته','اقدام اصلاحی'],rows)+more(a.length,10);
+}
+function secClinic(D,O){
+  const v=D.vis;if(!v.length)return H3('🏥 مراجعات بهداری')+P_('در این ماه مراجعه‌ای از پرسنل واحد به بهداری ثبت نشده است.');
+  const byE={};v.forEach(x=>(byE[x.employee_id]=byE[x.employee_id]||[]).push(x));
+  const people=Object.keys(byE).length,rest=v.reduce((a,x)=>a+(Number(x.medical_leave_days)||0),0),ref=v.filter(x=>x.is_referred).length;
+  const rep=Object.entries(byE).filter(([,a])=>a.length>=3).map(([id,a])=>`${esc(nm(EMPBY[id]))} (${fa(a.length)} بار)`);
+  const heads=['تاریخ','نام',...(O.reason?['علت مراجعه']:[]),'روز استراحت','ارجاع'];
+  const rows=v.slice().sort((x,y)=>String(y.visit_date).localeCompare(String(x.visit_date))).slice(0,20).map(x=>[fday(x.visit_date),esc(nm(EMPBY[x.employee_id])),...(O.reason?[reasonTxt(x)]:[]),Number(x.medical_leave_days)?fa(x.medical_leave_days)+' روز':'—',x.is_referred?'به مرکز درمانی':'—']);
+  return H3(`🏥 مراجعات بهداری (${fa(v.length)} مراجعه از ${fa(people)} نفر)`)+P_(`مجموع استراحت پزشکی: <b>${fa(rest)} روز</b> · ارجاع به مرکز درمانی: <b>${fa(ref)}</b> مورد`)+(rep.length?P_(`${red('مراجعه مکرر (۳ بار یا بیشتر در ماه):')} ${rep.join('، ')} — لطفاً با این همکاران گفتگو و در صورت نیاز با بهداری هماهنگ شود.`):'')+tbl(heads,rows)+more(v.length,20);
+}
+function secFu(D){
+  const a=D.fu;if(!a.length)return'';
+  const rows=a.slice().sort((x,y)=>String(x.due_date||'9').localeCompare(String(y.due_date||'9'))).slice(0,12).map(f=>{const o=f.due_date&&dd(TODAY,f.due_date)>0;return[esc(nm(EMPBY[f.employee_id])),esc(KIND[f.kind]||'پیگیری'),f.due_date?fday(f.due_date)+(o?' '+red('معوق'):''):'—']});
+  const ov=a.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length;
+  return H3(`📌 پیگیری‌های باز بهداری (${fa(a.length)} مورد${ov?' — '+fa(ov)+' معوق':''})`)+P_('همکاران زیر باید طبق برنامه برای این موارد به بهداری یا مرکز درمانی مراجعه کنند؛ لطفاً امکان حضورشان را فراهم کنید.')+tbl(['فرد','نوع پیگیری','سررسید'],rows)+more(a.length,12);
+}
+function secOcc(D){
+  if(!EXM)return'';
+  const latest={};EXM.forEach(x=>{const c=latest[x.employee_id];if(!c||x.exam_date>c.exam_date)latest[x.employee_id]=x});
+  const none=[],over=[],restr=[];
+  D.emps.forEach(e=>{const x=latest[e.id];if(!x){none.push(esc(nm(e)));return}
+    if(monthsSince(x.exam_date)>=13)over.push(`${esc(nm(e))} (آخرین: ${fday(x.exam_date)})`);
+    if(FITL[x.fitness])restr.push([esc(nm(e)),esc(FITL[x.fitness]),esc(x.restrictions||'—')])});
+  if(!none.length&&!over.length&&!restr.length)return H3('🩺 معاینات طب کار')+P_('معاینه همه‌ی پرسنل ثبت و به‌روز است. 👏');
+  let h=H3('🩺 معاینات طب کار');
+  if(over.length)h+=P_(`${red('سررسید معاینه دوره‌ای گذشته ('+fa(over.length)+' نفر):')} ${over.slice(0,12).join('، ')}${over.length>12?' و …':''}`);
+  if(none.length)h+=P_(`${red('بدون معاینه ثبت‌شده ('+fa(none.length)+' نفر):')} ${none.slice(0,15).join('، ')}${none.length>15?' و …':''}`);
+  if(over.length||none.length)h+=P_('لطفاً هماهنگ شود این همکاران در اولین فرصت برای معاینه به بهداری معرفی شوند.');
+  if(restr.length)h+=P_('<b>محدودیت‌های کاری اعلام‌شده توسط طب کار (باید در تقسیم کار رعایت شود):</b>')+tbl(['فرد','وضعیت','محدودیت'],restr.slice(0,12))+more(restr.length,12);
+  return h;
+}
+function secWarn(D){
+  const mo=D.ekh.filter(x=>x.k===K),y=D.ekh.filter(x=>x.in12).length;
+  if(!mo.length&&!y)return H3('⚖️ اخطارها و سوابق انضباطی')+P_('سابقه انضباطی در ۱۲ ماه اخیر برای پرسنل این واحد ثبت نشده است.');
+  const rows=mo.slice(0,12).map(x=>[fday(x.date),esc(x.name),esc(x.type),esc(String(x.reason).slice(0,100)||'—')]);
+  return H3(`⚖️ اخطارها و سوابق انضباطی (این ماه: ${fa(mo.length)} · ۱۲ ماه اخیر: ${fa(y)})`)+(mo.length?tbl(['تاریخ','فرد','نوع','موضوع'],rows)+more(mo.length,12):P_('در این ماه مورد جدیدی ثبت نشده است.'));
+}
+/* عدم‌انطباق: مسئولیت رفع فقط با واحد فنی است */
+function secNCTech(openF){
+  const over=openF.filter(isOver),avg=openF.length?Math.round(openF.reduce((a,f)=>a+Math.max(0,ageOf(f)),0)/openF.length):0;
+  const byL={};openF.forEach(f=>{const u=match(f.location||'');const key=u?u.name:(f.location||'نامشخص');const c=byL[key]=byL[key]||{n:0,o:0};c.n++;if(isOver(f))c.o++});
+  const rows=Object.entries(byL).sort((a,b)=>b[1].o-a[1].o||b[1].n-a[1].n).slice(0,12).map(([k,c])=>[esc(k),fa(c.n),c.o?red(fa(c.o)):'—']);
+  const lst=openF.slice().sort((a,b)=>(isOver(b)?1:0)-(isOver(a)?1:0)||(a.due_date||'9').localeCompare(b.due_date||'9')).slice(0,15).map(f=>[esc(f.question||'—'),esc(f.location||'—'),f.due_date?fday(f.due_date):'—',isOver(f)?red('معوق'):'در مهلت']);
+  const cd=['closed_at','resolved_at','done_at','closed_date'].find(c=>(FIN||[]).some(f=>f[c]));
+  const closedM=cd?(FIN||[]).filter(f=>f.status!=='open'&&mkOf(f[cd])===K).length:null;
+  if(!openF.length)return H3('🔧 عدم‌انطباق‌ها (مسئول رفع: واحد فنی)')+P_('هیچ عدم‌انطباق بازی وجود ندارد. 👏'+(closedM!==null?` در این ماه ${fa(closedM)} مورد رفع شده است.`:''));
+  return H3(`🔧 عدم‌انطباق‌ها (مسئول رفع: واحد فنی)`)+tbl(['عدم‌انطباق باز','معوق','میانگین عمر (روز)','درصد معوق'],[[fa(openF.length),over.length?red(fa(over.length)):'۰',fa(avg),fa(Math.round(over.length/openF.length*100))+'٪']])+(closedM!==null?P_(`رفع‌شده در این ماه: <b>${fa(closedM)}</b> مورد`):'')
+    +P_('<b>پراکندگی بر اساس محل:</b>')+tbl(['محل / واحد','باز','معوق'],rows)+P_('<b>موارد نیازمند اقدام (ابتدا معوق‌ها):</b>')+tbl(['عدم‌انطباق','محل','مهلت','وضعیت'],lst)+more(openF.length,15);
+}
+const secNCInfo=n=>n?H3('🔧 عدم‌انطباق‌های محل واحد شما')+P_(`${fa(n)} عدم‌انطباق باز در محدوده‌ی واحد شما ثبت شده است. رفع آن‌ها بر عهده‌ی واحد فنی است و پیگیری می‌شود؛ صرفاً جهت اطلاع.`):'';
+
+/* ---------- ساخت ایمیل ---------- */
+function build(r,p1,p2,D,openF,k,O,tech,ncAll){
+  const u=r.u,hi=u.manager?`جناب آقای/خانم ${esc(u.manager)}`:'سرپرست محترم',M=monthLabel(k),act=[];
+  const repeat=Object.values(D.vis.reduce((m,x)=>((m[x.employee_id]=m[x.employee_id]||[]).push(x),m),{})).filter(a=>a.length>=3).length;
+  const fuOver=D.fu.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length;
   if(r.entered){
     if(r.part<PARAM.PART_T||r.part===0)act.push(`مشارکت واحد پایین است (${n1(r.part)} از حداقل ${fa(PARAM.PART_T)}). تا پایان ماه آینده حداقل ${fa(Math.max(1,Math.ceil(r.C/10)))} کارت خطر یا شبه‌حادثه از نفرات واحد دریافت و به HSE تحویل شود.`);
     if(!r.talks)act.push('یک جلسه‌ی کوتاه ایمنی (۵ تا ۱۰ دقیقه) با نفرات واحد برگزار و به HSE اطلاع داده شود.');
     if(r.ppe)act.push(`${fa(r.ppe)} مورد عدم استفاده از وسایل حفاظت فردی (PPE) مشاهده شد؛ لطفاً با نفرات مربوطه پیگیری شود.`);
     if(r.unsafe)act.push(`${fa(r.unsafe)} مورد رفتار ناایمن مشاهده شد؛ لطفاً در جلسه‌ی کاری با نفرات مرور شود.`);
   }
-  if(tech){
-    if(over.length)act.push(`${fa(over.length)} عدم‌انطباق باز از مهلت گذشته است؛ لطفاً رفع کرده و به HSE اطلاع دهید.`);
-    else if(fnd.length)act.push(`${fa(fnd.length)} عدم‌انطباق در مهلت باز است؛ لطفاً تا سررسید رفع شود.`);
-  }
-  if(r.ac)act.push('حادثه‌ای در این ماه ثبت شده؛ اقدام اصلاحی آن با HSE هماهنگ و اجرا شود.');
-  const rep={};cli.forEach(c=>{const k=pick(c,CFG.EMP_KEYS);rep[k]=(rep[k]||0)+1});
-  const repeat=Object.keys(rep).filter(k=>rep[k]>1);
-  if(repeat.length)act.push(`${fa(repeat.length)} نفر از پرسنل بیش از یک‌بار در این ماه به بهداری مراجعه کرده‌اند؛ علت و شرایط کاری آنان (محیط، ارگونومی، مواجهه) بررسی شود.`);
-  if(wrn.length)act.push(`${fa(wrn.length)} اخطار در این ماه برای پرسنل واحد صادر شده؛ لطفاً موارد در جلسه‌ی کاری مرور و از تکرار جلوگیری شود.`);
-  if(r.C>0&&att/r.C<0.5)act.push(`فقط ${fa(att)} نفر از ${fa(r.C)} نفر واحد در آموزش/جلسه‌ی ایمنی این ماه شرکت کرده‌اند؛ لطفاً برای پوشش بقیه‌ی نفرات هماهنگ شود.`);
+  if(tech){const ov=openF.filter(isOver).length;
+    if(ov)act.push(`${fa(ov)} عدم‌انطباق معوق در کل مجموعه باز است؛ لطفاً برنامه‌ی زمان‌بندی رفع آن‌ها را به HSE اعلام کنید.`);
+    else if(openF.length)act.push(`${fa(openF.length)} عدم‌انطباق باز در مهلت وجود دارد؛ لطفاً تا سررسید رفع شود.`);}
+  if(D.inc.length||r.ac)act.push('برای حوادث ثبت‌شده، اقدام اصلاحی و پیشگیرانه با HSE هماهنگ و اجرا شود.');
+  if(repeat)act.push(`${fa(repeat)} نفر از پرسنل واحد در این ماه ۳ بار یا بیشتر به بهداری مراجعه کرده‌اند؛ لطفاً وضعیت کاری و سلامت ایشان بررسی شود.`);
+  if(fuOver)act.push(`${fa(fuOver)} پیگیری بهداری معوق مانده است؛ لطفاً امکان مراجعه‌ی همکاران مربوطه فراهم شود.`);
+  const mw=D.ekh.filter(x=>x.k===k).length;if(mw)act.push(`${fa(mw)} مورد اخطار/سابقه‌ی انضباطی در این ماه ثبت شده است؛ لطفاً در جلسه‌ی کاری با نفرات مرور شود.`);
   if(r.entered&&r.zone===0)act.push('عملکرد واحد در ناحیه‌ی «الگو» است. از همکاران تشکر می‌کنیم؛ لطفاً روند ادامه یابد.');
   if(!act.length)act.push('مورد خاصی برای اقدام وجود ندارد.');
-
-  /* ---- امتیازها ---- */
-  const pe=p&&p.entered?p:null;
-  const delta=(a,b)=>{const d=Math.round((a-b)*10)/10;return d===0?'':` <span style="color:${d>0?'#059669':'#dc2626'}">${d>0?'▲':'▼'} ${n1(Math.abs(d))}</span>`};
-  const cell=(lab,v,pv,av)=>`<td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">${lab}</div><div style="font-size:24px;font-weight:bold">${n1(v)}</div>${pv!=null?`<div style="font-size:11px;color:#64748b">ماه قبل ${n1(pv)}${delta(v,pv)}</div>`:''}${av!=null?`<div style="font-size:11px;color:#64748b">میانگین کارخانه ${n1(av)}</div>`:''}</td>`;
-  const score=r.entered?`<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr>${cell('شاخص ایمنی',r.safety,pe?pe.safety:null,avg?avg.safety:null)}${cell('شاخص مشارکت',r.part,pe?pe.part:null,avg?avg.part:null)}<td style="padding:8px;text-align:center;border:1px solid #cbd5e1;color:${ZC[r.zone]}"><div style="font-size:11px;color:#475569">ناحیه</div><div style="font-size:14px;font-weight:bold">${ZONES[r.zone]}</div></td></tr></table>`:'<div style="padding:8px;background:#fef9c3;border:1px solid #fde68a;font-size:12px;margin:8px 0">امتیاز ایمنی و مشارکت واحد پس از تکمیل ارزیابی ماهانه اعلام می‌شود.</div>';
-
-  /* ---- بخش‌های تفصیلی ---- */
-  const lostOf=i=>+((i.description||'').match(/روز از دست رفته:\s*(\d+)/)||[0,0])[1];
-  const sIncidents=sec('حوادث و ثبت‌های درمانی ناشی از کار',inc.length,tbl(['تاریخ','نام','نوع','شرح','روز از دست‌رفته'],inc.map(i=>[fday(i.incident_date),nm(i.employee_id),i.severity==='minor'?'جزئی':'حادثه',esc(String(i.description||'—').slice(0,160)),fa(lostOf(i))])),'در این ماه حادثه‌ای برای پرسنل واحد ثبت نشده است.');
-  const sClinic=CLI.rows?sec('مراجعات پرسنل به بهداری',cli.length,tbl(showReason?['تاریخ','نام','علت مراجعه']:['تاریخ','نام'],cli.map(c=>{const row=[fday(pick(c,CFG.CLINIC_DATE)),nm(pick(c,CFG.EMP_KEYS))];if(showReason)row.push(esc(String(pick(c,CFG.CLINIC_REASON)||'—').slice(0,120)));return row})),'در این ماه مراجعه‌ای از پرسنل واحد به بهداری ثبت نشده است.'):'';
-  const sWarn=WRN.rows?sec('اخطارهای صادرشده برای پرسنل',wrn.length,tbl(['تاریخ','نام','نوع','موضوع'],wrn.map(w=>[fday(pick(w,CFG.WARN_DATE)),nm(pick(w,CFG.EMP_KEYS)),esc(String(pick(w,CFG.WARN_TYPE)||'—')),esc(String(pick(w,CFG.WARN_REASON)||'—').slice(0,120))])),'در این ماه اخطاری برای پرسنل واحد ثبت نشده است.'):'';
-  const sTrain=sec(`آموزش و جلسات ایمنی (مشارکت ${fa(att)} از ${fa(r.C)} نفر)`,tr.length,tbl(['تاریخ','عنوان / نوع','تعداد شرکت‌کننده‌ی واحد'],tr.map(x=>[fday(x.t.training_date),esc(pick(x.t,['title','name','subject'])||TYPE_FA[x.t.training_type]||x.t.training_type||'—'),fa(x.n)])),'در این ماه هیچ آموزش یا جلسه‌ی ایمنی با حضور نفرات واحد ثبت نشده است.');
-  const sCards=sec('کارت‌های خطر، شبه‌حادثه و پیشنهادهای واحد',cards.length,tbl(['تاریخ','نوع','شرح'],cards.slice(0,10).map(c=>[fday(c.card_date),TYPE_FA[c.card_type]||esc(c.card_type||'—'),esc(String(pick(c,['title','description','text','details','content'])||'—').slice(0,120))]))+(cards.length>10?`<div style="font-size:11px;color:#64748b">و ${fa(cards.length-10)} مورد دیگر</div>`:''),'در این ماه کارتی از نفرات واحد دریافت نشده است.');
-  const lst=fnd.slice().sort((a,b)=>(a.due_date||'9').localeCompare(b.due_date||'9')).slice(0,15).map(f=>[esc(f.question||'—'),esc(f.location||'—'),f.due_date?fday(f.due_date):'—',isOver(f)?'<b style="color:#dc2626">معوق</b>':'در مهلت']);
-  const sFind=tech?sec('عدم‌انطباق‌های باز (مسئولیت واحد فنی)',fnd.length,tbl(['عدم‌انطباق','محل','مهلت','وضعیت'],lst)+(fnd.length>15?`<div style="font-size:11px;color:#64748b">و ${fa(fnd.length-15)} مورد دیگر</div>`:''),'عدم‌انطباق بازی وجود ندارد.'):'';
-
+  const pe=p1&&p1.entered?p1:null;
+  const score=r.entered?`<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص ایمنی</div><div style="font-size:24px;font-weight:bold">${n1(r.safety)}</div>${pe?`<div style="font-size:11px;color:#64748b">ماه قبل ${n1(pe.safety)}</div>`:''}</td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص مشارکت</div><div style="font-size:24px;font-weight:bold">${n1(r.part)}</div>${pe?`<div style="font-size:11px;color:#64748b">ماه قبل ${n1(pe.part)}</div>`:''}</td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1;color:${ZC[r.zone]}"><div style="font-size:11px;color:#475569">ناحیه</div><div style="font-size:14px;font-weight:bold">${ZONES[r.zone]}</div></td></tr></table>`:'<div style="padding:8px;background:#fef9c3;border:1px solid #fde68a;font-size:12px;margin:8px 0">امتیاز ایمنی و مشارکت واحد پس از تکمیل ارزیابی ماهانه اعلام می‌شود.</div>';
   const html=`<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:13px;line-height:1.9;color:#0f172a;max-width:680px;text-align:right">
 <p style="margin:0 0 6px">${hi}، سلام و احترام</p>
-<p style="margin:0 0 6px">کارنامه‌ی HSE واحد <b>${esc(u.name)}</b> برای <b>${M}</b> به شرح زیر است:</p>
+<p style="margin:0 0 6px">کارنامه‌ی کامل HSE واحد <b>${esc(u.name)}</b> برای <b>${M}</b> به شرح زیر است:</p>
 ${score}
-<table style="width:100%;border-collapse:collapse;margin:6px 0"><tr>${td('نفرات',fa(r.C))}${td('کارت خطر',fa(r.hz))}${td('شبه‌حادثه',fa(r.nm))}</tr><tr>${td('پیشنهاد',fa(r.sg))}${td('جلسه‌ی ایمنی',fa(r.talks))}${td('حوادث (جزئی)',fa(r.ac)+' ('+fa(r.ak)+')')}</tr>${r.entered?`<tr>${td('عدم استفاده از PPE',fa(r.ppe))}${td('رفتار ناایمن',fa(r.unsafe))}${td('روز از دست‌رفته',fa(r.lost))}</tr>`:''}<tr>${td('مراجعه به بهداری',CLI.rows?fa(cli.length):'—')}${td('اخطار',WRN.rows?fa(wrn.length):'—')}${td('پوشش آموزشی',fa(att)+' از '+fa(r.C))}</tr></table>
-${sIncidents}${sClinic}${sWarn}${sTrain}${sCards}${sFind}
-<p style="margin:12px 0 2px"><b>اقدام‌های پیشنهادی:</b></p><ol style="margin:0;padding-inline-start:20px">${act.map(a=>`<li style="margin:2px 0">${a}</li>`).join('')}</ol>
-<p style="margin:10px 0 0">با تشکر — واحد HSE</p></div>`;
-
-  const L=[`${hi}، سلام`,`کارنامه HSE واحد ${u.name} - ${M}`];
-  if(r.entered)L.push(`شاخص ایمنی ${n1(r.safety)} | مشارکت ${n1(r.part)} | ${ZONES[r.zone]}`);
-  L.push(`حوادث: ${fa(inc.length)} | مراجعه به بهداری: ${CLI.rows?fa(cli.length):'—'} | اخطار: ${WRN.rows?fa(wrn.length):'—'} | پوشش آموزشی: ${fa(att)} از ${fa(r.C)}`);
-  if(tech)L.push(`عدم‌انطباق باز: ${fa(fnd.length)} (معوق: ${fa(over.length)})`);
-  L.push('اقدام‌های پیشنهادی:');act.forEach((a,i)=>L.push(`${fa(i+1)}. ${a}`));L.push('واحد HSE');
-  return{html,text:L.join('\n'),subject:`کارنامه HSE واحد ${u.name} — ${M}`};
+<table style="width:100%;border-collapse:collapse;margin:6px 0"><tr>${td('نفرات',fa(r.C))}${td('کارت خطر',fa(r.hz))}${td('شبه‌حادثه',fa(r.nm))}</tr><tr>${td('پیشنهاد',fa(r.sg))}${td('جلسه‌ی ایمنی',fa(r.talks))}${td('حوادث (جزئی)',fa(r.ac)+' ('+fa(r.ak)+')')}</tr>${r.entered?`<tr>${td('عدم استفاده از PPE',fa(r.ppe))}${td('رفتار ناایمن',fa(r.unsafe))}${td('روز از دست‌رفته',fa(r.lost))}</tr>`:''}</table>
+${O.trend?secTrend(r,p1,p2,k):''}${O.inc?secInc(D):''}${O.clinic?secClinic(D,O):''}${O.fu?secFu(D):''}${O.occ?secOcc(D):''}${O.warn?secWarn(D):''}${tech?secNCTech(openF):(O.nc?secNCInfo(ncAll):'')}
+<p style="margin:16px 0 2px;font-size:14px;border-bottom:2px solid #0f766e;padding-bottom:2px"><b>✅ اقدام‌های پیشنهادی:</b></p><ol style="margin:4px 0;padding-inline-start:20px">${act.map(a=>`<li style="margin:2px 0">${a}</li>`).join('')}</ol>
+<p style="margin:12px 0 0;font-size:11px;color:#64748b">اطلاعات بهداری و انضباطی این گزارش محرمانه است و صرفاً برای پیگیری مدیریتی ارائه می‌شود.</p>
+<p style="margin:6px 0 0">با تشکر — واحد HSE</p></div>`;
+  const text=`${hi}، سلام\nکارنامه HSE واحد ${u.name} - ${M}\n`+(r.entered?`شاخص ایمنی ${n1(r.safety)} | مشارکت ${n1(r.part)} | ${ZONES[r.zone]}\n`:'')+`مراجعات بهداری: ${fa(D.vis.length)} | حوادث: ${fa(D.inc.length)} | اخطار این ماه: ${fa(mw)}\n`+act.map((a,i)=>`${fa(i+1)}. ${a}`).join('\n')+'\nواحد HSE';
+  return{html,text,subject:`کارنامه HSE واحد ${u.name} — ${M}`};
 }
-const prevK=K=>{let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}return y+'-'+String(m).padStart(2,'0')};
+function buildNCOnly(openF,k){
+  const M=monthLabel(k),html=`<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:13px;line-height:1.9;color:#0f172a;max-width:680px;text-align:right"><p style="margin:0 0 6px">واحد فنی محترم، سلام و احترام</p><p style="margin:0 0 6px">وضعیت عدم‌انطباق‌های باز (${M}) جهت اقدام و رفع به شرح زیر است:</p>${secNCTech(openF)}<p style="margin:8px 0 0">با تشکر — واحد HSE</p></div>`;
+  return{html,text:`واحد فنی محترم، سلام\nعدم‌انطباق باز: ${fa(openF.length)} | معوق: ${fa(openF.filter(isOver).length)}\nواحد HSE`,subject:`وضعیت عدم‌انطباق‌های باز — ${M}`};
+}
+
+/* ---------- نمایش ---------- */
 function draw(){
-  K=$('mSel').value;const R=compute(K,B),Pv=compute(prevK(K),B),sel=$('uSel').value,D=indexData(K),sr=$('showReason').checked;
-  const ent=R.rows.filter(r=>r.entered),avg=ent.length?{safety:ent.reduce((s,r)=>s+r.safety,0)/ent.length,part:ent.reduce((s,r)=>s+r.part,0)/ent.length}:null;
+  K=$('mSel').value;const O=opts(),R=compute(K,B),P1=compute(prevK(K),B),P2=compute(prevK(prevK(K)),B),sel=$('uSel').value,D=gather(K);
+  const openAll=(FIN||[]).filter(f=>f.status==='open'),byU={};
+  openAll.forEach(f=>{const u=match(f.location||'');if(u)(byU[u.id]=byU[u.id]||[]).push(f)});
   const rows=R.rows.filter(r=>!sel||r.u.id===sel);MAIL={};
-  $('out').innerHTML=rows.length?rows.map(r=>{const p=Pv.rows.find(x=>x.u.id===r.u.id),m=build(r,p,K,D,avg,sr);MAIL[r.u.id]=m;
-   return`<div class="card"><div class="sub"><b>${esc(r.u.name)}</b><span class="mu">${esc(r.u.manager||'بدون مسئول')}</span><span style="flex:1"></span><button data-c="${esc(r.u.id)}" class="p">📋 کپی برای Outlook</button><button data-s="${esc(r.u.id)}">کپی موضوع</button><button data-p="${esc(r.u.id)}">🖨 چاپ</button></div><div class="pv">${m.html}</div></div>`}).join(''):'<div class="card mu">واحدی برای نمایش نیست.</div>';
+  const hasTech=B.units.some(u=>TECH_RE.test(u.name));
+  let html=rows.length?rows.map(r=>{
+    const p1=P1.rows.find(x=>x.u.id===r.u.id),p2=P2.rows.find(x=>x.u.id===r.u.id),d=D[r.u.id]||{vis:[],inc:[],fu:[],ekh:[],emps:[]},tech=TECH_RE.test(r.u.name),mine=(byU[r.u.id]||[]).length;
+    const m=build(r,p1,p2,d,openAll,K,O,tech,mine);MAIL[r.u.id]=m;
+    const ov=d.fu.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length,mw=d.ekh.filter(x=>x.k===K).length;
+    return`<div class="card"><div class="sub"><b>${esc(r.u.name)}</b>${tech?'<span class="mu">(مسئول رفع عدم‌انطباق‌ها)</span>':''}<span class="mu">${esc(r.u.manager||'بدون مسئول')}</span><span style="flex:1"></span><button data-c="${esc(r.u.id)}" class="p">📋 کپی برای Outlook</button><button data-s="${esc(r.u.id)}">کپی موضوع</button><button data-p="${esc(r.u.id)}">🖨 چاپ</button></div>
+<div class="chips"><span>${fa(d.vis.length)} مراجعه بهداری</span><span class="${d.inc.length?'bad':''}">${fa(d.inc.length)} حادثه</span><span class="${mw?'wa':''}">${fa(mw)} اخطار این ماه</span><span class="${ov?'bad':''}">${fa(d.fu.length)} پیگیری باز</span>${tech?`<span class="${openAll.some(isOver)?'bad':'wa'}">${fa(openAll.length)} عدم‌انطباق باز</span>`:''}</div><div class="pv">${m.html}</div></div>`}).join(''):'<div class="card mu">واحدی برای نمایش نیست.</div>';
+  if(!hasTech&&!sel){MAIL.__nc=buildNCOnly(openAll,K);html+=`<div class="card"><div class="sub"><b>🔧 گزارش عدم‌انطباق‌ها برای واحد فنی</b><span class="mu">واحدی با نام «فنی» پیدا نشد؛ این گزارش جداگانه است</span><span style="flex:1"></span><button data-c="__nc" class="p">📋 کپی برای Outlook</button><button data-s="__nc">کپی موضوع</button><button data-p="__nc">🖨 چاپ</button></div><div class="pv">${MAIL.__nc.html}</div></div>`}
+  $('out').innerHTML=html;
 }
 async function copyHTML(html,text){
   try{await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);return true}catch(e){}
@@ -161,7 +244,8 @@ $('out').addEventListener('click',async ev=>{const t=ev.target,id=t.dataset.c||t
   if(t.dataset.c){const ok=await copyHTML(m.html,m.text);const o=t.textContent;t.textContent=ok?'✓ کپی شد — در Outlook بچسبانید':'کپی نشد؛ متن را دستی انتخاب کنید';setTimeout(()=>t.textContent=o,2500)}
   else if(t.dataset.s){try{await navigator.clipboard.writeText(m.subject);t.textContent='✓ کپی شد'}catch(e){prompt('موضوع ایمیل:',m.subject)}setTimeout(()=>t.textContent='کپی موضوع',2000)}
   else{const w=window.open('','_blank');if(!w){alert('اجازه‌ی باز شدن پنجره را بدهید.');return}w.document.write(`<html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>${esc(m.subject)}</title></head><body style="margin:20px">${m.html}<script>setTimeout(()=>print(),300)<\/script></body></html>`);w.document.close()}});
-$('mSel').onchange=draw;$('uSel').onchange=draw;$('showReason').onchange=draw;
+$('mSel').onchange=draw;$('uSel').onchange=draw;
+document.querySelectorAll('[data-o]').forEach(c=>c.onchange=()=>{try{localStorage.setItem('ur_o_'+c.dataset.o,c.checked?'1':'0')}catch(e){}draw()});
 load();
 </script>
 </body>
