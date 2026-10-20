@@ -66,7 +66,7 @@ a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .hri.bad .sc{color:var(--bad);border-color:var(--bad)}.hri.wa .sc{color:var(--wa);border-color:var(--wa)}
 .hrc{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 .hrc span{font-size:11.5px;padding:0 9px;border-radius:99px;border:1px solid var(--bd);background:var(--card);line-height:1.9}
-.hrc span.r{border-color:var(--bad);color:var(--bad)}.hrc span.o{border-color:var(--wa);color:var(--wa)}
+.hrc span.g{border-color:var(--ok);color:var(--ok)}.hrc span.r{border-color:var(--bad);color:var(--bad)}.hrc span.o{border-color:var(--wa);color:var(--wa)}
 .hra{font-size:12px;color:var(--mu);margin-top:5px}.hra b{color:var(--ac)}
 .hrm{background:none;border:1px solid var(--ac);color:var(--ac);border-radius:10px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px}
 .hrn{font-size:12px;color:var(--mu);margin-top:8px}
@@ -221,7 +221,7 @@ function syncMgr() {
 }
 
 /* ===== افراد پرریسک: حوادث، روز استعلاجی، اخطار، سوابق پزشکی و آموزش ===== */
-const HRW = { sev: { minor: 3, moderate: 8, severe: 20, fatal: 40 }, repeatInc: 10, lostPerDay: 0.5, lostCap: 90, warnWritten: 6, warnOther: 2, warnCap: 20, epilepsy: 30, seizureVisit: 25, cardiac: 12, htn: 12, htnMaybe: 6, dm: 6, restricted: 6, fuOver: 5, noTrain: 5, manyVisits: 5, HIGH: 30, MID: 15 };
+const HRW = { sev: { minor: 3, moderate: 8, severe: 20, fatal: 40 }, repeatInc: 10, lostPerDay: 0.5, lostCap: 90, warnWritten: 6, warnOther: 2, warnCap: 20, epilepsy: 30, seizureVisit: 25, cardiac: 12, htn: 12, htnMaybe: 6, dm: 6, restricted: 6, fuOver: 5, noTrain: 5, trainCredit: 8, manyVisits: 5, HIGH: 30, MID: 15 };
 const SEVL = { minor: 'جزئی', moderate: 'متوسط', severe: 'شدید', fatal: 'فوتی' };
 const ndg = s => String(s == null ? '' : s).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
 const PFU = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC' });
@@ -254,14 +254,14 @@ async function computeHR() {
   /* کل سوابق لحاظ می‌شود؛ هرچه قدیمی‌تر، وزن کمتر (۲ سال اخیر ۱۰۰٪، تا ۵ سال ۶۰٪، قدیمی‌تر ۳۵٪؛ حادثه شدید/فوتی حداقل ۶۰٪) */
   const wAge = (d, sev) => { const w = d >= c24 ? 1 : d >= c60 ? 0.6 : 0.35; return sev >= 3 ? Math.max(w, 0.6) : w; };
   const P = {}, byCode = {};
-  emp.forEach(e => { P[e.id] = { e, n: 0, nRec: 0, n36: 0, sevMax: 0, pts: 0, lostInc: 0, lostVis: 0, lostIncW: 0, lostVisW: 0, warnPts: 0, warnW: 0, warnO: 0, v6: 0, vBP: 0, seizV: 0, cond: new Set(), bp: false, restr: false, fuOver: 0, lastTr: null, chips: [], act: new Set() }; if (e.emp_id != null) byCode[String(e.emp_id)] = e.id; });
+  emp.forEach(e => { P[e.id] = { e, n: 0, nRec: 0, n36: 0, sevMax: 0, pts: 0, lostInc: 0, lostVis: 0, lostIncW: 0, lostVisW: 0, warnPts: 0, lastEv: null, warnW: 0, warnO: 0, v6: 0, vBP: 0, seizV: 0, cond: new Set(), bp: false, restr: false, fuOver: 0, lastTr: null, chips: [], act: new Set() }; if (e.emp_id != null) byCode[String(e.emp_id)] = e.id; });
   const SO = { minor: 1, moderate: 2, severe: 3, fatal: 4 };
-  (inc || []).forEach(i => { const p = P[i.employee_id], d = dISO(i.incident_date); if (!p || !d) return; const sv = HRW.sev[i.severity] ? i.severity : 'minor', w = wAge(d, SO[sv]); p.n++; if (d >= c24) p.nRec++; if (d >= c36) p.n36++; p.pts += HRW.sev[sv] * w; p.sevMax = Math.max(p.sevMax, SO[sv]); const m = ndg(i.description).match(/روز از دست رفته:\s*(\d+)/); if (m) { p.lostInc += +m[1]; p.lostIncW += +m[1] * w; } });
+  (inc || []).forEach(i => { const p = P[i.employee_id], d = dISO(i.incident_date); if (!p || !d) return; const sv = HRW.sev[i.severity] ? i.severity : 'minor', w = wAge(d, SO[sv]); if (!p.lastEv || d > p.lastEv) p.lastEv = d; p.n++; if (d >= c24) p.nRec++; if (d >= c36) p.n36++; p.pts += HRW.sev[sv] * w; p.sevMax = Math.max(p.sevMax, SO[sv]); const m = ndg(i.description).match(/روز از دست رفته:\s*(\d+)/); if (m) { p.lostInc += +m[1]; p.lostIncW += +m[1] * w; } });
   (vis || []).forEach(v => { const p = P[v.employee_id], d = dISO(v.visit_date); if (!p || !d) return; const ld = Number(v.medical_leave_days) || 0; p.lostVis += ld; p.lostVisW += ld * wAge(d, 0); if (d >= c6) p.v6++; const r = String(v.visit_reason || ''); if (d >= c12 && /فشار/.test(r)) p.vBP++; if (/تشنج|صرع|غش|بیهوش/.test(r)) p.seizV++; });
   const latest = {}; (ex || []).forEach(x => { const c = latest[x.employee_id]; if (!c || String(x.exam_date) > String(c.exam_date)) latest[x.employee_id] = x; if (P[x.employee_id]) Object.keys(((x.history || {}).cond) || {}).forEach(k => P[x.employee_id].cond.add(k)); });
   Object.keys(latest).forEach(id => { const p = P[id], x = latest[id]; if (!p) return; const v = x.vitals || {}; if ((+v.sys >= 140) || (+v.dia >= 90)) p.bp = true; if (['fit_restricted', 'temp_unfit', 'unfit'].includes(x.fitness)) p.restr = true; });
   (fu || []).forEach(f => { const p = P[f.employee_id]; if (p && ['pending', 'overdue'].includes(f.status) && f.due_date && f.due_date < today) p.fuOver++; });
-  (ekh || []).forEach(o => { const id = pickK(o, ['employee_id', 'personnel_id']) || byCode[String(pickK(o, ['emp_id', 'employee_code', 'personnel_code', 'code']))], p = P[id]; if (!p) return; const d = dISO(pickK(o, ['record_date', 'issue_date', 'issued_at', 'letter_date', 'date', 'created_at'])), w = d ? wAge(d, 0) : 1; if ((pickK(o, ['record_type', 'type', 'kind']) || '') === 'اخطار کتبی') { p.warnW++; p.warnPts += HRW.warnWritten * w; } else { p.warnO++; p.warnPts += HRW.warnOther * w; } });
+  (ekh || []).forEach(o => { const id = pickK(o, ['employee_id', 'personnel_id']) || byCode[String(pickK(o, ['emp_id', 'employee_code', 'personnel_code', 'code']))], p = P[id]; if (!p) return; const d = dISO(pickK(o, ['record_date', 'issue_date', 'issued_at', 'letter_date', 'date', 'created_at'])), w = d ? wAge(d, 0) : 1; if (d && (!p.lastEv || d > p.lastEv)) p.lastEv = d; if ((pickK(o, ['record_type', 'type', 'kind']) || '') === 'اخطار کتبی') { p.warnW++; p.warnPts += HRW.warnWritten * w; } else { p.warnO++; p.warnPts += HRW.warnOther * w; } });
   const trD = {}; (tr || []).forEach(t => trD[t.id] = dISO(t.training_date)); const haveTr = !!(tr && ta);
   (ta || []).forEach(a => { const p = P[a.employee_id], d = trD[a.training_id]; if (p && d && (!p.lastTr || d > p.lastTr)) p.lastTr = d; });
   const out = [];
@@ -280,11 +280,17 @@ async function computeHR() {
     if (p.restr) { p.pts += HRW.restricted; add('محدودیت کاری طب کار', 'o'); }
     if (p.fuOver) { p.pts += HRW.fuOver; add('پیگیری بهداری معوق', 'o'); med = true; }
     if (p.v6 >= 4) { p.pts += HRW.manyVisits; add(`${fa(p.v6)} مراجعه بهداری در ۶ ماه`); }
-    const noTr = haveTr && (!p.lastTr || p.lastTr < c12);
-    if (noTr) { p.pts += HRW.noTrain; add('بدون آموزش در ۱۲ ماه اخیر', 'o'); }
+    /* آموزش: اگر ۱۲ ماه اخیر آموزش ندیده، امتیاز و پیشنهاد آموزش؛ اگر بعد از آخرین حادثه/اخطار آموزش دیده، اعتبار آموزش (کاهش امتیاز و حذف پیشنهاد)؛ اگر بعد از آموزش دوباره حادثه/اخطار داشته، آموزش مجدد */
+    const noTr = haveTr && (!p.lastTr || p.lastTr < c12); let trAct = '';
+    if (!haveTr) { if (p.lastEv) trAct = 'آموزش'; }
+    else if (noTr) { p.pts += HRW.noTrain; add('بدون آموزش در ۱۲ ماه اخیر', 'o'); trAct = 'آموزش'; }
+    else if (p.lastEv) {
+      if (p.lastTr >= p.lastEv) { p.pts = Math.max(0, p.pts - HRW.trainCredit); add('آموزش پس از آخرین رویداد', 'g'); }
+      else { add('رویداد پس از آخرین آموزش', 'r'); trAct = 'آموزش مجدد'; }
+    }
     p.score = Math.round(p.pts); p.chips = ch; p.med = med;
     p.level = p.score >= HRW.HIGH ? 'high' : p.score >= HRW.MID ? 'mid' : (med ? 'med' : 'low');
-    const a = []; if (p.n || p.warnW || p.warnO || noTr) a.push('آموزش'); if (p.level === 'high') a.push('کنترل بیشتر'); if (med) a.push('پیگیری پزشکی');
+    const a = []; if (trAct) a.push(trAct); if (p.level === 'high') a.push('کنترل بیشتر'); if (med) a.push('پیگیری پزشکی');
     p.actions = a;
   });
   const list = out.concat(Object.values(P).filter(p => p.level !== 'low')).sort((a, b) => ({ high: 0, mid: 1, med: 2 }[a.level] - { high: 0, mid: 1, med: 2 }[b.level]) || b.score - a.score);
@@ -294,13 +300,13 @@ let HRC = null, HRN = 8;
 function renderHR() {
   const box = document.getElementById('hrBody'), R = HRC;
   if (!R) { box.textContent = 'اطلاعات پرسنل خوانده نشد. بعداً دوباره تلاش کنید.'; meta('mHr', ''); return; }
-  const L = R.list, hi = L.filter(x => x.level === 'high').length, mid = L.filter(x => x.level === 'mid').length, md = L.filter(x => x.med).length, tn = L.filter(x => x.actions.includes('آموزش')).length;
+  const L = R.list, hi = L.filter(x => x.level === 'high').length, mid = L.filter(x => x.level === 'mid').length, md = L.filter(x => x.med).length, tn = L.filter(x => x.actions.some(a => a.startsWith('آموزش'))).length;
   meta('mHr', hi ? fa(hi) + ' نفر ریسک بالا' : (L.length ? fa(L.length) + ' نفر نیازمند توجه' : 'موردی نیست'));
   if (!L.length) { box.innerHTML = '<div class="mu">فرد پرریسکی بر اساس حوادث، اخطار و سوابق پزشکی شناسایی نشد.</div>'; return; }
   const row = p => { const e = p.e, nm = ((e.first_name || '') + ' ' + (e.last_name || '')).trim() || '—', cls = p.level === 'high' ? 'bad' : (p.level === 'mid' ? 'wa' : ''), lv = { high: 'ریسک بالا', mid: 'ریسک متوسط', med: 'پیگیری پزشکی' }[p.level];
     return `<div class="hri ${cls}"><div class="hrh"><b>${esc(nm)}</b><span class="mu">${esc(e.department || '')}${e.emp_id != null ? '، کد ' + fa(e.emp_id) : ''}</span><span class="sc">${lv} (امتیاز ${fa(p.score)})</span></div><div class="hrc">${p.chips.map(c => `<span class="${c[1]}">${esc(c[0])}</span>`).join('')}</div>${p.actions.length ? `<div class="hra">اقدام پیشنهادی: <b>${p.actions.join('، ')}</b></div>` : ''}</div>`; };
   box.innerHTML = `<div class="hrs"><span><b class="bad">${fa(hi)}</b> ریسک بالا</span><span><b class="wa">${fa(mid)}</b> ریسک متوسط</span><span><b>${fa(md)}</b> نیازمند پیگیری پزشکی</span><span><b>${fa(tn)}</b> نیازمند آموزش</span></div><div class="hrl">${L.slice(0, HRN).map(row).join('')}</div>${L.length > HRN ? `<button class="hrm" id="hrMore">نمایش همه (${fa(L.length)} نفر)</button>` : ''}
-  <details class="hrn"><summary>نحوه محاسبه</summary><div style="margin-top:6px">کل سوابق فرد بررسی می‌شود، ولی هرچه سابقه قدیمی‌تر باشد وزن کمتری دارد: ۲ سال اخیر ۱۰۰٪، بین ۲ تا ۵ سال ۶۰٪ و قدیمی‌تر ۳۵٪ (حادثه شدید یا فوتی هرگز کمتر از ۶۰٪ نمی‌شود). امتیاز هر حادثه: جزئی ۳، متوسط ۸، شدید ۲۰، فوتی ۴۰؛ به‌علاوه ۰٫۵ امتیاز برای هر روز استعلاجی (تا ۹۰ روز) و ۱۰ امتیاز برای ۳ حادثه یا بیشتر در ۳ سال اخیر. اخطار کتبی ۶ و سایر سوابق انضباطی ۲. بیماری‌های ثبت‌شده در معاینات (صرع/تشنج ۳۰، قلبی ۱۲، فشار خون بالا ۱۲، دیابت ۶) همیشه با وزن کامل حساب می‌شوند؛ محدودیت کاری ۶، پیگیری معوق ۵ و نبود آموزش در ۱۲ ماه اخیر ۵ امتیاز دارد. ریسک بالا از ۳۰ و متوسط از ۱۵ امتیاز است. این فهرست کمکی برای اولویت‌بندی است و جایگزین نظر پزشک طب کار نیست.</div></details>`;
+  <details class="hrn"><summary>نحوه محاسبه</summary><div style="margin-top:6px">کل سوابق فرد بررسی می‌شود، ولی هرچه سابقه قدیمی‌تر باشد وزن کمتری دارد: ۲ سال اخیر ۱۰۰٪، بین ۲ تا ۵ سال ۶۰٪ و قدیمی‌تر ۳۵٪ (حادثه شدید یا فوتی هرگز کمتر از ۶۰٪ نمی‌شود). امتیاز هر حادثه: جزئی ۳، متوسط ۸، شدید ۲۰، فوتی ۴۰؛ به‌علاوه ۰٫۵ امتیاز برای هر روز استعلاجی (تا ۹۰ روز) و ۱۰ امتیاز برای ۳ حادثه یا بیشتر در ۳ سال اخیر. اخطار کتبی ۶ و سایر سوابق انضباطی ۲. بیماری‌های ثبت‌شده در معاینات (صرع/تشنج ۳۰، قلبی ۱۲، فشار خون بالا ۱۲، دیابت ۶) همیشه با وزن کامل حساب می‌شوند؛ محدودیت کاری ۶، پیگیری معوق ۵ و نبود آموزش در ۱۲ ماه اخیر ۵ امتیاز و پیشنهاد «آموزش» دارد. اگر فرد پس از آخرین حادثه یا اخطارش آموزش دیده باشد، ۸ امتیاز کم می‌شود و پیشنهاد آموزش حذف می‌شود؛ اگر پس از آموزش دوباره حادثه یا اخطار داشته باشد، «آموزش مجدد» پیشنهاد می‌شود. سابقه‌ی حادثه با آموزش پاک نمی‌شود و فقط وزنش کمتر می‌شود. ریسک بالا از ۳۰ و متوسط از ۱۵ امتیاز است. این فهرست کمکی برای اولویت‌بندی است و جایگزین نظر پزشک طب کار نیست.</div></details>`;
   const mb = document.getElementById('hrMore'); if (mb) mb.onclick = () => { HRN = 60; renderHR(); };
 }
 async function loadHR() { try { HRC = await computeHR(); } catch (e) { HRC = null; } renderHR(); }
