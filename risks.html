@@ -41,6 +41,7 @@
   <div class="g2"><div><label class="l">روش ارزیابی</label><select id="mM"><option value="fmea">FMEA — روش رسمی شرکت (S×O×D)</option><option value="hazop">HAZOP (S×L، ۱ تا ۵)</option><option value="reba">REBA (ارگونومی کل بدن)</option><option value="rula">RULA (ارگونومی اندام فوقانی)</option></select></div>
   <div><label class="l">سوله / واحد (الزامی)</label><input type="text" id="mU" list="ul"><datalist id="ul"></datalist></div></div>
   <div class="g2"><div><label class="l">دسته ریسک</label><select id="mK"></select></div><div><label class="l">فرآیند</label><input type="text" id="mPr"></div></div>
+  <div id="chW" style="display:none"><label class="l">ماده شیمیایی / گاز مرتبط (اختیاری)</label><select id="mCh"></select></div>
   <label class="l" id="lAct">فعالیت</label><input type="text" id="mA">
   <label class="l" id="lHz">خطر (الزامی)</label><textarea id="mH" rows="2" placeholder="مثلاً: سقوط مخزن اسید هنگام جابه‌جایی با لیفتراک"></textarea>
   <div class="m-sod">
@@ -94,7 +95,7 @@ function lvl(r){
 const calc=(m,s,o,d)=>m==='fmea'?s*o*(d||1):s*o;
 const TODAY=new Date().toISOString().slice(0,10);
 const fday=d=>{try{return new Date(String(d).slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
-let R=[],F=[],I=[],C=[],units=[],editId=null;
+let R=[],F=[],I=[],C=[],CH=[],units=[],editId=null;
 const isMgr=()=>window.HSEAuth&&HSEAuth.role==='manager';
 const opts=(arr,v)=>arr.map((t,i)=>i?`<option value="${i}" ${v==i?'selected':''}>${fa(i)} — ${t}</option>`:'').join('');
 const catOpts=f=>`<option value="">${f}</option>`+CATS.map(g=>`<optgroup label="${g[0]}">${g[1].map(c=>`<option>${c}</option>`).join('')}</optgroup>`).join('');
@@ -104,9 +105,10 @@ $('mDW').innerHTML=jdHTML('mD');jdInit($('mD'),true);
 
 async function load(){
   await HSEAuth.ready;
-  const [r,f,i,c,u]=await Promise.all([getAll('risks?select=*'),getAll('findings?select=id,risk_id,status&risk_id=not.is.null'),getAll('clinic_incidents?select=id,risk_id,incident_date&risk_id=not.is.null'),getAll('hse_cards?select=id,risk_id,status&risk_id=not.is.null'),getAll('hse_units?select=name&order=name.asc')]);
+  const [r,f,i,c,u,ch]=await Promise.all([getAll('risks?select=*'),getAll('findings?select=id,risk_id,status&risk_id=not.is.null'),getAll('clinic_incidents?select=id,risk_id,incident_date&risk_id=not.is.null'),getAll('hse_cards?select=id,risk_id,status&risk_id=not.is.null'),getAll('hse_units?select=name&order=name.asc'),getAll('chemicals?select=id,name,code&status=neq.archived&order=name.asc')]);
   if(r==null){$('err').style.display='block';$('err').textContent='جدول ریسک پیدا نشد. فایل‌های SQL شماره ۰۱ تا ۰۴ را به‌ترتیب در Supabase اجرا کنید.';R=[]}else{$('err').style.display='none';R=r}
-  F=f||[];I=i||[];C=c||[];units=u||[];
+  F=f||[];I=i||[];C=c||[];units=u||[];CH=ch||[];
+  $('chW').style.display=CH.length?'':'none';$('mCh').innerHTML='<option value="">— بدون ماده مرتبط —</option>'+CH.map(x=>`<option value="${x.id}">${esc(x.name)}${x.code?' ('+esc(x.code)+')':''}</option>`).join('');
   const names=[...new Set([...units.map(x=>x.name),...R.map(x=>x.unit)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fa',{numeric:true}));
   $('fU').innerHTML='<option value="">همه</option>'+names.map(n=>`<option>${esc(n)}</option>`).join('');
   $('ul').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
@@ -142,6 +144,7 @@ function render(){
    const sc=r.method==='fmea'?`S ${fa(r.severity)} × O ${fa(r.likelihood)} × D ${r.detection?fa(r.detection):'؟'} = <b>RPN ${fa(r.score)}</b>`:r.method==='hazop'?`S ${fa(r.severity)} × L ${fa(r.likelihood)} = <b>${fa(r.score)}</b>`:`امتیاز نهایی ${MN[r.method]}: <b>${fa(r.score)}</b>`;
    return`<details class="card"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:8px"><span><b>${esc(r.hazard)}</b> <span class="tag">${esc(r.category||'بدون دسته')}</span> <span class="tag">${MN[r.method]}</span> <span class="mu">· ${esc(r.unit)}${r.activity?' · '+esc(r.activity):''}</span></span><span style="text-align:left;white-space:nowrap"><span class="lv" style="background:${v.c}">${v.t} · ${fa(r.score)}</span> ${r.status==='draft'?'<span class="tag wa">در انتظار تأیید</span>':r.status==='archived'?'<span class="tag">بایگانی</span>':''}</span></summary>
    <div style="margin-top:8px;border-top:1px solid #334155;padding-top:8px">
+   ${r.chemical_id&&CH.find(x=>x.id==r.chemical_id)?`<div class="mu">ماده مرتبط: <a href="chemicals.html">${esc(CH.find(x=>x.id==r.chemical_id).name)}</a></div>`:''}
    ${r.process?`<div class="mu">فرآیند: ${esc(r.process)}${r.assessed_on?' · تاریخ ارزیابی: '+esc(r.assessed_on):''}</div>`:''}
    ${r.consequence?`<div><b>پیامد:</b> ${esc(r.consequence)}</div>`:''}${r.causes?`<div><b>علل:</b> ${esc(r.causes)}</div>`:''}
    <div><b>کنترل موجود:</b> ${esc(r.existing_controls||'—')}</div>
@@ -190,7 +193,7 @@ function openM(r){editId=r?r.id:null;$('mT').textContent=r?'ویرایش ریس�
   const m=r?r.method:'fmea';$('mM').value=m;$('mM').disabled=!!r;
   fillScales(m,r?{s:r.severity,o:r.likelihood,d:r.detection,rs:r.residual_severity,ro:r.residual_likelihood,rd:r.residual_detection}:{});
   const v=(id,x)=>$(id).value=x==null?'':x;
-  v('mU',r?r.unit:$('fU').value);v('mK',r&&r.category);v('mPr',r&&r.process);v('mA',r&&r.activity);v('mH',r&&r.hazard);v('mC',r&&r.consequence);v('mCa',r&&r.causes);v('mE',r&&r.existing_controls);
+  v('mU',r?r.unit:$('fU').value);v('mCh',r&&r.chemical_id);v('mK',r&&r.category);v('mPr',r&&r.process);v('mA',r&&r.activity);v('mH',r&&r.hazard);v('mC',r&&r.consequence);v('mCa',r&&r.causes);v('mE',r&&r.existing_controls);
   v('mLg',r&&r.legal_ref);$('mGap').checked=!!(r&&r.legal_gap);v('mSc',r&&r.manual_score);v('mAT',r&&r.action_type);v('mO',r&&r.owner);v('mP',r&&r.planned_controls);
   const p=toJal(new Date());v('mAs',r?r.assessed_on:`${p[0]}/${String(p[1]).padStart(2,'0')}/${String(p[2]).padStart(2,'0')}`);
   const ss=$('mD').querySelectorAll('select');if(r&&r.review_date)jdSet($('mD'),r.review_date);else ss.forEach(s=>s.value='');
@@ -204,6 +207,7 @@ async function save(approve){
   const t=x=>$(x).value.trim()||null,n=x=>$(x).value?+$(x).value:null;
   const b={unit,category:$('mK').value||null,process:t('mPr'),activity:t('mA'),hazard:hz,owner:t('mO'),action_type:t('mAT'),planned_controls:t('mP'),assessed_on:t('mAs'),review_date:jdGet($('mD'))};
   if(!editId)b.method=m;
+  if(CH.length)b.chemical_id=$('mCh').value?+$('mCh').value:null;
   if(sod){
     const rs=n('mRS'),rl=n('mRL'),rd=m==='fmea'?n('mRD'):null,any=rs||rl||rd,all=rs&&rl&&(m!=='fmea'||rd);
     if(any&&!all){alert('ارزیابی مجدد را کامل پر کنید یا کاملاً خالی بگذارید.');return}
