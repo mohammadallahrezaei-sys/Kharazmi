@@ -110,151 +110,199 @@ const isOver=f=>(f.due_date?dd(TODAY,f.due_date):dd(TODAY,String(f.created_at).s
 const ageOf=f=>dd(TODAY,String(f.created_at).slice(0,10));
 
 /* ---------- قالب‌های ایمیل (استایل inline برای Outlook) ---------- */
-const TH='border:1px solid #cbd5e1;padding:4px 8px;background:#f1f5f9;color:#334155;font-size:12px;text-align:right';
-const TD='border:1px solid #cbd5e1;padding:4px 8px;font-size:12px;text-align:right';
-const H3=t=>`<p style="margin:16px 0 4px;font-size:14px;border-bottom:2px solid #0f766e;padding-bottom:2px"><b>${t}</b></p>`;
-const P_=t=>`<p style="margin:3px 0;font-size:12px;color:#334155">${t}</p>`;
+const HC='#0f766e';
+const TH='border:1px solid #94a3b8;padding:5px 8px;background:#e2e8f0;color:#0f172a;font-size:12px;text-align:right;font-weight:bold';
+const TD='border:1px solid #cbd5e1;padding:5px 8px;font-size:12px;text-align:right;vertical-align:top';
+const H3=(n,t)=>`<p style="margin:20px 0 6px;font-size:14px;color:#0f172a;border-bottom:2px solid ${HC};padding-bottom:3px"><b>${fa(n)}. ${t}</b></p>`;
+const P_=t=>`<p style="margin:4px 0;font-size:12px;color:#334155">${t}</p>`;
 const tbl=(heads,rows)=>`<table style="width:100%;border-collapse:collapse;margin:4px 0"><tr>${heads.map(h=>`<th style="${TH}">${h}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td style="${TD}">${c}</td>`).join('')}</tr>`).join('')}</table>`;
-const more=(n,cap)=>n>cap?P_(`و ${fa(n-cap)} مورد دیگر…`):'';
-const td=(a,b)=>`<td style="border:1px solid #cbd5e1;padding:4px 8px;background:#f8fafc;color:#475569;font-size:12px">${a}</td><td style="border:1px solid #cbd5e1;padding:4px 8px;font-size:13px"><b>${b}</b></td>`;
-const red=t=>`<b style="color:#dc2626">${t}</b>`;
+const more=(n,cap)=>n>cap?P_(`و ${fa(n-cap)} مورد دیگر در سامانه ثبت شده است.`):'';
+const td=(a,b)=>`<td style="border:1px solid #cbd5e1;padding:5px 8px;background:#f8fafc;color:#475569;font-size:12px">${a}</td><td style="border:1px solid #cbd5e1;padding:5px 8px;font-size:13px"><b>${b}</b></td>`;
+const red=t=>`<b style="color:#b91c1c">${t}</b>`;
+const utag=x=>{const u=unitOfEmp(x.employee_id);return u?u.name:'—'};
+const join2=a=>a.length<2?a.join(''):a.slice(0,-1).join('، ')+' و '+a[a.length-1];
 function reasonTxt(v){const r=(v.visit_reason||'').trim();if(!r||r==='illness')return'—';if(/^checkup/.test(r)||/معاینه\s*دوره/.test(r))return'معاینه طب کار';return esc(r)}
-
-/* ---------- بخش‌ها ---------- */
-function secTrend(r,p1,p2,k){
-  if(!r.entered&&!(p1&&p1.entered)&&!(p2&&p2.entered))return'';
-  const cols=[[monthLabel(prevK(prevK(k))),p2],[monthLabel(prevK(k)),p1],[monthLabel(k),r]],f=(x,key)=>x&&x.entered?n1(x[key]):'—';
-  return H3('📈 روند ۳ ماه اخیر')+tbl(['شاخص',...cols.map(c=>c[0])],[['شاخص ایمنی',...cols.map(c=>f(c[1],'safety'))],['شاخص مشارکت',...cols.map(c=>f(c[1],'part'))]]);
-}
 const lostOf=i=>{const m=String(i.description||'').match(/روز از دست رفته:\s*(\d+)/);return m&&+m[1]?fa(m[1]):'—'};
-function secInc(D){
-  const a=D.inc;if(!a.length)return H3('🚑 حوادث این ماه')+P_('حادثه‌ای برای پرسنل این واحد ثبت نشده است. 👏');
-  const rows=a.slice().sort((x,y)=>String(y.incident_date).localeCompare(String(x.incident_date))).slice(0,10).map(i=>[fday(i.incident_date),esc(nm(EMPBY[i.employee_id])),esc(SEV[i.severity]||i.severity||'—'),esc(i.location||'—'),esc(String(i.description||'').split('\n')[0].slice(0,110)||'—'),lostOf(i),i.corrective_action?esc(String(i.corrective_action).slice(0,90))+' ('+esc(ACT[i.action_status]||i.action_status||'')+')':'—']);
-  return H3(`🚑 حوادث این ماه (${fa(a.length)} مورد)`)+tbl(['تاریخ','فرد','شدت','محل','شرح','روز از دست‌رفته','اقدام اصلاحی'],rows)+more(a.length,10);
+
+/* ---------- تشخیص جنسیت از روی نام برای خطاب رسمی ---------- */
+const nrm=s=>norm(s).replace(/[ءأإ]/g,'ا');
+const FEM=new Set('زهرا فاطمه مریم سمیه سمیرا معصومه زینب الهام نرگس لیلا مینا سارا ساره نسترن آزاده مهسا شیما ندا نیلوفر پریسا سحر شقایق رقیه حمیده زهره فرزانه فریبا مرضیه منیره ناهید فهیمه اکرم اعظم طاهره راحله الهه پروین شهناز شیرین سوسن مهناز مژگان ساناز سودابه سپیده بهاره نازنین نگار نگین نسیم رویا ملیحه آسیه عاطفه سعیده خدیجه هاجر آمنه صدیقه محبوبه مهدیه فرشته ژیلا گلناز گلنار لادن مرجان مهشید میترا مهتاب پرستو پوران سیمین شبنم شهلا شادی شیدا فرناز کبری کتایون گیتی لیدا ماهرخ ماندانا نازی نجمه نرجس نغمه نفیسه هانیه هدیه هلیا هستی هما یاسمن یلدا ملیکا ستاره سهیلا سوگند سکینه ثریا ترانه تینا آتنا آرزو آذر آرمیتا اطهر افسانه افسر الناز المیرا انسیه بتول بدری بهناز بیتا پگاه پونه تهمینه جمیله جلوه حدیثه حلیمه حوا دنیا دلارام ربابه رضوانه رعنا روژین زری زکیه ژاله سمانه سوزان سیما شکوه شهره شهین صفورا صبا صغری طیبه عذرا عصمت عفت عالیه فاطیما فائزه فتانه فخری فروغ فریده قدسی کوثر گلاره گلی لعیا مائده مبینا مستوره مهین مهری نادیا نازیلا نسرین نعیمه نوشین نیکو نیره هاله هنگامه وجیهه ونوس یگانه شمیم سلمی لیلی ریحانه نیایش پروانه پریناز مینو منا مونا شبنم راضیه ساجده سمیرا نگین'.split(/\s+/).map(nrm));
+const MAL=new Set('محمد علی حسین حسن رضا مهدی احمد محمود مصطفی ابوالفضل امیر امیرحسین سعید سجاد جواد جعفر کاظم یوسف یعقوب اسماعیل ابراهیم موسی عیسی داود سلیمان حمید حمیدرضا مجید ماجد مرتضی مسعود منصور ناصر نادر نصرالله عباس عبدالله عبدالرضا علیرضا غلامرضا فرهاد فرشید فرزاد فریدون قاسم کریم کامران کیومرث کیوان بهرام بهزاد بابک پیمان پویا پرویز تقی توحید جلال جمشید جهانگیر حامد حبیب حجت حشمت حیدر خلیل خسرو داریوش دانیال رحیم رحمان رسول روحالله ساسان سامان سروش سلمان سهراب سیاوش شاهین شهرام شهاب شهریار صادق صمد طاها طاهر عادل عارف عبدالحسین عبدالمجید عطا عماد عمران عمر غلام فتحالله فرامرز فرزین فرهنگ فریبرز قدرت کاوه کمال کورش گودرز لطفالله مالک مبین مختار مسلم معین مهران مهرداد نبی نریمان نعمتالله نیما هادی هاشم هرمز همایون هوشنگ وحید ولی یاسر یحیی احسان اکبر اصغر امین امید ایمان بردیا بنیامین پدرام جابر جلیل جمال حافظ حسام حمزه خالد رامین رامتین رضوان زکریا سینا شاپور شایان شعیب صابر صفدر طالب عرفان عزیز علیاصغر علیاکبر فرید فواد کیا کیارش مازیار مهیار میثم میلاد نوید هومن آرش آرین آیدین'.split(/\s+/).map(nrm));
+const MPRE=['محمد','علی','حسین','امیر','عبد','غلام','ابو','سید','میر'].map(nrm),FPRE=['فاطمه','زهرا','سیده','مریم'].map(nrm);
+function genderOf(first){
+  const w=nrm(first);if(!w)return'';
+  if(FEM.has(w))return'f';if(MAL.has(w))return'm';
+  if(FPRE.some(p=>w.startsWith(p)))return'f';if(MPRE.some(p=>w.startsWith(p)))return'm';
+  return'';
 }
-function secClinic(D,O){
-  const v=D.vis;if(!v.length)return H3('🏥 مراجعات بهداری')+P_('در این ماه مراجعه‌ای از پرسنل واحد به بهداری ثبت نشده است.');
+/* نام سرپرست -> {g:'m'|'f'|'', name, sal} ؛ عنوان‌های آقای/خانم/جناب/سرکار داخل خود نام هم لحاظ می‌شود */
+function addressee(mgr){
+  const t=String(mgr||'').trim().split(/\s+/).filter(Boolean),hon=[];let g='';
+  const TM=['آقای','آقا','جناب'].map(nrm),TF=['خانم','خانوم','سرکار','بانو'].map(nrm),TH_=['مهندس','دکتر','استاد','حاج','حاجی'].map(nrm);
+  while(t.length){const w=nrm(t[0]);if(TM.includes(w)){g='m';t.shift()}else if(TF.includes(w)){g='f';t.shift()}else if(TH_.includes(w))hon.push(t.shift());else break}
+  if(!g&&t.length>1)g=genderOf(t[0]);          /* نام کوچک فقط وقتی نام خانوادگی هم هست */
+  if(!g&&t.length===1)g=genderOf(t[0]);
+  const name=[...hon,...t].join(' ');
+  const sal=!name?'':g==='m'?`جناب آقای ${esc(name)}`:g==='f'?`سرکار خانم ${esc(name)}`:`${esc(name)} گرامی`;
+  return{g,name,sal};
+}
+
+/* ---------- بخش‌های گزارش (هر بخش یک‌بار برای کل واحدهای سرپرست؛ در حالت چندواحدی ستون «واحد» دارد) ---------- */
+function secTrend(items,k,U){
+  const ks=[prevK(prevK(k)),prevK(k),k],pull=(lbl,key)=>items.map(i=>{const c=[i.p2,i.p1,i.r].map(x=>x&&x.entered?n1(x[key]):'—');return c.some(v=>v!=='—')?[U?esc(i.r.u.name)+' — '+lbl:lbl,...c]:null}).filter(Boolean);
+  const rows=[...pull('شاخص ایمنی','safety'),...pull('شاخص مشارکت','part')];
+  if(U){const A=[items.map(i=>i.p2),items.map(i=>i.p1),items.map(i=>i.r)].map(aggRows);if(A.some(a=>a.n))rows.push(['<b>جمع (میانگین وزنی) — شاخص ایمنی</b>',...A.map(a=>a.n?`<b>${n1(a.safety)}</b>`:'—')],['<b>جمع (میانگین وزنی) — شاخص مشارکت</b>',...A.map(a=>a.n?`<b>${n1(a.part)}</b>`:'—')])}
+  return rows.length?{t:'روند سه‌ماهه‌ی شاخص‌ها',h:tbl(['شاخص',...ks.map(monthLabel)],rows)}:null;
+}
+function secInc(D,U){
+  const a=D.inc,t='حوادث ماه مورد گزارش';
+  if(!a.length)return{t,h:P_('در ماه مورد گزارش، حادثه‌ای برای پرسنل ثبت نشده است.')};
+  const rows=a.slice().sort((x,y)=>String(y.incident_date).localeCompare(String(x.incident_date))).slice(0,12).map(i=>[fday(i.incident_date),...(U?[esc(utag(i))]:[]),esc(nm(EMPBY[i.employee_id])),esc(SEV[i.severity]||i.severity||'—'),esc(i.location||'—'),esc(String(i.description||'').split('\n')[0].slice(0,110)||'—'),lostOf(i),i.corrective_action?esc(String(i.corrective_action).slice(0,90))+' ('+esc(ACT[i.action_status]||i.action_status||'')+')':'—']);
+  return{t:`${t} (${fa(a.length)} مورد)`,h:tbl(['تاریخ',...(U?['واحد']:[]),'نام و نام خانوادگی','شدت','محل','شرح','روز از دست‌رفته','اقدام اصلاحی'],rows)+more(a.length,12)};
+}
+function secClinic(D,O,U){
+  const v=D.vis,t='مراجعات پرسنل به بهداری';
+  if(!v.length)return{t,h:P_('در ماه مورد گزارش، مراجعه‌ای از پرسنل به بهداری ثبت نشده است.')};
   const byE={};v.forEach(x=>(byE[x.employee_id]=byE[x.employee_id]||[]).push(x));
   const people=Object.keys(byE).length,rest=v.reduce((a,x)=>a+(Number(x.medical_leave_days)||0),0),ref=v.filter(x=>x.is_referred).length;
-  const rep=Object.entries(byE).filter(([,a])=>a.length>=3).map(([id,a])=>`${esc(nm(EMPBY[id]))} (${fa(a.length)} بار)`);
-  const heads=['تاریخ','نام',...(O.reason?['علت مراجعه']:[]),'روز استراحت','ارجاع'];
-  const rows=v.slice().sort((x,y)=>String(y.visit_date).localeCompare(String(x.visit_date))).slice(0,20).map(x=>[fday(x.visit_date),esc(nm(EMPBY[x.employee_id])),...(O.reason?[reasonTxt(x)]:[]),Number(x.medical_leave_days)?fa(x.medical_leave_days)+' روز':'—',x.is_referred?'به مرکز درمانی':'—']);
-  return H3(`🏥 مراجعات بهداری (${fa(v.length)} مراجعه از ${fa(people)} نفر)`)+P_(`مجموع استراحت پزشکی: <b>${fa(rest)} روز</b> · ارجاع به مرکز درمانی: <b>${fa(ref)}</b> مورد`)+(rep.length?P_(`${red('مراجعه مکرر (۳ بار یا بیشتر در ماه):')} ${rep.join('، ')} — لطفاً با این همکاران گفتگو و در صورت نیاز با بهداری هماهنگ شود.`):'')+tbl(heads,rows)+more(v.length,20);
+  const rep=Object.entries(byE).filter(([,a])=>a.length>=3).map(([id,a])=>`${esc(nm(EMPBY[id]))}${U?' ('+esc(utag(a[0]))+')':''} — ${fa(a.length)} بار`);
+  const heads=['تاریخ',...(U?['واحد']:[]),'نام و نام خانوادگی',...(O.reason?['علت مراجعه']:[]),'روز استراحت','ارجاع'];
+  const rows=v.slice().sort((x,y)=>String(y.visit_date).localeCompare(String(x.visit_date))).slice(0,25).map(x=>[fday(x.visit_date),...(U?[esc(utag(x))]:[]),esc(nm(EMPBY[x.employee_id])),...(O.reason?[reasonTxt(x)]:[]),Number(x.medical_leave_days)?fa(x.medical_leave_days)+' روز':'—',x.is_referred?'به مرکز درمانی':'—']);
+  return{t:`${t} (${fa(v.length)} مراجعه از ${fa(people)} نفر)`,h:P_(`مجموع استراحت پزشکی: <b>${fa(rest)} روز</b>؛ ارجاع به مرکز درمانی: <b>${fa(ref)}</b> مورد.`)+(rep.length?P_(`${red('مراجعه مکرر (سه بار یا بیشتر در ماه):')} ${rep.join('؛ ')}. خواهشمند است وضعیت کاری و سلامت همکاران یادشده بررسی و در صورت لزوم با بهداری هماهنگ شود.`):'')+tbl(heads,rows)+more(v.length,25)};
 }
-function secFu(D){
-  const a=D.fu;if(!a.length)return'';
-  const rows=a.slice().sort((x,y)=>String(x.due_date||'9').localeCompare(String(y.due_date||'9'))).slice(0,12).map(f=>{const o=f.due_date&&dd(TODAY,f.due_date)>0;return[esc(nm(EMPBY[f.employee_id])),esc(KIND[f.kind]||'پیگیری'),f.due_date?fday(f.due_date)+(o?' '+red('معوق'):''):'—']});
+function secFu(D,U){
+  const a=D.fu;if(!a.length)return null;
   const ov=a.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length;
-  return H3(`📌 پیگیری‌های باز بهداری (${fa(a.length)} مورد${ov?' — '+fa(ov)+' معوق':''})`)+P_('همکاران زیر باید طبق برنامه برای این موارد به بهداری یا مرکز درمانی مراجعه کنند؛ لطفاً امکان حضورشان را فراهم کنید.')+tbl(['فرد','نوع پیگیری','سررسید'],rows)+more(a.length,12);
+  const rows=a.slice().sort((x,y)=>String(x.due_date||'9').localeCompare(String(y.due_date||'9'))).slice(0,15).map(f=>{const o=f.due_date&&dd(TODAY,f.due_date)>0;return[...(U?[esc(utag(f))]:[]),esc(nm(EMPBY[f.employee_id])),esc(KIND[f.kind]||'پیگیری'),f.due_date?fday(f.due_date)+(o?' — '+red('معوق'):''):'—']});
+  return{t:`پیگیری‌های باز بهداری (${fa(a.length)} مورد${ov?'، ' + fa(ov)+' مورد معوق':''})`,h:P_('همکاران زیر باید طبق برنامه برای موارد ذکرشده به بهداری یا مرکز درمانی مراجعه نمایند. خواهشمند است امکان حضور ایشان فراهم شود.')+tbl([...(U?['واحد']:[]),'نام و نام خانوادگی','نوع پیگیری','سررسید'],rows)+more(a.length,15)};
 }
-function secOcc(D){
-  if(!EXM)return'';
+function secOcc(D,U){
+  if(!EXM)return null;
   const latest={};EXM.forEach(x=>{const c=latest[x.employee_id];if(!c||x.exam_date>c.exam_date)latest[x.employee_id]=x});
-  const none=[],over=[],restr=[];
-  D.emps.forEach(e=>{const x=latest[e.id];if(!x){none.push(esc(nm(e)));return}
-    if(monthsSince(x.exam_date)>=13)over.push(`${esc(nm(e))} (آخرین: ${fday(x.exam_date)})`);
-    if(FITL[x.fitness])restr.push([esc(nm(e)),esc(FITL[x.fitness]),esc(x.restrictions||'—')])});
-  if(!none.length&&!over.length&&!restr.length)return H3('🩺 معاینات طب کار')+P_('معاینه همه‌ی پرسنل ثبت و به‌روز است. 👏');
-  let h=H3('🩺 معاینات طب کار');
-  if(over.length)h+=P_(`${red('سررسید معاینه دوره‌ای گذشته ('+fa(over.length)+' نفر):')} ${over.slice(0,12).join('، ')}${over.length>12?' و …':''}`);
-  if(none.length)h+=P_(`${red('بدون معاینه ثبت‌شده ('+fa(none.length)+' نفر):')} ${none.slice(0,15).join('، ')}${none.length>15?' و …':''}`);
-  if(over.length||none.length)h+=P_('لطفاً هماهنگ شود این همکاران در اولین فرصت برای معاینه به بهداری معرفی شوند.');
-  if(restr.length)h+=P_('<b>محدودیت‌های کاری اعلام‌شده توسط طب کار (باید در تقسیم کار رعایت شود):</b>')+tbl(['فرد','وضعیت','محدودیت'],restr.slice(0,12))+more(restr.length,12);
-  return h;
+  const none=[],over=[],restr=[],lab=e=>esc(nm(e))+(U&&e._u?' ('+esc(e._u.name)+')':'');
+  D.emps.forEach(e=>{const x=latest[e.id];if(!x){none.push(lab(e));return}
+    if(monthsSince(x.exam_date)>=13)over.push(`${lab(e)} — آخرین معاینه: ${fday(x.exam_date)}`);
+    if(FITL[x.fitness])restr.push([...(U&&e._u?[esc(e._u.name)]:(U?['—']:[])),esc(nm(e)),esc(FITL[x.fitness]),esc(x.restrictions||'—')])});
+  const t='وضعیت معاینات طب کار';
+  if(!none.length&&!over.length&&!restr.length)return{t,h:P_('معاینه‌ی طب کار همه‌ی پرسنل ثبت و به‌روز است.')};
+  let h='';
+  if(over.length)h+=P_(`${red('سررسید معاینه‌ی دوره‌ای گذشته ('+fa(over.length)+' نفر):')} ${over.slice(0,12).join('؛ ')}${over.length>12?' و …':''}`);
+  if(none.length)h+=P_(`${red('فاقد معاینه‌ی ثبت‌شده ('+fa(none.length)+' نفر):')} ${none.slice(0,15).join('، ')}${none.length>15?' و …':''}`);
+  if(over.length||none.length)h+=P_('خواهشمند است هماهنگ شود همکاران یادشده در نخستین فرصت برای معاینه به بهداری معرفی شوند.');
+  if(restr.length)h+=P_('<b>محدودیت‌های کاری اعلام‌شده از سوی طب کار (رعایت آن‌ها در تقسیم کار الزامی است):</b>')+tbl([...(U?['واحد']:[]),'نام و نام خانوادگی','وضعیت','محدودیت'],restr.slice(0,12))+more(restr.length,12);
+  return{t,h};
 }
-function secWarn(D){
-  const mo=D.ekh.filter(x=>x.k===K),y=D.ekh.filter(x=>x.in12).length;
-  if(!mo.length&&!y)return H3('⚖️ اخطارها و سوابق انضباطی')+P_('سابقه انضباطی در ۱۲ ماه اخیر برای پرسنل این واحد ثبت نشده است.');
-  const rows=mo.slice(0,12).map(x=>[fday(x.date),esc(x.name),esc(x.type),esc(String(x.reason).slice(0,100)||'—')]);
-  return H3(`⚖️ اخطارها و سوابق انضباطی (این ماه: ${fa(mo.length)} · ۱۲ ماه اخیر: ${fa(y)})`)+(mo.length?tbl(['تاریخ','فرد','نوع','موضوع'],rows)+more(mo.length,12):P_('در این ماه مورد جدیدی ثبت نشده است.'));
+function secWarn(D,U){
+  const mo=D.ekh.filter(x=>x.k===K),y=D.ekh.filter(x=>x.in12).length,t='اخطارها و سوابق انضباطی';
+  if(!mo.length&&!y)return{t,h:P_('در ۱۲ ماه اخیر، سابقه‌ی انضباطی برای پرسنل ثبت نشده است.')};
+  const rows=mo.slice(0,12).map(x=>[fday(x.date),...(U?[esc(x.u?x.u.name:'—')]:[]),esc(x.name),esc(x.type),esc(String(x.reason).slice(0,100)||'—')]);
+  return{t:`${t} (این ماه: ${fa(mo.length)}؛ ۱۲ ماه اخیر: ${fa(y)})`,h:mo.length?tbl(['تاریخ',...(U?['واحد']:[]),'نام و نام خانوادگی','نوع','موضوع'],rows)+more(mo.length,12):P_('در ماه مورد گزارش، مورد جدیدی ثبت نشده است.')};
 }
 /* عدم‌انطباق: مسئولیت رفع فقط با واحد فنی است */
 function secNCTech(openF){
-  const over=openF.filter(isOver),avg=openF.length?Math.round(openF.reduce((a,f)=>a+Math.max(0,ageOf(f)),0)/openF.length):0;
+  const over=openF.filter(isOver),avg=openF.length?Math.round(openF.reduce((a,f)=>a+Math.max(0,ageOf(f)),0)/openF.length):0,t='عدم‌انطباق‌های باز (مسئول رفع: واحد فنی)';
   const byL={};openF.forEach(f=>{const u=match(f.location||'');const key=u?u.name:(f.location||'نامشخص');const c=byL[key]=byL[key]||{n:0,o:0};c.n++;if(isOver(f))c.o++});
   const rows=Object.entries(byL).sort((a,b)=>b[1].o-a[1].o||b[1].n-a[1].n).slice(0,12).map(([k,c])=>[esc(k),fa(c.n),c.o?red(fa(c.o)):'—']);
   const lst=openF.slice().sort((a,b)=>(isOver(b)?1:0)-(isOver(a)?1:0)||(a.due_date||'9').localeCompare(b.due_date||'9')).slice(0,15).map(f=>[esc(f.question||'—'),esc(f.location||'—'),f.due_date?fday(f.due_date):'—',isOver(f)?red('معوق'):'در مهلت']);
   const cd=['closed_at','resolved_at','done_at','closed_date'].find(c=>(FIN||[]).some(f=>f[c]));
   const closedM=cd?(FIN||[]).filter(f=>f.status!=='open'&&mkOf(f[cd])===K).length:null;
-  if(!openF.length)return H3('🔧 عدم‌انطباق‌ها (مسئول رفع: واحد فنی)')+P_('هیچ عدم‌انطباق بازی وجود ندارد. 👏'+(closedM!==null?` در این ماه ${fa(closedM)} مورد رفع شده است.`:''));
-  return H3(`🔧 عدم‌انطباق‌ها (مسئول رفع: واحد فنی)`)+tbl(['عدم‌انطباق باز','معوق','میانگین عمر (روز)','درصد معوق'],[[fa(openF.length),over.length?red(fa(over.length)):'۰',fa(avg),fa(Math.round(over.length/openF.length*100))+'٪']])+(closedM!==null?P_(`رفع‌شده در این ماه: <b>${fa(closedM)}</b> مورد`):'')
-    +P_('<b>پراکندگی بر اساس محل:</b>')+tbl(['محل / واحد','باز','معوق'],rows)+P_('<b>موارد نیازمند اقدام (ابتدا معوق‌ها):</b>')+tbl(['عدم‌انطباق','محل','مهلت','وضعیت'],lst)+more(openF.length,15);
+  if(!openF.length)return{t,h:P_('در حال حاضر عدم‌انطباق بازی وجود ندارد.'+(closedM!==null?` در ماه مورد گزارش ${fa(closedM)} مورد رفع شده است.`:''))};
+  return{t,h:tbl(['عدم‌انطباق باز','معوق','میانگین عمر (روز)','درصد معوق'],[[fa(openF.length),over.length?red(fa(over.length)):'۰',fa(avg),fa(Math.round(over.length/openF.length*100))+'٪']])+(closedM!==null?P_(`رفع‌شده در ماه مورد گزارش: <b>${fa(closedM)}</b> مورد`):'')
+    +P_('<b>پراکندگی بر اساس محل:</b>')+tbl(['محل / واحد','باز','معوق'],rows)+P_('<b>موارد نیازمند اقدام (ابتدا موارد معوق):</b>')+tbl(['عدم‌انطباق','محل','مهلت','وضعیت'],lst)+more(openF.length,15)};
 }
-const secNCInfo=n=>n?H3('🔧 عدم‌انطباق‌های محل واحد شما')+P_(`${fa(n)} عدم‌انطباق باز در محدوده‌ی واحد شما ثبت شده است. رفع آن‌ها بر عهده‌ی واحد فنی است و پیگیری می‌شود؛ صرفاً جهت اطلاع.`):'';
+function secNCInfo(items){
+  const by=items.filter(i=>i.mine).map(i=>({n:i.r.u.name,c:i.mine})),tot=by.reduce((a,x)=>a+x.c,0);
+  if(!tot)return null;
+  return{t:'عدم‌انطباق‌های محدوده‌ی واحد',h:P_(`${fa(tot)} مورد عدم‌انطباق باز در محدوده‌ی ${by.length>1?'واحدهای شما ('+by.map(x=>esc(x.n)+': '+fa(x.c)).join('، ')+')':'واحد شما'} ثبت شده است. رفع این موارد بر عهده‌ی واحد فنی است و توسط HSE پیگیری می‌شود؛ این بخش صرفاً جهت استحضار ارائه شده است.`)};
+}
 
-/* ---------- ساخت ایمیل ---------- */
-/* بدنه‌ی کارنامه‌ی یک واحد: شاخص‌ها، شمارنده‌ها، بخش‌ها و اقدام‌های پیشنهادی */
-function unitBody(r,p1,p2,D,openF,k,O,tech,ncAll){
-  const act=[];
+/* ---------- اقدام‌های پیشنهادی هر واحد ---------- */
+function actsFor(it,k,openF){
+  const {r,D,tech}=it,act=[];
   const repeat=Object.values(D.vis.reduce((m,x)=>((m[x.employee_id]=m[x.employee_id]||[]).push(x),m),{})).filter(a=>a.length>=3).length;
-  const fuOver=D.fu.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length;
+  const fuOver=D.fu.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length,mw=D.ekh.filter(x=>x.k===k).length;
   if(r.entered){
-    if(r.part<PARAM.PART_T||r.part===0)act.push(`مشارکت واحد پایین است (${n1(r.part)} از حداقل ${fa(PARAM.PART_T)}). تا پایان ماه آینده حداقل ${fa(Math.max(1,Math.ceil(r.C/10)))} کارت خطر یا شبه‌حادثه از نفرات واحد دریافت و به HSE تحویل شود.`);
-    if(!r.talks)act.push('یک جلسه‌ی کوتاه ایمنی (۵ تا ۱۰ دقیقه) با نفرات واحد برگزار و به HSE اطلاع داده شود.');
-    if(r.ppe)act.push(`${fa(r.ppe)} مورد عدم استفاده از وسایل حفاظت فردی (PPE) مشاهده شد؛ لطفاً با نفرات مربوطه پیگیری شود.`);
-    if(r.unsafe)act.push(`${fa(r.unsafe)} مورد رفتار ناایمن مشاهده شد؛ لطفاً در جلسه‌ی کاری با نفرات مرور شود.`);
+    if(r.part<PARAM.PART_T||r.part===0)act.push(`مشارکت واحد پایین است (${n1(r.part)} از حداقل ${fa(PARAM.PART_T)}). تا پایان ماه آینده دریافت حداقل ${fa(Math.max(1,Math.ceil(r.C/10)))} کارت خطر یا شبه‌حادثه از نفرات واحد و تحویل آن به HSE ضروری است.`);
+    if(!r.talks)act.push('برگزاری یک جلسه‌ی کوتاه ایمنی (۵ تا ۱۰ دقیقه) با نفرات واحد و اطلاع‌رسانی آن به HSE ضروری است.');
+    if(r.ppe)act.push(`${fa(r.ppe)} مورد عدم استفاده از وسایل حفاظت فردی (PPE) مشاهده شده است؛ خواهشمند است با نفرات مربوطه پیگیری شود.`);
+    if(r.unsafe)act.push(`${fa(r.unsafe)} مورد رفتار ناایمن مشاهده شده است؛ خواهشمند است در جلسه‌ی کاری با نفرات مرور شود.`);
   }
   if(tech){const ov=openF.filter(isOver).length;
-    if(ov)act.push(`${fa(ov)} عدم‌انطباق معوق در کل مجموعه باز است؛ لطفاً برنامه‌ی زمان‌بندی رفع آن‌ها را به HSE اعلام کنید.`);
-    else if(openF.length)act.push(`${fa(openF.length)} عدم‌انطباق باز در مهلت وجود دارد؛ لطفاً تا سررسید رفع شود.`);}
-  if(D.inc.length||r.ac)act.push('برای حوادث ثبت‌شده، اقدام اصلاحی و پیشگیرانه با HSE هماهنگ و اجرا شود.');
-  if(repeat)act.push(`${fa(repeat)} نفر از پرسنل واحد در این ماه ۳ بار یا بیشتر به بهداری مراجعه کرده‌اند؛ لطفاً وضعیت کاری و سلامت ایشان بررسی شود.`);
-  if(fuOver)act.push(`${fa(fuOver)} پیگیری بهداری معوق مانده است؛ لطفاً امکان مراجعه‌ی همکاران مربوطه فراهم شود.`);
-  const mw=D.ekh.filter(x=>x.k===k).length;if(mw)act.push(`${fa(mw)} مورد اخطار/سابقه‌ی انضباطی در این ماه ثبت شده است؛ لطفاً در جلسه‌ی کاری با نفرات مرور شود.`);
-  if(r.entered&&r.zone===0)act.push('عملکرد واحد در ناحیه‌ی «الگو» است. از همکاران تشکر می‌کنیم؛ لطفاً روند ادامه یابد.');
-  if(!act.length)act.push('مورد خاصی برای اقدام وجود ندارد.');
-  const pe=p1&&p1.entered?p1:null;
-  const score=r.entered?`<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص ایمنی</div><div style="font-size:24px;font-weight:bold">${n1(r.safety)}</div>${pe?`<div style="font-size:11px;color:#64748b">ماه قبل ${n1(pe.safety)}</div>`:''}</td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص مشارکت</div><div style="font-size:24px;font-weight:bold">${n1(r.part)}</div>${pe?`<div style="font-size:11px;color:#64748b">ماه قبل ${n1(pe.part)}</div>`:''}</td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1;color:${ZC[r.zone]}"><div style="font-size:11px;color:#475569">ناحیه</div><div style="font-size:14px;font-weight:bold">${ZONES[r.zone]}</div></td></tr></table>`:'<div style="padding:8px;background:#fef9c3;border:1px solid #fde68a;font-size:12px;margin:8px 0">امتیاز ایمنی و مشارکت واحد پس از تکمیل ارزیابی ماهانه اعلام می‌شود.</div>';
-  const html=`${score}
-<table style="width:100%;border-collapse:collapse;margin:6px 0"><tr>${td('نفرات',fa(r.C))}${td('کارت خطر',fa(r.hz))}${td('شبه‌حادثه',fa(r.nm))}</tr><tr>${td('پیشنهاد',fa(r.sg))}${td('جلسه‌ی ایمنی',fa(r.talks))}${td('حوادث (جزئی)',fa(r.ac)+' ('+fa(r.ak)+')')}</tr>${r.entered?`<tr>${td('عدم استفاده از PPE',fa(r.ppe))}${td('رفتار ناایمن',fa(r.unsafe))}${td('روز از دست‌رفته',fa(r.lost))}</tr>`:''}</table>
-${O.trend?secTrend(r,p1,p2,k):''}${O.inc?secInc(D):''}${O.clinic?secClinic(D,O):''}${O.fu?secFu(D):''}${O.occ?secOcc(D):''}${O.warn?secWarn(D):''}${tech?secNCTech(openF):(O.nc?secNCInfo(ncAll):'')}
-<p style="margin:16px 0 2px;font-size:14px;border-bottom:2px solid #0f766e;padding-bottom:2px"><b>✅ اقدام‌های پیشنهادی:</b></p><ol style="margin:4px 0;padding-inline-start:20px">${act.map(a=>`<li style="margin:2px 0">${a}</li>`).join('')}</ol>`;
-  return{html,act,mw};
+    if(ov)act.push(`${fa(ov)} عدم‌انطباق معوق در کل مجموعه باز است؛ خواهشمند است برنامه‌ی زمان‌بندی رفع آن‌ها به HSE اعلام شود.`);
+    else if(openF.length)act.push(`${fa(openF.length)} عدم‌انطباق باز در مهلت مقرر وجود دارد؛ خواهشمند است تا سررسید رفع شود.`);}
+  if(D.inc.length||r.ac)act.push('برای حوادث ثبت‌شده، هماهنگی و اجرای اقدام اصلاحی و پیشگیرانه با HSE ضروری است.');
+  if(repeat)act.push(`${fa(repeat)} نفر از پرسنل در ماه مورد گزارش سه بار یا بیشتر به بهداری مراجعه کرده‌اند؛ خواهشمند است وضعیت کاری و سلامت ایشان بررسی شود.`);
+  if(fuOver)act.push(`${fa(fuOver)} پیگیری بهداری معوق مانده است؛ خواهشمند است امکان مراجعه‌ی همکاران مربوطه فراهم شود.`);
+  if(mw)act.push(`${fa(mw)} مورد اخطار/سابقه‌ی انضباطی در ماه مورد گزارش ثبت شده است؛ خواهشمند است در جلسه‌ی کاری با نفرات مرور شود.`);
+  if(r.entered&&r.zone===0)act.push('عملکرد واحد در ناحیه‌ی «الگو» ارزیابی شده است؛ ضمن قدردانی از تلاش همکاران، تداوم این روند مورد انتظار است.');
+  return act.length?act:['مورد خاصی برای اقدام وجود ندارد.'];
 }
-const wrapMail=(hi,intro,inner)=>`<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:13px;line-height:1.9;color:#0f172a;max-width:680px;text-align:right">
-<p style="margin:0 0 6px">${hi}، سلام و احترام</p>
+
+/* ---------- ساخت نامه ---------- */
+const FONT='font-family:Tahoma,Arial,sans-serif;font-size:13px;line-height:1.9;color:#0f172a;max-width:700px;text-align:right';
+function letter(addr,subject,inner,intro,closing){
+  const memo=(a,b)=>`<tr><td style="padding:3px 8px;width:90px;color:#475569;font-size:12px">${a}</td><td style="padding:3px 8px;font-size:12px"><b>${b}</b></td></tr>`;
+  return `<div dir="rtl" style="${FONT}">
+<table style="width:100%;border-collapse:collapse;border-bottom:3px solid ${HC};margin-bottom:8px"><tr><td style="padding:4px 0"><div style="font-size:16px;font-weight:bold">گسترش فناوری خوارزمی</div><div style="font-size:12px;color:#475569">واحد ایمنی، بهداری و محیط زیست (HSE)</div></td><td style="text-align:left;font-size:12px;color:#475569;vertical-align:bottom">تاریخ: ${fday(TODAY)}</td></tr></table>
+<table style="width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:10px">${memo('موضوع',subject)}${memo('گیرنده',addr)}${memo('فرستنده','واحد HSE')}</table>
+<p style="margin:10px 0 4px">${addr}</p>
+<p style="margin:0 0 6px">با سلام و احترام</p>
 <p style="margin:0 0 6px">${intro}</p>
 ${inner}
-<p style="margin:12px 0 0;font-size:11px;color:#64748b">اطلاعات بهداری و انضباطی این گزارش محرمانه است و صرفاً برای پیگیری مدیریتی ارائه می‌شود.</p>
-<p style="margin:6px 0 0">با تشکر — واحد HSE</p></div>`;
-
-/* تجمیع شاخص‌های چند واحد: میانگین وزنی بر اساس تعداد نفرات (فقط واحدهای دارای ارزیابی) */
+<p style="margin:14px 0 2px">${closing||'خواهشمند است نسبت به اقدام‌های یادشده تا پایان ماه آینده اهتمام فرمایید و نتیجه را به HSE اعلام نمایید.'}</p>
+<p style="margin:8px 0 0">با احترام و تشکر<b>واحد ایمنی، بهداری و محیط زیست (HSE)</b>گسترش فناوری خوارزمی</p>
+<p style="margin:12px 0 0;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:4px">توجه: اطلاعات بهداری و انضباطی این نامه محرمانه است و صرفاً جهت پیگیری مدیریتی ارائه می‌شود.</p></div>`;
+}
 function aggRows(rs){
   const e=rs.filter(r=>r&&r.entered),C=e.reduce((a,r)=>a+r.C,0);
   return{n:e.length,safety:C?e.reduce((a,r)=>a+r.safety*r.C,0)/C:0,part:C?e.reduce((a,r)=>a+r.part*r.C,0)/C:0,zone:e.length?Math.max(...e.map(r=>r.zone)):null};
 }
 const sum=(a,f)=>a.reduce((s,x)=>s+(Number(f(x))||0),0);
-const unitBar=t=>`<table style="width:100%;border-collapse:collapse;margin-top:22px"><tr><td style="background:#0f766e;color:#ffffff;padding:6px 10px;font-size:14px"><b>${t}</b></td></tr></table>`;
 const chipsOf=(d,k)=>({vis:d.vis.length,inc:d.inc.length,mw:d.ekh.filter(x=>x.k===k).length,fu:d.fu.length,fuOver:d.fu.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length});
 
 /* هر گروه = یک سرپرست با یک یا چند واحد؛ items: [{r,p1,p2,D,tech,mine}] */
 function buildGroup(items,mgr,openAll,k,O){
-  const M=monthLabel(k),hi=mgr?`جناب آقای/خانم ${esc(mgr)}`:'سرپرست محترم';
-  if(items.length===1){
-    const it=items[0],b=unitBody(it.r,it.p1,it.p2,it.D,openAll,k,O,it.tech,it.mine);
-    return{html:wrapMail(hi,`کارنامه‌ی کامل HSE واحد <b>${esc(it.r.u.name)}</b> برای <b>${M}</b> به شرح زیر است:`,b.html),
-      text:`${hi}، سلام\nکارنامه HSE واحد ${it.r.u.name} - ${M}\n`+(it.r.entered?`شاخص ایمنی ${n1(it.r.safety)} | مشارکت ${n1(it.r.part)} | ${ZONES[it.r.zone]}\n`:'')+`مراجعات بهداری: ${fa(it.D.vis.length)} | حوادث: ${fa(it.D.inc.length)} | اخطار این ماه: ${fa(b.mw)}\n`+b.act.map((a,i)=>`${fa(i+1)}. ${a}`).join('\n')+'\nواحد HSE',
-      subject:`کارنامه HSE واحد ${it.r.u.name} — ${M}`};
+  const M=monthLabel(k),U=items.length>1,names=items.map(i=>i.r.u.name),ad=addressee(mgr);
+  const unitsTxt=U?'واحدهای '+join2(names.map(esc)):'واحد '+esc(names[0]);
+  const addr=ad.sal?`${ad.sal}، سرپرست محترم ${unitsTxt}`:`سرپرست محترم ${unitsTxt}`;
+  const rs=items.map(i=>i.r),cs=items.map(i=>chipsOf(i.D,k));
+  const Dm={vis:[],inc:[],fu:[],ekh:[],emps:[]};items.forEach(i=>{['vis','inc','fu','ekh','emps'].forEach(f=>Dm[f]=Dm[f].concat(i.D[f]))});
+  /* ۱) شاخص‌های عملکرد */
+  let perf;
+  if(!U){
+    const r=rs[0],pe=items[0].p1&&items[0].p1.entered?items[0].p1:null;
+    const score=r.entered?`<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص ایمنی</div><div style="font-size:24px;font-weight:bold">${n1(r.safety)}</div>${pe?`<div style="font-size:11px;color:#64748b">ماه قبل ${n1(pe.safety)}</div>`:''}</td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص مشارکت</div><div style="font-size:24px;font-weight:bold">${n1(r.part)}</div>${pe?`<div style="font-size:11px;color:#64748b">ماه قبل ${n1(pe.part)}</div>`:''}</td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1;color:${ZC[r.zone]}"><div style="font-size:11px;color:#475569">ناحیه‌ی عملکرد</div><div style="font-size:14px;font-weight:bold">${ZONES[r.zone]}</div></td></tr></table>`:'<div style="padding:8px;background:#fef9c3;border:1px solid #fde68a;font-size:12px;margin:8px 0">امتیاز ایمنی و مشارکت واحد پس از تکمیل ارزیابی ماهانه اعلام خواهد شد.</div>';
+    perf=score+`<table style="width:100%;border-collapse:collapse;margin:6px 0"><tr>${td('نفرات',fa(r.C))}${td('کارت خطر',fa(r.hz))}${td('شبه‌حادثه',fa(r.nm))}</tr><tr>${td('پیشنهاد',fa(r.sg))}${td('جلسه‌ی ایمنی',fa(r.talks))}${td('حوادث (جزئی)',fa(r.ac)+' ('+fa(r.ak)+')')}</tr>${r.entered?`<tr>${td('عدم استفاده از PPE',fa(r.ppe))}${td('رفتار ناایمن',fa(r.unsafe))}${td('روز از دست‌رفته',fa(r.lost))}</tr>`:''}</table>`;
+  }else{
+    const ag=aggRows(rs),people=new Set();Dm.vis.forEach(v=>people.add(v.employee_id));
+    const aggScore=ag.n?`<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص ایمنی (میانگین وزنی)</div><div style="font-size:24px;font-weight:bold">${n1(ag.safety)}</div></td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص مشارکت (میانگین وزنی)</div><div style="font-size:24px;font-weight:bold">${n1(ag.part)}</div></td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1;color:${ZC[ag.zone]}"><div style="font-size:11px;color:#475569">ضعیف‌ترین ناحیه بین واحدها</div><div style="font-size:14px;font-weight:bold">${ZONES[ag.zone]}</div></td></tr></table>`+(ag.n<items.length?P_(`میانگین وزنی فقط شامل واحدهای دارای ارزیابی ماهانه است (${fa(ag.n)} از ${fa(items.length)} واحد).`):''):'<div style="padding:8px;background:#fef9c3;border:1px solid #fde68a;font-size:12px;margin:8px 0">امتیاز ایمنی و مشارکت پس از تکمیل ارزیابی ماهانه‌ی واحدها اعلام خواهد شد.</div>';
+    const tot=`<table style="width:100%;border-collapse:collapse;margin:6px 0"><tr>${td('جمع نفرات',fa(sum(rs,r=>r.C)))}${td('کارت خطر',fa(sum(rs,r=>r.hz)))}${td('شبه‌حادثه',fa(sum(rs,r=>r.nm)))}</tr><tr>${td('پیشنهاد',fa(sum(rs,r=>r.sg)))}${td('جلسه‌ی ایمنی',fa(sum(rs,r=>r.talks)))}${td('حوادث (جزئی)',fa(sum(rs,r=>r.ac))+' ('+fa(sum(rs,r=>r.ak))+')')}</tr><tr>${td('عدم استفاده از PPE',fa(sum(rs,r=>r.ppe)))}${td('رفتار ناایمن',fa(sum(rs,r=>r.unsafe)))}${td('روز از دست‌رفته',fa(sum(rs,r=>r.lost)))}</tr><tr>${td('مراجعات بهداری',fa(sum(cs,c=>c.vis))+' ('+fa(people.size)+' نفر)')}${td('اخطار این ماه',fa(sum(cs,c=>c.mw)))}${td('پیگیری باز بهداری',fa(sum(cs,c=>c.fu))+(sum(cs,c=>c.fuOver)?' ('+fa(sum(cs,c=>c.fuOver))+' معوق)':''))}</tr></table>`;
+    const cmp=tbl(['واحد','نفرات','شاخص ایمنی','شاخص مشارکت','ناحیه‌ی عملکرد','حادثه','مراجعه بهداری','اخطار ماه'],items.map((i,x)=>[`<b>${esc(i.r.u.name)}</b>`,fa(i.r.C),i.r.entered?n1(i.r.safety):'—',i.r.entered?n1(i.r.part):'—',i.r.entered?`<span style="color:${ZC[i.r.zone]}">${ZONES[i.r.zone]}</span>`:'—',fa(cs[x].inc),fa(cs[x].vis),fa(cs[x].mw)]).concat([['<b>جمع / میانگین وزنی</b>',`<b>${fa(sum(rs,r=>r.C))}</b>`,`<b>${ag.n?n1(ag.safety):'—'}</b>`,`<b>${ag.n?n1(ag.part):'—'}</b>`,'—',`<b>${fa(sum(cs,c=>c.inc))}</b>`,`<b>${fa(sum(cs,c=>c.vis))}</b>`,`<b>${fa(sum(cs,c=>c.mw))}</b>`]]));
+    perf=aggScore+tot+cmp;
   }
-  const names=items.map(i=>i.r.u.name),rs=items.map(i=>i.r),ag=aggRows(rs),cs=items.map(i=>chipsOf(i.D,k));
-  const people=new Set();items.forEach(i=>i.D.vis.forEach(v=>people.add(v.employee_id)));
-  /* ۱) خلاصه‌ی تجمیعی */
-  const tot=`<table style="width:100%;border-collapse:collapse;margin:6px 0"><tr>${td('جمع نفرات',fa(sum(rs,r=>r.C)))}${td('کارت خطر',fa(sum(rs,r=>r.hz)))}${td('شبه‌حادثه',fa(sum(rs,r=>r.nm)))}</tr><tr>${td('پیشنهاد',fa(sum(rs,r=>r.sg)))}${td('جلسه‌ی ایمنی',fa(sum(rs,r=>r.talks)))}${td('حوادث (جزئی)',fa(sum(rs,r=>r.ac))+' ('+fa(sum(rs,r=>r.ak))+')')}</tr><tr>${td('عدم استفاده از PPE',fa(sum(rs,r=>r.ppe)))}${td('رفتار ناایمن',fa(sum(rs,r=>r.unsafe)))}${td('روز از دست‌رفته',fa(sum(rs,r=>r.lost)))}</tr><tr>${td('مراجعات بهداری',fa(sum(cs,c=>c.vis))+' ('+fa(people.size)+' نفر)')}${td('اخطار این ماه',fa(sum(cs,c=>c.mw)))}${td('پیگیری باز بهداری',fa(sum(cs,c=>c.fu))+(sum(cs,c=>c.fuOver)?' ('+fa(sum(cs,c=>c.fuOver))+' معوق)':''))}</tr></table>`;
-  const aggScore=ag.n?`<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص ایمنی (میانگین وزنی)</div><div style="font-size:24px;font-weight:bold">${n1(ag.safety)}</div></td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص مشارکت (میانگین وزنی)</div><div style="font-size:24px;font-weight:bold">${n1(ag.part)}</div></td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1;color:${ZC[ag.zone]}"><div style="font-size:11px;color:#475569">ضعیف‌ترین ناحیه بین واحدها</div><div style="font-size:14px;font-weight:bold">${ZONES[ag.zone]}</div></td></tr></table>`:'<div style="padding:8px;background:#fef9c3;border:1px solid #fde68a;font-size:12px;margin:8px 0">امتیاز ایمنی و مشارکت پس از تکمیل ارزیابی ماهانه‌ی واحدها اعلام می‌شود.</div>';
-  const cmp=tbl(['واحد','نفرات','شاخص ایمنی','شاخص مشارکت','ناحیه','حادثه','مراجعه بهداری','اخطار ماه'],items.map((i,x)=>[`<b>${esc(i.r.u.name)}</b>`,fa(i.r.C),i.r.entered?n1(i.r.safety):'—',i.r.entered?n1(i.r.part):'—',i.r.entered?`<span style="color:${ZC[i.r.zone]}">${ZONES[i.r.zone]}</span>`:'—',fa(cs[x].inc),fa(cs[x].vis),fa(cs[x].mw)]).concat([[`<b>جمع / میانگین وزنی</b>`,`<b>${fa(sum(rs,r=>r.C))}</b>`,`<b>${ag.n?n1(ag.safety):'—'}</b>`,`<b>${ag.n?n1(ag.part):'—'}</b>`,'—',`<b>${fa(sum(cs,c=>c.inc))}</b>`,`<b>${fa(sum(cs,c=>c.vis))}</b>`,`<b>${fa(sum(cs,c=>c.mw))}</b>`]]));
-  let aggTrend='';
-  if(O.trend&&ag.n){const ks=[prevK(prevK(k)),prevK(k),k],src=[items.map(i=>i.p2),items.map(i=>i.p1),rs],A=src.map(aggRows);
-    aggTrend=H3('📈 روند ۳ ماه اخیر (تجمیعی)')+tbl(['شاخص',...ks.map(monthLabel)],[['شاخص ایمنی',...A.map(a=>a.n?n1(a.safety):'—')],['شاخص مشارکت',...A.map(a=>a.n?n1(a.part):'—')]]);}
-  const summary=H3('📊 خلاصه‌ی تجمیعی همه‌ی واحدها')+aggScore+(ag.n&&ag.n<items.length?P_(`میانگین وزنی فقط شامل واحدهای دارای ارزیابی ماهانه است (${fa(ag.n)} از ${fa(items.length)} واحد).`):'')+tot+aggTrend+H3('🏭 مقایسه‌ی واحدها')+cmp;
-  /* ۲) جزئیات هر واحد */
-  const parts=items.map(i=>unitBar(`🏭 واحد ${esc(i.r.u.name)} — جزئیات`)+unitBody(i.r,i.p1,i.p2,i.D,openAll,k,O,i.tech,i.mine).html);
-  const html=wrapMail(hi,`کارنامه‌ی کامل HSE واحدهای تحت سرپرستی شما (<b>${names.map(esc).join('، ')}</b>) برای <b>${M}</b> به شرح زیر است. ابتدا خلاصه‌ی تجمیعی و مقایسه‌ی واحدها، سپس جزئیات هر واحد آمده است.`,summary+parts.join(''));
-  const text=`${hi}، سلام\nکارنامه HSE واحدهای ${names.join('، ')} - ${M}\n`+(ag.n?`شاخص ایمنی (وزنی) ${n1(ag.safety)} | مشارکت ${n1(ag.part)}\n`:'')+items.map((i,x)=>`• ${i.r.u.name}: `+(i.r.entered?`ایمنی ${n1(i.r.safety)}، مشارکت ${n1(i.r.part)}، `:'')+`مراجعه بهداری ${fa(cs[x].vis)}، حادثه ${fa(cs[x].inc)}، اخطار ${fa(cs[x].mw)}`).join('\n')+'\nواحد HSE';
-  return{html,text,subject:`کارنامه HSE واحدهای ${mgr||names.join('، ')} — ${M}`};
+  const anyTech=items.some(i=>i.tech);
+  const secs=[{t:U?'خلاصه‌ی تجمیعی و مقایسه‌ی واحدها':'شاخص‌های عملکرد ماه',h:perf}];
+  if(O.trend)secs.push(secTrend(items,k,U));
+  if(O.inc)secs.push(secInc(Dm,U));
+  if(O.clinic)secs.push(secClinic(Dm,O,U));
+  if(O.fu)secs.push(secFu(Dm,U));
+  if(O.occ)secs.push(secOcc(Dm,U));
+  if(O.warn)secs.push(secWarn(Dm,U));
+  if(anyTech)secs.push(secNCTech(openAll));else if(O.nc)secs.push(secNCInfo(items));
+  /* اقدام‌ها: یک فهرست؛ در حالت چندواحدی با ستون واحد */
+  const rowsA=[];items.forEach(i=>actsFor(i,k,openAll).forEach(a=>rowsA.push([i,a])));
+  secs.push({t:'اقدام‌های پیشنهادی',h:U?`<table style="width:100%;border-collapse:collapse;margin:4px 0"><tr><th style="${TH};width:110px">واحد</th><th style="${TH}">اقدام</th></tr>${items.map(i=>{const a=rowsA.filter(x=>x[0]===i).map(x=>x[1]);return a.map((t,x)=>`<tr>${x?'':`<td rowspan="${a.length}" style="${TD};background:#f8fafc"><b>${esc(i.r.u.name)}</b></td>`}<td style="${TD}">${t}</td></tr>`).join('')}).join('')}</table>`:`<ol style="margin:4px 0;padding-inline-start:22px">${rowsA.map(([,a])=>`<li style="margin:3px 0">${a}</li>`).join('')}</ol>`});
+  const inner=secs.filter(Boolean).map((s,i)=>H3(i+1,s.t)+s.h).join('');
+  const subject=U?`گزارش عملکرد HSE واحدهای ${join2(names)} — ${M}`:`گزارش عملکرد HSE واحد ${names[0]} — ${M}`;
+  const intro=U?`بدین‌وسیله گزارش عملکرد ماهانه‌ی ایمنی، بهداشت و محیط زیست (HSE) واحدهای تحت سرپرستی جنابعالی (<b>${join2(names.map(esc))}</b>) برای <b>${M}</b> جهت استحضار و اقدام لازم ارسال می‌گردد. ابتدا خلاصه‌ی تجمیعی و مقایسه‌ی واحدها و سپس هر بخش به‌صورت یکپارچه ارائه شده است؛ در جدول‌ها، ستون «واحد» مشخص می‌کند هر مورد مربوط به کدام واحد است.`:`بدین‌وسیله گزارش عملکرد ماهانه‌ی ایمنی، بهداشت و محیط زیست (HSE) واحد <b>${esc(names[0])}</b> برای <b>${M}</b> جهت استحضار و اقدام لازم ارسال می‌گردد.`;
+  const rep=Object.values(Dm.vis.reduce((m,x)=>((m[x.employee_id]=m[x.employee_id]||[]).push(x),m),{})).filter(a=>a.length>=3).length;
+  const text=`${ad.sal?ad.sal.replace(/&[a-z]+;/g,''):'سرپرست محترم'}، با سلام و احترام\n${subject}\n`+items.map((i,x)=>`- ${i.r.u.name}: `+(i.r.entered?`ایمنی ${n1(i.r.safety)}، مشارکت ${n1(i.r.part)}، `:'')+`مراجعه بهداری ${fa(cs[x].vis)}، حادثه ${fa(cs[x].inc)}، اخطار ${fa(cs[x].mw)}`).join('\n')+(rep?`\nمراجعه مکرر به بهداری: ${fa(rep)} نفر`:'')+'\nبا احترام - واحد HSE';
+  return{html:letter(addr,subject,inner,intro),text,subject};
 }
 function buildNCOnly(openF,k){
-  const M=monthLabel(k),html=`<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:13px;line-height:1.9;color:#0f172a;max-width:680px;text-align:right"><p style="margin:0 0 6px">واحد فنی محترم، سلام و احترام</p><p style="margin:0 0 6px">وضعیت عدم‌انطباق‌های باز (${M}) جهت اقدام و رفع به شرح زیر است:</p>${secNCTech(openF)}<p style="margin:8px 0 0">با تشکر — واحد HSE</p></div>`;
-  return{html,text:`واحد فنی محترم، سلام\nعدم‌انطباق باز: ${fa(openF.length)} | معوق: ${fa(openF.filter(isOver).length)}\nواحد HSE`,subject:`وضعیت عدم‌انطباق‌های باز — ${M}`};
+  const M=monthLabel(k),s=secNCTech(openF),subject=`وضعیت عدم‌انطباق‌های باز — ${M}`;
+  return{html:letter('واحد فنی محترم',subject,H3(1,s.t)+s.h,`بدین‌وسیله وضعیت عدم‌انطباق‌های باز مجموعه در <b>${M}</b> جهت اقدام و رفع ارسال می‌گردد.`,'خواهشمند است برنامه‌ی زمان‌بندی رفع موارد معوق را به HSE اعلام فرمایید.'),
+    text:`واحد فنی محترم، با سلام\nعدم‌انطباق باز: ${fa(openF.length)} | معوق: ${fa(openF.filter(isOver).length)}\nواحد HSE`,subject};
 }
 
 /* ---------- گروه‌بندی بر اساس سرپرست ---------- */
