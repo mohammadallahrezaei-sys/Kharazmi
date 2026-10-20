@@ -651,12 +651,13 @@ function medForm() {
     <small>${init ? 'تعداد موجودی فعلی را ثبت کنید؛ برای موجودی صفر، عدد ۰ وارد کنید.' : 'برای هر قلم می‌توانید شمارش فعلی، درخواست خرید یا تحویل خرید را جداگانه ثبت کنید. ثبت درخواست خرید موجودی را تغییر نمی‌دهد؛ ثبت تحویل، موجودی را افزایش می‌دهد.'} تاریخ انقضا: مثل ۱۴۰۶/۰۳ یا ۱۴۰۶/۰۳/۱۵ یا ۰ (بدون تاریخ).</small>
     ${MED.items.map(i => { const o = by[i.id], d = MED.dr[i.id] || {}; return `<div class="q"><div style="display:flex;justify-content:space-between;gap:8px;"><b>${esc(i.name)}</b>${init ? '' : `<small>موجودی سیستم: <b dir="ltr">${qf(o.stock)}</b> · نقطه سفارش ${qf(i.reorder)}</small>`}</div>
       <div class="fgrid2" style="margin-top:6px;">
-        ${init ? `<input data-mf="cn" data-mi="${i.id}" inputmode="decimal" placeholder="تعداد موجودی فعلی (۰ هم مجاز)" value="${esc(d.cn ?? '')}"><input data-mf="rx" data-mi="${i.id}" placeholder="تاریخ انقضا (۰ = بدون تاریخ)" value="${esc(d.rx ?? '')}">` : `
-        <input data-mf="cn" data-mi="${i.id}" inputmode="decimal" placeholder="شمارش موجودی فعلی" value="${esc(d.cn ?? '')}">
-        <input data-mf="rq" data-mi="${i.id}" placeholder="کد درخواست خرید" value="${esc(d.rq || '')}">
-        <input data-mf="rd" data-mi="${i.id}" type="date" title="تاریخ درخواست خرید" value="${esc(d.rd || '')}">
-        <input data-mf="rc" data-mi="${i.id}" inputmode="decimal" placeholder="تعداد تحویل‌شده پس از خرید" value="${esc(d.rc ?? '')}">
-        <input data-mf="rx" data-mi="${i.id}" placeholder="انقضای محموله تحویلی (۰ = بدون تاریخ)" value="${esc(d.rx ?? '')}">
+        <input data-mf="cn" data-mi="${i.id}" inputmode="decimal" placeholder="${init ? 'تعداد موجودی فعلی (۰ هم مجاز)' : 'شمارش موجودی فعلی'}" value="${esc(d.cn ?? '')}">
+        <input data-mf="rx0" data-mi="${i.id}" placeholder="${init ? 'انقضای موجودی فعلی (میلادی YYYY-MM-DD یا ۰)' : 'انقضای موجودی فعلی (میلادی YYYY-MM-DD یا ۰)'}" value="${esc(d.rx0 ?? (init ? d.rx ?? '' : ''))}">
+        ${init ? '' : `
+        <input data-mf="rq" data-mi="${i.id}" placeholder="شماره درخواست خرید" value="${esc(d.rq || '')}">
+        <input data-mf="rd" data-mi="${i.id}" placeholder="تاریخ درخواست (شمسی، مثل ۱۴۰۵/۰۷/۲۸)" value="${esc(d.rd || '')}">
+        <input data-mf="rc" data-mi="${i.id}" inputmode="decimal" placeholder="تعداد خریداری‌شده / تحویل‌شده" value="${esc(d.rc ?? '')}">
+        <input data-mf="rx" data-mi="${i.id}" placeholder="انقضای خرید جدید (میلادی YYYY-MM-DD یا ۰)" value="${esc(d.rx ?? '')}">
         <input data-mf="ds" data-mi="${i.id}" inputmode="decimal" placeholder="دورریز (منقضی/خراب)" value="${esc(d.ds ?? '')}">
         <select data-mf="ap" data-mi="${i.id}" style="grid-column:1/-1;"><option ${!d.ap || d.ap == 'سالم' ? 'selected' : ''}>سالم</option><option ${d.ap == 'آسیب‌دیده/نشتی' ? 'selected' : ''}>آسیب‌دیده/نشتی</option><option ${d.ap == 'بسته‌بندی نامناسب' ? 'selected' : ''}>بسته‌بندی نامناسب</option></select>`}
       </div>${init ? '' : `<small id="mu-${i.id}"></small>`}</div>`; }).join('')}
@@ -678,14 +679,17 @@ document.addEventListener('change', e => { const t = e.target; if (t.dataset && 
 async function medSave() {
   const init = !MED.init, by = medCalc(), moves = [], touched = new Set(), appBad = new Set(), appOk = new Set(); let err = '';
   MED.items.forEach(i => {
-    const d = MED.dr[i.id] || {}, o = by[i.id], rc = mnum(d.rc), ds = mnum(d.ds), cn = mnum(d.cn), rxs = String(d.rx || '').trim(), ap = d.ap && d.ap != 'سالم' ? d.ap : null;
+    const d = MED.dr[i.id] || {}, o = by[i.id], rc = mnum(d.rc), ds = mnum(d.ds), cn = mnum(d.cn), rxs = String(d.rx || '').trim(), rx0s = String(d.rx0 || '').trim(), ap = d.ap && d.ap != 'سالم' ? d.ap : null;
     if ([rc, ds, cn].some(v => Number.isNaN(v))) return err = err || `«${i.name}»: عدد نامعتبر است.`;
-    const rx = (rxs && rxs !== '0') ? medDate(rxs) : null;
-    if (rxs && rxs !== '0' && !rx) return err = err || `«${i.name}»: تاریخ انقضا نامعتبر است (مثل ۱۴۰۶/۰۳ یا ۰).`;
+    const rx = (rxs && rxs !== '0') ? (/^20\d{2}-\d{2}-\d{2}$/.test(dg(rxs)) ? dg(rxs) : null) : null;
+    const rx0 = (rx0s && rx0s !== '0') ? (/^20\d{2}-\d{2}-\d{2}$/.test(dg(rx0s)) ? dg(rx0s) : null) : null;
+    if (rxs && rxs !== '0' && !rx) return err = err || `«${i.name}»: تاریخ انقضای خرید جدید باید میلادی و به شکل YYYY-MM-DD باشد یا ۰ وارد کنید.`;
+    if (rx0s && rx0s !== '0' && !rx0) return err = err || `«${i.name}»: تاریخ انقضای موجودی فعلی باید میلادی و به شکل YYYY-MM-DD باشد یا ۰ وارد کنید.`;
     const base = { item_id: i.id, by_email: mail };
-    if (init) { if (cn == null) return; if (cn > 0 && !rx && rxs !== '0') return err = err || `«${i.name}»: تاریخ انقضا را وارد کنید یا ۰ بزنید.`; moves.push({ ...base, kind: 'init', qty: cn, expiry: rx }); touched.add(i.id); return; }
+    if (init) { if (cn == null) return; if (cn > 0 && !rx0 && rx0s !== '0') return err = err || `«${i.name}»: تاریخ انقضای میلادی موجودی فعلی را وارد کنید یا ۰ بزنید.`; moves.push({ ...base, kind: 'init', qty: cn, expiry: rx0 }); touched.add(i.id); return; }
     const rq = String(d.rq || '').trim(), rd = String(d.rd || '').trim();
-    if ((rq && !rd) || (!rq && rd)) return err = err || `«${i.name}»: برای ثبت درخواست خرید، کد و تاریخ درخواست هر دو لازم‌اند.`;
+    if ((rq && !rd) || (!rq && rd)) return err = err || `«${i.name}»: برای ثبت درخواست خرید، شماره و تاریخ شمسی درخواست هر دو لازم‌اند.`;
+    if (rd && !/^(13|14)\d{2}[\/\-.](0?[1-9]|1[0-2])[\/\-.](0?[1-9]|[12]\d|3[01])$/.test(dg(rd))) return err = err || `«${i.name}»: تاریخ درخواست را شمسی و به شکل ۱۴۰۵/۰۷/۲۸ وارد کنید.`;
     if (rc == null && ds == null && cn == null && !ap && !rq && !rd) return;
     touched.add(i.id); (ap ? appBad : appOk).add(i.id);
     if (rq && rd) moves.push({ ...base, kind: 'adjust', qty: 0, note: `درخواست خرید ثبت شد؛ کد درخواست: ${rq}؛ تاریخ درخواست: ${rd}` });
