@@ -15,10 +15,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
 .fld { width:100%; background:#0f172a; border:1px solid #334155; border-radius:.75rem; padding:.5rem .75rem; color:#fff; font-size:.875rem; outline:none; }
 .fld:focus { border-color:#10b981; }
 .lbl { display:block; font-size:11px; color:#cbd5e1; margin-bottom:.2rem; }
-
-/* ---------- فرم چاپی (مطابق فرم‌های Word) ---------- */
-.sheet { background:#fff; color:#000; width:100%; max-width:17cm; margin:0 auto; direction:rtl; font-weight:700; font-size:13pt;
-  font-family:'B Nazanin','BNazanin','Nazanin','Vazirmatn',Tahoma,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+.sheet { background:#fff; color:#000; width:100%; max-width:17cm; margin:0 auto; direction:rtl; font-weight:700; font-size:13pt; font-family:'B Nazanin','BNazanin','Nazanin','Vazirmatn',Tahoma,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 .sheet table { width:100%; border-collapse:collapse; table-layout:fixed; }
 .sheet td { border:2.25pt solid #000; padding:3px 7px; vertical-align:top; }
 .sheet .titr { font-family:'B Titr','BTitr','B Nazanin','Vazirmatn',Tahoma,sans-serif; }
@@ -51,8 +48,6 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
 @media screen { .paper { zoom:.82; } }
 .sheet.warn .main-p { line-height:1.8; text-align:justify; }
 .sheet.reward .main-p { line-height:1.55; text-align:justify; }
-
-/* ---------- چاپ ---------- */
 @page { size: A4; margin: 0; }
 @media print {
   html, body { background:#fff !important; padding:0 !important; margin:0 !important; }
@@ -94,21 +89,16 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
         <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl text-center"><span class="text-xs text-emerald-400 block mb-1">تشویق‌ها</span><span id="statTashvig" class="text-xl font-extrabold text-emerald-400">0</span></div>
     </div>
 
-  <!-- ✅ بخش هشدار پرسنل پرتکرار (نسخه فشرده) -->
-<div id="alarmBox" class="hidden">
-    <details class="bg-rose-950/30 border border-rose-800/50 rounded-xl overflow-hidden">
-        <summary class="cursor-pointer px-4 py-2.5 flex items-center gap-2 hover:bg-rose-950/50 transition-colors select-none">
+    <!-- ✅ بخش هشدار جمع‌وجور و افقی (اصلاح شده) -->
+    <div id="alarmBox" class="hidden bg-rose-950/40 border border-rose-800/60 rounded-xl p-3 flex items-center gap-3 overflow-hidden">
+        <div class="flex items-center gap-2 text-rose-300 shrink-0">
             <span class="text-lg">🚨</span>
-            <span class="text-sm font-bold text-rose-200">
-                هشدار: <span id="alarmCount" class="text-white font-extrabold">0</span> نفر با ۲+ اخطار/تذکر نیازمند بررسی هستند
-            </span>
-            <span class="mr-auto text-[10px] bg-rose-900/80 text-rose-200 px-2 py-0.5 rounded-full">برای مشاهده کلیک کنید ▼</span>
-        </summary>
-        <div class="border-t border-rose-800/40 bg-slate-900/40 px-3 py-2 max-h-56 overflow-y-auto">
-            <div id="alarmList" class="flex flex-wrap gap-1.5"></div>
+            <span class="text-xs font-bold whitespace-nowrap">نیازمند بررسی:</span>
         </div>
-    </details>
-</div>
+        <div id="alarmList" class="flex flex-wrap gap-2 overflow-x-auto pb-1 w-full">
+            <!-- آیتم‌ها به صورت برچسب (Chip) اینجا تزریق می‌شوند -->
+        </div>
+    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-4 lg:col-span-1">
@@ -145,12 +135,9 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
             </form>
         </div>
 
-        <!-- پنل سمت چپ: نمودار کلی (بدون انتخاب) یا آمار فرد (با انتخاب) -->
         <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl lg:col-span-2 flex flex-col">
             <h3 id="sideTitle" class="text-sm font-bold text-white mb-2">📊 نمودار فراوانی انواع سوابق انضباطی</h3>
-
             <div id="chartBox" class="relative w-full h-64 flex items-center justify-center"><canvas id="ekhtarChart"></canvas></div>
-
             <div id="personBox" class="hidden space-y-3">
                 <div class="flex justify-between items-start gap-2 flex-wrap">
                     <div>
@@ -209,7 +196,6 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
     سامانه مدیریت HSE - توسعه‌یافته برای کنترل و پایش ایمنی صنعتی
 </footer>
 
-<!-- پنجره صدور و چاپ فرم (ذخیره نمی‌شود) -->
 <div id="printModal" class="hidden fixed inset-0 z-50 bg-black/75 overflow-y-auto p-3">
     <div class="modal-card max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl p-4 grid grid-cols-1 lg:grid-cols-[19rem_1fr] gap-4">
         <div class="no-print space-y-2.5 text-xs">
@@ -218,18 +204,13 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <button type="button" id="pfClose" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg text-[11px]">✕ بستن</button>
             </div>
             <p class="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-800/60 rounded-lg p-2">این فرم در پایگاه داده ذخیره نمی‌شود؛ هر زمان لازم بود دوباره از روی سوابق ساخته می‌شود.</p>
-
-            <div><label class="lbl">نوع فرم</label>
-                <select id="pfKind" class="fld"><option value="warn">فرم اخطاریه HSE</option><option value="reward">فرم تشویق HSE</option></select></div>
-
+            <div><label class="lbl">نوع فرم</label><select id="pfKind" class="fld"><option value="warn">فرم اخطاریه HSE</option><option value="reward">فرم تشویق HSE</option></select></div>
             <div class="grid grid-cols-3 gap-2">
                 <div><label class="lbl">خطاب</label><select id="pfGender" class="fld"><option>آقای</option><option>خانم</option></select></div>
                 <div class="col-span-2"><label class="lbl">نام و نام خانوادگی</label><input id="pfName" class="fld"></div>
             </div>
             <div><label class="lbl">واحد</label><input id="pfUnit" class="fld"></div>
-
-            <div><label class="lbl">ترتیب نمایش تاریخ در فرم (چپ به راست)</label>
-                <select id="pfDateFmt" class="fld"><option value="ymd">سال/ماه/روز  مثل 1405/07/23</option><option value="dmy">روز/ماه/سال  مثل 23/07/1405</option></select></div>
+            <div><label class="lbl">ترتیب نمایش تاریخ در فرم (چپ به راست)</label><select id="pfDateFmt" class="fld"><option value="ymd">سال/ماه/روز  مثل 1405/07/23</option><option value="dmy">روز/ماه/سال  مثل 23/07/1405</option></select></div>
             <div class="grid grid-cols-2 gap-2">
                 <div><label class="lbl">تاریخ فرم</label><input id="pfDate" class="fld" dir="ltr"></div>
                 <div><label class="lbl">تاریخ بازدید / وقوع</label><input id="pfVDate" class="fld" dir="ltr"></div>
@@ -238,19 +219,10 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <div><label class="lbl">شماره / کد فرم</label><input id="pfCode" class="fld" dir="ltr"></div>
                 <div><label class="lbl">مرتبه (نوبت) برای این فرد</label><input id="pfOrd" type="number" min="1" class="fld" dir="ltr"></div>
             </div>
-
             <div class="only-warn space-y-2.5">
-                <div><label class="lbl">مرحله اخطار</label>
-                    <select id="pfStage" class="fld">
-                        <option value="1">مرحله اول - تذکر شفاهی</option>
-                        <option value="2">مرحله دوم - اخطار کتبی</option>
-                        <option value="3">مرحله سوم - جریمه ۲,۰۰۰,۰۰۰ ریال</option>
-                        <option value="4">مرحله چهارم - جریمه ۴,۰۰۰,۰۰۰ ریال</option>
-                        <option value="5">مرحله پنجم - قطع همکاری</option>
-                    </select></div>
+                <div><label class="lbl">مرحله اخطار</label><select id="pfStage" class="fld"><option value="1">مرحله اول - تذکر شفاهی</option><option value="2">مرحله دوم - اخطار کتبی</option><option value="3">مرحله سوم - جریمه ۲,۰۰۰,۰۰۰ ریال</option><option value="4">مرحله چهارم - جریمه ۴,۰۰۰,۰۰۰ ریال</option><option value="5">مرحله پنجم - قطع همکاری</option></select></div>
                 <div><label class="lbl">دلیل صدور اخطار</label><textarea id="pfReason" rows="2" class="fld" placeholder="مثلاً: عدم استفاده از لوازم حفاظت فردی (ماسک)"></textarea></div>
             </div>
-
             <div class="only-reward space-y-1.5">
                 <label class="lbl">دلایل تشویق</label>
                 <label class="flex items-start gap-1.5"><input type="checkbox" class="pfR mt-0.5" data-i="0"><span>رعایت مسایل مربوط به ایمنی، بهداشت و محیط زیست</span></label>
@@ -260,12 +232,10 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 <label class="flex items-start gap-1.5"><input type="checkbox" class="pfR mt-0.5" data-i="4"><span>همکاری با واحد HSE در ایمن سازی محیط کار</span></label>
                 <div><label class="lbl">و ... (دلیل دیگر)</label><input id="pfOther" class="fld"></div>
             </div>
-
             <div class="grid grid-cols-2 gap-2">
                 <div><label class="lbl">کارشناس HSE</label><input id="pfExpert" class="fld"></div>
                 <div><label class="lbl">مدیر HSE</label><input id="pfManager" class="fld"></div>
             </div>
-
             <details class="bg-slate-900/60 border border-slate-700 rounded-lg p-2">
                 <summary class="cursor-pointer text-[11px] text-slate-300">تنظیم شماره‌گذاری (آخرین شماره فرم‌های کاغذی قبلی)</summary>
                 <div class="grid grid-cols-2 gap-2 mt-2">
@@ -274,10 +244,8 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
                 </div>
                 <p class="text-[10px] text-slate-500 mt-1">مثلاً اگر آخرین اخطاریه کاغذی شماره ۳۵ بوده، عدد ۳۵ را بزنید تا فرم بعدی ۰۳۶ شود.</p>
             </details>
-
             <button type="button" id="pfPrint" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold">🖨 چاپ فرم</button>
         </div>
-
         <div class="preview-wrap bg-slate-600/40 rounded-xl p-3 overflow-x-auto">
             <div id="sheetHost"></div>
         </div>
@@ -291,8 +259,8 @@ const H = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };
 const JH = Object.assign({}, H, { 'Content-Type': 'application/json' });
 const $ = id => document.getElementById(id);
 
-const LOGO_W = 'data:image/jpeg;base64,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......'; // کوتاه شده برای اختصار
-const LOGO_R = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEA3ADcAAD/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgr/wAARCACqAVIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9+KKKKACiiigAooooAKKKKACgkDqaK+W/+Cu/7Y/xX/YX/ZM/4Xh8G9O0W61g+JrPT/K160knt/JlWUsdsckbbvkGDu454rowmFq43FQoU/ik0l6s58ViaeDw8q1T4Yq7sfUme9G4etfgwv8Awcuf8FCF4/4Q74Y/+E7e/wDybTh/wcvf8ABQnv+2l8S/8AwsLv/wCLr6j/AIhvmv8Az6h/4F/kfNf67ZH/AM+5/wDgyP8Akfubuj/vr+dG6P8Avr+dfhj/AMRL3/BQb/oTfhh/4Tt7/wDJtH/ES9/wUG/6E34Yf+E7e//JtH/EP+Iu0f/Av+Af67ZH3l/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP......'; // کوتاه شده برای اختصار
+const LOGO_W = 'data:image/jpeg;base64,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......'; // کوتاه شده
+const LOGO_R = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEA3ADcAAD/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgr/wAARCACqAVIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9+KKKKACiiigAooooAKKKKACgkDqaK+W/+Cu/7Y/xX/YX/ZM/4Xh8G9O0W61g+JrPT/K160knt/JlWUsdsckbbvkGDu454rowmFq43FQoU/ik0l6s58ViaeDw8q1T4Yq7sfUme9G4etfgwv8Awcuf8FCF4/4Q74Y/+E7e/wDybTh/wcvf8ABQnv+2l8S/8AwsLv/wCLr6j/AIhvmv8Az6h/4F/kfNf67ZH/AM+5/wDgyP8Akfubuj/vr+dG6P8Avr+dfhj/AMRL3/BQb/oTfhh/4Tt7/wDJtH/ES9/wUG/6E34Yf+E7e//JtH/EP+Iu0f/Av+Af67ZH3l/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N3R/31/OjdH/fX86/DH/iJe/4KDf8AQm/DD/wnb3/5No/4iXv+Cg3/AEJvww/8J29/+TaP+If8Rdo/+Bf8A/4h/xF2j/4F/wCA/wDBP3N......'; // کوتاه شده
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const empName = e => ((e.first_name || '') + ' ' + (e.last_name || '')).trim() || e.full_name || 'نامشخص';
@@ -389,7 +357,7 @@ async function loadAll() {
         showDebug('بارگذاری سوابق (جدول ekhtars): ' + e.message);
     }
     updateStatistics();
-    renderAlarmBox(); // ✅ رندر بخش هشدار
+    renderAlarmBox(); 
     renderTable();
     renderSide();
 }
@@ -403,7 +371,7 @@ function updateStatistics() {
     $('statTashvig').innerText = countType('تشویق');
 }
 
-/* ✅ تابع فشرده: رندر بخش هشدار پرسنل پرتکرار */
+/* ✅ تابع بهینه‌شده: رندر بخش هشدار به صورت نوار افقی جمع‌وجور */
 function renderAlarmBox() {
     const warningCounts = {};
     records.forEach(r => {
@@ -424,11 +392,11 @@ function renderAlarmBox() {
             };
         })
         .filter(item => item.count >= 2)
-        .sort((a, b) => b.count - a.count);
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
 
     const alarmBox = $('alarmBox');
     const alarmList = $('alarmList');
-    const alarmCount = $('alarmCount');
 
     if (sorted.length === 0) {
         alarmBox.classList.add('hidden');
@@ -436,18 +404,22 @@ function renderAlarmBox() {
     }
 
     alarmBox.classList.remove('hidden');
-    alarmCount.textContent = sorted.length;
-    
     alarmList.innerHTML = sorted.map(item => `
-        <button type="button" onclick="focusOnEmployee('${item.empId}')" 
-            class="inline-flex items-center gap-1.5 bg-rose-900/50 hover:bg-rose-800/70 border border-rose-700/60 rounded-full pl-3 pr-1 py-1 text-[11px] text-rose-100 hover:text-white transition-all group">
-            <span class="w-5 h-5 rounded-full bg-rose-700 border border-rose-500 flex items-center justify-center text-white font-bold text-[10px]">${item.count}</span>
-            <span class="font-bold truncate max-w-[120px]">${esc(item.empName)}</span>
-            <span class="text-[10px] text-rose-300 font-mono" dir="ltr">${esc(item.empCode)}</span>
-        </button>
+        <div onclick="focusOnEmployee('${item.empId}')" class="cursor-pointer bg-rose-900/60 hover:bg-rose-800 text-rose-100 text-xs px-3 py-1.5 rounded-lg border border-rose-700/50 transition-all flex items-center gap-2 shrink-0">
+            <span class="font-bold">${esc(item.empName)}</span>
+            <span class="bg-rose-950 text-rose-300 text-[10px] px-1.5 py-0.5 rounded-full border border-rose-800">${fa(item.count)} اخطار</span>
+        </div>
     `).join('');
 }
-/* ---------- پنل کناری: نمودار کلی یا آمار فرد ---------- */
+
+function focusOnEmployee(empId) {
+    const emp = employees.find(e => e.id === empId);
+    if (!emp) return;
+    $('ektEmpInput').value = empLabel(emp);
+    onEmpChange();
+    $('personBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function renderChart() {
     if (typeof Chart === 'undefined') return;
     const ctx = $('ekhtarChart').getContext('2d');
@@ -511,7 +483,6 @@ $('ektEmpInput').addEventListener('input', onEmpChange);
 $('ektEmpInput').addEventListener('change', onEmpChange);
 $('pClear').onclick = () => { $('ektEmpInput').value = ''; onEmpChange(); };
 
-/* ---------- جدول ---------- */
 function renderTable() {
     const q = $('ektSearchBox').value.toLowerCase().trim();
     const rows = records.filter(item => {
@@ -546,7 +517,6 @@ function renderTable() {
 }
 $('ektSearchBox').addEventListener('input', renderTable);
 
-/* ---------- ثبت و حذف ---------- */
 $('ekhtarForm').addEventListener('submit', async e => {
     e.preventDefault();
     const label = $('ektEmpInput').value.trim();
@@ -584,9 +554,6 @@ async function deleteRecord(id) {
     } catch (err) { showDebug(err.message); alert('خطا در حذف رکورد: ' + err.message); }
 }
 
-/* ======================================================================
-   فرم چاپی اخطاریه / تشویق  (بدون ذخیره؛ هر بار از روی داده ساخته می‌شود)
-   ====================================================================== */
 const REWARD_REASONS = [
     'رعایت مسایل مربوط به ایمنی، بهداشت و محیط زیست',
     'رعایت اصول ایمنی متناسب با شغل',
@@ -793,7 +760,6 @@ $('pfPrint').onclick = () => {
 window.addEventListener('afterprint', () => { document.title = oldTitle; });
 $('pfClose').onclick = () => { $('printModal').classList.add('hidden'); P = null; $('sheetHost').innerHTML = ''; };
 
-/* ---------- مدیریت کلیک‌ها ---------- */
 document.addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
