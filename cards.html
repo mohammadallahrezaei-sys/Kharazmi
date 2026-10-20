@@ -8,6 +8,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="stylesheet" href="hse_ui.css">
+<style>
+  /* استایل‌های اختصاصی ماژول انتخاب تجهیز و سوابق (هماهنگ با تم تاریک) */
+  .eqb { margin-top: 8px; position: relative; }
+  .eqr { position: absolute; top: 100%; right: 0; left: 0; background: #1e293b; border: 1px solid #334155; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 50; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+  .eq-list-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s; }
+  .eq-list-item:hover { background: #334155; }
+  .eq-list-item .eq-code { font-weight: bold; color: #fbbf24; font-family: monospace; font-size: 13px; }
+  .eq-list-item .eq-title { color: #f8fafc; font-size: 13px; flex: 1; margin: 0 8px; }
+  .eq-list-item .eq-count { font-size: 11px; color: #94a3b8; background: #0f172a; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+  
+  .eqn { margin-top: 10px; padding: 10px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; font-size: 12px; }
+  .eqrow { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 8px; margin-top: 6px; }
+  .eqrow.warn { border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+  
+  .bg { display: inline-block; font-size: 10px; border-radius: 12px; padding: 2px 8px; font-weight: 700; }
+  .bg.g { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .bg.r { background: rgba(239,68,68,0.15); color: #ef4444; }
+</style>
 </head>
 <body>
 <div class="w">
@@ -28,12 +46,21 @@
   <label class="l">گزارش‌دهنده (جستجو در بانک پرسنل)</label>
   <input type="text" id="cSearch" placeholder="نام یا شماره پرسنلی"><div id="cPick" style="max-height:120px;overflow-y:auto;background:#0f172a;border-radius:10px"></div>
   <div class="mu" id="cWho" style="margin-top:4px"></div>
-  <div class="g2"><div><label class="l">واحد / سوله</label><select id="cUnit"></select></div><div><label class="l">کد/شماره دستگاه مرتبط</label><input type="text" id="cEq"></div></div>
+  <div class="g2"><div><label class="l">واحد / سوله</label><select id="cUnit"></select></div>
+  <div>
+    <label class="l">کد/شماره دستگاه مرتبط</label>
+    <div class="eqb">
+      <input type="text" id="cEq" placeholder="🔎 کد یا نام تجهیز را جستجو کنید..." autocomplete="off">
+      <div class="eqr" id="cEqResults"></div>
+      <div class="eqn" id="cEqHistory" style="display:none;"></div>
+    </div>
+  </div></div>
   <label class="l">سایر مشخصات دقیق محل</label><input type="text" id="cLoc">
   <label class="l">شرح دقیق موضوع (الزامی)</label><textarea id="cDesc" rows="3"></textarea>
   <label class="l">پیشنهاد / اقدام اصلاحی (اختیاری)</label><textarea id="cSug" rows="2"></textarea>
   <div style="display:flex;gap:6px;margin-top:10px"><button class="p" id="cSave" style="flex:1">ثبت</button><button id="cCancel">انصراف</button></div>
 </div></div>
+
 <script src="eval_core.js"></script>
 <script>
 const {esc,fa,jk,req,getAll,monthKeys,monthLabel,jdInit,jdGet,jdSet,jdHTML,unitMatcher}=HSE;
@@ -41,18 +68,121 @@ const $=id=>document.getElementById(id);
 const TY={hazard:'خطر ایمنی',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد'},ST={pending:'ثبت‌شده',in_review:'در حال بررسی',done:'اقدام انجام شد',rejected:'رد شده'};
 const STC={pending:'',in_review:'wa',done:'ok',rejected:'bad'};
 let RK=[],cards=[],units=[],emps=[],match=()=>null,who=null;
+
+// متغیرهای ماژول تجهیزات
+let EQ_OK = null;
+let ENC = {};
+let EQT = null;
+
 const fday=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
 const nm=e=>`${e.first_name||''} ${e.last_name||''}`.trim();
+
 $('fM').innerHTML=monthKeys(12).map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join('');
 $('cDateW').innerHTML=jdHTML('cDate');jdInit($('cDate'));
+
 async function load(){
   const [c,u,e,rk]=await Promise.all([getAll('hse_cards?select=*'),getAll('hse_units?select=id,name,aliases&order=name.asc'),getAll('employees?select=id,emp_id,first_name,last_name,department'),getAll('risks?select=id,unit,hazard,score&status=neq.archived')]);
   if(c==null||u==null){$('err').style.display='block';$('err').textContent='جدول‌ها پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';cards=[];units=u||[]}
   else{$('err').style.display='none';cards=c;units=u}
   emps=e||[];RK=rk||[];match=unitMatcher(units);
   $('cUnit').innerHTML='<option value="">— انتخاب واحد —</option>'+units.slice().sort((a,b)=>a.name.localeCompare(b.name,'fa')).map(x=>`<option>${esc(x.name)}</option>`).join('');
+  
+  // راه‌اندازی ماژول تجهیزات
+  await eqInit();
+  
   render();
 }
+
+/* ===== توابع ماژول تجهیزات و سوابق ===== */
+async function eqInit() {
+  if (EQ_OK !== null) return EQ_OK;
+  try { await getAll('equipment_list?select=code&limit=1'); EQ_OK = true; } catch (e) { EQ_OK = false; }
+  return EQ_OK;
+}
+
+async function eqLoad(code) {
+  if (ENC[code]) return ENC[code];
+  const q = encodeURIComponent(code);
+  const [nt, fd_] = await Promise.all([
+    getAll('notices?select=no,jdate,created_on,status,description&equipment_code=eq.' + q + '&status=neq.باطل شده&order=created_on.desc&limit=40').catch(() => []),
+    getAll('findings?select=qid,question,status,notice_code,created_at&equipment_code=eq.' + q + '&status=eq.open&limit=20').catch(() => [])
+  ]);
+  return ENC[code] = { nt, fd: fd_ };
+}
+
+function eqSearch(v) {
+  clearTimeout(EQT);
+  const box = $('cEqResults');
+  const s = v.trim();
+  if (s.length < 2) { box.innerHTML = ''; return; }
+  EQT = setTimeout(async () => {
+    try {
+      const f = encodeURIComponent('*' + s + '*');
+      const r = await getAll('equipment_list?select=code,title,notice_count,open_count&or=(code.ilike.' + f + ',title.ilike.' + f + ')&order=notice_count.desc&limit=12');
+      box.innerHTML = r.map(x => `<div class="eq-list-item" onclick="selectEq('${esc(x.code)}', '${esc(x.title || '')}')">
+        <span class="eq-code">${esc(x.code)}</span>
+        <span class="eq-title">${esc(x.title || '')}</span>
+        <span class="eq-count">${fa(x.notice_count || 0)} اعلان</span>
+      </div>`).join('') || '<div style="padding:10px;color:#94a3b8">موردی یافت نشد</div>';
+    } catch (e) { box.innerHTML = '<div style="padding:10px;color:#ef4444">خطا در جستجو</div>'; }
+  }, 300);
+}
+
+function selectEq(code, title) {
+  $('cEq').value = code + (title ? ' - ' + title : '');
+  $('cEq').dataset.code = code;
+  $('cEqResults').innerHTML = '';
+  showEqHistory(code);
+}
+
+function showEqHistory(code) {
+  const box = $('cEqHistory');
+  if (!code) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '<small style="color:#94a3b8">در حال بارگذاری سوابق...</small>';
+  
+  eqLoad(code).then(c => {
+    const isOpen = status => !['خاتمه یافته', 'انجام شده', 'باطل شده'].includes(status);
+    const openNotices = c.nt.filter(x => isOpen(x.status)).length;
+    const openFindings = c.fd.length;
+
+    let html = `<div style="font-size:12px; margin-bottom:6px; font-weight:bold; color:#f8fafc">سوابق تجهیز ${esc(code)}:</div>`;
+    if (openNotices > 0 || openFindings > 0) {
+       html += `<div style="font-size:11px; color:#f59e0b; margin-bottom:8px;">⚠️ ${fa(openNotices)} اعلان باز · ${fa(openFindings)} عدم‌انطباق باز</div>`;
+    }
+
+    const recent = [...c.nt].sort((a,b) => (b.created_on || b.jdate || '').localeCompare(a.created_on || a.jdate || '')).slice(0, 3);
+    html += recent.map(x => `
+      <div class="eqrow ${isOpen(x.status) ? 'warn' : ''}">
+        <span dir="ltr">#${esc(x.no)}</span> · ${esc(x.jdate || x.created_on)} · <span class="bg ${isOpen(x.status) ? 'r' : 'g'}">${esc(x.status)}</span>
+        <div style="margin-top:4px; font-size:12px; color:#cbd5e1">${esc((x.description || '').slice(0, 80))}</div>
+      </div>
+    `).join('');
+
+    if (c.fd.length > 0) {
+      html += `<div style="margin-top:8px; font-size:11px; font-weight:bold; color:#ef4444">عدم‌انطباق‌های باز در چک‌لیست/کارت:</div>`;
+      html += c.fd.slice(0, 3).map(x => `
+        <div class="eqrow warn">
+          ${esc((x.question || '').slice(0, 80))}
+        </div>
+      `).join('');
+    }
+    box.innerHTML = html;
+  });
+}
+
+// رویدادهای فیلد تجهیز
+$('cEq').addEventListener('input', (e) => {
+   if (!e.target.dataset.code) {
+     $('cEqHistory').style.display = 'none';
+   }
+   eqSearch(e.target.value);
+});
+$('cEq').addEventListener('blur', () => {
+   setTimeout(() => { $('cEqResults').innerHTML = ''; }, 200);
+});
+/* ===== پایان توابع ماژول تجهیزات ===== */
+
 function render(){
   const K=$('fM').value,t=$('fT').value,s=$('fS').value;
   const inM=cards.filter(c=>jk(c.card_date)===K),L=inM.filter(c=>(!t||c.card_type===t)&&(!s||c.status===s)).sort((a,b)=>String(b.card_date).localeCompare(String(a.card_date)));
@@ -75,17 +205,54 @@ $('list').addEventListener('change',async ev=>{const t=ev.target,f=t.dataset.f;i
     await req('hse_cards?id=eq.'+t.dataset.id,'PATCH',body,'return=minimal');const c=cards.find(c=>c.id===t.dataset.id);Object.assign(c,body);render()}
   catch(e){alert('خطا در ذخیره: '+e.message)}});
 $('list').addEventListener('click',async ev=>{const id=ev.target.dataset.del;if(id&&confirm('این کارت حذف شود؟')){try{await req('hse_cards?id=eq.'+id,'DELETE',null,'return=minimal');load()}catch(e){alert(e.message)}}});
-$('bNew').onclick=()=>{who=null;['cSearch','cEq','cLoc','cDesc','cSug'].forEach(i=>$(i).value='');$('cWho').textContent='';$('cPick').innerHTML='';$('cUnit').value='';jdSet($('cDate'),new Date().toISOString().slice(0,10));$('modal').classList.add('on')};
+
+$('bNew').onclick=()=>{
+  who=null;
+  ['cSearch','cLoc','cDesc','cSug'].forEach(i=>$(i).value='');
+  $('cEq').value = '';
+  $('cEq').dataset.code = '';
+  $('cEqHistory').style.display = 'none';
+  $('cWho').textContent='';
+  $('cPick').innerHTML='';
+  $('cUnit').value='';
+  jdSet($('cDate'),new Date().toISOString().slice(0,10));
+  $('modal').classList.add('on')
+};
 $('cCancel').onclick=()=>$('modal').classList.remove('on');
 $('cSearch').oninput=()=>{const q=$('cSearch').value.trim().toLowerCase();$('cPick').innerHTML=q?emps.filter(e=>(nm(e)+' '+e.emp_id).toLowerCase().includes(q)).slice(0,8).map(e=>`<div data-p="${e.id}" style="padding:5px 10px;cursor:pointer">${esc(nm(e))} <span class="mu">(${esc(e.emp_id)} · ${esc(e.department||'')})</span></div>`).join(''):''};
 $('cPick').onclick=ev=>{const d=ev.target.closest('[data-p]');if(!d)return;who=emps.find(e=>e.id===d.dataset.p);$('cWho').textContent='گزارش‌دهنده: '+nm(who)+' ('+who.emp_id+')';$('cSearch').value='';$('cPick').innerHTML='';const u=match(who.department);if(u)$('cUnit').value=u.name};
+
 $('cSave').onclick=async()=>{
   const desc=$('cDesc').value.trim(),date=jdGet($('cDate')),typed=$('cSearch').value.trim();
   if(!desc||!date){alert('شرح موضوع و تاریخ الزامی است.');return}
   if(!who&&!typed){alert('گزارش‌دهنده را از بانک پرسنل انتخاب کنید (یا نامش را بنویسید).');return}
+  
+  // استخراج کد خالص دستگاه (چه از دیتاست و چه از تقسیم رشته)
+  const rawEq = $('cEq').value.trim();
+  const eqCode = $('cEq').dataset.code || (rawEq.includes(' - ') ? rawEq.split(' - ')[0] : rawEq);
+  
   const K=jk(date),n=cards.filter(c=>jk(c.card_date)===K).length+1;
-  try{await req('hse_cards','POST',{card_type:$('cType').value,card_date:date,reporter_id:who?who.id:null,reporter_name:who?nm(who):typed,unit:$('cUnit').value||null,equipment_code:$('cEq').value.trim()||null,location_detail:$('cLoc').value.trim()||null,description:desc,suggestion:$('cSug').value.trim()||null,reg_no:K+'-'+String(n).padStart(3,'0'),received_date:new Date().toISOString().slice(0,10)},'return=minimal');
-    $('modal').classList.remove('on');load()}catch(e){alert('خطا در ثبت: '+e.message)}};
+  try{
+    await req('hse_cards','POST',{
+      card_type:$('cType').value,
+      card_date:date,
+      reporter_id:who?who.id:null,
+      reporter_name:who?nm(who):typed,
+      unit:$('cUnit').value||null,
+      equipment_code: eqCode || null, // ارسال کد خالص به دیتابیس
+      location_detail:$('cLoc').value.trim()||null,
+      description:desc,
+      suggestion:$('cSug').value.trim()||null,
+      reg_no:K+'-'+String(n).padStart(3,'0'),
+      received_date:new Date().toISOString().slice(0,10)
+    },'return=minimal');
+    $('modal').classList.remove('on');
+    load();
+  }catch(e){
+    alert('خطا در ثبت: '+e.message)
+  }
+};
+
 /* ---- چاپ کارت خالی: ۴ کارت در هر برگ A4 ---- */
 $('bPrint').onclick=()=>{
   const one=`<div class="c"><div class="t">کارت گزارش خطر، شبه‌حادثه و پیشنهاد</div><div class="m">پس از تکمیل به واحد HSE تحویل دهید.</div>
@@ -94,7 +261,9 @@ $('bPrint').onclick=()=>{
    <div class="m"><i>هر گزارش شما می‌تواند از وقوع یک حادثه پیشگیری کند. این گزارش در سیستم امتیازدهی مشارکت HSE هم به نام شما و هم به نام واحدتان ثبت می‌شود.</i></div>
    <div class="h"><b>بخش تکمیل توسط واحد HSE</b><div class="r"><span>شماره ثبت: ......</span><span>تاریخ دریافت: ......</span><span>امتیاز: ......</span></div><div>☐ در حال بررسی &nbsp; ☐ اقدام انجام شد &nbsp; ☐ رد شده</div><div>اقدام انجام‌شده / دلیل رد: ...............................</div><div>امضای HSE: ........</div></div></div>`;
   const w=window.open('','_blank');if(!w){alert('اجازه‌ی باز شدن پنجره را بدهید.');return}
-  w.document.write(`<html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>چاپ کارت‌ها</title><style>body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;font-size:10.5px;line-height:2}.p{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;width:210mm;height:297mm;page-break-after:always}.c{border:1px dashed #555;padding:5mm;overflow:hidden}.t{font-weight:800;font-size:12.5px;color:#0b3d6b;border-bottom:2px solid #0b3d6b;margin-bottom:2px}.m{font-size:9px;color:#444}.r{display:flex;justify-content:space-between;gap:6px}.h{border:1px solid #0b3d6b;padding:2mm;margin-top:3px}@page{size:A4;margin:0}</style></head><body><div class="p">${one.repeat(4)}</div><div class="p">${one.repeat(4)}</div><script>setTimeout(()=>print(),400)<\/script></body></html>`);w.document.close()};
+  w.document.write(`<html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>چاپ کارت‌ها</title><style>body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;font-size:10.5px;line-height:2}.p{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;width:210mm;height:297mm;page-break-after:always}.c{border:1px dashed #555;padding:5mm;overflow:hidden}.t{font-weight:800;font-size:12.5px;color:#0b3d6b;border-bottom:2px solid #0b3d6b;margin-bottom:2px}.m{font-size:9px;color:#444}.r{display:flex;justify-content:space-between;gap:6px}.h{border:1px solid #0b3d6b;padding:2mm;margin-top:3px}@page{size:A4;margin:0}</style></head><body><div class="p">${one.repeat(4)}</div><div class="p">${one.repeat(4)}</div><script>setTimeout(()=>print(),400)<\/script></body></html>`);w.document.close()
+};
+
 load().then(()=>{if(location.hash==='#new')$('bNew').click()});
 </script>
 </body>
