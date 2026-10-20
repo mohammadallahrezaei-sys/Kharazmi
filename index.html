@@ -91,6 +91,7 @@ a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
     <h2>ریسک، بازرسی و اقدام</h2>
     <div class="list">
       <a href="risks.html">⚠️ ثبت و ارزیابی ریسک <small id="mRisk"></small></a>
+      <a href="chemicals.html">🧪 مواد شیمیایی و گازها <small id="mChem"></small></a>
       <a href="checklists.html">📋 بازرسی، چک‌لیست و عدم‌انطباق <small id="mChk"></small></a>
       <a href="cards.html">🗂 کارت‌های خطر و پیشنهاد <small id="mCard"></small></a>
       <a href="equipment.html">🏗 تجهیزات و بازرسی‌های دوره‌ای</a>
@@ -170,6 +171,7 @@ async function loadStatus() {
     else widget('wClin', 'ok', '🏥', `مجموع حوادث ثبت‌شده: ${fa(incN)}`, 'وضعیت مراجعات و پیگیری‌های بهداری پایدار است.');
     meta('mClinic', fuN ? fa(fuN) + ' پیگیری' : '');
   } else widget('wClin', '', '🏥', null, 'آماده‌به‌کار (بخش بهداری)');
+  get('chemicals?status=neq.archived&select=id,review_note').then(ch => { if (ch) meta('mChem', fa(ch.length) + ' ماده' + (ch.filter(x => x.review_note).length ? ' · ' + fa(ch.filter(x => x.review_note).length) + ' ناسازگاری' : '')); }).catch(() => {});
   if (cd && cd.length) meta('mCard', fa(cd.length) + ' بی‌پاسخ');
   if (bits.length) document.getElementById('deskLine').textContent = bits.join(' · ');
 }
