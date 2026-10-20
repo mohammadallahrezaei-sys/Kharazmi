@@ -9,7 +9,6 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="stylesheet" href="hse_ui.css">
 <style>
-.eqb { margin-top: 4px; position: relative; }
 .eqr button { display: block; width: 100%; text-align: right; min-height: 38px; margin-top: 4px; padding: 6px 10px; font-size: 13px; background: #0f172a; color: #f8fafc; border: 1px solid #334155; border-radius: 8px; cursor: pointer; }
 .eqr button:hover { background: #334155; }
 .eqn { margin-top: 8px; font-size: 12px; }
@@ -44,9 +43,9 @@
   <div class="g2">
     <div><label class="l">واحد / سوله</label><select id="cUnit"></select></div>
     <div>
-      <label class="l">کد/شماره دستگاه مرتبط (جستجو از لیست)</label>
+      <label class="l">کد/شماره دستگاه مرتبط</label>
       <div id="cEqSelected"></div>
-      <input type="text" id="cEqSearch" placeholder="🔎 کد یا نام تجهیز..." autocomplete="off">
+      <input type="text" id="cEqSearch" placeholder="🔎 جستجو یا ورود کد دستگاه..." autocomplete="off">
       <div class="eqr" id="cEqResults"></div>
     </div>
   </div>
@@ -98,7 +97,6 @@ function render(){
    <button class="d" data-del="${c.id}" style="margin-top:8px">حذف کارت</button></div></details>`).join(''):'<div class="card mu">کارتی برای این فیلتر ثبت نشده.</div>';
 }
 
-/* ===== بخش تعاملی تجهیزات و اعلان‌های مرتبط ===== */
 async function eqLoad(code) {
   if (eqCache[code]) return eqCache[code];
   const q = encodeURIComponent(code);
@@ -112,7 +110,7 @@ async function eqLoad(code) {
 async function renderEqNotices() {
   const box = $('cEqNoticeInfo');
   if (!selectedEq) { box.innerHTML = ''; return; }
-  box.innerHTML = '<div class="eqn"><small>در حال دریافت سوابق دستگاه...</small></div>';
+  box.innerHTML = '<div class="eqn"><small>در حال بررسی سوابق دستگاه...</small></div>';
   try {
     const data = await eqLoad(selectedEq.code);
     const descText = $('cDesc').value || '';
@@ -141,7 +139,7 @@ $('cEqSearch').oninput = () => {
     try {
       const f = encodeURIComponent('*' + q + '*');
       const res = await getAll('equipment_list?select=code,title,notice_count,open_count&or=(code.ilike.' + f + ',title.ilike.' + f + ')&order=notice_count.desc&limit=8');
-      box.innerHTML = (res || []).map(x => `<button type="button" data-eqcode="${esc(x.code)}" data-eqtitle="${esc(x.title || '')}"><b dir="ltr">${esc(x.code)}</b> — ${esc(x.title || '')} <small>(${fa(x.notice_count || 0)} اعلان)</small></button>`).join('') || '<div class="mu" style="padding:4px;">موردی یافت نشد</div>';
+      box.innerHTML = (res || []).map(x => `<button type="button" data-eqcode="${esc(x.code)}" data-eqtitle="${esc(x.title || '')}"><b dir="ltr">${esc(x.code)}</b> — ${esc(x.title || '')} <small>(${fa(x.notice_count || 0)} اعلان)</small></button>`).join('') || '';
     } catch (e) { box.innerHTML = ''; }
   }, 300);
 };
@@ -188,7 +186,6 @@ $('cSave').onclick=async()=>{
   if(!desc||!date){alert('شرح موضوع و تاریخ الزامی است.');return}
   if(!who&&!typed){alert('گزارش‌دهنده را از بانک پرسنل انتخاب کنید (یا نامش را بنویسید).');return}
 
-  /* بررسی اعلان یا عدم انطباق باز و مشابه قبلی روی تجهیز */
   if (selectedEq) {
     try {
       const data = await eqLoad(selectedEq.code);
