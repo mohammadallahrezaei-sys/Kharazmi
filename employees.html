@@ -15,6 +15,13 @@ details > summary { list-style: none; cursor: pointer; }
 details > summary::-webkit-details-marker { display: none; }
 details[open] .chev { transform: rotate(180deg); }
 .chev { transition: transform .15s; }
+.term{opacity:.72;border-color:#7f1d1d}
+.tbadge{font-size:10px;font-weight:400;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35);padding:1px 8px;border-radius:999px;margin-right:4px;white-space:nowrap}
+.fbtn{padding:6px 12px;border-radius:12px;font-size:12px;background:#1e293b;border:1px solid #334155;color:#cbd5e1;cursor:pointer}
+.fbtn.on{background:#059669;border-color:#059669;color:#022c22;font-weight:700}
+.abtn{padding:6px 12px;border-radius:12px;font-size:12px;background:#334155;color:#e2e8f0;cursor:pointer}
+.abtn.danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35)}
+.jd{display:flex;gap:6px}.jd select{flex:1;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:12px;padding:8px;font-size:13px}
 </style>
 </head>
 <body class="p-4 max-w-2xl mx-auto flex flex-col min-h-screen justify-between">
@@ -36,6 +43,7 @@ details[open] .chev { transform: rotate(180deg); }
   <div class="mb-2">
     <input id="search" type="text" placeholder="جستجو در همه اطلاعات: نام، شماره پرسنلی، کد ملی، واحد، سمت، تلفن..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500">
   </div>
+  <div id="flt" class="flex gap-2 mb-2"><button type="button" data-flt="active" class="fbtn on">فعال</button><button type="button" data-flt="term" class="fbtn">قطع همکاری</button><button type="button" data-flt="all" class="fbtn">همه</button></div>
   <p id="count" class="text-xs text-slate-400 mb-3"></p>
 
   <div id="list" class="space-y-3 pb-10">
@@ -60,13 +68,32 @@ details[open] .chev { transform: rotate(180deg); }
   </div>
 </div>
 
+<div id="termModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden backdrop-blur-sm">
+  <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+    <h2 class="text-lg font-bold text-white mb-1">ثبت قطع همکاری</h2>
+    <p id="tName" class="text-xs text-slate-400 mb-4"></p>
+    <label class="block text-xs text-slate-300 mb-1">تاریخ قطع همکاری (شمسی)</label>
+    <div id="tDate" class="jd mb-3"><select></select><select></select><select></select></div>
+    <label class="block text-xs text-slate-300 mb-1">علت / توضیح (اختیاری)</label>
+    <input id="tReason" type="text" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none mb-3">
+    <p class="text-[11px] text-slate-400 mb-3">اطلاعات فرد در بانک پرسنل می‌ماند، ولی از ماه بعد در گزارش‌ها، ارزیابی واحدها و فهرست افراد پرخطر محاسبه نمی‌شود.</p>
+    <div class="flex gap-2">
+      <button type="button" onclick="saveTerm()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm">ثبت قطع همکاری</button>
+      <button type="button" onclick="closeTerm()" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl text-sm">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<script src="eval_core.js"></script>
 <script>
 const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 const H = { apikey: KEY, Authorization: `Bearer ${KEY}` };
-let all = [];
+let all = [], flt = 'active', termId = null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const fday = d => { const s = String(d || '').slice(0, 10), t = new Date(s + 'T00:00:00'); return isNaN(t) ? s : t.toLocaleDateString('fa-IR', { dateStyle: 'medium' }); };
+const isTerm = x => !!x.termination_date;
 
 /* گروه‌بندی و برچسب همه ستون‌ها */
 const GROUPS = [
@@ -82,10 +109,12 @@ const GROUPS = [
     ['phone_mobile', 'تلفن همراه ۱', 1, 'tel'], ['phone_mobile2', 'تلفن همراه ۲', 1, 'tel'], ['phone_landline', 'تلفن ثابت', 1, 'tel'],
     ['postal_code', 'کد پستی', 1], ['address', 'آدرس']]]
 ];
-const KNOWN = new Set(['id', 'created_at', 'updated_at', 'first_name', 'last_name', 'birth_year', 'birth_month', 'birth_day'].concat(GROUPS.flatMap(g => g[1].map(f => f[0]))));
+const TERM_GROUP = ['قطع همکاری', [['termination_date', 'تاریخ قطع همکاری'], ['termination_reason', 'علت / توضیح', 0, 0]]];
+const KNOWN = new Set(['id', 'created_at', 'updated_at', 'first_name', 'last_name', 'birth_year', 'birth_month', 'birth_day', 'termination_date', 'termination_reason'].concat(GROUPS.flatMap(g => g[1].map(f => f[0]))));
 
 const val = (x, k) => {
   if (k === '__birth') return x.birth_year ? [x.birth_year, x.birth_month, x.birth_day].filter(Boolean).join('/') : '';
+  if (k === 'termination_date') return x[k] ? fday(x[k]) : '';
   return x[k] == null ? '' : String(x[k]).trim();
 };
 const cell = (x, [k, label, ltr, tel]) => {
@@ -93,16 +122,17 @@ const cell = (x, [k, label, ltr, tel]) => {
   const body = !v ? '<span class="text-slate-600">—</span>'
     : tel ? `<a href="tel:${esc(v)}" dir="ltr" class="text-emerald-400">${esc(v)}</a>`
     : ltr ? `<span dir="ltr">${esc(v)}</span>` : esc(v);
-  return `<div class="bg-slate-900/60 rounded-lg px-3 py-2 ${k === 'address' || k === 'skills' || k === 'training_courses' ? 'col-span-2' : ''}">
+  return `<div class="bg-slate-900/60 rounded-lg px-3 py-2 ${k === 'address' || k === 'skills' || k === 'training_courses' || k === 'termination_reason' ? 'col-span-2' : ''}">
     <div class="text-[11px] text-slate-400">${label}</div><div class="text-xs text-slate-100 break-words">${body}</div></div>`;
 };
 
 function card(x) {
-  const extra = Object.keys(x).filter(k => !KNOWN.has(k) && x[k] != null && x[k] !== '');
-  return `<details class="bg-slate-800 border border-slate-700 rounded-xl shadow-sm">
+  const t = isTerm(x), extra = Object.keys(x).filter(k => !KNOWN.has(k) && k !== '__s' && x[k] != null && x[k] !== '');
+  const groups = t ? [TERM_GROUP].concat(GROUPS) : GROUPS;
+  return `<details class="bg-slate-800 border border-slate-700 rounded-xl shadow-sm ${t ? 'term' : ''}">
     <summary class="p-4 flex justify-between items-center gap-3">
       <div class="min-w-0">
-        <p class="font-bold text-sm">${esc(x.first_name)} ${esc(x.last_name)} <span class="text-xs text-slate-400 font-normal">(${esc(x.emp_id)})</span></p>
+        <p class="font-bold text-sm">${esc(x.first_name)} ${esc(x.last_name)} <span class="text-xs text-slate-400 font-normal">(${esc(x.emp_id)})</span>${t ? ` <span class="tbadge">قطع همکاری · ${esc(fday(x.termination_date))}</span>` : ''}</p>
         <p class="text-xs text-slate-400 mt-1">واحد: <span class="text-slate-200 font-semibold">${esc(x.department) || 'نامشخص'}</span> · سمت: ${esc(x.job_title) || '-'}</p>
       </div>
       <div class="flex items-center gap-2 shrink-0">
@@ -111,15 +141,29 @@ function card(x) {
       </div>
     </summary>
     <div class="px-4 pb-4 space-y-3 border-t border-slate-700 pt-3">
-      ${GROUPS.map(([t, fs]) => `<div><h3 class="text-xs font-bold text-emerald-400 mb-2">${t}</h3><div class="grid grid-cols-2 gap-2">${fs.map(f => cell(x, f)).join('')}</div></div>`).join('')}
+      ${groups.map(([tt, fs]) => `<div><h3 class="text-xs font-bold ${tt === 'قطع همکاری' ? 'text-red-400' : 'text-emerald-400'} mb-2">${tt}</h3><div class="grid grid-cols-2 gap-2">${fs.map(f => cell(x, f)).join('')}</div></div>`).join('')}
       ${extra.length ? `<div><h3 class="text-xs font-bold text-emerald-400 mb-2">سایر اطلاعات</h3><div class="grid grid-cols-2 gap-2">${extra.map(k => cell(x, [k, k])).join('')}</div></div>` : ''}
+      <div class="flex gap-2 pt-1">${t
+        ? `<button type="button" onclick="revertTerm('${esc(x.id)}')" class="abtn">↩ بازگشت به کار (لغو قطع همکاری)</button>`
+        : `<button type="button" onclick="openTerm('${esc(x.id)}')" class="abtn danger">⛔ ثبت قطع همکاری</button>`}</div>
     </div>
   </details>`;
 }
 
-function render(arr) {
-  document.getElementById('count').textContent = `${fa(arr.length)} نفر از ${fa(all.length)} نفر`;
+function render(arr, poolN) {
+  document.getElementById('count').textContent = `${fa(arr.length)} نفر از ${fa(poolN)} نفر`;
   document.getElementById('list').innerHTML = arr.length ? arr.map(card).join('') : '<p class="text-center py-6 text-slate-500 text-sm">موردی یافت نشد.</p>';
+}
+
+function apply() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const nA = all.filter(x => !isTerm(x)).length, nT = all.length - nA;
+  document.querySelectorAll('#flt [data-flt]').forEach(b => {
+    b.classList.toggle('on', b.dataset.flt === flt);
+    b.textContent = { active: 'فعال', term: 'قطع همکاری', all: 'همه' }[b.dataset.flt] + ' (' + fa({ active: nA, term: nT, all: all.length }[b.dataset.flt]) + ')';
+  });
+  const pool = all.filter(x => flt === 'all' || (flt === 'term' ? isTerm(x) : !isTerm(x)));
+  render(q ? pool.filter(x => x.__s.includes(q)) : pool, pool.length);
 }
 
 async function loadEmployees() {
@@ -129,14 +173,42 @@ async function loadEmployees() {
     all = await res.json();
     all.sort((a, b) => String(a.emp_id).localeCompare(String(b.emp_id), undefined, { numeric: true }));
     all.forEach(x => x.__s = Object.entries(x).filter(([k]) => k !== '__s').map(([, v]) => v).join(' ').toLowerCase());
-    render(all);
-    document.getElementById('search').oninput = e => {
-      const q = e.target.value.trim().toLowerCase();
-      render(q ? all.filter(x => x.__s.includes(q)) : all);
-    };
+    apply();
   } catch (e) {
     document.getElementById('list').innerHTML = '<p class="text-center text-red-400 text-sm">خطا در برقراری ارتباط با پایگاه داده</p>';
   }
+}
+document.getElementById('search').oninput = () => apply();
+document.getElementById('flt').onclick = e => { const b = e.target.closest('[data-flt]'); if (!b) return; flt = b.dataset.flt; apply(); };
+
+/* ---- قطع همکاری ---- */
+async function patchEmp(id, body) {
+  try {
+    const res = await fetch(`${URL_}/rest/v1/employees?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=representation' }, body: JSON.stringify(body) });
+    const tx = await res.text();
+    if (!res.ok) throw new Error(/termination/.test(tx) ? 'ستون قطع همکاری در دیتابیس نیست؛ ابتدا فایل hse_employee_termination.sql را در Supabase اجرا کنید.' : tx);
+    if (!JSON.parse(tx || '[]').length) throw new Error('هیچ ردیفی به‌روزرسانی نشد؛ دسترسی ویرایش (RLS) در Supabase را بررسی کنید (راهنما در فایل hse_employee_termination.sql).');
+    return true;
+  } catch (err) { alert('خطا: ' + err.message); return false; }
+}
+function openTerm(id) {
+  const x = all.find(e => String(e.id) === String(id)); if (!x) return;
+  termId = id;
+  document.getElementById('tName').textContent = `${x.first_name || ''} ${x.last_name || ''} (${x.emp_id || ''})`;
+  HSE.jdInit(document.getElementById('tDate'));
+  document.getElementById('tReason').value = '';
+  document.getElementById('termModal').classList.remove('hidden');
+}
+function closeTerm() { document.getElementById('termModal').classList.add('hidden'); termId = null; }
+async function saveTerm() {
+  const iso = HSE.jdGet(document.getElementById('tDate'));
+  if (!iso) { alert('تاریخ قطع همکاری را کامل انتخاب کنید.'); return; }
+  const reason = document.getElementById('tReason').value.trim();
+  if (await patchEmp(termId, { termination_date: iso, termination_reason: reason || null })) { closeTerm(); loadEmployees(); }
+}
+async function revertTerm(id) {
+  if (!confirm('قطع همکاری این فرد لغو شود و دوباره جزو پرسنل فعال محاسبه شود؟')) return;
+  if (await patchEmp(id, { termination_date: null, termination_reason: null })) loadEmployees();
 }
 
 /* فرم ثبت: همه ستون‌های اصلی */
@@ -159,7 +231,7 @@ function toggleModal(show) {
 document.getElementById('empForm').onsubmit = async e => {
   e.preventDefault();
   const body = {};
-  document.querySelectorAll('[data-f]').forEach(i => { const v = i.value.trim(); if (v) body[i.dataset.f] = v; });
+  document.querySelectorAll('#empForm [data-f]').forEach(i => { const v = i.value.trim(); if (v) body[i.dataset.f] = v; });
   try {
     const res = await fetch(`${URL_}/rest/v1/employees`, { method: 'POST', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=representation' }, body: JSON.stringify(body) });
     if (!res.ok) throw new Error(await res.text());
