@@ -23,8 +23,8 @@
 <body>
 <div class="w">
   <div class="top">
-    <div><h1>✉️ گزارش واحدها برای Outlook</h1><p>کارنامه‌ی کامل ماهانه‌ی هر واحد: شاخص‌ها، حوادث، مراجعات بهداری، اخطارها و اقدام‌های پیشنهادی — کپی کنید و در Outlook بچسبانید</p></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><select id="uSel" style="width:auto"></select><a class="btn" href="evaluation.html">ارزیابی واحدها</a><a class="btn" href="index.html">← بازگشت</a></div>
+    <div><h1>✉️ گزارش واحدها برای Outlook</h1><p>کارنامه‌ی کامل ماهانه؛ واحدهای هر سرپرست در یک گزارش (هم تجمیعی هم به تفکیک): شاخص‌ها، حوادث، مراجعات بهداری، اخطارها و اقدام‌های پیشنهادی — کپی کنید و در Outlook بچسبانید</p></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><select id="gSel" style="width:auto" title="شیوه‌ی گروه‌بندی"><option value="mgr">تجمیع بر اساس سرپرست</option><option value="unit">هر واحد جدا</option></select><select id="uSel" style="width:auto"></select><a class="btn" href="evaluation.html">ارزیابی واحدها</a><a class="btn" href="index.html">← بازگشت</a></div>
   </div>
   <div id="err" class="err"></div>
   <div class="card">
@@ -45,7 +45,7 @@
 </div>
 <script src="eval_core.js"></script>
 <script>
-const {esc,fa,nd,jk,getAll,monthKeys,monthLabel,loadEval,compute,ZONES,PARAM,unitMatcher}=HSE;
+const {esc,fa,nd,jk,norm,getAll,monthKeys,monthLabel,loadEval,compute,ZONES,PARAM,unitMatcher}=HSE;
 const $=id=>document.getElementById(id);
 const TODAY=new Date().toISOString().slice(0,10),dd=(a,b)=>Math.round((new Date(a)-new Date(b))/864e5);
 const n1=v=>fa(Math.round(v*10)/10);
@@ -79,7 +79,8 @@ async function load(){
   (EMP||[]).forEach(e=>{e._u=match(e.department||'')||null;EMPBY[e.id]=e;if(e.emp_id!=null)EMPCODE[String(e.emp_id)]=e});
   const miss=[['عدم‌انطباق‌ها',FIN],['پرسنل',EMP],['مراجعات بهداری',VIS],['حوادث',INC],['پیگیری‌های بهداری',FU],['معاینات طب کار',EXM],['اخطارها',EKH]].filter(x=>!x[1]).map(x=>x[0]);
   $('note').textContent=miss.length?'⚠️ این منابع خوانده نشد و در گزارش نیامده: '+miss.join('، '):'';
-  $('uSel').innerHTML='<option value="">همه‌ی واحدها</option>'+B.units.filter(u=>u.active!==false).slice().sort((a,b)=>a.name.localeCompare(b.name,'fa')).map(u=>`<option value="${esc(u.id)}">${esc(u.name)}</option>`).join('');
+  try{const gm=localStorage.getItem('ur_mode');if(gm)$('gSel').value=gm}catch(e){}
+  fillU();
   try{document.querySelectorAll('[data-o]').forEach(c=>{const v=localStorage.getItem('ur_o_'+c.dataset.o);if(v!==null)c.checked=v==='1'})}catch(e){}
   draw();
 }
@@ -182,8 +183,9 @@ function secNCTech(openF){
 const secNCInfo=n=>n?H3('🔧 عدم‌انطباق‌های محل واحد شما')+P_(`${fa(n)} عدم‌انطباق باز در محدوده‌ی واحد شما ثبت شده است. رفع آن‌ها بر عهده‌ی واحد فنی است و پیگیری می‌شود؛ صرفاً جهت اطلاع.`):'';
 
 /* ---------- ساخت ایمیل ---------- */
-function build(r,p1,p2,D,openF,k,O,tech,ncAll){
-  const u=r.u,hi=u.manager?`جناب آقای/خانم ${esc(u.manager)}`:'سرپرست محترم',M=monthLabel(k),act=[];
+/* بدنه‌ی کارنامه‌ی یک واحد: شاخص‌ها، شمارنده‌ها، بخش‌ها و اقدام‌های پیشنهادی */
+function unitBody(r,p1,p2,D,openF,k,O,tech,ncAll){
+  const act=[];
   const repeat=Object.values(D.vis.reduce((m,x)=>((m[x.employee_id]=m[x.employee_id]||[]).push(x),m),{})).filter(a=>a.length>=3).length;
   const fuOver=D.fu.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length;
   if(r.entered){
@@ -203,21 +205,69 @@ function build(r,p1,p2,D,openF,k,O,tech,ncAll){
   if(!act.length)act.push('مورد خاصی برای اقدام وجود ندارد.');
   const pe=p1&&p1.entered?p1:null;
   const score=r.entered?`<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص ایمنی</div><div style="font-size:24px;font-weight:bold">${n1(r.safety)}</div>${pe?`<div style="font-size:11px;color:#64748b">ماه قبل ${n1(pe.safety)}</div>`:''}</td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص مشارکت</div><div style="font-size:24px;font-weight:bold">${n1(r.part)}</div>${pe?`<div style="font-size:11px;color:#64748b">ماه قبل ${n1(pe.part)}</div>`:''}</td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1;color:${ZC[r.zone]}"><div style="font-size:11px;color:#475569">ناحیه</div><div style="font-size:14px;font-weight:bold">${ZONES[r.zone]}</div></td></tr></table>`:'<div style="padding:8px;background:#fef9c3;border:1px solid #fde68a;font-size:12px;margin:8px 0">امتیاز ایمنی و مشارکت واحد پس از تکمیل ارزیابی ماهانه اعلام می‌شود.</div>';
-  const html=`<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:13px;line-height:1.9;color:#0f172a;max-width:680px;text-align:right">
-<p style="margin:0 0 6px">${hi}، سلام و احترام</p>
-<p style="margin:0 0 6px">کارنامه‌ی کامل HSE واحد <b>${esc(u.name)}</b> برای <b>${M}</b> به شرح زیر است:</p>
-${score}
+  const html=`${score}
 <table style="width:100%;border-collapse:collapse;margin:6px 0"><tr>${td('نفرات',fa(r.C))}${td('کارت خطر',fa(r.hz))}${td('شبه‌حادثه',fa(r.nm))}</tr><tr>${td('پیشنهاد',fa(r.sg))}${td('جلسه‌ی ایمنی',fa(r.talks))}${td('حوادث (جزئی)',fa(r.ac)+' ('+fa(r.ak)+')')}</tr>${r.entered?`<tr>${td('عدم استفاده از PPE',fa(r.ppe))}${td('رفتار ناایمن',fa(r.unsafe))}${td('روز از دست‌رفته',fa(r.lost))}</tr>`:''}</table>
 ${O.trend?secTrend(r,p1,p2,k):''}${O.inc?secInc(D):''}${O.clinic?secClinic(D,O):''}${O.fu?secFu(D):''}${O.occ?secOcc(D):''}${O.warn?secWarn(D):''}${tech?secNCTech(openF):(O.nc?secNCInfo(ncAll):'')}
-<p style="margin:16px 0 2px;font-size:14px;border-bottom:2px solid #0f766e;padding-bottom:2px"><b>✅ اقدام‌های پیشنهادی:</b></p><ol style="margin:4px 0;padding-inline-start:20px">${act.map(a=>`<li style="margin:2px 0">${a}</li>`).join('')}</ol>
+<p style="margin:16px 0 2px;font-size:14px;border-bottom:2px solid #0f766e;padding-bottom:2px"><b>✅ اقدام‌های پیشنهادی:</b></p><ol style="margin:4px 0;padding-inline-start:20px">${act.map(a=>`<li style="margin:2px 0">${a}</li>`).join('')}</ol>`;
+  return{html,act,mw};
+}
+const wrapMail=(hi,intro,inner)=>`<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:13px;line-height:1.9;color:#0f172a;max-width:680px;text-align:right">
+<p style="margin:0 0 6px">${hi}، سلام و احترام</p>
+<p style="margin:0 0 6px">${intro}</p>
+${inner}
 <p style="margin:12px 0 0;font-size:11px;color:#64748b">اطلاعات بهداری و انضباطی این گزارش محرمانه است و صرفاً برای پیگیری مدیریتی ارائه می‌شود.</p>
 <p style="margin:6px 0 0">با تشکر — واحد HSE</p></div>`;
-  const text=`${hi}، سلام\nکارنامه HSE واحد ${u.name} - ${M}\n`+(r.entered?`شاخص ایمنی ${n1(r.safety)} | مشارکت ${n1(r.part)} | ${ZONES[r.zone]}\n`:'')+`مراجعات بهداری: ${fa(D.vis.length)} | حوادث: ${fa(D.inc.length)} | اخطار این ماه: ${fa(mw)}\n`+act.map((a,i)=>`${fa(i+1)}. ${a}`).join('\n')+'\nواحد HSE';
-  return{html,text,subject:`کارنامه HSE واحد ${u.name} — ${M}`};
+
+/* تجمیع شاخص‌های چند واحد: میانگین وزنی بر اساس تعداد نفرات (فقط واحدهای دارای ارزیابی) */
+function aggRows(rs){
+  const e=rs.filter(r=>r&&r.entered),C=e.reduce((a,r)=>a+r.C,0);
+  return{n:e.length,safety:C?e.reduce((a,r)=>a+r.safety*r.C,0)/C:0,part:C?e.reduce((a,r)=>a+r.part*r.C,0)/C:0,zone:e.length?Math.max(...e.map(r=>r.zone)):null};
+}
+const sum=(a,f)=>a.reduce((s,x)=>s+(Number(f(x))||0),0);
+const unitBar=t=>`<table style="width:100%;border-collapse:collapse;margin-top:22px"><tr><td style="background:#0f766e;color:#ffffff;padding:6px 10px;font-size:14px"><b>${t}</b></td></tr></table>`;
+const chipsOf=(d,k)=>({vis:d.vis.length,inc:d.inc.length,mw:d.ekh.filter(x=>x.k===k).length,fu:d.fu.length,fuOver:d.fu.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length});
+
+/* هر گروه = یک سرپرست با یک یا چند واحد؛ items: [{r,p1,p2,D,tech,mine}] */
+function buildGroup(items,mgr,openAll,k,O){
+  const M=monthLabel(k),hi=mgr?`جناب آقای/خانم ${esc(mgr)}`:'سرپرست محترم';
+  if(items.length===1){
+    const it=items[0],b=unitBody(it.r,it.p1,it.p2,it.D,openAll,k,O,it.tech,it.mine);
+    return{html:wrapMail(hi,`کارنامه‌ی کامل HSE واحد <b>${esc(it.r.u.name)}</b> برای <b>${M}</b> به شرح زیر است:`,b.html),
+      text:`${hi}، سلام\nکارنامه HSE واحد ${it.r.u.name} - ${M}\n`+(it.r.entered?`شاخص ایمنی ${n1(it.r.safety)} | مشارکت ${n1(it.r.part)} | ${ZONES[it.r.zone]}\n`:'')+`مراجعات بهداری: ${fa(it.D.vis.length)} | حوادث: ${fa(it.D.inc.length)} | اخطار این ماه: ${fa(b.mw)}\n`+b.act.map((a,i)=>`${fa(i+1)}. ${a}`).join('\n')+'\nواحد HSE',
+      subject:`کارنامه HSE واحد ${it.r.u.name} — ${M}`};
+  }
+  const names=items.map(i=>i.r.u.name),rs=items.map(i=>i.r),ag=aggRows(rs),cs=items.map(i=>chipsOf(i.D,k));
+  const people=new Set();items.forEach(i=>i.D.vis.forEach(v=>people.add(v.employee_id)));
+  /* ۱) خلاصه‌ی تجمیعی */
+  const tot=`<table style="width:100%;border-collapse:collapse;margin:6px 0"><tr>${td('جمع نفرات',fa(sum(rs,r=>r.C)))}${td('کارت خطر',fa(sum(rs,r=>r.hz)))}${td('شبه‌حادثه',fa(sum(rs,r=>r.nm)))}</tr><tr>${td('پیشنهاد',fa(sum(rs,r=>r.sg)))}${td('جلسه‌ی ایمنی',fa(sum(rs,r=>r.talks)))}${td('حوادث (جزئی)',fa(sum(rs,r=>r.ac))+' ('+fa(sum(rs,r=>r.ak))+')')}</tr><tr>${td('عدم استفاده از PPE',fa(sum(rs,r=>r.ppe)))}${td('رفتار ناایمن',fa(sum(rs,r=>r.unsafe)))}${td('روز از دست‌رفته',fa(sum(rs,r=>r.lost)))}</tr><tr>${td('مراجعات بهداری',fa(sum(cs,c=>c.vis))+' ('+fa(people.size)+' نفر)')}${td('اخطار این ماه',fa(sum(cs,c=>c.mw)))}${td('پیگیری باز بهداری',fa(sum(cs,c=>c.fu))+(sum(cs,c=>c.fuOver)?' ('+fa(sum(cs,c=>c.fuOver))+' معوق)':''))}</tr></table>`;
+  const aggScore=ag.n?`<table style="width:100%;border-collapse:collapse;margin:8px 0"><tr><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص ایمنی (میانگین وزنی)</div><div style="font-size:24px;font-weight:bold">${n1(ag.safety)}</div></td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1"><div style="font-size:11px;color:#475569">شاخص مشارکت (میانگین وزنی)</div><div style="font-size:24px;font-weight:bold">${n1(ag.part)}</div></td><td style="padding:8px;text-align:center;border:1px solid #cbd5e1;color:${ZC[ag.zone]}"><div style="font-size:11px;color:#475569">ضعیف‌ترین ناحیه بین واحدها</div><div style="font-size:14px;font-weight:bold">${ZONES[ag.zone]}</div></td></tr></table>`:'<div style="padding:8px;background:#fef9c3;border:1px solid #fde68a;font-size:12px;margin:8px 0">امتیاز ایمنی و مشارکت پس از تکمیل ارزیابی ماهانه‌ی واحدها اعلام می‌شود.</div>';
+  const cmp=tbl(['واحد','نفرات','شاخص ایمنی','شاخص مشارکت','ناحیه','حادثه','مراجعه بهداری','اخطار ماه'],items.map((i,x)=>[`<b>${esc(i.r.u.name)}</b>`,fa(i.r.C),i.r.entered?n1(i.r.safety):'—',i.r.entered?n1(i.r.part):'—',i.r.entered?`<span style="color:${ZC[i.r.zone]}">${ZONES[i.r.zone]}</span>`:'—',fa(cs[x].inc),fa(cs[x].vis),fa(cs[x].mw)]).concat([[`<b>جمع / میانگین وزنی</b>`,`<b>${fa(sum(rs,r=>r.C))}</b>`,`<b>${ag.n?n1(ag.safety):'—'}</b>`,`<b>${ag.n?n1(ag.part):'—'}</b>`,'—',`<b>${fa(sum(cs,c=>c.inc))}</b>`,`<b>${fa(sum(cs,c=>c.vis))}</b>`,`<b>${fa(sum(cs,c=>c.mw))}</b>`]]));
+  let aggTrend='';
+  if(O.trend&&ag.n){const ks=[prevK(prevK(k)),prevK(k),k],src=[items.map(i=>i.p2),items.map(i=>i.p1),rs],A=src.map(aggRows);
+    aggTrend=H3('📈 روند ۳ ماه اخیر (تجمیعی)')+tbl(['شاخص',...ks.map(monthLabel)],[['شاخص ایمنی',...A.map(a=>a.n?n1(a.safety):'—')],['شاخص مشارکت',...A.map(a=>a.n?n1(a.part):'—')]]);}
+  const summary=H3('📊 خلاصه‌ی تجمیعی همه‌ی واحدها')+aggScore+(ag.n&&ag.n<items.length?P_(`میانگین وزنی فقط شامل واحدهای دارای ارزیابی ماهانه است (${fa(ag.n)} از ${fa(items.length)} واحد).`):'')+tot+aggTrend+H3('🏭 مقایسه‌ی واحدها')+cmp;
+  /* ۲) جزئیات هر واحد */
+  const parts=items.map(i=>unitBar(`🏭 واحد ${esc(i.r.u.name)} — جزئیات`)+unitBody(i.r,i.p1,i.p2,i.D,openAll,k,O,i.tech,i.mine).html);
+  const html=wrapMail(hi,`کارنامه‌ی کامل HSE واحدهای تحت سرپرستی شما (<b>${names.map(esc).join('، ')}</b>) برای <b>${M}</b> به شرح زیر است. ابتدا خلاصه‌ی تجمیعی و مقایسه‌ی واحدها، سپس جزئیات هر واحد آمده است.`,summary+parts.join(''));
+  const text=`${hi}، سلام\nکارنامه HSE واحدهای ${names.join('، ')} - ${M}\n`+(ag.n?`شاخص ایمنی (وزنی) ${n1(ag.safety)} | مشارکت ${n1(ag.part)}\n`:'')+items.map((i,x)=>`• ${i.r.u.name}: `+(i.r.entered?`ایمنی ${n1(i.r.safety)}، مشارکت ${n1(i.r.part)}، `:'')+`مراجعه بهداری ${fa(cs[x].vis)}، حادثه ${fa(cs[x].inc)}، اخطار ${fa(cs[x].mw)}`).join('\n')+'\nواحد HSE';
+  return{html,text,subject:`کارنامه HSE واحدهای ${mgr||names.join('، ')} — ${M}`};
 }
 function buildNCOnly(openF,k){
   const M=monthLabel(k),html=`<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:13px;line-height:1.9;color:#0f172a;max-width:680px;text-align:right"><p style="margin:0 0 6px">واحد فنی محترم، سلام و احترام</p><p style="margin:0 0 6px">وضعیت عدم‌انطباق‌های باز (${M}) جهت اقدام و رفع به شرح زیر است:</p>${secNCTech(openF)}<p style="margin:8px 0 0">با تشکر — واحد HSE</p></div>`;
   return{html,text:`واحد فنی محترم، سلام\nعدم‌انطباق باز: ${fa(openF.length)} | معوق: ${fa(openF.filter(isOver).length)}\nواحد HSE`,subject:`وضعیت عدم‌انطباق‌های باز — ${M}`};
+}
+
+/* ---------- گروه‌بندی بر اساس سرپرست ---------- */
+function groupsOf(){
+  const mode=$('gSel').value,us=B.units.filter(u=>u.active!==false&&u.headcount>0).slice().sort((a,b)=>a.name.localeCompare(b.name,'fa')),G={};
+  us.forEach(u=>{const key=(mode==='mgr'&&u.manager&&norm(u.manager))?'m:'+norm(u.manager):'u:'+u.id;
+    (G[key]=G[key]||{key,mgr:mode==='mgr'?u.manager||'':(u.manager||''),units:[]}).units.push(u)});
+  return Object.values(G).sort((a,b)=>(a.mgr||'\uffff').localeCompare(b.mgr||'\uffff','fa')||a.units[0].name.localeCompare(b.units[0].name,'fa'));
+}
+function fillU(){
+  const keep=$('uSel').value;
+  $('uSel').innerHTML='<option value="">همه</option>'+groupsOf().map(g=>`<option value="${esc(g.key)}">${esc(g.units.length>1?`${g.mgr} — ${g.units.map(u=>u.name).join('، ')}`:g.units[0].name)}</option>`).join('');
+  if([...$('uSel').options].some(o=>o.value===keep))$('uSel').value=keep;
 }
 
 /* ---------- نمایش ---------- */
@@ -225,17 +275,19 @@ function draw(){
   K=$('mSel').value;const O=opts(),R=compute(K,B),P1=compute(prevK(K),B),P2=compute(prevK(prevK(K)),B),sel=$('uSel').value,D=gather(K);
   const openAll=(FIN||[]).filter(f=>f.status==='open'),byU={};
   openAll.forEach(f=>{const u=match(f.location||'');if(u)(byU[u.id]=byU[u.id]||[]).push(f)});
-  const rows=R.rows.filter(r=>!sel||r.u.id===sel);MAIL={};
-  const hasTech=B.units.some(u=>TECH_RE.test(u.name));
-  let html=rows.length?rows.map(r=>{
-    const p1=P1.rows.find(x=>x.u.id===r.u.id),p2=P2.rows.find(x=>x.u.id===r.u.id),d=D[r.u.id]||{vis:[],inc:[],fu:[],ekh:[],emps:[]},tech=TECH_RE.test(r.u.name),mine=(byU[r.u.id]||[]).length;
-    const m=build(r,p1,p2,d,openAll,K,O,tech,mine);MAIL[r.u.id]=m;
-    const ov=d.fu.filter(f=>f.due_date&&dd(TODAY,f.due_date)>0).length,mw=d.ekh.filter(x=>x.k===K).length;
-    return`<div class="card"><div class="sub"><b>${esc(r.u.name)}</b>${tech?'<span class="mu">(مسئول رفع عدم‌انطباق‌ها)</span>':''}<span class="mu">${esc(r.u.manager||'بدون مسئول')}</span><span style="flex:1"></span><button data-c="${esc(r.u.id)}" class="p">📋 کپی برای Outlook</button><button data-s="${esc(r.u.id)}">کپی موضوع</button><button data-p="${esc(r.u.id)}">🖨 چاپ</button></div>
-<div class="chips"><span>${fa(d.vis.length)} مراجعه بهداری</span><span class="${d.inc.length?'bad':''}">${fa(d.inc.length)} حادثه</span><span class="${mw?'wa':''}">${fa(mw)} اخطار این ماه</span><span class="${ov?'bad':''}">${fa(d.fu.length)} پیگیری باز</span>${tech?`<span class="${openAll.some(isOver)?'bad':'wa'}">${fa(openAll.length)} عدم‌انطباق باز</span>`:''}</div><div class="pv">${m.html}</div></div>`}).join(''):'<div class="card mu">واحدی برای نمایش نیست.</div>';
+  const hasTech=B.units.some(u=>TECH_RE.test(u.name));MAIL={};
+  const groups=groupsOf().filter(g=>!sel||g.key===sel);
+  let html=groups.length?groups.map(g=>{
+    const items=g.units.map(u=>({r:R.rows.find(x=>x.u.id===u.id),p1:P1.rows.find(x=>x.u.id===u.id),p2:P2.rows.find(x=>x.u.id===u.id),D:D[u.id]||{vis:[],inc:[],fu:[],ekh:[],emps:[]},tech:TECH_RE.test(u.name),mine:(byU[u.id]||[]).length})).filter(i=>i.r);
+    if(!items.length)return'';
+    const m=buildGroup(items,g.mgr,openAll,K,O);MAIL[g.key]=m;
+    const cs=items.map(i=>chipsOf(i.D,K)),anyTech=items.some(i=>i.tech),multi=items.length>1,ov=sum(cs,c=>c.fuOver);
+    return`<div class="card"><div class="sub"><b>${esc(multi?(g.mgr||'سرپرست'):items[0].r.u.name)}</b>${multi?`<span class="mu">${items.length} واحد: ${esc(items.map(i=>i.r.u.name).join('، '))}</span>`:`<span class="mu">${esc(items[0].r.u.manager||'بدون مسئول')}</span>`}${anyTech?'<span class="mu">(مسئول رفع عدم‌انطباق‌ها)</span>':''}<span style="flex:1"></span><button data-c="${esc(g.key)}" class="p">📋 کپی برای Outlook</button><button data-s="${esc(g.key)}">کپی موضوع</button><button data-p="${esc(g.key)}">🖨 چاپ</button></div>
+<div class="chips"><span>${fa(sum(cs,c=>c.vis))} مراجعه بهداری</span><span class="${sum(cs,c=>c.inc)?'bad':''}">${fa(sum(cs,c=>c.inc))} حادثه</span><span class="${sum(cs,c=>c.mw)?'wa':''}">${fa(sum(cs,c=>c.mw))} اخطار این ماه</span><span class="${ov?'bad':''}">${fa(sum(cs,c=>c.fu))} پیگیری باز</span>${anyTech?`<span class="${openAll.some(isOver)?'bad':'wa'}">${fa(openAll.length)} عدم‌انطباق باز</span>`:''}</div><div class="pv">${m.html}</div></div>`}).join(''):'<div class="card mu">واحدی برای نمایش نیست.</div>';
   if(!hasTech&&!sel){MAIL.__nc=buildNCOnly(openAll,K);html+=`<div class="card"><div class="sub"><b>🔧 گزارش عدم‌انطباق‌ها برای واحد فنی</b><span class="mu">واحدی با نام «فنی» پیدا نشد؛ این گزارش جداگانه است</span><span style="flex:1"></span><button data-c="__nc" class="p">📋 کپی برای Outlook</button><button data-s="__nc">کپی موضوع</button><button data-p="__nc">🖨 چاپ</button></div><div class="pv">${MAIL.__nc.html}</div></div>`}
   $('out').innerHTML=html;
 }
+
 async function copyHTML(html,text){
   try{await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);return true}catch(e){}
   try{const d=document.createElement('div');d.contentEditable='true';d.innerHTML=html;d.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(d);const rg=document.createRange();rg.selectNodeContents(d);const s=getSelection();s.removeAllRanges();s.addRange(rg);const ok=document.execCommand('copy');s.removeAllRanges();d.remove();return ok}catch(e){return false}
@@ -245,6 +297,7 @@ $('out').addEventListener('click',async ev=>{const t=ev.target,id=t.dataset.c||t
   else if(t.dataset.s){try{await navigator.clipboard.writeText(m.subject);t.textContent='✓ کپی شد'}catch(e){prompt('موضوع ایمیل:',m.subject)}setTimeout(()=>t.textContent='کپی موضوع',2000)}
   else{const w=window.open('','_blank');if(!w){alert('اجازه‌ی باز شدن پنجره را بدهید.');return}w.document.write(`<html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>${esc(m.subject)}</title></head><body style="margin:20px">${m.html}<script>setTimeout(()=>print(),300)<\/script></body></html>`);w.document.close()}});
 $('mSel').onchange=draw;$('uSel').onchange=draw;
+$('gSel').onchange=()=>{try{localStorage.setItem('ur_mode',$('gSel').value)}catch(e){}$('uSel').value='';fillU();draw()};
 document.querySelectorAll('[data-o]').forEach(c=>c.onchange=()=>{try{localStorage.setItem('ur_o_'+c.dataset.o,c.checked?'1':'0')}catch(e){}draw()});
 load();
 </script>
