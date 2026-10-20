@@ -64,7 +64,7 @@ async function load(){
   const [fin,inc,fu,emp,eq,ins,cards,units,mon,cul,rk]=await Promise.all([
     getAll('findings?select=id,status,created_at,due_date,location,question,severity,module,risk_id'),
     getAll('clinic_incidents?select=incident_date,body_part,corrective_action,action_status,action_due_date,location'),
-    getAll('clinic_followups?select=*'),getAll('employees?select=id,first_name,last_name'),
+    getAll('clinic_followups?select=*'),getAll('employees?select=*'),
     getAll('equipment?select=code,category,title,hall,location,active,requires_inspection,interval_months'),
     getAll('equipment_inspections?select=equipment_code,inspected_on,result,next_due,defects'),
     getAll('hse_cards?select=card_type,card_date,status,unit,description,reporter_name'),
@@ -91,8 +91,8 @@ async function load(){
   } else sec('inc','اقدام اصلاحی حوادث (باز)','clinic.html',null);
   // ۳) پیگیری طب کار
   if(fu){
-    const nm={};(emp||[]).forEach(e=>nm[e.id]=`${e.first_name||''} ${e.last_name||''}`.trim());
-    const L=fu.filter(x=>['pending','overdue'].includes(x.status)).map(x=>({x,over:x.due_date?dd(TODAY,x.due_date):(x.status==='overdue'?1:0)})).sort((a,b)=>b.over-a.over);
+    const nm={};(emp||[]).forEach(e=>nm[e.id]=`${e.first_name||''} ${e.last_name||''}`.trim());const gone=new Set((emp||[]).filter(e=>!HSEP.isActive(e)).map(e=>e.id));
+    const L=fu.filter(x=>['pending','overdue'].includes(x.status)&&!gone.has(x.employee_id)).map(x=>({x,over:x.due_date?dd(TODAY,x.due_date):(x.status==='overdue'?1:0)})).sort((a,b)=>b.over-a.over);
     sec('fu','پیگیری‌های طب کار (باز)','clinic.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc((nm[x.employee_id]||x.employee_name||'—')),esc(x.reason||x.kind||''),over>0?fa(over)+' روز معوق':(x.due_date?'تا '+fday(x.due_date):'باز'),over>0?'r':'y')})));
   } else sec('fu','پیگیری‌های طب کار (باز)','clinic.html',null);
   // ۴) تجهیزات

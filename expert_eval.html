@@ -82,7 +82,7 @@ async function start(){
     getAll('findings?select=status,created_at,closed_at,due_date,inspector')]);
   if(!ins||!fin)return loginUI('دریافت اطلاعات ناموفق بود (دسترسی یا اتصال)');
   const [cards,cul]=await Promise.all(['hse_cards?select=card_type,card_date,status','culture_assessments?select=assessed_at'].map(getAll));
-  const [tr,ta,emp,inc,fu]=await Promise.all(['trainings?select=id,training_date','training_attendees?select=training_id,employee_id','employees?select=id',
+  const [tr,ta,emp,inc,fu]=await Promise.all(['trainings?select=id,training_date','training_attendees?select=training_id,employee_id','employees?select=*',
     'clinic_incidents?select=corrective_action,action_status,action_due_date','clinic_followups?select=status,due_date'].map(getAll));
   D={cards,cul,ins:ins.filter(r=>!String(r.location||'').startsWith(IMPORT_LOC)),fin,ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc||[],fu:fu||[]};
   const es=document.getElementById('esel'),ms=document.getElementById('msel');
@@ -118,6 +118,8 @@ function ekIn(v,K){const t=String(v||'').replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷
 function workdays(R){const end=R.b<today?R.b:today,o=[];
   for(let t=new Date(R.a+'T12:00:00');;t.setDate(t.getDate()+1)){const s=t.toLocaleDateString('en-CA');if(s>end)break;
     if(CFG.WORKDAYS.includes(t.getDay())&&!CFG.HOLIDAYS.includes(s))o.push(s)}return o}
+/* پرسنل فعال در ماه K (قطع همکاری از ماه بعد حذف می‌شود) */
+function empOn(K){return (D.emp||[]).filter(e=>HSEP.isActive(e,monthRange(K).a))}
 function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
   D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
@@ -155,11 +157,11 @@ function calc(email,K){
   const over=F.filter(f=>d10(f.created_at)<=end&&(f.status==='open'||(f.closed_at&&d10(f.closed_at)>end))&&f.due_date&&f.due_date<end).length;
   const close=Math.max(0,(cl.length?ot/cl.length:1)-0.1*over);
   const E=D.ek.filter(x=>ekIn(x.record_date,K)&&(!D.ekAttr||eqm(x.registered_by,email))),rw=E.filter(x=>x.record_type==='تشویق').length;
-  const tgtEk=Math.max(CFG.MIN_EK,Math.ceil(D.emp.length*CFG.EK_PER_EMP));
+  const tgtEk=Math.max(CFG.MIN_EK,Math.ceil(empOn(K).length*CFG.EK_PER_EMP));
   /* شاخص‌های مشترک واحد HSE */
   const TR=D.tr.filter(t=>inR(d10(t.training_date))),cut=new Date(new Date(end).getTime()-365*864e5).toISOString().slice(0,10);
   const rec=new Set(D.tr.filter(t=>d10(t.training_date)>cut&&d10(t.training_date)<=end).map(t=>t.id));
-  const cov=D.emp.length?new Set(D.ta.filter(a=>rec.has(a.training_id)&&a.employee_id).map(a=>a.employee_id)).size/D.emp.length:0;
+  const eA=empOn(K),eS=new Set(eA.map(e=>e.id)),cov=eA.length?new Set(D.ta.filter(a=>rec.has(a.training_id)&&a.employee_id&&eS.has(a.employee_id)).map(a=>a.employee_id)).size/eA.length:0;
   const capaO=D.inc.filter(x=>x.corrective_action&&x.action_status!=='done'&&x.action_due_date&&x.action_due_date<end).length;
   const fuO=D.fu.filter(x=>x.status!=='done'&&x.status!=='cancelled'&&x.due_date&&x.due_date<end).length;
   const s={sched,finds:Math.min(1,cr/tgtNc),close,
@@ -187,7 +189,7 @@ function mgrCalc(K){
   m.team=ex.length?ex.reduce((a,c)=>a+c.s.sched,0)/ex.length:null;det.team=ex.length?`میانگین رعایت جدول: ${fa(Math.round(m.team*100))}٪ (${fa(ex.length)} کارشناس)`:'کارشناسی با برنامه‌ی این ماه نیست';
   if(D.cards){const pe=D.cards.filter(c=>['pending','in_review'].includes(c.status)&&c.card_date&&d10(c.card_date)<=end),old=pe.filter(c=>(new Date(end)-new Date(d10(c.card_date)))/864e5>7).length;
     m.cards=pe.length?1-old/pe.length:1;det.cards=`${fa(pe.length)} کارت بدون نتیجه، ${fa(old)} مورد بیش از ۷ روز`}else{m.cards=null;det.cards='دسترسی به جدول کارت‌ها نیست'}
-  const E=D.ek.filter(x=>ekIn(x.record_date,K)),rw=E.filter(x=>x.record_type==='تشویق').length,tg=Math.max(CFG.MIN_EK,Math.ceil(D.emp.length*CFG.EK_PER_EMP));
+  const E=D.ek.filter(x=>ekIn(x.record_date,K)),rw=E.filter(x=>x.record_type==='تشویق').length,tg=Math.max(CFG.MIN_EK,Math.ceil(empOn(K).length*CFG.EK_PER_EMP));
   m.disc=0.7*Math.min(1,E.length/tg)+0.3*Math.min(1,rw/CFG.MIN_RW);det.disc=`${fa(E.length)} مورد (هدف ${fa(tg)}) · ${fa(rw)} تشویق (هدف ${fa(CFG.MIN_RW)})`;
   if(D.cul){const last=D.cul.map(c=>d10(c.assessed_at)).filter(d=>d&&d<=end).sort().pop();
     if(last){const age=Math.round((new Date(end)-new Date(last))/864e5);m.culture=Math.max(0,Math.min(1,1-(age-180)/180));det.culture=`آخرین ارزیابی ${fa(Math.round(age/30))} ماه پیش`}else{m.culture=0;det.culture='ارزیابی ثبت نشده'}}else{m.culture=null;det.culture='دسترسی به جدول ارزیابی فرهنگ نیست'}

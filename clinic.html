@@ -518,6 +518,7 @@ const label = e => `${e.first_name || ''} ${e.last_name || ''} (کد ${e.emp_id}
 const fdate = d => { try { return new Date(d).toLocaleString('fa-IR', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return d || '-'; } };
 const fday = d => { try { return new Date(d + 'T00:00:00').toLocaleDateString('fa-IR', { dateStyle: 'medium' }); } catch (e) { return d || '-'; } };
 const empById = id => employees.find(e => e.id === id);
+const activeEmps = () => employees.filter(e => HSEP.isActive(e)); /* قطع همکاری: در انتخاب‌گرها و آمار جاری نمی‌آید */
 /* علت مراجعه در دیتابیس گاهی متن آزاد است (مثلاً «بریدن انگشت»)؛ دسته‌بندی از روی محتوا انجام می‌شود */
 const isCheckup = v => /^checkup/.test(v.visit_reason || '') || /معاینه\s*دوره/.test(v.visit_reason || '');
 const catOf = v => isCheckup(v) ? 'checkup' : 'illness';
@@ -608,7 +609,7 @@ function exportCSV(filename, rows) {
 async function loadAll() {
     try {
         employees = await api('employees?order=emp_id.asc&limit=2000');
-        $('empList').innerHTML = employees.map(e => `<option value="${esc(label(e))}"></option>`).join('');
+        $('empList').innerHTML = activeEmps().map(e => `<option value="${esc(label(e))}"></option>`).join('');
         $('empInput').placeholder = employees.length ? 'نام، کد یا واحد را تایپ کنید...' : 'هیچ پرسنلی در دیتابیس یافت نشد!';
     } catch (e) {
         $('empInput').placeholder = 'خطا در بارگذاری پرسنل';
@@ -1388,13 +1389,13 @@ function filteredExams() {
 }
 function renderExams() {
     const byEmp = {}; exams.forEach(x => (byEmp[x.employee_id] = byEmp[x.employee_id] || []).push(x));
-    const ids = Object.keys(byEmp), latest = id => byEmp[id].slice().sort(byDate).pop();
+    const ids = Object.keys(byEmp).filter(id => HSEP.isActive(empById(id))), latest = id => byEmp[id].slice().sort(byDate).pop();
     const withProb = ids.filter(id => (latest(id).problems || []).length).length;
     const overdue = ids.filter(id => monthsAgo(latest(id).exam_date) >= 13).length;
     const alarmList = ids.map(id => ({ id, al: trendAlarms(id).filter(a => a.lvl !== 'i') })).filter(x => x.al.length)
         .sort((a, b) => (b.al.some(z => z.lvl === 'd') ? 1 : 0) - (a.al.some(z => z.lvl === 'd') ? 1 : 0));
     const stat = (t, n, c) => `<div class="bg-slate-800 border border-slate-700 p-3 rounded-xl"><span class="text-[10px] text-slate-400 block mb-1">${t}</span><span class="font-bold text-sm ${c || ''}">${n}</span></div>`;
-    $('exStats').innerHTML = stat('معاینه‌شده', ids.length, 'text-emerald-400') + stat('بدون معاینه', Math.max(0, employees.length - ids.filter(id => empById(id)).length), 'text-rose-400') + stat('سررسید گذشته (۱۳+ ماه)', overdue, 'text-amber-400') + stat('دارای یافتهٔ مشکل‌دار', withProb, 'text-amber-400') + stat('هشدار روند', alarmList.length, 'text-rose-400');
+    $('exStats').innerHTML = stat('معاینه‌شده', ids.length, 'text-emerald-400') + stat('بدون معاینه', Math.max(0, activeEmps().length - ids.filter(id => empById(id)).length), 'text-rose-400') + stat('سررسید گذشته (۱۳+ ماه)', overdue, 'text-amber-400') + stat('دارای یافتهٔ مشکل‌دار', withProb, 'text-amber-400') + stat('هشدار روند', alarmList.length, 'text-rose-400');
     $('exAlarms').innerHTML = alarmList.length ? `<details open class="bg-slate-800 border border-slate-700 rounded-2xl p-4"><summary class="text-sm font-bold text-rose-400 cursor-pointer">🔔 هشدارهای روند (${alarmList.length} نفر)</summary><div class="space-y-2 mt-3">${alarmList.map(({ id, al }) => { const e = empById(id) || {}; return `<div class="vbanner ${al.some(a => a.lvl === 'd') ? 'vb-red' : 'vb-amber'}"><div class="flex justify-between items-center gap-2 flex-wrap"><b>${esc(e.first_name || 'نامشخص')} ${esc(e.last_name || '')} <span style="font-weight:400;opacity:.7">(کد ${esc(e.emp_id || '-')} - ${esc(e.department || 'نامشخص')})</span></b><button type="button" data-occ="${esc(id)}" class="text-blue-400">روند و پرونده</button></div><ul class="mt-1 space-y-1">${al.map(a => `<li>${a.lvl === 'd' ? '🔴' : '🟠'} ${esc(a.msg)}</li>`).join('')}</ul></div>`; }).join('')}</div></details>` : '';
     const list = filteredExams();
     $('exBody').innerHTML = list.length ? list.map(x => examCard(x)).join('') : '<p class="text-center py-8 text-slate-500 text-sm">معاینه‌ای یافت نشد. با «+ ثبت معاینه جدید» شروع کنید.</p>';

@@ -23,6 +23,16 @@
     return s.access_token;
   }
   let done; const ready = new Promise(r => done = r);
+  /* ===== قطع همکاری پرسنل: قاعده‌ی مشترک همه‌ی ماژول‌ها =====
+     فردی که termination_date دارد تا همان تاریخ فعال حساب می‌شود و بعد از آن از گزارش‌ها/ارزیابی‌ها/فهرست‌های جاری حذف می‌شود؛
+     اطلاعاتش در بانک پرسنل و سوابق گذشته می‌ماند.
+     HSEP.isActive(e)            → فعال بودن امروز (فهرست‌های جاری، انتخاب‌گرها، افراد پرخطر)
+     HSEP.isActive(e, 'YYYY-MM-DD') → فعال بودن در بازه‌ای که از آن تاریخ شروع می‌شود (گزارش ماهانه/دوره‌ای) */
+  window.HSEP = {
+    isTerminated: e => !!(e && e.termination_date),
+    isActive: (e, ref) => !e || !e.termination_date || String(e.termination_date).slice(0, 10) >= (ref || new Date().toISOString().slice(0, 10)),
+    active: (list, ref) => (list || []).filter(e => window.HSEP.isActive(e, ref))
+  };
   const A = window.HSEAuth = { EXPERTS, MANAGERS, ready, token, email: '', role: '', logout() { localStorage.removeItem(STORE); location.reload(); } };
 
   /* همه‌ی درخواست‌های Supabase بعد از ورود و با توکن کاربر می‌روند (صفحه‌ها تغییری نمی‌خواهند) */

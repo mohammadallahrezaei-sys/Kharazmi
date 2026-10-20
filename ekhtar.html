@@ -376,7 +376,7 @@ window.addEventListener('DOMContentLoaded', loadAll);
 async function loadAll() {
     try {
         employees = await api('employees?select=*&order=emp_id.asc&limit=2000');
-        $('ektEmpList').innerHTML = employees.map(e => `<option value="${esc(empLabel(e))}"></option>`).join('');
+        $('ektEmpList').innerHTML = employees.filter(e => HSEP.isActive(e)).map(e => `<option value="${esc(empLabel(e))}"></option>`).join('');
         $('ektEmpInput').placeholder = employees.length ? 'کد یا نام پرسنل را تایپ کنید...' : 'هیچ پرسنلی در دیتابیس یافت نشد!';
     } catch (e) {
         $('ektEmpInput').placeholder = 'خطا در بارگذاری پرسنل';
