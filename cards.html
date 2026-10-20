@@ -8,18 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="stylesheet" href="hse_ui.css">
-<style>
-.eqr button { display: block; width: 100%; text-align: right; min-height: 38px; margin-top: 4px; padding: 6px 10px; font-size: 13px; background: #0f172a; color: #f8fafc; border: 1px solid #334155; border-radius: 8px; cursor: pointer; }
-.eqr button:hover { background: #334155; }
-.eqn { margin-top: 8px; font-size: 12px; }
-.eqrow { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 6px 10px; margin-top: 6px; color: #f8fafc; }
-.eqrow.warn { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; background: #10b981; color: #0f172a; font-weight: bold; margin-bottom: 6px; }
-.chip b { cursor: pointer; background: rgba(0,0,0,0.2); border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; }
-.bg { display: inline-block; font-size: 10px; border-radius: 12px; padding: 1px 6px; font-weight: bold; }
-.bg.r { background: rgba(239,68,68,0.2); color: #ef4444; }
-.bg.g { background: rgba(34,197,94,0.2); color: #22c55e; }
-</style>
 </head>
 <body>
 <div class="w">
@@ -40,16 +28,7 @@
   <label class="l">گزارش‌دهنده (جستجو در بانک پرسنل)</label>
   <input type="text" id="cSearch" placeholder="نام یا شماره پرسنلی"><div id="cPick" style="max-height:120px;overflow-y:auto;background:#0f172a;border-radius:10px"></div>
   <div class="mu" id="cWho" style="margin-top:4px"></div>
-  <div class="g2">
-    <div><label class="l">واحد / سوله</label><select id="cUnit"></select></div>
-    <div>
-      <label class="l">کد/شماره دستگاه مرتبط</label>
-      <div id="cEqSelected"></div>
-      <input type="text" id="cEqSearch" placeholder="🔎 جستجو یا ورود کد دستگاه..." autocomplete="off">
-      <div class="eqr" id="cEqResults"></div>
-    </div>
-  </div>
-  <div id="cEqNoticeInfo"></div>
+  <div class="g2"><div><label class="l">واحد / سوله</label><select id="cUnit"></select></div><div><label class="l">کد/شماره دستگاه مرتبط</label><input type="text" id="cEq"></div></div>
   <label class="l">سایر مشخصات دقیق محل</label><input type="text" id="cLoc">
   <label class="l">شرح دقیق موضوع (الزامی)</label><textarea id="cDesc" rows="3"></textarea>
   <label class="l">پیشنهاد / اقدام اصلاحی (اختیاری)</label><textarea id="cSug" rows="2"></textarea>
@@ -61,17 +40,11 @@ const {esc,fa,jk,req,getAll,monthKeys,monthLabel,jdInit,jdGet,jdSet,jdHTML,unitM
 const $=id=>document.getElementById(id);
 const TY={hazard:'خطر ایمنی',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد'},ST={pending:'ثبت‌شده',in_review:'در حال بررسی',done:'اقدام انجام شد',rejected:'رد شده'};
 const STC={pending:'',in_review:'wa',done:'ok',rejected:'bad'};
-let RK=[],cards=[],units=[],emps=[],match=()=>null,who=null,selectedEq=null,eqCache={},eqTimer=null;
+let RK=[],cards=[],units=[],emps=[],match=()=>null,who=null;
 const fday=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
 const nm=e=>`${e.first_name||''} ${e.last_name||''}`.trim();
-const clean_ = s => String(s || '').replace(/[ي]/g, 'ی').replace(/[ك]/g, 'ک').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[‌]/g, ' ').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
-const toks_ = s => new Set(clean_(s).split(' ').filter(w => w.length > 2));
-function sim_(a, b) { const A_ = toks_(a), B_ = toks_(b); if (!A_.size || !B_.size) return 0; let i = 0; A_.forEach(w => { if (B_.has(w)) i++; }); return i / Math.min(A_.size, B_.size); }
-const stOpen = s => !['خاتمه یافته', 'انجام شده', 'باطل شده'].includes(s);
-
 $('fM').innerHTML=monthKeys(12).map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join('');
 $('cDateW').innerHTML=jdHTML('cDate');jdInit($('cDate'));
-
 async function load(){
   const [c,u,e,rk]=await Promise.all([getAll('hse_cards?select=*'),getAll('hse_units?select=id,name,aliases&order=name.asc'),getAll('employees?select=id,emp_id,first_name,last_name,department'),getAll('risks?select=id,unit,hazard,score&status=neq.archived')]);
   if(c==null||u==null){$('err').style.display='block';$('err').textContent='جدول‌ها پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';cards=[];units=u||[]}
@@ -80,7 +53,6 @@ async function load(){
   $('cUnit').innerHTML='<option value="">— انتخاب واحد —</option>'+units.slice().sort((a,b)=>a.name.localeCompare(b.name,'fa')).map(x=>`<option>${esc(x.name)}</option>`).join('');
   render();
 }
-
 function render(){
   const K=$('fM').value,t=$('fT').value,s=$('fS').value;
   const inM=cards.filter(c=>jk(c.card_date)===K),L=inM.filter(c=>(!t||c.card_type===t)&&(!s||c.status===s)).sort((a,b)=>String(b.card_date).localeCompare(String(a.card_date)));
@@ -96,135 +68,25 @@ function render(){
    <label class="l">اقدام انجام‌شده / دلیل رد</label><input type="text" data-f="hse_note" data-id="${c.id}" value="${esc(c.hse_note||'')}">${RK.length?`<label class="l">ریسک مرتبط</label><select data-f="risk_id" data-id="${c.id}"><option value="">— بدون ارتباط —</option>${RK.map(r=>`<option value="${r.id}" ${c.risk_id==r.id?'selected':''}>${esc(r.unit)} — ${esc(String(r.hazard).slice(0,50))} (${fa(r.score)})</option>`).join('')}</select>`:''}
    <button class="d" data-del="${c.id}" style="margin-top:8px">حذف کارت</button></div></details>`).join(''):'<div class="card mu">کارتی برای این فیلتر ثبت نشده.</div>';
 }
-
-async function eqLoad(code) {
-  if (eqCache[code]) return eqCache[code];
-  const q = encodeURIComponent(code);
-  const [nt, fd_] = await Promise.all([
-    getAll('notices?select=no,jdate,created_on,status,description&equipment_code=eq.' + q + '&status=neq.' + encodeURIComponent('باطل شده') + '&order=created_on.desc&limit=20').catch(() => []),
-    getAll('findings?select=qid,question,status,notice_code,created_at&equipment_code=eq.' + q + '&status=eq.open&limit=20').catch(() => [])
-  ]);
-  return eqCache[code] = { nt: nt || [], fd: fd_ || [] };
-}
-
-async function renderEqNotices() {
-  const box = $('cEqNoticeInfo');
-  if (!selectedEq) { box.innerHTML = ''; return; }
-  box.innerHTML = '<div class="eqn"><small>در حال بررسی سوابق دستگاه...</small></div>';
-  try {
-    const data = await eqLoad(selectedEq.code);
-    const descText = $('cDesc').value || '';
-    const rows = data.nt.map(x => ({ ...x, s: sim_(descText, x.description), op: stOpen(x.status) })).sort((a, b) => (b.op - a.op) || (b.s - a.s)).slice(0, 5);
-    const open = data.nt.filter(x => stOpen(x.status)).length;
-    
-    box.innerHTML = `<div class="eqn">
-      <small style="color:#94a3b8;"><b>سوابق این تجهیز:</b> ${fa(data.nt.length)} اعلان${open ? ` (<span style="color:#f59e0b;">${fa(open)} باز</span>)` : ''}${data.fd.length ? ` · ${fa(data.fd.length)} عدم‌انطباق باز` : ''}</small>
-      ${rows.map(x => `<div class="eqrow ${x.op && x.s >= .5 ? 'warn' : ''}">
-          <span dir="ltr">#${esc(x.no)}</span> ·${esc(x.jdate || '')} · <span class="bg ${x.op ? 'r' : 'g'}">${esc(x.status)}</span>
-          ${x.s >= .5 ? '<span class="bg r">⚠ مشابه</span>' : ''}<br>${esc((x.description || '').slice(0, 90))}
-        </div>`).join('')}
-      ${data.fd.map(x => `<div class="eqrow warn">عدم‌انطباق باز: ${esc((x.question \vert{}\vert{} '').slice(0, 90))}${x.notice_code ? ` (اعلان ${esc(x.notice_code)})` : ''}</div>`).join('')}
-    </div>`;
-  } catch (e) {
-    box.innerHTML = '';
-  }
-}
-
-$('cEqSearch').oninput = () => {
-  clearTimeout(eqTimer);
-  const q = $('cEqSearch').value.trim();
-  const box = $('cEqResults');
-  if (q.length < 2) { box.innerHTML = ''; return; }
-  eqTimer = setTimeout(async () => {
-    try {
-      const f = encodeURIComponent('*' + q + '*');
-      const res = await getAll('equipment_list?select=code,title,notice_count,open_count&or=(code.ilike.' + f + ',title.ilike.' + f + ')&order=notice_count.desc&limit=8');
-      box.innerHTML = (res || []).map(x => `<button type="button" data-eqcode="${esc(x.code)}" data-eqtitle="${esc(x.title || '')}"><b dir="ltr">${esc(x.code)}</b> — ${esc(x.title || '')} <small>(${fa(x.notice_count || 0)} اعلان)</small></button>`).join('') || '';
-    } catch (e) { box.innerHTML = ''; }
-  }, 300);
-};
-
-$('cEqResults').onclick = ev => {
-  const btn = ev.target.closest('[data-eqcode]');
-  if (!btn) return;
-  selectedEq = { code: btn.dataset.eqcode, title: btn.dataset.eqtitle };
-  $('cEqSelected').innerHTML = `<div class="chip">🔧 <span dir="ltr">${esc(selectedEq.code)}</span> — ${esc(selectedEq.title)} <b id="cEqClear">✕</b></div>`;
-  $('cEqSearch').value = '';$('cEqResults').innerHTML = '';
-  renderEqNotices();
-};
-
-document.addEventListener('click', ev => {
-  if (ev.target && ev.target.id === 'cEqClear') {
-    selectedEq = null;
-    $('cEqSelected').innerHTML = '';$('cEqNoticeInfo').innerHTML = '';
-  }
-});
-
-$('cDesc').oninput = () => {
-  if (selectedEq) renderEqNotices();
-};
-
-['fM','fT','fS'].forEach(i=>$(i).onchange=render);$('list').addEventListener('change',async ev=>{const t=ev.target,f=t.dataset.f;if(!f)return;
+['fM','fT','fS'].forEach(i=>$(i).onchange=render);
+$('list').addEventListener('change',async ev=>{const t=ev.target,f=t.dataset.f;if(!f)return;
   try{let v=t.value;if(f==='hse_score')v=v===''?null:+v;else if(f!=='status')v=v.trim()||null;
     const body={[f]:v};if(f==='status'&&!cards.find(c=>c.id===t.dataset.id).received_date)body.received_date=new Date().toISOString().slice(0,10);
     await req('hse_cards?id=eq.'+t.dataset.id,'PATCH',body,'return=minimal');const c=cards.find(c=>c.id===t.dataset.id);Object.assign(c,body);render()}
   catch(e){alert('خطا در ذخیره: '+e.message)}});
 $('list').addEventListener('click',async ev=>{const id=ev.target.dataset.del;if(id&&confirm('این کارت حذف شود؟')){try{await req('hse_cards?id=eq.'+id,'DELETE',null,'return=minimal');load()}catch(e){alert(e.message)}}});
-
-$('bNew').onclick=()=>{
-  who=null; selectedEq=null;
-  ['cSearch','cEqSearch','cLoc','cDesc','cSug'].forEach(i=>$(i).value='');
-  $('cWho').textContent='';$('cPick').innerHTML='';$('cUnit').value='';$('cEqSelected').innerHTML='';$('cEqResults').innerHTML='';$('cEqNoticeInfo').innerHTML='';
-  jdSet($('cDate'),new Date().toISOString().slice(0,10));$('modal').classList.add('on');
-};
-
-$('cCancel').onclick=()=>$('modal').classList.remove('on');$('cSearch').oninput=()=>{const q=$('cSearch').value.trim().toLowerCase();$('cPick').innerHTML=q?emps.filter(e=>(nm(e)+' '+e.emp_id).toLowerCase().includes(q)).slice(0,8).map(e=>`<div data-p="${e.id}" style="padding:5px 10px;cursor:pointer">${esc(nm(e))} <span class="mu">(${esc(e.emp_id)} · ${esc(e.department||'')})</span></div>`).join(''):''};
+$('bNew').onclick=()=>{who=null;['cSearch','cEq','cLoc','cDesc','cSug'].forEach(i=>$(i).value='');$('cWho').textContent='';$('cPick').innerHTML='';$('cUnit').value='';jdSet($('cDate'),new Date().toISOString().slice(0,10));$('modal').classList.add('on')};
+$('cCancel').onclick=()=>$('modal').classList.remove('on');
+$('cSearch').oninput=()=>{const q=$('cSearch').value.trim().toLowerCase();$('cPick').innerHTML=q?emps.filter(e=>(nm(e)+' '+e.emp_id).toLowerCase().includes(q)).slice(0,8).map(e=>`<div data-p="${e.id}" style="padding:5px 10px;cursor:pointer">${esc(nm(e))} <span class="mu">(${esc(e.emp_id)} · ${esc(e.department||'')})</span></div>`).join(''):''};
 $('cPick').onclick=ev=>{const d=ev.target.closest('[data-p]');if(!d)return;who=emps.find(e=>e.id===d.dataset.p);$('cWho').textContent='گزارش‌دهنده: '+nm(who)+' ('+who.emp_id+')';$('cSearch').value='';$('cPick').innerHTML='';const u=match(who.department);if(u)$('cUnit').value=u.name};
-
 $('cSave').onclick=async()=>{
   const desc=$('cDesc').value.trim(),date=jdGet($('cDate')),typed=$('cSearch').value.trim();
   if(!desc||!date){alert('شرح موضوع و تاریخ الزامی است.');return}
   if(!who&&!typed){alert('گزارش‌دهنده را از بانک پرسنل انتخاب کنید (یا نامش را بنویسید).');return}
-
-  if (selectedEq) {
-    try {
-      const data = await eqLoad(selectedEq.code);
-      const openNt = data.nt.filter(x => stOpen(x.status) && sim_(desc, x.description) >= .5);
-      const openFd = data.fd.filter(x => sim_(desc, x.question) >= .5);
-      if (openNt.length || openFd.length) {
-        const confirmMsg = `برای دستگاه (${selectedEq.code}) موارد باز و مشابه قبلی وجود دارد:\n` +
-          openNt.map(x => `• اعلان باز #${x.no}: ${x.description.slice(0, 50)}`).join('\n') + '\n' +
-          openFd.map(x => `• عدم‌انطباق باز: ${x.question.slice(0, 50)}`).join('\n') +
-          `\n\nآیا باز هم می‌خواهید کارت جدید ثبت کنید؟`;
-        if (!confirm(confirmMsg)) return;
-      }
-    } catch(e) {}
-  }
-
-  const eqCodeValue = selectedEq ? (selectedEq.code + ' ' + (selectedEq.title || '')).trim() : $('cEqSearch').value.trim();
   const K=jk(date),n=cards.filter(c=>jk(c.card_date)===K).length+1;
-  
-  try{
-    await req('hse_cards','POST',{
-      card_type:$('cType').value,
-      card_date:date,
-      reporter_id:who?who.id:null,
-      reporter_name:who?nm(who):typed,
-      unit:$('cUnit').value||null,
-      equipment_code:eqCodeValue||null,
-      location_detail:$('cLoc').value.trim()||null,
-      description:desc,
-      suggestion:$('cSug').value.trim()||null,
-      reg_no:K+'-'+String(n).padStart(3,'0'),
-      received_date:new Date().toISOString().slice(0,10)
-    },'return=minimal');
-    
-    $('modal').classList.remove('on');
-    load();
-  }catch(e){alert('خطا در ثبت: '+e.message)}
-};
-
-/* ---- چاپ کارت خالی ---- */
+  try{await req('hse_cards','POST',{card_type:$('cType').value,card_date:date,reporter_id:who?who.id:null,reporter_name:who?nm(who):typed,unit:$('cUnit').value||null,equipment_code:$('cEq').value.trim()||null,location_detail:$('cLoc').value.trim()||null,description:desc,suggestion:$('cSug').value.trim()||null,reg_no:K+'-'+String(n).padStart(3,'0'),received_date:new Date().toISOString().slice(0,10)},'return=minimal');
+    $('modal').classList.remove('on');load()}catch(e){alert('خطا در ثبت: '+e.message)}};
+/* ---- چاپ کارت خالی: ۴ کارت در هر برگ A4 ---- */
 $('bPrint').onclick=()=>{
   const one=`<div class="c"><div class="t">کارت گزارش خطر، شبه‌حادثه و پیشنهاد</div><div class="m">پس از تکمیل به واحد HSE تحویل دهید.</div>
    <div class="r"><span>شماره پرسنلی: ........</span><span>تاریخ: ........</span></div><div>نام و نام خانوادگی: ..............................</div><div>واحد / سوله: ............ کد دستگاه: ............</div><div>سایر مشخصات دقیق محل: ......................................</div>
