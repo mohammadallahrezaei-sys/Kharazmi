@@ -94,17 +94,21 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
         <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl text-center"><span class="text-xs text-emerald-400 block mb-1">تشویق‌ها</span><span id="statTashvig" class="text-xl font-extrabold text-emerald-400">0</span></div>
     </div>
 
-    <!-- ✅ بخش جدید: هشدار پرسنل پرتکرار -->
-    <div id="alarmBox" class="hidden bg-rose-950/40 border border-rose-800/60 rounded-2xl p-4 space-y-3 animate-pulse-slow">
-        <div class="flex items-center gap-2 text-rose-300">
-            <span class="text-xl">🚨</span>
-            <h3 class="text-sm font-bold">هشدار: پرسنل با بیشترین سوابق اخطار/تذکر</h3>
-            <span class="text-[10px] bg-rose-900 px-2 py-0.5 rounded-full text-rose-200 mr-auto">نیازمند بررسی فوری (۲ مورد یا بیشتر)</span>
+  <!-- ✅ بخش هشدار پرسنل پرتکرار (نسخه فشرده) -->
+<div id="alarmBox" class="hidden">
+    <details class="bg-rose-950/30 border border-rose-800/50 rounded-xl overflow-hidden">
+        <summary class="cursor-pointer px-4 py-2.5 flex items-center gap-2 hover:bg-rose-950/50 transition-colors select-none">
+            <span class="text-lg">🚨</span>
+            <span class="text-sm font-bold text-rose-200">
+                هشدار: <span id="alarmCount" class="text-white font-extrabold">0</span> نفر با ۲+ اخطار/تذکر نیازمند بررسی هستند
+            </span>
+            <span class="mr-auto text-[10px] bg-rose-900/80 text-rose-200 px-2 py-0.5 rounded-full">برای مشاهده کلیک کنید ▼</span>
+        </summary>
+        <div class="border-t border-rose-800/40 bg-slate-900/40 px-3 py-2 max-h-56 overflow-y-auto">
+            <div id="alarmList" class="flex flex-wrap gap-1.5"></div>
         </div>
-        <div id="alarmList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <!-- آیتم‌ها اینجا تزریق می‌شوند -->
-        </div>
-    </div>
+    </details>
+</div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-4 lg:col-span-1">
@@ -399,7 +403,7 @@ function updateStatistics() {
     $('statTashvig').innerText = countType('تشویق');
 }
 
-/* ✅ تابع جدید: رندر بخش هشدار پرسنل پرتکرار */
+/* ✅ تابع فشرده: رندر بخش هشدار پرسنل پرتکرار */
 function renderAlarmBox() {
     const warningCounts = {};
     records.forEach(r => {
@@ -419,12 +423,12 @@ function renderAlarmBox() {
                 department: emp.department || 'نامشخص'
             };
         })
-        .filter(item => item.count >= 2) // ✅ فقط افرادی که ۲ مورد یا بیشتر اخطار دارند
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10); // نمایش ۱۰ نفر اول
+        .filter(item => item.count >= 2)
+        .sort((a, b) => b.count - a.count);
 
     const alarmBox = $('alarmBox');
     const alarmList = $('alarmList');
+    const alarmCount = $('alarmCount');
 
     if (sorted.length === 0) {
         alarmBox.classList.add('hidden');
@@ -432,34 +436,17 @@ function renderAlarmBox() {
     }
 
     alarmBox.classList.remove('hidden');
+    alarmCount.textContent = sorted.length;
+    
     alarmList.innerHTML = sorted.map(item => `
-        <div onclick="focusOnEmployee('${item.empId}')" class="cursor-pointer bg-rose-950/60 border border-rose-800 rounded-xl p-3 flex items-center justify-between hover:bg-rose-900/60 transition-colors group">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-rose-900 flex items-center justify-center text-rose-300 font-bold text-sm border border-rose-700">
-                    ${item.count}
-                </div>
-                <div>
-                    <p class="text-sm font-bold text-rose-200 group-hover:text-white transition-colors">${esc(item.empName)}</p>
-                    <p class="text-[10px] text-rose-400 font-mono">${esc(item.empCode)} · ${esc(item.department)}</p>
-                </div>
-            </div>
-            <span class="text-[10px] bg-rose-800 text-rose-200 px-2 py-1 rounded-lg">مشاهده سوابق</span>
-        </div>
+        <button type="button" onclick="focusOnEmployee('${item.empId}')" 
+            class="inline-flex items-center gap-1.5 bg-rose-900/50 hover:bg-rose-800/70 border border-rose-700/60 rounded-full pl-3 pr-1 py-1 text-[11px] text-rose-100 hover:text-white transition-all group">
+            <span class="w-5 h-5 rounded-full bg-rose-700 border border-rose-500 flex items-center justify-center text-white font-bold text-[10px]">${item.count}</span>
+            <span class="font-bold truncate max-w-[120px]">${esc(item.empName)}</span>
+            <span class="text-[10px] text-rose-300 font-mono" dir="ltr">${esc(item.empCode)}</span>
+        </button>
     `).join('');
 }
-
-/* ✅ تابع کمکی: تمرکز روی کارمند انتخاب‌شده از بخش هشدار */
-function focusOnEmployee(empId) {
-    const emp = employees.find(e => e.id === empId);
-    if (!emp) return;
-    
-    $('ektEmpInput').value = empLabel(emp);
-    onEmpChange();
-    
-    // اسکرول نرم به بخش آمار فرد
-    $('personBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
 /* ---------- پنل کناری: نمودار کلی یا آمار فرد ---------- */
 function renderChart() {
     if (typeof Chart === 'undefined') return;
