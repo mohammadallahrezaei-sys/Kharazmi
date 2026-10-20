@@ -100,7 +100,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: #0f172a; color: #f8fafc
             <summary class="cursor-pointer px-4 py-2.5 flex items-center gap-2 hover:bg-rose-950/50 transition-colors select-none">
                 <span class="text-lg">🚨</span>
                 <span class="text-sm font-bold text-rose-200">
-                    هشدار: <span id="alarmCount" class="text-white font-extrabold">0</span> نفر با ۲+ اخطار/تذکر نیازمند بررسی هستند
+                    هشدار: <span id="alarmCount" class="text-white font-extrabold">0</span> نفر با ۴+ اخطار/تذکر نیازمند بررسی هستند
                 </span>
                 <span class="mr-auto text-[10px] bg-rose-900/80 text-rose-200 px-2 py-0.5 rounded-full">برای مشاهده کلیک کنید ▼</span>
             </summary>
@@ -423,7 +423,7 @@ function renderAlarmBox() {
                 department: emp.department || 'نامشخص'
             };
         })
-        .filter(item => item.count >= 2)
+        .filter(item => item.count >= 4)
         .sort((a, b) => b.count - a.count);
 
     const alarmBox = $('alarmBox');
