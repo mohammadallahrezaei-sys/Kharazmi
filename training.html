@@ -55,7 +55,7 @@ let emps=[],trs=[],att=[],incs=[],sel=new Map();
 const name=e=>`${e.first_name||''} ${e.last_name||''}`.trim();
 async function load(){
   try{
-    [emps,trs,att,incs]=await Promise.all([api('employees?select=id,emp_id,first_name,last_name,department&limit=2000'),api('trainings?order=training_date.desc&limit=3000'),api('training_attendees?select=*&limit=20000'),api('clinic_incidents?select=id,incident_date,location&order=incident_date.desc&limit=200').catch(()=>[])]);
+    [emps,trs,att,incs]=await Promise.all([api('employees?select=*&limit=2000'),api('trainings?order=training_date.desc&limit=3000'),api('training_attendees?select=*&limit=20000'),api('clinic_incidents?select=id,incident_date,location&order=incident_date.desc&limit=200').catch(()=>[])]);
     $('err').classList.add('hidden');
   }catch(e){$('err').textContent='خطا: '+e.message+' — اگر جدول‌های trainings و training_attendees ساخته نشده، فایل training_setup.sql را در Supabase اجرا کنید.';$('err').classList.remove('hidden');trs=[];att=[]}
   render();
@@ -65,8 +65,8 @@ function render(){
   const hrs=trs.reduce((s,t)=>s+(+t.duration_hours||0)*att.filter(a=>a.training_id===t.id).length,0);
   $('stats').innerHTML=[[trs.length,'جلسه'],[att.length,'حضور ثبت‌شده'],[fa(Math.round(hrs)),'نفر-ساعت'],[byT('post_incident'),'آموزش پس از حادثه']].map(([n,l])=>`<div class="bg-slate-800 border border-slate-700 rounded-xl p-2 text-center"><div class="text-lg font-bold text-emerald-400">${typeof n==='number'?fa(n):n}</div><div class="text-[11px] text-slate-400">${l}</div></div>`).join('');
   const cut=new Date(Date.now()-365*864e5).toISOString().slice(0,10),recent=new Set(trs.filter(t=>t.training_date>=cut).map(t=>t.id));
-  const cov=new Set(att.filter(a=>recent.has(a.training_id)&&a.employee_id).map(a=>a.employee_id)),miss=emps.filter(e=>!cov.has(e.id));
-  $('gapSum').textContent=`پوشش آموزش ۱۲ ماه اخیر: ${fa(emps.length?Math.round(cov.size/emps.length*100):0)}٪ — ${fa(miss.length)} نفر بدون آموزش`;
+  const cov=new Set(att.filter(a=>recent.has(a.training_id)&&a.employee_id).map(a=>a.employee_id)),act=emps.filter(e=>HSEP.isActive(e)),miss=act.filter(e=>!cov.has(e.id));
+  $('gapSum').textContent=`پوشش آموزش ۱۲ ماه اخیر: ${fa(act.length?Math.round(act.filter(e=>cov.has(e.id)).length/act.length*100):0)}٪ — ${fa(miss.length)} نفر بدون آموزش`;
   $('gapList').innerHTML=miss.slice(0,300).map(e=>`${esc(name(e))} (${esc(e.emp_id)}${e.department?' · '+esc(e.department):''})`).join('')||'همه پرسنل آموزش دیده‌اند.';
   const L=trs.filter(t=>ft==='all'||t.training_type===ft);
   $('list').innerHTML=L.length?L.map(t=>{const A=att.filter(a=>a.training_id===t.id),names=A.map(a=>{const e=emps.find(x=>x.id===a.employee_id);return e?name(e):a.person_name}).filter(Boolean);
@@ -78,7 +78,7 @@ $('flt').onchange=render;
 $('fType').innerHTML=Object.entries(T).map(([k,v])=>`<option value="${k}">آموزش ${v}</option>`).join('');
 $('fType').onchange=()=>{$('fContr').classList.toggle('hidden',$('fType').value!=='contractor');$('fInc').classList.toggle('hidden',$('fType').value!=='post_incident')};
 function chips(){$('fChips').innerHTML=[...sel.values()].map(e=>`<span class="bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 rounded-full px-2 py-0.5">${esc(name(e))} ✕</span>`).join('');[...$('fChips').children].forEach((c,i)=>c.onclick=()=>{sel.delete([...sel.keys()][i]);chips();pick()})}
-function pick(){const q=$('fSearch').value.trim().toLowerCase();$('fPick').innerHTML=emps.filter(e=>!q||(name(e)+' '+e.emp_id).toLowerCase().includes(q)).slice(0,40).map(e=>`<div data-p="${e.id}" class="px-3 py-1.5 cursor-pointer hover:bg-slate-700 ${sel.has(e.id)?'text-emerald-400':''}">${sel.has(e.id)?'✓ ':''}${esc(name(e))} <span class="text-slate-500">(${esc(e.emp_id)})</span></div>`).join('')}
+function pick(){const q=$('fSearch').value.trim().toLowerCase();$('fPick').innerHTML=emps.filter(e=>HSEP.isActive(e)&&(!q||(name(e)+' '+e.emp_id).toLowerCase().includes(q))).slice(0,40).map(e=>`<div data-p="${e.id}" class="px-3 py-1.5 cursor-pointer hover:bg-slate-700 ${sel.has(e.id)?'text-emerald-400':''}">${sel.has(e.id)?'✓ ':''}${esc(name(e))} <span class="text-slate-500">(${esc(e.emp_id)})</span></div>`).join('')}
 $('fSearch').oninput=pick;
 $('fPick').onclick=ev=>{const d=ev.target.closest('[data-p]');if(!d)return;const e=emps.find(x=>x.id===d.dataset.p);sel.has(e.id)?sel.delete(e.id):sel.set(e.id,e);chips();pick()};
 /* تقویم شمسی: سه لیست سال/ماه/روز؛ ذخیره به‌صورت تاریخ میلادی ISO */

@@ -157,7 +157,7 @@ $('fM').innerHTML=monthKeys(12).map(k=>`<option value="${k}">${monthLabel(k)}</o
 $('cDateW').innerHTML=jdHTML('cDate');jdInit($('cDate'));
 
 async function load(){
-  const [c,u,e,rk]=await Promise.all([getAll('hse_cards?select=*'),getAll('hse_units?select=id,name,aliases&order=name.asc'),getAll('employees?select=id,emp_id,first_name,last_name,department'),getAll('risks?select=id,unit,hazard,score&status=neq.archived')]);
+  const [c,u,e,rk]=await Promise.all([getAll('hse_cards?select=*'),getAll('hse_units?select=id,name,aliases&order=name.asc'),getAll('employees?select=*'),getAll('risks?select=id,unit,hazard,score&status=neq.archived')]);
   if(c==null||u==null){$('err').style.display='block';$('err').textContent='جدول‌ها پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';cards=[];units=u||[]}
   else{$('err').style.display='none';cards=c;units=u}
   emps=e||[];RK=rk||[];match=unitMatcher(units);
@@ -333,7 +333,7 @@ $('bNew').onclick=()=>{
   $('modal').classList.add('on')
 };
 $('cCancel').onclick=()=>$('modal').classList.remove('on');
-$('cSearch').oninput=()=>{const q=$('cSearch').value.trim().toLowerCase();$('cPick').innerHTML=q?emps.filter(e=>(nm(e)+' '+e.emp_id).toLowerCase().includes(q)).slice(0,8).map(e=>`<div data-p="${e.id}" style="padding:5px 10px;cursor:pointer">${esc(nm(e))} <span class="mu">(${esc(e.emp_id)} · ${esc(e.department||'')})</span></div>`).join(''):''};
+$('cSearch').oninput=()=>{const q=$('cSearch').value.trim().toLowerCase();$('cPick').innerHTML=q?emps.filter(e=>HSEP.isActive(e)&&(nm(e)+' '+e.emp_id).toLowerCase().includes(q)).slice(0,8).map(e=>`<div data-p="${e.id}" style="padding:5px 10px;cursor:pointer">${esc(nm(e))} <span class="mu">(${esc(e.emp_id)} · ${esc(e.department||'')})</span></div>`).join(''):''};
 $('cPick').onclick=ev=>{const d=ev.target.closest('[data-p]');if(!d)return;who=emps.find(e=>e.id===d.dataset.p);$('cWho').textContent='گزارش‌دهنده: '+nm(who)+' ('+who.emp_id+')';$('cSearch').value='';$('cPick').innerHTML='';const u=match(who.department);if(u)$('cUnit').value=u.name};
 
 $('cSave').onclick=async()=>{

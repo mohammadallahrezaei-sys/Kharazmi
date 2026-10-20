@@ -116,7 +116,7 @@ async function load(){
     getAll('ekhtars?select=record_type,record_date,reason,employee_id'),
     getAll('trainings?select=id,training_type,training_date,duration_hours'),
     getAll('training_attendees?select=training_id,employee_id'),
-    getAll('employees?select=id')]);
+    getAll('employees?select=id,termination_date').then(r=>r||getAll('employees?select=id'))]);
   D={ins,fin,inc,fu,ek,tr,ta,emp,ev:evB,cu:cuL};
   const sel=document.getElementById('msel');
   sel.innerHTML=buildOptions();
@@ -193,7 +193,7 @@ function metricsRange(fromDate,toDate){
     m.trN=TM.length;m.trAtt=AM.length;m.trHrs=Math.round(TM.reduce((s,t)=>s+(+t.duration_hours||0)*AM.filter(a=>a.training_id===t.id).length,0));
     m.trType={};TM.forEach(t=>m.trType[t.training_type]=(m.trType[t.training_type]||0)+1);
     const cut=new Date(new Date(end).getTime()-365*864e5).toISOString().slice(0,10),rec=new Set(tr.filter(t=>t.training_date>cut&&t.training_date<=end).map(t=>t.id));
-    m.empN=emp?emp.length:0;m.cov=new Set((ta||[]).filter(a=>rec.has(a.training_id)&&a.employee_id).map(a=>a.employee_id)).size;m.covP=m.empN?pct(m.cov,m.empN):null;
+    const actE=new Set((emp||[]).filter(e=>HSEP.isActive(e,fromDate)).map(e=>e.id));m.empN=emp?actE.size:0;m.cov=new Set((ta||[]).filter(a=>rec.has(a.training_id)&&a.employee_id&&actE.has(a.employee_id)).map(a=>a.employee_id)).size;m.covP=m.empN?pct(m.cov,m.empN):null;
     m.trPost=TM.filter(t=>t.training_type==='post_incident').length;
   }
   return m;

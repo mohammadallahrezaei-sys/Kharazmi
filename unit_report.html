@@ -45,7 +45,7 @@
 </div>
 <script src="eval_core.js"></script>
 <script>
-const {esc,fa,nd,jk,norm,getAll,monthKeys,monthLabel,loadEval,compute,ZONES,PARAM,unitMatcher}=HSE;
+const {esc,fa,nd,jk,norm,getAll,monthKeys,monthLabel,loadEval,compute,ZONES,PARAM,unitMatcher,monthRange,isActive}=HSE;
 const $=id=>document.getElementById(id);
 const TODAY=new Date().toISOString().slice(0,10),dd=(a,b)=>Math.round((new Date(a)-new Date(b))/864e5);
 const n1=v=>fa(Math.round(v*10)/10);
@@ -73,7 +73,7 @@ const monthsSince=d=>{const t=new Date(String(d).slice(0,10)+'T00:00:00').getTim
 
 /* ---------- بارگذاری ---------- */
 async function load(){
-  [B,FIN,EMP,VIS,INC,FU,EXM,EKH]=await Promise.all([loadEval(),g('findings?select=*'),g('employees?select=id,emp_id,first_name,last_name,department,job_title'),g('clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days,is_referred'),g('clinic_incidents?select=*'),g('clinic_followups?select=employee_id,kind,status,due_date'),g('clinic_exams?select=employee_id,exam_date,exam_type,fitness,restrictions'),g('ekhtars?select=*')]);
+  [B,FIN,EMP,VIS,INC,FU,EXM,EKH]=await Promise.all([loadEval(),g('findings?select=*'),g('employees?select=*'),g('clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days,is_referred'),g('clinic_incidents?select=*'),g('clinic_followups?select=employee_id,kind,status,due_date'),g('clinic_exams?select=employee_id,exam_date,exam_type,fitness,restrictions'),g('ekhtars?select=*')]);
   if(!B.units){$('err').style.display='block';$('err').textContent='جدول واحدها پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';$('out').innerHTML='';return}
   match=unitMatcher(B.units);
   (EMP||[]).forEach(e=>{e._u=match(e.department||'')||null;EMPBY[e.id]=e;if(e.emp_id!=null)EMPCODE[String(e.emp_id)]=e});
@@ -98,10 +98,11 @@ function ekhRec(o){
 }
 function gather(k){
   const D={};B.units.forEach(u=>D[u.id]={vis:[],inc:[],fu:[],ekh:[],emps:[]});
-  (EMP||[]).forEach(e=>{if(e._u&&D[e._u.id])D[e._u.id].emps.push(e)});
+  const ms=monthRange(k).a;
+  (EMP||[]).forEach(e=>{if(e._u&&D[e._u.id]&&isActive(e,ms))D[e._u.id].emps.push(e)});
   (VIS||[]).forEach(v=>{if(mkOf(v.visit_date)!==k)return;const u=unitOfEmp(v.employee_id);if(u&&D[u.id])D[u.id].vis.push(v)});
   (INC||[]).forEach(i=>{if(mkOf(i.incident_date)!==k)return;const u=unitOfEmp(i.employee_id);if(u&&D[u.id])D[u.id].inc.push(i)});
-  (FU||[]).forEach(f=>{if(!['pending','overdue'].includes(f.status))return;const u=unitOfEmp(f.employee_id);if(u&&D[u.id])D[u.id].fu.push(f)});
+  (FU||[]).forEach(f=>{if(!['pending','overdue'].includes(f.status)||!isActive(EMPBY[f.employee_id],ms))return;const u=unitOfEmp(f.employee_id);if(u&&D[u.id])D[u.id].fu.push(f)});
   const k12=new Set(monthKeys(12));
   (EKH||[]).forEach(o=>{const r=ekhRec(o);if(!r.u||!D[r.u.id])return;r.k=mkOf(r.date);r.in12=k12.has(r.k);D[r.u.id].ekh.push(r)});
   return D;

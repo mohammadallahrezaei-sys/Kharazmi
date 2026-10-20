@@ -20,6 +20,8 @@
     for (let i = 0; i < 400; i++) { const t = new Date(st + i * 864e5), j = toJal(t); if (j[0] + '-' + String(j[1]).padStart(2, '0') === K) { const s = t.toISOString().slice(0, 10); if (!a) a = s; b = s; n++; } }
     return { a, b, days: n };
   }
+  /* قطع همکاری: تا ماهی که قطع همکاری در آن رخ داده محاسبه می‌شود و از ماه بعد حذف (قاعده‌ی مشترک؛ HSEP در auth.js) */
+  const isActive = (e, refISO) => !e || !e.termination_date || String(e.termination_date).slice(0, 10) >= refISO;
   const nowK = () => jk(new Date().toISOString());
   function monthKeys(n) { const out = []; let [y, m] = nowK().split('-').map(Number); for (let i = 0; i < n; i++) { out.push(y + '-' + String(m).padStart(2, '0')); if (--m < 1) { m = 12; y--; } } return out; }
   const monthLabel = K => MN[+K.slice(5) - 1] + ' ' + fa(K.slice(0, 4));
@@ -68,7 +70,7 @@
   async function loadEval() {
     const [units, monthly, cards, inc, emp, tr, ta] = await Promise.all([
       getAll('hse_units?select=*'), getAll('hse_unit_monthly?select=*'), getAll('hse_cards?select=*'),
-      getAll('clinic_incidents?select=incident_date,severity,description,employee_id'), getAll('employees?select=id,department'),
+      getAll('clinic_incidents?select=incident_date,severity,description,employee_id'), getAll('employees?select=id,department,termination_date').then(r => r || getAll('employees?select=id,department')),
       getAll('trainings?select=id,training_type,training_date'), getAll('training_attendees?select=training_id,employee_id')]);
     return { units, monthly, cards, inc, emp, tr, ta };
   }
@@ -96,7 +98,7 @@
   function compute(K, B) {
     if (!B || !B.units) return null;
     const R = monthRange(K), inM = (a, f) => (a || []).filter(x => jk(x[f]) === K), match = unitMatcher(B.units);
-    const empU = {}; (B.emp || []).forEach(e => { const u = match(e.department); if (u) empU[e.id] = u.id; });
+    const empU = {}; (B.emp || []).forEach(e => { const u = match(e.department); if (u && isActive(e, R.a)) empU[e.id] = u.id; });
     const cards = inM(B.cards, 'card_date').filter(c => c.status !== 'rejected');
     const talkIds = new Set(inM(B.tr, 'training_date').filter(t => t.training_type === 'safety_talk').map(t => t.id));
     const talkUnits = {}; (B.ta || []).filter(a => talkIds.has(a.training_id) && empU[a.employee_id]).forEach(a => { (talkUnits[empU[a.employee_id]] = talkUnits[empU[a.employee_id]] || new Set()).add(a.training_id); });
@@ -163,5 +165,5 @@
   async function loadCulture() { const r = await getAll('culture_assessments?select=id,assessed_at,assessor,answers,avg,notes'); return r ? r.sort((a, b) => String(b.assessed_at).localeCompare(String(a.assessed_at))) : null; }
   function cultureAt(list, K) { if (!list) return null; const end = monthRange(K).b; const ok = list.filter(x => x.assessed_at <= end); return { latest: ok[0] || null, prev: ok[1] || null }; }
 
-  window.HSE = { URL_, H, JH, MN, fa, esc, nd, jk, monthRange, monthKeys, monthLabel, nowK, jalToISO, toJal, jdInit, jdSet, jdGet, jdHTML, getAll, req, norm, unitMatcher, loadEval, compute, scoreUnit, PARAM, ZONES, LV, levelOf, loadCulture, cultureAt };
+  window.HSE = { URL_, H, JH, MN, fa, esc, nd, jk, monthRange, monthKeys, monthLabel, nowK, jalToISO, toJal, jdInit, jdSet, jdGet, jdHTML, getAll, req, norm, unitMatcher, isActive, loadEval, compute, scoreUnit, PARAM, ZONES, LV, levelOf, loadCulture, cultureAt };
 })();
