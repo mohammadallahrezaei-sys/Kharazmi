@@ -643,11 +643,22 @@ async function medHome() {
       ${(() => { const req = MED.moves.filter(m => m.item_id == o.i.id && m.kind == 'adjust' && (m.note || '').includes('درخواست خرید ثبت شد')).slice(-1)[0]; return req ? `<small>آخرین درخواست خرید: ${esc((req.note.match(/کد درخواست: ([^؛]+)/) || [,'—'])[1])} · تاریخ: ${esc((req.note.match(/تاریخ درخواست: (.+)$/) || [,'—'])[1])}</small>` : ''; })()}
       <div style="margin-top:4px;">${medBadges(o)}</div></div>`).join('')}`);
 }
+function medLocalDay(v) { const d = new Date(v); if (!v || isNaN(d)) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function medTodaySummary() {
+  const today = medLocalDay(new Date());
+  const todays = MED.moves.filter(m => medLocalDay(m.created_at) === today && ['init','receive','use','discard','adjust'].includes(m.kind));
+  const ids = [...new Set(todays.map(m => String(m.item_id)))];
+  const names = ids.map(id => MED.items.find(i => String(i.id) === id)?.name).filter(Boolean);
+  return { count: ids.length, names, today };
+}
 function medForm() {
   const by = medCalc(), init = !MED.init; MED.dr = MED.dr || {};
+  const daily = medTodaySummary();
+  const dateFa = new Date().toLocaleDateString('fa-IR-u-ca-persian', { year:'numeric', month:'2-digit', day:'2-digit' });
   view(`
     <div style="margin-bottom:12px;"><button class="l" data-a="med" style="margin:0;">‹ بازگشت</button></div>
     <h2>${init ? '📦 ثبت موجودی اولیه' : '📝 کنترل ماهانه داروها'}</h2>
+    ${daily.count ? `<div class="q" style="border-color:var(--warn,#f59e0b);background:rgba(245,158,11,.10);"><b>⚠️ توجه: در تاریخ ${esc(dateFa)}، قبلاً ${fa(daily.count)} قلم دارو ثبت شده است.</b><small>اقلام ثبت‌شده امروز: ${daily.names.map(esc).join('، ')}. قبل از ثبت مجدد، این فهرست را بررسی کنید؛ ثبت‌های قبلی در سوابق موجودی ذخیره‌اند.</small></div>` : `<div class="q"><b>ثبت امروز هنوز انجام نشده است.</b><small>تاریخ: ${esc(dateFa)}؛ می‌توانید اقلام موردنیاز را ثبت کنید.</small></div>`}
     <small>${init ? 'تعداد موجودی فعلی را ثبت کنید؛ برای موجودی صفر، عدد ۰ وارد کنید.' : 'برای هر قلم می‌توانید شمارش فعلی، درخواست خرید یا تحویل خرید را جداگانه ثبت کنید. ثبت درخواست خرید موجودی را تغییر نمی‌دهد؛ ثبت تحویل، موجودی را افزایش می‌دهد.'} تاریخ انقضا: مثل ۱۴۰۶/۰۳ یا ۱۴۰۶/۰۳/۱۵ یا ۰ (بدون تاریخ).</small>
     ${MED.items.map(i => { const o = by[i.id], d = MED.dr[i.id] || {}; return `<div class="q"><div style="display:flex;justify-content:space-between;gap:8px;"><b>${esc(i.name)}</b>${init ? '' : `<small>موجودی سیستم: <b dir="ltr">${qf(o.stock)}</b> · نقطه سفارش ${qf(i.reorder)}</small>`}</div>
       <div class="fgrid2" style="margin-top:6px;">
