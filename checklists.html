@@ -597,7 +597,7 @@ const qf = n => fa(Math.round(n * 100) / 100);
 async function medLoad() {
   MED.items = await api('med_items?select=*&active=eq.true&order=sort.asc,id.asc&limit=500');
   const out = []; for (let off = 0; ; off += 1000) { const r = await api('med_moves?select=*&order=id.asc&limit=1000&offset=' + off); out.push(...r); if (r.length < 1000) break; }
-  MED.moves = out; MED.init = out.length > 0;
+  MED.moves = out; MED.init = out.some(m => ['init','receive','use','discard'].includes(m.kind));
 }
 function medConsume(o, q) {
   for (const b of o.batches.filter(b => b.q > 0).sort((a, b) => (a.exp || '9999') < (b.exp || '9999') ? -1 : 1)) { if (q <= 0) break; const t = Math.min(b.q, q); b.q -= t; q -= t; }
@@ -639,19 +639,25 @@ async function medHome() {
     ${bad.length ? `<div class="q" style="border-color:var(--bad,#ef4444);"><b>⚠ ${fa(bad.length)} هشدار فعال</b><small>${bad.map(o => esc(o.i.name) + (o.low ? ' (موجودی ' + qf(o.stock) + ' از ' + qf(o.i.reorder) + ')' : '') + (o.expQ > 0 ? ' (منقضی)' : '')).join('، ')}</small></div>` : MED.init ? '<div class="q"><b class="ok">✓ هیچ هشدار کمبود یا انقضایی نیست</b></div>' : ''}
     ${soon.length ? `<div class="q"><b>⏳ نزدیک انقضا (${fa(SOON)} روز)</b><small>${soon.map(o => esc(o.i.name) + ' — ' + fexp(o.near)).join('، ')}</small></div>` : ''}
     ${L.map(o => `<div class="q"><div style="display:flex;justify-content:space-between;gap:8px;"><b>${esc(o.i.name)}</b><b dir="ltr">${qf(o.stock)}</b></div>
-      <small>نقطه سفارش: ${qf(o.i.reorder)} · نزدیک‌ترین انقضا: ${fexp(o.near)}</small><div style="margin-top:4px;">${medBadges(o)}</div></div>`).join('')}`);
+      <small>نقطه سفارش: ${qf(o.i.reorder)} · نزدیک‌ترین انقضا: ${fexp(o.near)}</small>
+      ${(() => { const req = MED.moves.filter(m => m.item_id == o.i.id && m.kind == 'adjust' && (m.note || '').includes('درخواست خرید ثبت شد')).slice(-1)[0]; return req ? `<small>آخرین درخواست خرید: ${esc((req.note.match(/کد درخواست: ([^؛]+)/) || [,'—'])[1])} · تاریخ: ${esc((req.note.match(/تاریخ درخواست: (.+)$/) || [,'—'])[1])}</small>` : ''; })()}
+      <div style="margin-top:4px;">${medBadges(o)}</div></div>`).join('')}`);
 }
 function medForm() {
   const by = medCalc(), init = !MED.init; MED.dr = MED.dr || {};
   view(`
     <div style="margin-bottom:12px;"><button class="l" data-a="med" style="margin:0;">‹ بازگشت</button></div>
     <h2>${init ? '📦 ثبت موجودی اولیه' : '📝 کنترل ماهانه داروها'}</h2>
-    <small>${init ? 'تعداد فعلی و تاریخ انقضای نزدیک‌ترین قلم را وارد کنید (خالی = ثبت نشود).' : 'فقط اقلامی را پر کنید که تغییر کرده‌اند یا شمارش شده‌اند. مصرف = موجودی قبلی + دریافتی − دورریز − شمارش فعلی (خودکار).'} تاریخ انقضا: مثل ۱۴۰۶/۰۳ یا ۱۴۰۶/۰۳/۱۵.</small>
+    <small>${init ? 'تعداد موجودی فعلی را ثبت کنید؛ برای موجودی صفر، عدد ۰ وارد کنید.' : 'برای هر قلم می‌توانید شمارش فعلی، درخواست خرید یا تحویل خرید را جداگانه ثبت کنید. ثبت درخواست خرید موجودی را تغییر نمی‌دهد؛ ثبت تحویل، موجودی را افزایش می‌دهد.'} تاریخ انقضا: مثل ۱۴۰۶/۰۳ یا ۱۴۰۶/۰۳/۱۵ یا ۰ (بدون تاریخ).</small>
     ${MED.items.map(i => { const o = by[i.id], d = MED.dr[i.id] || {}; return `<div class="q"><div style="display:flex;justify-content:space-between;gap:8px;"><b>${esc(i.name)}</b>${init ? '' : `<small>موجودی سیستم: <b dir="ltr">${qf(o.stock)}</b> · نقطه سفارش ${qf(i.reorder)}</small>`}</div>
       <div class="fgrid2" style="margin-top:6px;">
-        ${init ? `<input data-mf="cn" data-mi="${i.id}" inputmode="decimal" placeholder="تعداد فعلی" value="${esc(d.cn || '')}"><input data-mf="rx" data-mi="${i.id}" placeholder="انقضا (۱۴۰۶/۰۳)" value="${esc(d.rx || '')}">` : `
-        <input data-mf="rc" data-mi="${i.id}" inputmode="decimal" placeholder="دریافت جدید (تعداد)" value="${esc(d.rc || '')}"><input data-mf="rx" data-mi="${i.id}" placeholder="انقضای دریافتی (۱۴۰۶/۰۳)" value="${esc(d.rx || '')}">
-        <input data-mf="ds" data-mi="${i.id}" inputmode="decimal" placeholder="دورریز (منقضی/خراب)" value="${esc(d.ds || '')}"><input data-mf="cn" data-mi="${i.id}" inputmode="decimal" placeholder="شمارش فعلی (باقیمانده)" value="${esc(d.cn || '')}">
+        ${init ? `<input data-mf="cn" data-mi="${i.id}" inputmode="decimal" placeholder="تعداد موجودی فعلی (۰ هم مجاز)" value="${esc(d.cn ?? '')}"><input data-mf="rx" data-mi="${i.id}" placeholder="تاریخ انقضا (۰ = بدون تاریخ)" value="${esc(d.rx ?? '')}">` : `
+        <input data-mf="cn" data-mi="${i.id}" inputmode="decimal" placeholder="شمارش موجودی فعلی" value="${esc(d.cn ?? '')}">
+        <input data-mf="rq" data-mi="${i.id}" placeholder="کد درخواست خرید" value="${esc(d.rq || '')}">
+        <input data-mf="rd" data-mi="${i.id}" type="date" title="تاریخ درخواست خرید" value="${esc(d.rd || '')}">
+        <input data-mf="rc" data-mi="${i.id}" inputmode="decimal" placeholder="تعداد تحویل‌شده پس از خرید" value="${esc(d.rc ?? '')}">
+        <input data-mf="rx" data-mi="${i.id}" placeholder="انقضای محموله تحویلی (۰ = بدون تاریخ)" value="${esc(d.rx ?? '')}">
+        <input data-mf="ds" data-mi="${i.id}" inputmode="decimal" placeholder="دورریز (منقضی/خراب)" value="${esc(d.ds ?? '')}">
         <select data-mf="ap" data-mi="${i.id}" style="grid-column:1/-1;"><option ${!d.ap || d.ap == 'سالم' ? 'selected' : ''}>سالم</option><option ${d.ap == 'آسیب‌دیده/نشتی' ? 'selected' : ''}>آسیب‌دیده/نشتی</option><option ${d.ap == 'بسته‌بندی نامناسب' ? 'selected' : ''}>بسته‌بندی نامناسب</option></select>`}
       </div>${init ? '' : `<small id="mu-${i.id}"></small>`}</div>`; }).join('')}
     <button class="p" data-a="medsave" style="margin-top:16px;">ثبت نهایی</button>`);
@@ -674,13 +680,16 @@ async function medSave() {
   MED.items.forEach(i => {
     const d = MED.dr[i.id] || {}, o = by[i.id], rc = mnum(d.rc), ds = mnum(d.ds), cn = mnum(d.cn), rxs = String(d.rx || '').trim(), ap = d.ap && d.ap != 'سالم' ? d.ap : null;
     if ([rc, ds, cn].some(v => Number.isNaN(v))) return err = err || `«${i.name}»: عدد نامعتبر است.`;
-    const rx = rxs ? medDate(rxs) : null;
-    if (rxs && !rx) return err = err || `«${i.name}»: تاریخ انقضا نامعتبر است (مثل ۱۴۰۶/۰۳).`;
+    const rx = (rxs && rxs !== '0') ? medDate(rxs) : null;
+    if (rxs && rxs !== '0' && !rx) return err = err || `«${i.name}»: تاریخ انقضا نامعتبر است (مثل ۱۴۰۶/۰۳ یا ۰).`;
     const base = { item_id: i.id, by_email: mail };
-    if (init) { if (cn == null) return; if (cn > 0 && !rx) return err = err || `«${i.name}»: تاریخ انقضا را وارد کنید.`; moves.push({ ...base, kind: 'init', qty: cn, expiry: rx }); touched.add(i.id); return; }
-    if (rc == null && ds == null && cn == null && !ap) return;
+    if (init) { if (cn == null) return; if (cn > 0 && !rx && rxs !== '0') return err = err || `«${i.name}»: تاریخ انقضا را وارد کنید یا ۰ بزنید.`; moves.push({ ...base, kind: 'init', qty: cn, expiry: rx }); touched.add(i.id); return; }
+    const rq = String(d.rq || '').trim(), rd = String(d.rd || '').trim();
+    if ((rq && !rd) || (!rq && rd)) return err = err || `«${i.name}»: برای ثبت درخواست خرید، کد و تاریخ درخواست هر دو لازم‌اند.`;
+    if (rc == null && ds == null && cn == null && !ap && !rq && !rd) return;
     touched.add(i.id); (ap ? appBad : appOk).add(i.id);
-    if (rc > 0) { if (!rx) return err = err || `«${i.name}»: برای دریافت جدید، تاریخ انقضا لازم است.`; moves.push({ ...base, kind: 'receive', qty: rc, expiry: rx }); }
+    if (rq && rd) moves.push({ ...base, kind: 'adjust', qty: 0, note: `درخواست خرید ثبت شد؛ کد درخواست: ${rq}؛ تاریخ درخواست: ${rd}` });
+    if (rc > 0) { if (!rx && rxs !== '0') return err = err || `«${i.name}»: برای محموله تحویلی تاریخ انقضا را وارد کنید یا ۰ بزنید.`; moves.push({ ...base, kind: 'receive', qty: rc, expiry: rx, note: (d.rq || d.rd) ? `تحویل درخواست خرید ${d.rq || 'بدون کد'}؛ تاریخ درخواست: ${d.rd || 'ثبت نشده'}` : null }); }
     if (ds > 0) moves.push({ ...base, kind: 'discard', qty: ds, note: 'دورریز (منقضی/خراب)' });
     if (cn != null) { const use = o.stock + (rc || 0) - (ds || 0) - cn; if (use > 0) moves.push({ ...base, kind: 'use', qty: use, appearance: ap }); else if (use < 0) moves.push({ ...base, kind: 'adjust', qty: -use, note: 'مازاد شمارش نسبت به موجودی سیستم', appearance: ap }); }
     if (ap && !moves.some(m => m.item_id == i.id && m.appearance)) moves.push({ ...base, kind: 'adjust', qty: 0, appearance: ap, note: 'ثبت وضعیت ظاهری' });
