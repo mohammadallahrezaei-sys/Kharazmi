@@ -204,7 +204,7 @@ function secNCTech(openF){
   const rows=Object.entries(byL).sort((a,b)=>b[1].o-a[1].o||b[1].n-a[1].n).slice(0,12).map(([k,c])=>[esc(k),fa(c.n),c.o?red(fa(c.o)):'—']);
   const lst=openF.slice().sort((a,b)=>(isOver(b)?1:0)-(isOver(a)?1:0)||(a.due_date||'9').localeCompare(b.due_date||'9')).slice(0,15).map(f=>[esc(f.question||'—'),esc(f.location||'—'),f.due_date?fday(f.due_date):'—',isOver(f)?red('معوق'):'در مهلت']);
   const cd=['closed_at','resolved_at','done_at','closed_date'].find(c=>(FIN||[]).some(f=>f[c]));
-  const closedM=cd?(FIN||[]).filter(f=>f.status!=='open'&&mkOf(f[cd])===K).length:null;
+  const closedM=cd?(FIN||[]).filter(f=>f.status!=='open'&&f.status!=='cancelled'&&f.module!=='MED'&&mkOf(f[cd])===K).length:null;
   if(!openF.length)return{t,h:P_('در حال حاضر عدم‌انطباق بازی وجود ندارد.'+(closedM!==null?` در ماه مورد گزارش ${fa(closedM)} مورد رفع شده است.`:''))};
   return{t,h:tbl(['عدم‌انطباق باز','معوق','میانگین عمر (روز)','درصد معوق'],[[fa(openF.length),over.length?red(fa(over.length)):'۰',fa(avg),fa(Math.round(over.length/openF.length*100))+'٪']])+(closedM!==null?P_(`رفع‌شده در ماه مورد گزارش: <b>${fa(closedM)}</b> مورد`):'')
     +P_('<b>پراکندگی بر اساس محل:</b>')+tbl(['محل / واحد','باز','معوق'],rows)+P_('<b>موارد نیازمند اقدام (ابتدا موارد معوق):</b>')+tbl(['عدم‌انطباق','محل','مهلت','وضعیت'],lst)+more(openF.length,15)};
@@ -320,7 +320,7 @@ function fillU(){
 /* ---------- نمایش ---------- */
 function draw(){
   K=$('mSel').value;const O=opts(),R=compute(K,B),P1=compute(prevK(K),B),P2=compute(prevK(prevK(K)),B),sel=$('uSel').value,D=gather(K);
-  const openAll=(FIN||[]).filter(f=>f.status==='open'),byU={};
+  const openAll=(FIN||[]).filter(f=>f.status==='open'&&f.module!=='MED'),byU={};
   openAll.forEach(f=>{const u=match(f.location||'');if(u)(byU[u.id]=byU[u.id]||[]).push(f)});
   const hasTech=B.units.some(u=>TECH_RE.test(u.name));MAIL={};
   const groups=groupsOf().filter(g=>!sel||g.key===sel);

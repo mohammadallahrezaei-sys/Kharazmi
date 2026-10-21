@@ -79,6 +79,10 @@ body div#app { display: flex; flex-direction: column; }
 .tr i { width: 100%; background: var(--ac); border-radius: 4px 4px 0 0; min-height: 4px; }
 .tr span { font-size: 10px; color: var(--mu); margin-top: 4px; }
 
+.q.cx { opacity:.8; border-style:dashed; }
+.cxbox { margin-top:10px; border:1px dashed var(--ln); border-radius:10px; padding:6px 10px; }
+.cxbox summary { cursor:pointer; font-size:13px; color:var(--mu); }
+.cxbox textarea { width:100%; margin-top:6px; }
 .hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
 .hdr-r { display:flex; align-items:center; gap:12px; min-width:0; }
 .logo { width:44px; height:auto; object-fit:contain; border-radius:8px; flex-shrink:0; }
@@ -154,6 +158,9 @@ const LOCS = [
 const SHIFTS = ['صبح','عصر','شب'];
 const SEVN = {1:'کم',2:'متوسط',3:'زیاد',4:'بحرانی'}, SEVC = {1:'#94a3b8',2:'#f59e0b',3:'#f97316',4:'#ef4444'};
 const SLA = {1:30,2:14,3:3,4:1};
+/* کارشناس ثبت‌کننده: نام نمایشی از auth.js */
+const INSPN = (() => { const o = { 'm.rezaei@gmail.com': 'اله‌رضایی' }; (window.HSEAuth && HSEAuth.MANAGERS || []).forEach(e => { o[e] = o[e] || e.split('@')[0]; }); Object.assign(o, (window.HSEAuth && HSEAuth.EXPERTS) || {}); return o; })();
+const inspL = e => INSPN[e] || e || 'نامشخص';
 const RCS = ['آموزش/آگاهی نیروی انسانی','خرابی/فرسودگی تجهیزات','نبود یا ضعف رویه و دستورالعمل','نظارت و پیگیری ناکافی','بودجه/تأمین ناکافی','شرایط محیطی/طراحی'];
 let SV = {}, RS = {}, LC = {}, EX = {}; /* EX: محل‌های اضافه برای یک سؤال در گشت روزانه */
 const baseId = k => String(k).split('#')[0];
@@ -287,7 +294,6 @@ async function home() {
   view('<p style="text-align:center; padding:40px;">در حال بارگذاری چک‌لیست‌ها...</p>');
   let L = {};
   try { (await lastVisits()).forEach(r => L[r.module] = L[r.module] || r.created_at); } catch (e) { }
-  let MA = 0; try { MA = (await api('findings?select=id&module=eq.MED&status=eq.open&limit=1000')).length; } catch (e) { }
   view(`
     <div class="hdr">
       <div class="hdr-r">
@@ -303,12 +309,13 @@ async function home() {
     <div class="top-grid">
       <button class="p" data-a="history" style="background:var(--ok); border-color:var(--ok); color:#fff;">📋 تاریخچه بازدیدها</button>
       <button class="p" data-a="finds">🛠️ پیگیری عدم‌انطباق‌ها</button>
+      <button class="p" data-a="quick" style="grid-column:1/-1; background:var(--warn); border-color:var(--warn); color:#0f172a;">⚡ ثبت موردی عدم‌انطباق (بدون چک‌لیست)</button>
     </div>
 
     ${M.map(m => `
       <button class="m" data-a="open" data-k="${m[0]}">
         <b>${m[1]}</b>
-        <small>${m[2]}${m[3] ? ' · کد: ' + m[3] : ''} · آخرین بازدید: ${L[m[0]] ? fd(L[m[0]]) : 'ثبت نشده'}${m[0] == 'MED' && MA ? ' · ⚠ ' + fa(MA) + ' هشدار' : ''}</small>
+        <small>${m[2]}${m[3] ? ' · کد: ' + m[3] : ''} · آخرین بازدید: ${L[m[0]] ? fd(L[m[0]]) : 'ثبت نشده'}</small>
       </button>
     `).join('')}
   `);
@@ -552,6 +559,48 @@ async function send() {
   }
 }
 
+/* ===== ثبت موردی عدم‌انطباق: وقتی در بازرسی یک مورد دیده‌اید و نمی‌خواهید چک‌لیست کامل پر کنید ===== */
+const QD = { loc: '', desc: '', sev: 2, cat: '', resp: '', shift: '' };
+function quickForm() {
+  QD.shift = QD.shift || SHIFTS[0];
+  view(`
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
+      <a href="index.html" class="back">← داشبورد اصلی</a>
+    </div>
+    <h2>⚡ ثبت موردی عدم‌انطباق</h2>
+    <small>برای وقتی که در بازرسی فقط یک مورد دیده‌اید. بعد از ثبت، مثل بقیه‌ی موارد در «پیگیری عدم‌انطباق‌ها» (اعلان، اصلاح، لغو) پیگیری می‌شود.</small>
+    <datalist id="locs">${LOCS.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
+    <div class="q" style="margin-top:10px;">
+      <input data-qf="loc" list="locs" placeholder="محل / سالن / بخش (الزامی)" value="${esc(QD.loc)}">
+      <textarea data-qf="desc" rows="3" placeholder="شرح مشخص عدم‌انطباق (الزامی)" style="width:100%; margin-top:8px;">${esc(QD.desc)}</textarea>
+      <select data-qf="sev">${[1, 2, 3, 4].map(v => `<option value="${v}" ${QD.sev == v ? 'selected' : ''}>شدت: ${SEVN[v]}</option>`).join('')}</select>
+      <small id="qsla" style="margin-top:6px;">مهلت اصلاح بر اساس شدت: ${fa(SLA[QD.sev])} روز</small>
+      <select data-qf="cat"><option value="">دسته: خودکار (بر اساس متن)</option>${CATN.map(c => `<option ${QD.cat == c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
+      <input data-qf="resp" placeholder="مسئول پیگیری (اختیاری)" value="${esc(QD.resp)}">
+      <select data-qf="shift">${SHIFTS.map(h => `<option ${QD.shift == h ? 'selected' : ''}>${h}</option>`).join('')}</select>
+      <div class="ph">
+        ${(PH['Q-quick'] || []).map((p, j) => `<span class="th"><img src="${p.u}"><b data-a="rmph" data-id="Q-quick" data-j="${j}">×</b></span>`).join('')}
+        ${(PH['Q-quick'] || []).length < 4 ? `<button class="ad" data-a="addph" data-id="Q-quick">+ افزودن عکس قبل از اصلاح (الزامی)</button>` : ''}
+      </div>
+    </div>
+    <button class="p" data-a="qsend" style="margin-top:16px;">ثبت عدم‌انطباق</button>`);
+}
+async function quickSend() {
+  const loc = QD.loc.trim(), desc = QD.desc.trim(), ph = PH['Q-quick'] || [];
+  if (!loc) return alert('محل را بنویسید.');
+  if (!desc) return alert('شرح عدم‌انطباق را بنویسید.');
+  if (!ph.length) return alert('حداقل یک عکس قبل از اصلاح الزامی است.');
+  const sb = $('[data-a=qsend]'); sb.disabled = true; sb.textContent = 'در حال ذخیره‌سازی...';
+  try {
+    const sev = +QD.sev || 2;
+    const [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ module: 'Q', location: loc, freq: 'موردی', total: 1, ok: 0, nc: 1, na: 0, inspector: mail, shift: QD.shift || SHIFTS[0] }) });
+    await api('findings', { method: 'POST', body: JSON.stringify([{ inspection_id: r.id, module: 'Q', location: loc, qid: 'Q-' + Date.now().toString(36), question: desc, note: '', severity: sev, category: QD.cat || cat('Q', desc), responsible: QD.resp.trim() || null, due_date: addDays(SLA[sev]), photos_before: await Promise.all(ph.map(p => up(p.b))) }]) });
+    Object.assign(QD, { loc: '', desc: '', sev: 2, cat: '', resp: '' }); delete PH['Q-quick'];
+    alert('عدم‌انطباق موردی ثبت شد.'); home();
+  } catch (e) { alert('خطا در ثبت: ' + e.message); sb.disabled = false; sb.textContent = 'ثبت عدم‌انطباق'; }
+}
+
 /* ===== کنترل و موجودی داروها (فرم L14030/01A): موجودی اولیه، دریافت، مصرف، هشدار کمبود/انقضا ===== */
 const MEDPH = 'no-photo-placeholder.jpg', MEDPHA = 'no-photo-after-placeholder.jpg', MEDLOC = 'کمد دارو و کمک‌های اولیه', SOON = 60;
 const MED = { items: [], moves: [], dr: {}, init: false };
@@ -612,7 +661,7 @@ async function medHome() {
   view('<p style="text-align:center;padding:40px;">در حال بارگذاری موجودی داروها...</p>');
   try { await medLoad(); } catch (e) { return view(`<div style="margin-bottom:12px;"><button class="l" data-a="home" style="margin:0;">‹ بازگشت</button></div><div class="q"><b>جدول‌های داروها آماده نیست</b><small>فایل med_schema.sql را یک‌بار در SQL Editor سوپابیس اجرا کنید.<br>${esc(e.message).slice(0, 200)}</small></div>`); }
   const by = medCalc(), L = Object.values(by), bad = L.filter(o => o.bad), soon = L.filter(o => !o.bad && o.soonQ > 0);
-  if (MED.init) medSync(null, by, new Set(), new Set()).catch(() => { });
+  if (MED.init && !sessionStorage.medClean) medSync().then(() => { sessionStorage.medClean = '1'; }).catch(() => { });
   view(`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button><a href="index.html" class="back">← داشبورد اصلی</a></div>
@@ -701,31 +750,14 @@ async function medSave() {
     if (moves.length) await api('med_moves', { method: 'POST', body: JSON.stringify(moves) });
     await medLoad(); const after = medCalc();
     const nBad = [...touched].filter(id => after[id].bad || appBad.has(id)).length;
-    const [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ module: 'MED', location: MEDLOC, freq: 'ماهانه', total: touched.size, ok: touched.size - nBad, nc: nBad, na: 0, inspector: mail, shift: SHIFTS[0] }) });
-    await medSync(r.id, after, appBad, appOk);
-    MED.dr = {}; alert('کنترل داروها ثبت شد.' + (nBad ? `\n${nBad} مورد هشدار (کمبود/انقضا/وضعیت ظاهری) ثبت یا به‌روز شد.` : '')); medHome();
+    const [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ module: 'MED', location: MEDLOC, freq: 'ماهانه', total: touched.size, ok: touched.size, nc: 0, na: 0, inspector: mail, shift: SHIFTS[0] }) });
+    MED.dr = {}; alert('کنترل داروها ثبت شد.' + (nBad ? `\n${nBad} مورد هشدار (کمبود/انقضا/وضعیت ظاهری) در همین صفحه‌ی داروها نمایش داده می‌شود.` : '')); medHome();
   } catch (e) { alert('خطا در ثبت: ' + e.message); sb.disabled = false; sb.textContent = 'ثبت نهایی'; }
 }
-/* هشدار → عدم‌انطباق خودکار (بدون تکرار)؛ پس از شارژ/اصلاح خودکار بسته می‌شود */
-async function medSync(inspId, by, appBad, appOk) {
-  const open = await api('findings?select=id,qid&module=eq.MED&status=eq.open&limit=1000'), has = new Set(open.map(x => x.qid)), want = {};
-  Object.values(by).forEach(o => {
-    const n = o.i.name, id = o.i.id;
-    if (o.low) want[`MED-${id}-low`] = { q: `موجودی «${n}» ${o.zero ? 'تمام شده است' : 'کمتر از نقطه سفارش است'}`, note: `موجودی ${qf(o.stock)} — نقطه سفارش ${qf(o.i.reorder)}؛ تأمین و شارژ شود.`, sev: o.zero ? 3 : 2 };
-    if (o.expQ > 0) want[`MED-${id}-exp`] = { q: `«${n}» دارای قلم منقضی‌شده است`, note: `${qf(o.expQ)} عدد منقضی (نزدیک‌ترین انقضا ${fexp(o.near)})؛ دورریز و جایگزین شود.`, sev: 3 };
-    if (appBad.has(id)) want[`MED-${id}-app`] = { q: `وضعیت ظاهری «${n}» نامناسب است`, note: (MED.dr[id] || {}).ap || '', sev: 2 };
-  });
-  const add = Object.entries(want).filter(([k]) => !has.has(k)).map(([k, w]) => ({ inspection_id: inspId, module: 'MED', location: MEDLOC, qid: k, question: w.q, note: w.note, severity: w.sev, category: 'بهداشت و محیط‌زیست', responsible: null, due_date: addDays(SLA[w.sev]), photos_before: [MEDPH] }));
-  if (add.length && !inspId) { /* هشدار ناشی از مصرف بهداری: بازرسی سیستمی (به نام هیچ کارشناسی حساب نمی‌شود) */
-    const [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ module: 'MED', location: MEDLOC, freq: 'ماهانه', total: 0, ok: 0, nc: add.length, na: 0, inspector: 'سیستم موجودی دارو', shift: SHIFTS[0] }) });
-    add.forEach(x => x.inspection_id = r.id);
-  }
-  if (add.length) await api('findings', { method: 'POST', body: JSON.stringify(add) });
-  for (const x of open) {
-    const m = /^MED-(\d+)-(low|exp|app)$/.exec(x.qid || ''); if (!m) continue;
-    const gone = !want[x.qid] && (m[2] != 'app' || appOk.has(+m[1]));
-    if (gone) await api('findings?id=eq.' + x.id, { method: 'PATCH', body: JSON.stringify({ status: 'closed', closed_at: new Date().toISOString(), photos_after: [MEDPHA] }) });
-  }
+/* هشدارهای دارو (کمبود/انقضا/وضعیت ظاهری) فقط در همین صفحه‌ی «کنترل و موجودی داروها» نمایش داده می‌شوند و دیگر به عدم‌انطباق
+   (با عکس قبل/بعد و گزارش) تبدیل نمی‌شوند. عدم‌انطباق‌های بازِ دارو که قبلاً خودکار ساخته شده بودند یک‌بار لغو می‌شوند. */
+async function medSync() {
+  await api('findings?module=eq.MED&status=eq.open', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'cancelled', cancel_reason: 'هشدارهای دارو به صفحه‌ی کنترل و موجودی داروها منتقل شد (عدم‌انطباق نیست)', cancelled_at: new Date().toISOString(), cancelled_by: 'سیستم', closed_at: null }) });
 }
 function medPrint() {
   const by = medCalc(), w = window.open('', '_blank'); if (!w) return alert('پنجره‌ی چاپ مسدود شد؛ Pop-up را مجاز کنید.');
@@ -795,7 +827,9 @@ document.addEventListener('error', async e => {
   i.dataset.fb = '2'; i.src = NOPIC;
 }, true);
 const th = (a, id, k, ed) => (a || []).map(p => `<span class="th"><img data-a="zoom" data-p="${esc(p)}" decoding="async">${ed ? `<b data-a="delph" data-id="${id}" data-k="${k}" data-p="${esc(p)}">×</b>` : ''}</span>`).join('');
-const nm = k => (M.find(m => m[0] == k) || [])[1], mn = k => esc(nm(k));
+const nm = k => (M.find(m => m[0] == k) || [])[1] || (k == 'Q' ? 'بازرسی موردی' : undefined), mn = k => esc(nm(k));
+/* چک‌لیست‌های قابل فیلتر در پیگیری عدم‌انطباق (داروها عدم‌انطباق ندارند؛ «موردی» اضافه شد) */
+const FMODS = M.filter(m => m[0] != 'MED').map(m => [m[0], m[1]]).concat([['Q', 'بازرسی موردی']]);
 
 fi.onchange = async () => {
   const fs = [...fi.files].slice(0, 4), y = scrollY; fi.value = ''; if (!FT) return;
@@ -805,7 +839,7 @@ fi.onchange = async () => {
         const a = PH[FT.id] = PH[FT.id] || [];
         if (a.length < 4) { const b = await shrink(f); a.push({ b, u: URL.createObjectURL(b) }); }
       }
-      form(); scrollTo(0, y);
+      FT.id == 'Q-quick' ? quickForm() : form(); scrollTo(0, y);
     } else {
       const key = FT.m == 'addbf' ? 'photos_before' : 'photos_after';
       const ps = []; for (const f of fs) ps.push(await up(await shrink(f)));
@@ -818,7 +852,7 @@ fi.onchange = async () => {
 
 /* ===== مدیریت و پیگیری عدم‌انطباق‌ها: جستجو، فیلتر، گروه‌بندی، صفحه‌بندی، ویرایش ===== */
 let FI = '', EDIT = null, FTM = null;
-const FQ = { q: '', mod: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', jy: 0, jm: 0, grp: '', ord: 'new', page: 0, size: 20 };
+const FQ = { q: '', mod: '', insp: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', jy: 0, jm: 0, grp: '', ord: 'new', page: 0, size: 20 };
 const CATN = [...CATS.map(c => c[0]), 'نظم و ایمنی عمومی'];
 const GCOL = { mod: 'module', cat: 'category', loc: 'location', st: 'status', sev: 'severity' };
 
@@ -839,6 +873,8 @@ function fQuery(skipSt) {
   if (FQ.st && !skipSt) q += '&status=eq.' + FQ.st;
   if (FQ.sev) q += '&severity=eq.' + FQ.sev;
   if (FQ.cat) q += '&category=eq.' + encodeURIComponent(FQ.cat);
+  if (FQ.insp) q += '&inspector=eq.' + encodeURIComponent(FQ.insp);
+  q += '&module=neq.MED'; /* هشدارهای دارو عدم‌انطباق نیستند */
   const lc = FQ.loc.trim().replace(/[,()*%\\:"]/g, ' ').trim();
   if (lc) q += '&location=ilike.' + encodeURIComponent('*' + lc + '*');
   if (FQ.ntc == 'yes') q += '&notice_at=not.is.null'; else if (FQ.ntc == 'no') q += '&notice_at=is.null';
@@ -864,7 +900,7 @@ async function fFetch(path, count) {
   const m = /\/(\d+)$/.exec(r.headers.get('content-range') || '');
   return { rows: await r.json(), total: m ? +m[1] : null };
 }
-const gLabel = x => FQ.grp == 'mod' ? nm(x.module) : FQ.grp == 'cat' ? (x.category || 'بدون دسته') : FQ.grp == 'loc' ? nl(x.location) : FQ.grp == 'st' ? (x.status == 'open' ? 'باز' : 'اصلاح‌شده') : FQ.grp == 'sev' ? 'شدت: ' + (SEVN[x.severity] || 'نامشخص') : '';
+const gLabel = x => FQ.grp == 'mod' ? nm(x.module) : FQ.grp == 'cat' ? (x.category || 'بدون دسته') : FQ.grp == 'loc' ? nl(x.location) : FQ.grp == 'st' ? (x.status == 'open' ? 'باز' : x.status == 'cancelled' ? 'لغو شده' : 'اصلاح‌شده') : FQ.grp == 'sev' ? 'شدت: ' + (SEVN[x.severity] || 'نامشخص') : '';
 const optH = (v, t, cur) => `<option value="${esc(v)}" ${String(cur) == String(v) ? 'selected' : ''}>${esc(t)}</option>`;
 
 function fcard(x) {
@@ -875,7 +911,7 @@ function fcard(x) {
     <textarea data-ef="note" rows="3" style="width:100%;">${esc(x.note)}</textarea>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
       <div><label style="font-size:12px; color:var(--mu);">محل</label><input data-ef="location" list="locs" value="${esc(x.location)}"></div>
-      <div><label style="font-size:12px; color:var(--mu);">چک‌لیست / ماژول</label><select data-ef="module">${M.map(m => optH(m[0], m[1], x.module)).join('')}</select></div>
+      <div><label style="font-size:12px; color:var(--mu);">چک‌لیست / ماژول</label><select data-ef="module">${FMODS.map(m => optH(m[0], m[1], x.module)).join('')}</select></div>
       <div><label style="font-size:12px; color:var(--mu);">شدت</label><select data-ef="severity">${[1, 2, 3, 4].map(s => optH(s, SEVN[s], x.severity || 2)).join('')}</select></div>
       <div><label style="font-size:12px; color:var(--mu);">دسته</label><select data-ef="category">${CATN.concat(x.category && !CATN.includes(x.category) ? [x.category] : []).map(c => optH(c, c, x.category)).join('')}</select></div>
       <div><label style="font-size:12px; color:var(--mu);">مسئول پیگیری</label><input data-ef="responsible" value="${esc(x.responsible || '')}"></div>
@@ -887,11 +923,11 @@ function fcard(x) {
       <button data-a="fcancel" style="min-height:42px;">انصراف</button>
     </div>` : `
     <p>${esc(x.question)}</p>
-    <small style="margin-top:4px;">${mn(x.module)} · ${esc(x.location)} · ${fd(x.created_at)} · <span dir="ltr">${esc(x.qid || '')}</span> · 👤 ثبت: <b>${esc({'m.mohammadi@gmail.com':'محمدی','m.rezaei@gmail.com':'اله‌رضایی'}[x.inspector] || x.inspector || 'نامشخص')}</b>
+    <small style="margin-top:4px;">${mn(x.module)} · ${esc(x.location)} · ${fd(x.created_at)} · <span dir="ltr">${esc(x.qid || '')}</span> · 👤 ثبت: <b>${esc(inspL(x.inspector))}</b>
     <div style="margin-top:6px;">${sevB(x)}${x.category ? `<span class="ct">${esc(x.category)}</span>` : ''}${x.responsible ? `<span class="bg g">مسئول: ${esc(x.responsible)}</span>` : ''} ${dueB(x)}${ph ? '<span class="ct">بدون عکس در گزارش اصلی</span>' : ''}</div>
     <p style="font-size:13px; font-weight:400; color:var(--mu); margin-top:6px;">${esc(x.note)}</p>`;
   return `
-    <div class="q ${x.status == 'open' ? 'bad' : 'good'}" data-fid="${x.id}">
+    <div class="q ${x.status == 'open' ? 'bad' : x.status == 'cancelled' ? 'cx' : 'good'}" data-fid="${x.id}">
       ${ed ? '' : `<button class="l" data-a="fedit" data-id="${x.id}" style="float:left; margin:0;">✏️ ویرایش</button>`}
       ${head}
       <div class="ph">${th(x.photos_before, x.id, 'before', ed)}${ed ? `<button class="ad" data-a="addbf" data-id="${x.id}">+ عکس قبل از اصلاح</button>` : ''}</div>
@@ -904,12 +940,22 @@ function fcard(x) {
         <label class="fx" hidden><input type="checkbox" data-a="ntc" data-id="${x.id}"> تایید ثبت اعلان</label>
       `}
 
+      ${x.status == 'cancelled' ? `
+      <div class="step">مرحله ۳: وضعیت <span class="bg">لغو شد</span></div>
+      <p style="margin-top:6px;">🚫 دلیل لغو: <b>${esc(x.cancel_reason || '—')}</b></p>
+      <small>${x.cancelled_at ? fd(x.cancelled_at) + ' · ' : ''}توسط ${esc(inspL(x.cancelled_by))}</small>
+      <button class="l" data-a="funcancel" data-id="${x.id}" style="margin-top:6px;">↩ بازگشایی (برگرداندن به باز)</button>` : `
       <div class="step">مرحله ۳: اقدام اصلاحی ${x.status == 'closed' ? '<span class="bg g">اصلاح‌شده</span>' : '<span class="bg r">باز</span>'}</div>
       <select data-rc="${x.id}"><option value="">علت ریشه‌ای (الزامی برای بستن)</option>${RCS.map(rc => `<option ${x.root_cause == rc ? 'selected' : ''}>${rc}</option>`).join('')}</select>
       <div class="ph">${th(x.photos_after, x.id, 'after', ed)}<button class="ad" data-a="addaf" data-id="${x.id}">+ تصویر پس از اصلاح</button></div>
       ${(x.photos_after || []).length ? `
         <label class="fx"><input type="checkbox" data-a="fix" data-id="${x.id}" data-pa="${x.photos_after.filter(p => !/^no-photo/.test(p)).length}" ${x.status == 'closed' ? 'checked' : ''}> تایید انجام اقدام اصلاحی (${x.closed_at ? fd(x.closed_at) : ''})</label>
       ` : '<small style="margin-top:6px;">برای ثبت نهایی اصلاح، بارگذاری حداقل یک عکس الزامی است.</small>'}
+    
+      ${x.status == 'open' ? `<details class="cxbox"><summary>🚫 لغو این مورد (اصلاح لازم نیست)</summary>
+        <textarea data-cr="${x.id}" rows="2" placeholder="دلیل لغو (الزامی؛ مثلاً: بررسی شد و عدم‌انطباق نبود / تکراری بود / ثبت اشتباه / مورد منتفی شد)"></textarea>
+        <button class="p" data-a="fcancelnc" data-id="${x.id}" style="margin-top:6px; min-height:40px;">ثبت لغو با این دلیل</button>
+      </details>` : ''}`}
     </div>`;
 }
 
@@ -918,15 +964,16 @@ async function loadFinds() {
   try { RISKS = await api('risks?select=id,unit,hazard,score&status=neq.archived&order=score.desc'); } catch (e) { RISKS = []; }
   box.style.opacity = .5;
   try {
-    const [pg, cOpen, cAll] = await Promise.all([
+    const [pg, cOpen, cAll, cCan] = await Promise.all([
       fFetch('findings?select=*' + fQuery() + '&order=' + fOrder() + '&limit=' + FQ.size + '&offset=' + FQ.page * FQ.size, true),
       fFetch('findings?select=id&limit=1&status=eq.open' + fQuery(true), true),
-      fFetch('findings?select=id&limit=1' + fQuery(true), true)
+      fFetch('findings?select=id&limit=1' + fQuery(true), true),
+      fFetch('findings?select=id&limit=1&status=eq.cancelled' + fQuery(true), true).catch(() => ({ total: 0 }))
     ]);
     const total = pg.total ?? pg.rows.length, pages = Math.max(1, Math.ceil(total / FQ.size));
     if (FQ.page >= pages) { FQ.page = pages - 1; return loadFinds(); }
-    const no = cOpen.total ?? 0, na = cAll.total ?? 0;
-    $('#fchips').innerHTML = [['', 'همه', na], ['open', 'باز', no], ['closed', 'اصلاح‌شده', na - no]].map(([v, t, n]) =>
+    const no = cOpen.total ?? 0, na = cAll.total ?? 0, nx = cCan.total ?? 0;
+    $('#fchips').innerHTML = [['', 'همه', na], ['open', 'باز', no], ['closed', 'اصلاح‌شده', na - no - nx], ['cancelled', 'لغو شده', nx]].map(([v, t, n]) =>
       `<button class="chip ${FQ.st == v ? 'on' : ''}" data-a="fst" data-v="${v}">${t} <b>${fa(n)}</b></button>`).join('');
     let last = null, html = '';
     pg.rows.forEach(x => { if (FQ.grp) { const g = gLabel(x); if (g !== last) { html += `<div class="sec" style="margin-top:18px;">${esc(g)}</div>`; last = g; } } html += fcard(x); });
@@ -1025,7 +1072,8 @@ async function finds(iid) {
     <div class="q" style="margin-top:10px;">
       <input data-ff="q" placeholder="🔍 جستجو در متن، توضیحات، کد، محل، مسئول..." value="${esc(FQ.q)}">
       <div class="fgrid">
-        <select data-ff="mod">${optH('', 'همه چک‌لیست‌ها', FQ.mod)}${M.map(m => optH(m[0], m[1], FQ.mod)).join('')}</select>
+        <select data-ff="mod">${optH('', 'همه چک‌لیست‌ها', FQ.mod)}${FMODS.map(m => optH(m[0], m[1], FQ.mod)).join('')}</select>
+        <select data-ff="insp">${optH('', 'همه کارشناسان ثبت‌کننده', FQ.insp)}${Object.entries(INSPN).map(([e, n]) => optH(e, '👤 ' + n, FQ.insp)).join('')}</select>
         <select data-ff="cat">${optH('', 'همه دسته‌ها', FQ.cat)}${CATN.map(c => optH(c, c, FQ.cat)).join('')}</select>
         <select data-ff="sev">${optH('', 'همه شدت‌ها', FQ.sev)}${[4, 3, 2, 1].map(s => optH(s, 'شدت ' + SEVN[s], FQ.sev)).join('')}</select>
         <select data-ff="ntc">${optH('', 'اعلان: همه', FQ.ntc)}${optH('yes', 'اعلان ثبت شده', FQ.ntc)}${optH('no', 'بدون اعلان', FQ.ntc)}</select>
@@ -1175,8 +1223,8 @@ function rRange() {
 }
 /* بخش‌های کوئری: تاریخ، ماژول، وضعیت */
 function rDateQ() { const r = rRange(); let q = ''; if (r.from) q += '&created_at=gte.' + encodeURIComponent(r.from.toISOString()); if (r.to) q += '&created_at=lt.' + encodeURIComponent(r.to.toISOString()); return q; }
-const rModQ = () => R.mod ? '&module=eq.' + encodeURIComponent(R.mod) : '';
-const rQuery = () => rDateQ() + rModQ() + (R.st ? '&status=eq.' + R.st : '');
+const rModQ = () => (R.mod ? '&module=eq.' + encodeURIComponent(R.mod) : '') + '&module=neq.MED';
+const rQuery = () => rDateQ() + rModQ() + (R.st ? '&status=eq.' + R.st : '&status=in.(open,closed)');
 
 async function fetchAll(p) {
   const out = [];
@@ -1395,7 +1443,7 @@ async function printFinds(_a, kind) {
   w.document.write('<p style="font-family:Tahoma;direction:rtl;padding:20px">در حال آماده‌سازی گزارش...</p>');
   try {
     const sel = 'id,qid,question,location,equipment_title,equipment_code,notice_code,notice_at,notice_status,severity,status,photos_before,photos_after,created_at';
-    let q = fQuery(true); if (kind == 'open') q += '&status=eq.open';
+    let q = fQuery(true); q += kind == 'open' ? '&status=eq.open' : '&status=in.(open,closed)';
     let all = [];
     for (let off = 0; ; off += 1000) {
       const { rows } = await fFetch('findings?select=' + sel + q + '&order=created_at.desc,id.asc&limit=1000&offset=' + off);
@@ -1440,6 +1488,8 @@ document.onclick = async e => {
     else if (a == 'rep') renderManagementReport();
   else if (a == 'gen-slides') genSlides();
   else if (a == 'gen-cancel') GEN.cancel = true;
+  else if (a == 'quick') quickForm();
+  else if (a == 'qsend') quickSend();
   else if (a == 'med') medHome();
   else if (a == 'medform') medForm();
   else if (a == 'medsave') medSave();
@@ -1464,7 +1514,7 @@ document.onclick = async e => {
   else if (a == 'eqlink') { LNK[t.dataset.id] = { no: t.dataset.no, created_on: t.dataset.d, status: t.dataset.s }; save(); const el = document.querySelector('[data-eqn="' + t.dataset.id + '"]'); if (el) el.innerHTML = eqNoticesHtml(t.dataset.id); }
   else if (a == 'equnlink') { delete LNK[t.dataset.id]; save(); const el = document.querySelector('[data-eqn="' + t.dataset.id + '"]'); if (el) el.innerHTML = eqNoticesHtml(t.dataset.id); }
   else if (a == 'addph') { FT = { m: 'addph', id: t.dataset.id }; fi.click(); }
-  else if (a == 'rmph') { PH[t.dataset.id].splice(+t.dataset.j, 1); form(); scrollTo(0, y); }
+  else if (a == 'rmph') { PH[t.dataset.id].splice(+t.dataset.j, 1); t.dataset.id == 'Q-quick' ? quickForm() : form(); scrollTo(0, y); }
   else if (a == 'send') send();
   else if (a == 'finds') finds();
   else if (a == 'edit-insp') {
@@ -1539,9 +1589,22 @@ document.onclick = async e => {
       await loadFinds(); scrollTo(0, y);
     } catch (er) { alert(er.message); }
   }
+  else if (a == 'fcancelnc') {
+    const ta = t.closest('.q').querySelector('[data-cr]'), why = ta ? ta.value.trim() : '';
+    if (why.length < 3) return alert('دلیل لغو را بنویسید.');
+    if (!confirm('این مورد لغو شود؟ دیگر جزو موارد باز و گزارش‌ها حساب نمی‌شود.')) return;
+    try {
+      await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify({ status: 'cancelled', cancel_reason: why, cancelled_at: new Date().toISOString(), cancelled_by: mail, closed_at: null }) });
+      await loadFinds(); scrollTo(0, y);
+    } catch (er) { alert(/cancel|status|enum|check/i.test(er.message) ? 'ابتدا فایل hse_findings_cancel.sql را یک‌بار در Supabase اجرا کنید.\n' + er.message.slice(0, 160) : er.message); }
+  }
+  else if (a == 'funcancel') {
+    if (!confirm('این مورد دوباره باز شود؟')) return;
+    try { await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify({ status: 'open', cancel_reason: null, cancelled_at: null, cancelled_by: null }) }); await loadFinds(); scrollTo(0, y); } catch (er) { alert(er.message); }
+  }
   else if (a == 'fst') { FQ.st = t.dataset.v; FQ.page = 0; await loadFinds(); }
   else if (a == 'fpage') { FQ.page = Math.max(0, FQ.page + +t.dataset.d); await loadFinds(); scrollTo(0, 0); }
-  else if (a == 'fclear') { Object.assign(FQ, { q: '', mod: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', grp: '', ord: 'new', page: 0 }); finds(); }
+  else if (a == 'fclear') { Object.assign(FQ, { q: '', mod: '', insp: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', grp: '', ord: 'new', page: 0 }); finds(); }
   else if (a == 'rprint') printFinds(a, t.dataset.k);
   else if (a == 'lpick') { try { await localPick(); renderLocalState(); } catch (er) { if (er.name != 'AbortError') alert(er.message); } }
   else if (a == 'lallow') { await localAllow(); renderLocalState(); await loadFinds(); }
@@ -1567,6 +1630,7 @@ document.onclick = async e => {
 
 document.oninput = async e => {
   const t = e.target, y = scrollY;
+  if (t.dataset.qf) { const k = t.dataset.qf; QD[k] = k == 'sev' ? +t.value : t.value; if (k == 'sev') { const el = $('#qsla'); if (el) el.textContent = 'مهلت اصلاح بر اساس شدت: ' + fa(SLA[QD.sev]) + ' روز'; } return; }
   if (t.dataset.rf) { const k = t.dataset.rf; R[k] = ['days', 'per', 'jy', 'jm'].includes(k) ? +t.value : t.value; renderManagementReport(); return; }
   if (t.dataset.eqs) { eqSearch(t.dataset.eqs, t.value); return; }
   if (t.dataset.sf == 'thr') { localStorage.thr = Math.max(50, +t.value || 800); refreshUsage(); return; }

@@ -192,7 +192,7 @@ const meta = (id, t) => { const e = document.getElementById(id); if (e) e.textCo
 
 async function loadStatus() {
   const [fin, inc, fu, rk, cd] = await Promise.all([
-    get('findings?status=eq.open&select=id,due_date').catch(() => null),
+    get('findings?status=eq.open&module=neq.MED&select=id,due_date').catch(() => null),
     get('clinic_incidents?select=id,severity').catch(() => null),
     get('clinic_followups?status=in.(pending,overdue)&select=id').catch(() => null),
     get('risks?status=neq.archived&select=id,high,status,review_date').catch(() => null),
