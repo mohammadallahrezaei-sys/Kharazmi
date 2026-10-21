@@ -72,6 +72,34 @@ a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .hrn{font-size:12px;color:var(--mu);margin-top:8px}
 .hrn summary{cursor:pointer;color:var(--ac);font-weight:700;list-style:none}
 .hrn summary::-webkit-details-marker{display:none}
+/* ===== ناوبری ساده: جستجوی کوچک، کاشی ماژول‌ها ===== */
+header{flex-wrap:wrap}
+.srch{margin-inline-start:auto;flex:0 1 230px}
+.srch input{width:100%;font:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx)}
+.srch input:focus{outline:2px solid var(--ac);outline-offset:1px;border-color:var(--ac)}
+.mg h2{margin:2px 2px 8px;font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(124px,1fr));gap:10px}
+.tiles a{position:relative;display:flex;flex-direction:column;padding:0;overflow:hidden;min-height:0;border:1px solid var(--bd);border-radius:14px;background:var(--card);transition:transform .15s,border-color .15s,box-shadow .15s}
+.tiles a:hover{border-color:var(--ac);transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,23,42,.14)}
+.tiles .im{display:block;aspect-ratio:160/84;background:var(--g)}
+.tiles .im svg{width:100%;height:100%;display:block}
+.tiles a b{font-size:11.5px;font-weight:600;padding:6px 6px 7px;line-height:1.5;text-align:center;flex:1;display:flex;align-items:center;justify-content:center}
+.tiles a small{position:absolute;top:6px;inset-inline-start:6px;background:rgba(15,23,42,.72);color:#fff;padding:0 8px;border-radius:99px;font-size:10.5px;line-height:1.7;white-space:nowrap}
+.tiles a small:empty{display:none}
+.nf,.gx,.ga{display:none!important}
+footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0;display:none}
+#mgr .tiles{margin-top:10px}
+#hr{border:1px solid var(--bd);border-radius:10px;background:var(--soft);padding:6px 12px;margin-top:10px}
+#hr>summary{cursor:pointer;font-weight:700;color:var(--ac);list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:center;min-height:36px;font-size:14px}
+#hr>summary::-webkit-details-marker{display:none}
+#hr>summary::after{content:"▾";color:var(--mu)}
+#hr[open]>summary::after{content:"▴"}
+/* ویجت‌های وضعیت: فشرده؛ توضیح فقط وقتی نیاز به توجه است */
+.wg{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.wi{min-height:48px;padding:7px 10px}
+.wi i{width:30px;height:30px;font-size:16px}
+.wi b{font-size:12.5px}
+.wi.ok span,.wi:not(.wa):not(.bad) span{display:none}
 </style>
 </head>
 <body>
@@ -83,6 +111,7 @@ a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
     <h1>نرم‌افزار جامع HSE</h1>
     <div class="mu">گسترش فناوری خوارزمی</div>
   </div>
+  <div class="srch"><input id="q" type="search" placeholder="جستجوی ماژول…" autocomplete="off" aria-label="جستجوی ماژول"></div>
 </header>
 
 <a class="desk" href="desk.html">
@@ -106,46 +135,44 @@ a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
   <a class="wi" id="wEkh" href="ekhtar.html"><i id="wEkhI">⚖️</i><div><b id="wEkhT">سوابق انضباطی</b><span id="wEkhD">در حال بارگذاری...</span></div></a>
 </div>
 
-<div class="grid">
-  <section class="card">
-    <h2>ریسک، بازرسی و اقدام</h2>
-    <div class="list">
-      <a href="risks.html">⚠️ ثبت و ارزیابی ریسک <small id="mRisk"></small></a>
-      <a href="chemicals.html">🧪 مواد شیمیایی و گازها <small id="mChem"></small></a>
-      <a href="checklists.html">📋 بازرسی، چک‌لیست و عدم‌انطباق <small id="mChk"></small></a>
-      <a href="cards.html">🗂 کارت‌های خطر و پیشنهاد <small id="mCard"></small></a>
-      <a href="equipment.html">🏗 تجهیزات و بازرسی‌های دوره‌ای</a>
-    </div>
-  </section>
-  <section class="card">
-    <h2>افراد</h2>
-    <div class="list">
-      <a href="clinic.html">🏥 بهداری، حوادث و سوابق پزشکی <small id="mClinic"></small></a>
-      <a href="training.html">🎓 آموزش HSE</a>
-      <a href="employees.html">👥 بانک پرسنل</a>
-    </div>
-  </section>
-</div>
-
+<section class="mg grp" id="gRisk">
+  <h2>ریسک و بازرسی</h2>
+  <div class="tiles">
+    <a class="m" href="risks.html" data-k="ریسک ارزیابی ریسک ماتریس خطر شناسایی"><span class="im" style="--g:linear-gradient(135deg,#fb923c,#dc2626)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="26" y="14" width="16" height="16" rx="3" fill="#fde047"/><rect x="44" y="14" width="16" height="16" rx="3" fill="#fb923c"/><rect x="62" y="14" width="16" height="16" rx="3" fill="#ef4444"/><rect x="26" y="32" width="16" height="16" rx="3" fill="#86efac"/><rect x="44" y="32" width="16" height="16" rx="3" fill="#fde047"/><rect x="62" y="32" width="16" height="16" rx="3" fill="#fb923c"/><rect x="26" y="50" width="16" height="16" rx="3" fill="#86efac"/><rect x="44" y="50" width="16" height="16" rx="3" fill="#86efac"/><rect x="62" y="50" width="16" height="16" rx="3" fill="#fde047"/><path d="M116 26 L138 66 H94 Z" fill="#fff" stroke="#b91c1c" stroke-width="4" stroke-linejoin="round"/><rect x="114.2" y="38" width="3.6" height="14" rx="1.8" fill="#b91c1c"/><circle cx="116" cy="59" r="2.6" fill="#b91c1c"/></svg></span><b>ثبت و ارزیابی ریسک</b><small id="mRisk"></small></a>
+    <a class="m" href="chemicals.html" data-k="مواد شیمیایی گاز msds برگه ایمنی ناسازگاری"><span class="im" style="--g:linear-gradient(135deg,#a855f7,#581c87)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="66" y="12" width="28" height="6" rx="3" fill="#fff"/><path d="M70 18 H90 V34 L108 64 Q113 73 103 73 H57 Q47 73 52 64 L70 34 Z" fill="#fff" opacity=".96"/><path d="M59 54 H101 L108 64 Q113 73 103 73 H57 Q47 73 52 64 Z" fill="#34d399"/><circle cx="72" cy="62" r="3.2" fill="#fff" opacity=".85"/><circle cx="86" cy="58" r="2.2" fill="#fff" opacity=".85"/><circle cx="92" cy="66" r="3" fill="#fff" opacity=".85"/><circle cx="78" cy="26" r="2.4" fill="#a78bfa"/><circle cx="84" cy="40" r="1.8" fill="#a78bfa"/><g transform="translate(130 30) rotate(45)"><rect x="-11" y="-11" width="22" height="22" rx="3" fill="#fbbf24"/></g><rect x="128.4" y="22" width="3.2" height="10" rx="1.6" fill="#78350f"/><circle cx="130" cy="37" r="2" fill="#78350f"/><g stroke="#fff" stroke-width="2.4" opacity=".85"><line x1="26" y1="44" x2="38" y2="34"/><line x1="38" y1="34" x2="50" y2="42"/></g><circle cx="26" cy="44" r="5" fill="#fff" opacity=".9"/><circle cx="38" cy="34" r="6" fill="#fbbf24"/><circle cx="50" cy="42" r="4" fill="#fff" opacity=".9"/></svg></span><b>مواد شیمیایی و گازها</b><small id="mChem"></small></a>
+    <a class="m" href="checklists.html" data-k="بازرسی چک لیست عدم انطباق ممیزی پیگیری"><span class="im" style="--g:linear-gradient(135deg,#2dd4bf,#0f766e)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="48" y="10" width="64" height="68" rx="8" fill="#fff"/><rect x="66" y="5" width="28" height="12" rx="5" fill="#0f766e"/><circle cx="80" cy="11" r="2.6" fill="#99f6e4"/><path d="M58 33 l4.5 4.5 l8 -9" fill="none" stroke="#059669" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="78" y="31" width="30" height="4.5" rx="2.2" fill="#cbd5e1"/><path d="M58 47 l4.5 4.5 l8 -9" fill="none" stroke="#059669" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="78" y="45" width="30" height="4.5" rx="2.2" fill="#cbd5e1"/><path d="M58 56 l9 9 M67 56 l-9 9" fill="none" stroke="#dc2626" stroke-width="3.4" stroke-linecap="round"/><rect x="78" y="59" width="30" height="4.5" rx="2.2" fill="#cbd5e1"/></svg></span><b>بازرسی و عدم‌انطباق</b><small id="mChk"></small></a>
+    <a class="m" href="cards.html" data-k="کارت خطر شبه حادثه پیشنهاد near miss"><span class="im" style="--g:linear-gradient(135deg,#fbbf24,#ea580c)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><g transform="translate(80 44)"><rect x="-32" y="-24" width="64" height="44" rx="7" fill="#fff" opacity=".45" transform="rotate(-14)"/><rect x="-32" y="-24" width="64" height="44" rx="7" fill="#fff" opacity=".7" transform="rotate(7)"/><rect x="-32" y="-22" width="64" height="44" rx="7" fill="#fff"/><path d="M-14 6 L-4 -12 L6 6 Z" fill="#f59e0b" stroke="#f59e0b" stroke-width="3" stroke-linejoin="round"/><rect x="-5.2" y="-7" width="2.4" height="7" rx="1.2" fill="#fff"/><circle cx="-4" cy="3" r="1.5" fill="#fff"/><rect x="12" y="-12" width="14" height="4" rx="2" fill="#cbd5e1"/><rect x="12" y="-4" width="14" height="4" rx="2" fill="#cbd5e1"/><rect x="-24" y="12" width="48" height="4" rx="2" fill="#e2e8f0"/></g></svg></span><b>کارت‌های خطر و پیشنهاد</b><small id="mCard"></small></a>
+    <a class="m" href="equipment.html" data-k="تجهیزات ماشین آلات بازرسی دوره ای کپسول"><span class="im" style="--g:linear-gradient(135deg,#64748b,#1e293b)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><g transform="translate(62 44)"><rect x="-5" y="-25" width="10" height="13" rx="2.5" transform="rotate(0)" fill="#fff"/><rect x="-5" y="-25" width="10" height="13" rx="2.5" transform="rotate(45)" fill="#fff"/><rect x="-5" y="-25" width="10" height="13" rx="2.5" transform="rotate(90)" fill="#fff"/><rect x="-5" y="-25" width="10" height="13" rx="2.5" transform="rotate(135)" fill="#fff"/><rect x="-5" y="-25" width="10" height="13" rx="2.5" transform="rotate(180)" fill="#fff"/><rect x="-5" y="-25" width="10" height="13" rx="2.5" transform="rotate(225)" fill="#fff"/><rect x="-5" y="-25" width="10" height="13" rx="2.5" transform="rotate(270)" fill="#fff"/><rect x="-5" y="-25" width="10" height="13" rx="2.5" transform="rotate(315)" fill="#fff"/><circle r="19" fill="#fff"/><circle r="8.0" fill="#475569"/></g><g transform="translate(98 26)"><rect x="-5" y="-16" width="10" height="13" rx="2.5" transform="rotate(0)" fill="#fff"/><rect x="-5" y="-16" width="10" height="13" rx="2.5" transform="rotate(45)" fill="#fff"/><rect x="-5" y="-16" width="10" height="13" rx="2.5" transform="rotate(90)" fill="#fff"/><rect x="-5" y="-16" width="10" height="13" rx="2.5" transform="rotate(135)" fill="#fff"/><rect x="-5" y="-16" width="10" height="13" rx="2.5" transform="rotate(180)" fill="#fff"/><rect x="-5" y="-16" width="10" height="13" rx="2.5" transform="rotate(225)" fill="#fff"/><rect x="-5" y="-16" width="10" height="13" rx="2.5" transform="rotate(270)" fill="#fff"/><rect x="-5" y="-16" width="10" height="13" rx="2.5" transform="rotate(315)" fill="#fff"/><circle r="10" fill="#fff"/><circle r="4.2" fill="#475569"/></g><g transform="translate(118 52) rotate(38)"><rect x="-4.5" y="-2" width="9" height="34" rx="4.5" fill="#fff"/><circle cx="0" cy="-8" r="11" fill="none" stroke="#fff" stroke-width="7"/></g></svg></span><b>تجهیزات و بازرسی دوره‌ای</b></a>
+  </div>
+</section>
+<section class="mg grp" id="gPeople">
+  <h2>بهداری، افراد و آموزش</h2>
+  <div class="tiles">
+    <a class="m" href="clinic.html" data-k="بهداری مراجعه حادثه معاینه طب کار پزشکی دارو استعلاجی پیگیری سوابق"><span class="im" style="--g:linear-gradient(135deg,#22d3ee,#0e7490)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><circle cx="52" cy="42" r="27" fill="#fff"/><rect x="46.5" y="27" width="11" height="30" rx="3" fill="#0891b2"/><rect x="37" y="36.5" width="30" height="11" rx="3" fill="#0891b2"/><polyline points="86,48 96,48 101,30 108,62 114,38 119,48 146,48" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>بهداری و حوادث</b><small id="mClinic"></small></a>
+    <a class="m" href="training.html" data-k="آموزش دوره کلاس ایمنی ثبت آموزش"><span class="im" style="--g:linear-gradient(135deg,#818cf8,#3730a3)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><polygon points="80,16 122,34 80,52 38,34" fill="#fff"/><path d="M58 44 V58 Q80 70 102 58 V44 L80 54 Z" fill="#fff" opacity=".88"/><line x1="118" y1="36" x2="118" y2="58" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/><circle cx="118" cy="61" r="4" fill="#fbbf24"/></svg></span><b>آموزش HSE</b></a>
+    <a class="m" href="employees.html" data-k="پرسنل کارمند بانک اطلاعات نیرو"><span class="im" style="--g:linear-gradient(135deg,#38bdf8,#0369a1)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><g opacity="0.6"><circle cx="48" cy="34" r="8" fill="#fff"/><path d="M32 70 Q32 46 48 46 Q64 46 64 70 Z" fill="#fff"/></g><g opacity="0.6"><circle cx="112" cy="34" r="8" fill="#fff"/><path d="M96 70 Q96 46 112 46 Q128 46 128 70 Z" fill="#fff"/></g><g opacity="1"><circle cx="80" cy="28" r="11" fill="#fff"/><path d="M59 70 Q59 42 80 42 Q101 42 101 70 Z" fill="#fff"/></g></svg></span><b>بانک پرسنل</b></a>
+  </div>
+</section>
+<!-- بخش مدیر: لینک‌ها و نشانی صفحه‌ها دقیقاً مثل قبل است تا پنهان‌سازی auth.js همان‌طور کار کند -->
+<details class="card grp" id="mgr">
+  <summary>گزارش و ارزیابی (مدیر)</summary>
 <!-- افراد پرریسک: کشویی و فقط برای مدیر (اطلاعات پزشکی دارد؛ با دیده‌شدن بخش مدیر نمایش داده می‌شود) -->
-<details class="card" id="hr" style="display:none">
-  <summary>افراد پرریسک: اولویت آموزش و پیگیری <small id="mHr">برای محاسبه باز کنید</small></summary>
+<details id="hr" style="display:none">
+  <summary>افراد پرریسک: اولویت آموزش و پیگیری <small id="mHr">باز کنید</small></summary>
   <div id="hrBody" class="mu" style="margin-top:10px">در حال محاسبه...</div>
 </details>
-
-<!-- بخش مدیر: لینک‌ها و نشانی صفحه‌ها دقیقاً مثل قبل است تا پنهان‌سازی auth.js همان‌طور کار کند -->
-<details class="card" id="mgr">
-  <summary>گزارش و ارزیابی (مدیر)</summary>
-  <div class="list">
-    <a href="report.html">📊 گزارش ماهانه HSE <small>ماهانه</small></a>
-    <a href="unit_report.html">✉️ گزارش واحدها (Outlook) <small>ماهانه</small></a>
-    <a href="evaluation.html">📊 ارزیابی عملکرد واحدها <small>ماهانه</small></a>
-    <a href="expert_eval.html">👤 ارزیابی کارشناسان <small>ماهانه</small></a>
-    <a href="reward_eval.html">🏅 شایستگی تشویق پرسنل <small>ماهانه</small></a>
-    <a href="culture.html">🪜 نردبان فرهنگ ایمنی <small>فصلی</small></a>
-    <a href="ekhtar.html">⚠️ سوابق انضباطی و اخطارها <small id="ekhtarMeta">در صورت نیاز</small></a>
+  <div class="tiles">
+    <a class="m" href="report.html" data-k="گزارش ماهانه hse"><span class="im" style="--g:linear-gradient(135deg,#34d399,#065f46)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="48" y="9" width="64" height="68" rx="7" fill="#fff"/><rect x="57" y="17" width="28" height="4.5" rx="2.2" fill="#cbd5e1"/><rect x="57" y="25" width="18" height="3.5" rx="1.7" fill="#e2e8f0"/><rect x="58" y="52" width="9" height="16" rx="2" fill="#6ee7b7"/><rect x="71" y="44" width="9" height="24" rx="2" fill="#10b981"/><rect x="84" y="36" width="9" height="32" rx="2" fill="#059669"/><rect x="97" y="46" width="9" height="22" rx="2" fill="#34d399"/><polyline points="58,44 71,38 84,30 97,36" fill="none" stroke="#f59e0b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".0"/></svg></span><b>گزارش ماهانه HSE</b></a>
+    <a class="m" href="unit_report.html" data-k="گزارش واحد outlook ایمیل کارنامه نامه سرپرست"><span class="im" style="--g:linear-gradient(135deg,#60a5fa,#1e40af)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="56" y="8" width="48" height="36" rx="5" fill="#fff" opacity=".92"/><rect x="63" y="16" width="14" height="4" rx="2" fill="#93c5fd"/><rect x="63" y="25" width="7" height="12" rx="1.5" fill="#3b82f6"/><rect x="73" y="29" width="7" height="8" rx="1.5" fill="#60a5fa"/><rect x="83" y="22" width="7" height="15" rx="1.5" fill="#1d4ed8"/><rect x="38" y="30" width="84" height="48" rx="8" fill="#fff"/><path d="M40 34 L80 60 L120 34" fill="none" stroke="#3b82f6" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/><circle cx="124" cy="30" r="9" fill="#fbbf24"/><path d="M119.5 30 l3.2 3.2 l5.5 -6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>گزارش واحدها (Outlook)</b></a>
+    <a class="m" href="evaluation.html" data-k="ارزیابی واحد امتیاز ایمنی مشارکت"><span class="im" style="--g:linear-gradient(135deg,#a3e635,#4d7c0f)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><path d="M42 68 A38 38 0 0 1 54.7 39.7" fill="none" stroke="#ef4444" stroke-width="10"/><path d="M54.7 39.7 A38 38 0 0 1 105.3 39.7" fill="none" stroke="#fbbf24" stroke-width="10"/><path d="M105.3 39.7 A38 38 0 0 1 118 68" fill="none" stroke="#fff" stroke-width="10"/><line x1="80" y1="68" x2="102" y2="44" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/><circle cx="80" cy="68" r="7" fill="#fff"/><circle cx="80" cy="68" r="3" fill="#4d7c0f"/></svg></span><b>ارزیابی عملکرد واحدها</b></a>
+    <a class="m" href="expert_eval.html" data-k="ارزیابی کارشناس کارشناسان"><span class="im" style="--g:linear-gradient(135deg,#e879f9,#86198f)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><g><circle cx="56" cy="30" r="12" fill="#fff"/><path d="M30 70 Q30 46 56 46 Q82 46 82 70 Z" fill="#fff"/></g><polygon points="114.0,18.0 119.4,32.5 134.9,33.2 122.8,42.9 126.9,57.8 114.0,49.2 101.1,57.8 105.2,42.9 93.1,33.2 108.6,32.5" fill="#fde047"/></svg></span><b>ارزیابی کارشناسان</b></a>
+    <a class="m" href="reward_eval.html" data-k="تشویق پاداش شایستگی پرسنل"><span class="im" style="--g:linear-gradient(135deg,#fbbf24,#b45309)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><polygon points="62,6 80,34 71,40 52,12" fill="#fff" opacity=".92"/><polygon points="98,6 80,34 89,40 108,12" fill="#fff" opacity=".6"/><circle cx="80" cy="52" r="23" fill="#fde047" stroke="#fff" stroke-width="4"/><circle cx="80" cy="52" r="15.5" fill="none" stroke="#f59e0b" stroke-width="2"/><polygon points="80.0,41.0 82.7,48.3 90.5,48.6 84.4,53.4 86.5,60.9 80.0,56.6 73.5,60.9 75.6,53.4 69.5,48.6 77.3,48.3" fill="#f59e0b"/></svg></span><b>شایستگی تشویق پرسنل</b></a>
+    <a class="m" href="culture.html" data-k="فرهنگ ایمنی نردبان سنجش"><span class="im" style="--g:linear-gradient(135deg,#f472b6,#9d174d)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="56" y="10" width="5" height="64" rx="2.5" fill="#fff"/><rect x="87" y="10" width="5" height="64" rx="2.5" fill="#fff"/><rect x="58" y="22" width="32" height="4" rx="2" fill="#fff"/><rect x="58" y="34" width="32" height="4" rx="2" fill="#fff"/><rect x="58" y="46" width="32" height="4" rx="2" fill="#fff"/><rect x="58" y="58" width="32" height="4" rx="2" fill="#fff"/><line x1="116" y1="16" x2="116" y2="68" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/><path d="M116 17 L138 25 L116 34 Z" fill="#fde047"/></svg></span><b>نردبان فرهنگ ایمنی</b></a>
+    <a class="m" href="ekhtar.html" data-k="اخطار انضباطی تذکر سوابق"><span class="im" style="--g:linear-gradient(135deg,#f87171,#7f1d1d)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="78" y="14" width="4" height="52" rx="2" fill="#fff"/><rect x="60" y="64" width="40" height="7" rx="3.5" fill="#fff"/><circle cx="80" cy="13" r="4.5" fill="#fff"/><line x1="40" y1="26" x2="120" y2="26" stroke="#fff" stroke-width="4" stroke-linecap="round"/><g stroke="#fff" stroke-width="2.2"><line x1="40" y1="26" x2="29" y2="50"/><line x1="40" y1="26" x2="51" y2="50"/><line x1="120" y1="26" x2="109" y2="50"/><line x1="120" y1="26" x2="131" y2="50"/></g><path d="M25 50 H55 Q53 61 40 61 Q27 61 25 50 Z" fill="#fff"/><path d="M105 50 H135 Q133 61 120 61 Q107 61 105 50 Z" fill="#fff"/></svg></span><b>سوابق انضباطی و اخطارها</b><small id="ekhtarMeta"></small></a>
   </div>
 </details>
+<div id="nores">موردی با این جستجو پیدا نشد.</div>
+
 
 <footer>نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <b>محمد اله رضایی</b></footer>
 </div>
@@ -197,7 +224,7 @@ async function loadStatus() {
     else widget('wClin', 'ok', '🏥', `مجموع حوادث ثبت‌شده: ${fa(incN)}`, 'وضعیت مراجعات و پیگیری‌های بهداری پایدار است.');
     meta('mClinic', fuN ? fa(fuN) + ' پیگیری' : '');
   } else widget('wClin', '', '🏥', null, 'آماده‌به‌کار (بخش بهداری)');
-  get('chemicals?status=neq.archived&select=id,review_note').then(ch => { if (ch) meta('mChem', fa(ch.length) + ' ماده' + (ch.filter(x => x.review_note).length ? ' · ' + fa(ch.filter(x => x.review_note).length) + ' ناسازگاری' : '')); }).catch(() => {});
+  get('chemicals?status=neq.archived&select=id,review_note').then(ch => { if (ch) { const k = ch.filter(x => x.review_note).length; meta('mChem', k ? fa(k) + ' ناسازگاری' : ''); } }).catch(() => {});
   if (cd && cd.length) meta('mCard', fa(cd.length) + ' بی‌پاسخ');
   if (bits.length) document.getElementById('deskLine').textContent = bits.join(' · ');
 }
@@ -206,7 +233,7 @@ async function loadEkhtar() {
   const d = await get('ekhtars?select=record_type').catch(() => null);
   if (!d) { widget('wEkh', '', '⚖️', null, 'آماده‌به‌کار (بخش انضباطی)'); return; }
   const w = d.filter(x => x.record_type === 'اخطار کتبی').length;
-  document.getElementById('ekhtarMeta').textContent = `${fa(d.length)} سابقه · ${fa(w)} اخطار کتبی`;
+  document.getElementById('ekhtarMeta').textContent = w ? `${fa(w)} اخطار` : '';
   if (w) widget('wEkh', 'wa', '⚠️', `سوابق انضباطی: ${fa(d.length)} مورد ثبت‌شده`, `${fa(w)} اخطار کتبی ثبت شده است.`);
   else widget('wEkh', 'ok', '✓', `مجموع سوابق انضباطی: ${fa(d.length)}`, 'وضعیت انضباطی پرسنل پایدار است.');
 }
@@ -218,6 +245,7 @@ function syncMgr() {
   const vis = [...m.querySelectorAll('a')].some(a => !a.hidden && getComputedStyle(a).display !== 'none' && !a.closest('[hidden]'));
   m.style.display = vis ? '' : 'none';
   const h = document.getElementById('hr'); if (h) h.style.display = vis ? '' : 'none';
+  syncGroups(); applyNav();
 }
 
 /* ===== افراد پرریسک: حوادث، روز استعلاجی، اخطار، سوابق پزشکی و آموزش ===== */
@@ -248,14 +276,13 @@ async function getAllRows(t) {
 const pickK = (o, ks) => { for (const k of ks) if (o[k] != null && o[k] !== '') return o[k]; return null; };
 
 async function computeHR() {
-  const [emp, inc, vis, ex, fu, ekh, tr, ta] = await Promise.all(['employees?select=*', 'clinic_incidents?select=employee_id,incident_date,severity,description', 'clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days', 'clinic_exams?select=employee_id,exam_date,history,vitals,fitness,restrictions', 'clinic_followups?select=employee_id,status,due_date', 'ekhtars?select=*', 'trainings?select=id,training_date', 'training_attendees?select=training_id,employee_id'].map(getAllRows));
+  const [emp, inc, vis, ex, fu, ekh, tr, ta] = await Promise.all(['employees?select=id,emp_id,first_name,last_name,department', 'clinic_incidents?select=employee_id,incident_date,severity,description', 'clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days', 'clinic_exams?select=employee_id,exam_date,history,vitals,fitness,restrictions', 'clinic_followups?select=employee_id,status,due_date', 'ekhtars?select=*', 'trainings?select=id,training_date', 'training_attendees?select=training_id,employee_id'].map(getAllRows));
   if (!emp) return null;
   const c24 = agoISO(24), c36 = agoISO(36), c60 = agoISO(60), c12 = agoISO(12), c6 = agoISO(6), today = new Date().toISOString().slice(0, 10);
   /* کل سوابق لحاظ می‌شود؛ هرچه قدیمی‌تر، وزن کمتر (۲ سال اخیر ۱۰۰٪، تا ۵ سال ۶۰٪، قدیمی‌تر ۳۵٪؛ حادثه شدید/فوتی حداقل ۶۰٪) */
   const wAge = (d, sev) => { const w = d >= c24 ? 1 : d >= c60 ? 0.6 : 0.35; return sev >= 3 ? Math.max(w, 0.6) : w; };
   const P = {}, byCode = {};
-  const empA = emp.filter(e => HSEP.isActive(e));
-  empA.forEach(e => { P[e.id] = { e, n: 0, nRec: 0, n36: 0, sevMax: 0, pts: 0, lostInc: 0, lostVis: 0, lostIncW: 0, lostVisW: 0, warnPts: 0, lastEv: null, warnW: 0, warnO: 0, v6: 0, vBP: 0, seizV: 0, cond: new Set(), bp: false, restr: false, fuOver: 0, lastTr: null, chips: [], act: new Set() }; if (e.emp_id != null) byCode[String(e.emp_id)] = e.id; });
+  emp.forEach(e => { P[e.id] = { e, n: 0, nRec: 0, n36: 0, sevMax: 0, pts: 0, lostInc: 0, lostVis: 0, lostIncW: 0, lostVisW: 0, warnPts: 0, lastEv: null, warnW: 0, warnO: 0, v6: 0, vBP: 0, seizV: 0, cond: new Set(), bp: false, restr: false, fuOver: 0, lastTr: null, chips: [], act: new Set() }; if (e.emp_id != null) byCode[String(e.emp_id)] = e.id; });
   const SO = { minor: 1, moderate: 2, severe: 3, fatal: 4 };
   (inc || []).forEach(i => { const p = P[i.employee_id], d = dISO(i.incident_date); if (!p || !d) return; const sv = HRW.sev[i.severity] ? i.severity : 'minor', w = wAge(d, SO[sv]); if (!p.lastEv || d > p.lastEv) p.lastEv = d; p.n++; if (d >= c24) p.nRec++; if (d >= c36) p.n36++; p.pts += HRW.sev[sv] * w; p.sevMax = Math.max(p.sevMax, SO[sv]); const m = ndg(i.description).match(/روز از دست رفته:\s*(\d+)/); if (m) { p.lostInc += +m[1]; p.lostIncW += +m[1] * w; } });
   (vis || []).forEach(v => { const p = P[v.employee_id], d = dISO(v.visit_date); if (!p || !d) return; const ld = Number(v.medical_leave_days) || 0; p.lostVis += ld; p.lostVisW += ld * wAge(d, 0); if (d >= c6) p.v6++; const r = String(v.visit_reason || ''); if (d >= c12 && /فشار/.test(r)) p.vBP++; if (/تشنج|صرع|غش|بیهوش/.test(r)) p.seizV++; });
@@ -295,7 +322,7 @@ async function computeHR() {
     p.actions = a;
   });
   const list = out.concat(Object.values(P).filter(p => p.level !== 'low')).sort((a, b) => ({ high: 0, mid: 1, med: 2 }[a.level] - { high: 0, mid: 1, med: 2 }[b.level]) || b.score - a.score);
-  return { list, total: empA.length, haveTr };
+  return { list, total: emp.length, haveTr };
 }
 let HRC = null, HRN = 8;
 function renderHR() {
@@ -313,6 +340,39 @@ function renderHR() {
 async function loadHR() { try { HRC = await computeHR(); } catch (e) { HRC = null; } renderHR(); }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 document.getElementById('hr').addEventListener('toggle', e => { if (e.target.open && !HRC) loadHR(); });
+
+/* ===== جستجوی ماژول‌ها =====
+   مخفی‌کردن فقط با کلاس‌های nf / gx / ga انجام می‌شود و به hidden و style لینک‌ها دست نمی‌زنیم تا پنهان‌سازی auth.js به‌هم نریزد. */
+const nrmQ = s => String(s || '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/[\u200c\s]+/g, ' ').trim().toLowerCase();
+function authVis(a) { const had = a.classList.contains('nf'); if (had) a.classList.remove('nf'); const v = !a.hidden && getComputedStyle(a).display !== 'none' && !a.closest('[hidden]'); if (had) a.classList.add('nf'); return v; }
+function applyNav() {
+  const words = nrmQ(document.getElementById('q').value).split(' ').filter(Boolean); let any = false;
+  document.querySelectorAll('.grp').forEach(g => {
+    let shown = 0;
+    g.querySelectorAll('a.m').forEach(a => { const ok = words.every(w => nrmQ(a.textContent + ' ' + (a.dataset.k || '')).includes(w)); a.classList.toggle('nf', !ok); if (ok && authVis(a)) shown++; });
+    const ok = !words.length || shown > 0; g.classList.toggle('gx', !ok);
+    if (ok && words.length && g.tagName === 'DETAILS') g.open = true;
+    if (ok && shown && g.style.display !== 'none') any = true;
+  });
+  document.getElementById('nores').style.display = (words.length && !any) ? 'block' : 'none';
+}
+function syncGroups() { document.querySelectorAll('section.grp').forEach(g => g.classList.toggle('ga', ![...g.querySelectorAll('a.m')].some(authVis))); }
+document.getElementById('q').addEventListener('input', applyNav);
+document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Escape') { e.target.value = ''; applyNav(); } });
+document.addEventListener('keydown', e => { if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName || '')) { e.preventDefault(); document.getElementById('q').focus(); } });
+
+/* ===== ترتیب ماژول‌ها بر اساس تعداد استفاده‌ی هر کاربر (در همین مرورگر ذخیره می‌شود) =====
+   فقط از CSS order استفاده می‌شود؛ جای لینک‌ها در DOM و hidden/display آن‌ها تغییر نمی‌کند. */
+const UK = 'hse_use', getUse = () => { try { return JSON.parse(localStorage.getItem(UK) || '{}'); } catch (e) { return {}; } };
+document.addEventListener('click', e => { const a = e.target.closest('a.m'); if (!a) return; try { const u = getUse(), h = a.getAttribute('href'); u[h] = (u[h] || 0) + 1; localStorage.setItem(UK, JSON.stringify(u)); } catch (_) {} });
+function applyOrder() {
+  const u = getUse(), cnt = a => u[a.getAttribute('href')] || 0;
+  document.querySelectorAll('a.m').forEach(a => a.style.setProperty('order', String(-cnt(a))));
+  const secs = [...document.querySelectorAll('section.mg')].map(g => ({ g, n: [...g.querySelectorAll('a.m')].reduce((t, a) => t + cnt(a), 0) }));
+  secs.map((x, i) => ({ ...x, i })).sort((a, b) => b.n - a.n || a.i - b.i).forEach((x, r) => x.g.style.setProperty('order', String(10 + r)));
+  const m = document.getElementById('mgr'); if (m) m.style.setProperty('order', '30');
+}
+applyOrder();
 
 loadStatus().catch(() => ['wFin', 'wRisk', 'wClin'].forEach(id => widget(id, '', null, null, 'آماده‌به‌کار (متصل به دیتابیس)')));
 loadEkhtar();
