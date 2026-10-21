@@ -5,10 +5,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ارزیابی عملکرد واحدها - نرم‌افزار جامع HSE</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="stylesheet" href="hse_ui.css">
-<style>td input[type=number]{width:60px;padding:3px 6px}.z0{color:#34d399}.z1{color:#38bdf8}.z2{color:#fbbf24}.z3{color:#f87171}.inc td{background:#1e293b80}</style>
+<style>td input[type=number]{width:60px;padding:3px 6px}.z0{color:var(--ok)}.z1{color:var(--in)}.z2{color:var(--wa)}.z3{color:var(--bad)}.inc td{background:var(--card)80}</style>
 </head>
 <body>
 <div class="w" style="max-width:1100px">
@@ -35,7 +33,7 @@ let B=null,R=null,K=null;
 $('mSel').innerHTML=monthKeys(12).map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join('');
 const n1=v=>fa(Math.round(v*10)/10);
 async function load(){
-  B=await loadEval();
+  B=await loadEval({days:450});
   if(!B.units){$('err').style.display='block';$('err').textContent='جدول واحدها پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';return}
   $('err').style.display='none';draw();
 }
@@ -58,7 +56,7 @@ async function saveRows(all,zeroEmpty){
   const m=inputs(),rows=[];
   Object.entries(m).forEach(([uid,v])=>{const e=v.ppe!==''||v.unsafe!=='';if(!e&&!zeroEmpty)return;if(!e&&R.rows.find(r=>r.u.id===uid).entered)return;rows.push({unit_id:uid,month_key:K,ppe_count:+v.ppe||0,unsafe_count:+v.unsafe||0})});
   if(!rows.length){alert('ورودی جدیدی برای ذخیره وجود ندارد.');return}
-  try{await req('hse_unit_monthly?on_conflict=unit_id,month_key','POST',rows,'resolution=merge-duplicates,return=minimal');B=await loadEval();draw()}catch(e){alert('خطا در ذخیره: '+e.message)}
+  try{await req('hse_unit_monthly?on_conflict=unit_id,month_key','POST',rows,'resolution=merge-duplicates,return=minimal');B=await loadEval({days:450});draw()}catch(e){alert('خطا در ذخیره: '+e.message)}
 }
 $('bSave').onclick=()=>saveRows(false,false);
 $('bZero').onclick=()=>{if(confirm('برای واحدهایی که ورودی ندارند، «۰ مورد PPE و ۰ مورد رفتار ناایمن» ثبت شود؟\nاین یعنی در این ماه موردی مشاهده نشده است.'))saveRows(true,true)};
@@ -74,7 +72,7 @@ $('uSave').onclick=async()=>{
   try{for(const tr of trs){const g=k=>{const e=tr.querySelector(`[data-k="${k}"]`);return e.type==='checkbox'?e.checked:e.value.trim()};const name=g('name');if(!name){if(!tr.dataset.id)continue;bad=true;continue}
     const body={name,manager:g('manager')||null,risk_level:g('risk_level'),headcount:Math.max(1,+g('headcount')||1),aliases:g('aliases')||null,active:g('active')};
     if(tr.dataset.id)await req('hse_units?id=eq.'+tr.dataset.id,'PATCH',body,'return=minimal');else await req('hse_units','POST',body,'return=minimal')}
-    B=await loadEval();draw();uDraw();if(bad)alert('ردیف‌های بدون نام ذخیره نشدند.');else $('modal').classList.remove('on')}
+    B=await loadEval({days:450});draw();uDraw();if(bad)alert('ردیف‌های بدون نام ذخیره نشدند.');else $('modal').classList.remove('on')}
   catch(e){alert('خطا در ذخیره: '+e.message)}};
 load();
 </script>

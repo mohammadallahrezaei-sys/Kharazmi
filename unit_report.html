@@ -5,8 +5,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>گزارش واحدها برای Outlook - نرم‌افزار جامع HSE</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="stylesheet" href="hse_ui.css">
 <style>
 .pv{background:#fff;border-radius:10px;padding:10px;overflow-x:auto;margin-top:8px}
@@ -15,9 +13,9 @@
 .opts{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:13px}
 .opts label{display:inline-flex;gap:5px;align-items:center;cursor:pointer;white-space:nowrap}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.chips span{font-size:11px;padding:2px 9px;border-radius:99px;border:1px solid #334155;color:#94a3b8;background:#0f172a}
-.chips span.bad{border-color:#7f1d1d;color:#f87171}
-.chips span.wa{border-color:#78350f;color:#fbbf24}
+.chips span{font-size:11px;padding:2px 9px;border-radius:99px;border:1px solid var(--bd);color:var(--mu);background:var(--soft)}
+.chips span.bad{border-color:color-mix(in srgb,var(--bad) 55%,transparent);color:var(--bad)}
+.chips span.wa{border-color:color-mix(in srgb,var(--wa) 55%,transparent);color:var(--wa)}
 </style>
 </head>
 <body>
@@ -73,7 +71,7 @@ const monthsSince=d=>{const t=new Date(String(d).slice(0,10)+'T00:00:00').getTim
 
 /* ---------- بارگذاری ---------- */
 async function load(){
-  [B,FIN,EMP,VIS,INC,FU,EXM,EKH]=await Promise.all([loadEval(),g('findings?select=*'),g('employees?select=*'),g('clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days,is_referred'),g('clinic_incidents?select=*'),g('clinic_followups?select=employee_id,kind,status,due_date'),g('clinic_exams?select=employee_id,exam_date,exam_type,fitness,restrictions'),g('ekhtars?select=*')]);
+  [B,FIN,EMP,VIS,INC,FU,EXM,EKH]=await Promise.all([loadEval({days:450}),g('findings?select=*'),g('employees?select=*'),g('clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days,is_referred'),g('clinic_incidents?select=*'),g('clinic_followups?select=employee_id,kind,status,due_date'),g('clinic_exams?select=employee_id,exam_date,exam_type,fitness,restrictions'),g('ekhtars?select=*')]);
   if(!B.units){$('err').style.display='block';$('err').textContent='جدول واحدها پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';$('out').innerHTML='';return}
   match=unitMatcher(B.units);
   (EMP||[]).forEach(e=>{e._u=match(e.department||'')||null;EMPBY[e.id]=e;if(e.emp_id!=null)EMPCODE[String(e.emp_id)]=e});

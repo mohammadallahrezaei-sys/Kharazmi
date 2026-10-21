@@ -1,25 +1,86 @@
-/* ظاهر مشترک ماژول‌های کارت‌ها، ارزیابی واحدها و نردبان فرهنگ */
-*{box-sizing:border-box}
-body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:#0f172a;color:#f1f5f9;font-size:13px;line-height:1.8;padding:14px}
-.w{max-width:900px;margin:auto}
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:12px 16px;margin-bottom:12px}
-.top h1{font-size:16px;margin:0}.top p{margin:0;font-size:11px;color:#94a3b8}
-.card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:12px;margin-bottom:10px}
-.card h2{font-size:14px;margin:0 0 8px;color:#2dd4bf}
-.btn,button,a.btn,select,input,textarea{font-family:inherit;font-size:12px}
-.btn,button{padding:6px 12px;border-radius:10px;border:1px solid #334155;background:#334155;color:#f1f5f9;cursor:pointer;text-decoration:none;display:inline-block}
-.btn.p,button.p{background:#10b981;border-color:#10b981;color:#052e16;font-weight:700}
-.btn.d,button.d{background:transparent;border-color:#7f1d1d;color:#fca5a5}
-.fld,select,input[type=text],input[type=number],textarea{width:100%;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:7px 10px;color:#fff;outline:none}
-.fld:focus,select:focus,input:focus,textarea:focus{border-color:#10b981}
-label.l{display:block;font-size:11px;color:#94a3b8;margin:6px 0 2px}
+/* =====================================================================
+   ظاهر مشترک کل نرم‌افزار HSE — مرجع: صفحه‌ی اصلی (index.html)
+   فونت وزیرمتن (روی خود سایت) + رنگ‌های روشن/تیره‌ی خودکار + اجزای مشترک
+   هر صفحه‌ی جدید فقط باید این فایل را در <head> لینک کند.
+   ===================================================================== */
+@font-face{font-family:Vazirmatn;src:url(fonts/vazirmatn-var.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+
+/* ---------- رنگ‌ها ---------- */
+:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ok:#059669;--wa:#d97706;--bad:#dc2626;--ac:#0f766e;--acx:#fff;--soft:#f8fafc;--in:#2563eb;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155;--ok:#34d399;--wa:#fbbf24;--bad:#f87171;--ac:#14b8a6;--acx:#042f2e;--soft:#172033;--in:#60a5fa}}
+/* نام‌های قدیمی متغیرها (برای صفحه‌هایی که قبلاً پالت جدا داشتند) */
+:root{--card-bg:var(--card);--ink:var(--tx);--ln:var(--bd);--line:var(--bd);--mut:var(--mu);--nc:var(--bad);--warn:var(--wa);--info:var(--in);--na:var(--mu);--pri:var(--ac);--pri-ink:var(--acx);--ac-hover:color-mix(in srgb,var(--ac) 85%,#000);--field:var(--soft);
+  --okbg:color-mix(in srgb,var(--ok) 13%,var(--card));--warnbg:color-mix(in srgb,var(--wa) 14%,var(--card));--badbg:color-mix(in srgb,var(--bad) 12%,var(--card));--infobg:color-mix(in srgb,var(--in) 12%,var(--card));--nabg:color-mix(in srgb,var(--mu) 12%,var(--card));
+  --shadow:0 4px 14px rgba(15,23,42,.12);--shadow-sm:0 1px 3px rgba(15,23,42,.12)}
+
+/* ---------- پایه ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:var(--bg);color:var(--tx);font-size:15px;line-height:1.8}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+input[type=checkbox],input[type=radio]{accent-color:var(--ac)}
+input::placeholder,textarea::placeholder{color:var(--mu);opacity:.75}
+h1{margin:0;font-size:20px;font-weight:800}
+h2{margin:0 0 8px;font-size:15px;font-weight:700;color:var(--ac)}
+footer{text-align:center;color:var(--mu);font-size:12px;padding:6px 0 0}
+footer b{color:var(--ac)}
+.mu{color:var(--mu);font-size:13px}
+.ok{color:var(--ok)}.wa{color:var(--wa)}.bad{color:var(--bad)}
+
+/* ---------- اجزای مشترک ---------- */
+.w{max-width:900px;margin:auto;padding:16px 14px 40px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px 16px;margin-bottom:12px}
+.top h1{font-size:18px}.top p{margin:0;font-size:12px;color:var(--mu)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:10px}
+:where(button),.btn{font-family:inherit;font-size:13px;line-height:1.6;padding:6px 13px;border-radius:10px;border:1px solid var(--bd);background:var(--soft);color:var(--tx);cursor:pointer;text-decoration:none;display:inline-block}
+:where(button):hover,.btn:hover{border-color:var(--ac)}
+.btn.p,button.p{background:var(--ac);border-color:var(--ac);color:var(--acx);font-weight:700}
+.btn.d,button.d{background:transparent;border-color:var(--bad);color:var(--bad)}
+.btn.p:hover,button.p:hover{filter:brightness(1.06)}
+.fld,:where(select,input:not([type]),input[type=text],input[type=number],input[type=search],input[type=date],input[type=email],input[type=password],input[type=tel],textarea){font-family:inherit;font-size:13px;width:100%;background:var(--soft);border:1px solid var(--bd);border-radius:10px;padding:7px 10px;color:var(--tx);outline:none}
+.fld:focus,:where(select,input,textarea):focus{border-color:var(--ac)}
+label.l{display:block;font-size:12px;color:var(--mu);margin:6px 0 2px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 @media(max-width:560px){.g2,.g3{grid-template-columns:1fr}}
 .jd{display:flex;gap:4px}.jd select{flex:1;min-width:0}
-.mu{color:#94a3b8;font-size:11px}.ok{color:#34d399}.wa{color:#fbbf24}.bad{color:#f87171}
-.tag{display:inline-block;font-size:11px;padding:1px 9px;border-radius:99px;border:1px solid #334155;background:#0f172a}
-table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #334155;padding:5px 6px;text-align:right;font-size:12px}th{color:#94a3b8;font-weight:500;white-space:nowrap}
+.tag{display:inline-block;font-size:11px;padding:1px 9px;border-radius:99px;border:1px solid var(--bd);background:var(--soft)}
+:where(table){width:100%;border-collapse:collapse}
+:where(td,th){border-bottom:1px solid var(--bd);padding:5px 6px;text-align:right;font-size:12px}
+:where(th){color:var(--mu);font-weight:500;white-space:nowrap}
 .sc{overflow-x:auto}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}.modal.on{display:flex}
-.modal>div{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:16px;max-width:560px;width:100%;max-height:92vh;overflow-y:auto}
-.err{background:#450a0a;border:1px solid #7f1d1d;color:#fca5a5;border-radius:12px;padding:10px;margin-bottom:10px;display:none}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}.modal.on{display:flex}
+.modal>div{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;max-width:560px;width:100%;max-height:92vh;overflow-y:auto}
+.err{background:color-mix(in srgb,var(--bad) 12%,var(--card));border:1px solid var(--bad);color:var(--bad);border-radius:12px;padding:10px;margin-bottom:10px;display:none}
+
+/* کاشی‌ها و نشان‌های وضعیت (میز کار، مواد شیمیایی، گزارش‌ها) */
+.tile,.tl{display:block;color:inherit;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:8px 10px;border-right:4px solid var(--bd)}
+.tile b,.tl b{font-size:22px;display:block;line-height:1.3}.tile span,.tl span{font-size:12px;color:var(--mu)}
+.tile.r,.tl.r{border-right-color:var(--bad)}.tile.y,.tl.y{border-right-color:var(--wa)}.tile.g,.tl.g{border-right-color:var(--ok)}
+.bd{font-size:12px;padding:1px 8px;border-radius:99px;white-space:nowrap;align-self:flex-start;border:1px solid}
+.bd.r{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 55%,transparent)}.bd.y{color:var(--wa);border-color:color-mix(in srgb,var(--wa) 55%,transparent)}.bd.g{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 55%,transparent)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chips span{font-size:12px;padding:2px 9px;border-radius:99px;border:1px solid var(--bd);color:var(--mu);background:var(--soft)}
+.chips span.bad{border-color:color-mix(in srgb,var(--bad) 55%,transparent);color:var(--bad)}
+.chips span.wa{border-color:color-mix(in srgb,var(--wa) 55%,transparent);color:var(--wa)}
+
+/* ---------- سربرگ و پانویس مثل صفحه‌ی اصلی ---------- */
+.hd{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.hd img{width:44px;height:auto;border-radius:8px;flex:none}
+.hd h1{line-height:1.5}
+.hd>.back,.hd-act>.back{border:1px solid var(--ac);color:var(--ac);background:var(--card);border-radius:12px;padding:6px 12px;font-size:12px;font-weight:700;white-space:nowrap}
+.hd>.back{margin-inline-start:auto}
+.hd-act{margin-inline-start:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.back:hover{filter:brightness(1.06)}
+footer{margin-top:2rem}
+/* سربرگ صفحه‌هایی که ابزار (انتخاب ماه/واحد و دکمه) هم دارند: همان ظاهر سربرگ اصلی، با لوگو */
+.top{background:none;border:0;border-radius:0;padding:0;margin-bottom:14px}
+.top::before{content:"";width:44px;height:44px;flex:none;background:url(logo-sm.png) center/contain no-repeat;border-radius:8px}
+.top>div:first-child{margin-inline-end:auto;flex:1 1 180px;min-width:0}
+.top h1{font-size:20px;line-height:1.5}.top p{font-size:13px}
+/* دکمه‌ی «بازگشت» در همه‌ی صفحه‌ها یکسان */
+.top a.btn[href="index.html"]{border-color:var(--ac);color:var(--ac);background:var(--card);border-radius:12px;font-weight:700}
+
+/* ---------- تنظیم‌های مشترک صفحه‌های Tailwind (tw.css) ---------- */
+.rounded-2xl{border-radius:14px}.rounded-xl{border-radius:12px}
+.shadow,.shadow-md,.shadow-sm,.shadow-2xl{box-shadow:none}
