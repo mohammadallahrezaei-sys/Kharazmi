@@ -67,11 +67,22 @@
   }
 
   /* ---- بارگذاری داده‌های ارزیابی ---- */
-  async function loadEval() {
-    const [units, monthly, cards, inc, emp, tr, ta] = await Promise.all([
-      getAll('hse_units?select=*'), getAll('hse_unit_monthly?select=*'), getAll('hse_cards?select=*'),
-      getAll('clinic_incidents?select=incident_date,severity,description,employee_id'), getAll('employees?select=id,department,termination_date').then(r => r || getAll('employees?select=id,department')),
-      getAll('trainings?select=id,training_type,training_date'), getAll('training_attendees?select=training_id,employee_id')]);
+  /* o.days: فقط داده‌ی چند روز اخیر خوانده شود (سریع‌تر؛ برای ارزیابی ماهانه کافی است). بدون آن، کل تاریخچه. */
+  async function loadEval(o) {
+    const days = o && o.days, since = days ? new Date(Date.now() - days * 864e5).toISOString().slice(0, 10) : null,
+      F = (t, col) => since ? `${t}&${col}=gte.${since}` : t;
+    const [units, monthly, cards, inc, emp, tr] = await Promise.all([
+      getAll('hse_units?select=*'), getAll('hse_unit_monthly?select=*'), getAll(F('hse_cards?select=*', 'card_date')),
+      getAll(F('clinic_incidents?select=incident_date,severity,description,employee_id', 'incident_date')),
+      getAll('employees?select=id,department,termination_date').then(r => r || getAll('employees?select=id,department')),
+      getAll(F('trainings?select=id,training_type,training_date', 'training_date'))]);
+    let ta;
+    if (since && tr) { /* فقط حاضرین جلسات ایمنی همین بازه (ارزیابی فقط از همین‌ها استفاده می‌کند) */
+      const ids = tr.filter(t => t.training_type === 'safety_talk').map(t => t.id), ch = [];
+      for (let i = 0; i < ids.length; i += 40) ch.push(getAll('training_attendees?select=training_id,employee_id&training_id=in.(' + ids.slice(i, i + 40).join(',') + ')'));
+      const parts = await Promise.all(ch);
+      ta = parts.some(p => !p) ? null : [].concat(...parts);
+    } else ta = await getAll('training_attendees?select=training_id,employee_id');
     return { units, monthly, cards, inc, emp, tr, ta };
   }
 

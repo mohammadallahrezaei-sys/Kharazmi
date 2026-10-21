@@ -5,9 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نرم‌افزار جامع HSE - گسترش فناوری خوارزمی</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap"></noscript>
+<link rel="stylesheet" href="fonts.css">
 <style>
 :root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ok:#059669;--wa:#d97706;--bad:#dc2626;--ac:#0f766e;--acx:#fff;--soft:#f8fafc}
 @media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155;--ok:#34d399;--wa:#fbbf24;--bad:#f87171;--ac:#14b8a6;--acx:#042f2e;--soft:#172033}}
@@ -106,7 +104,7 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
 <div class="w">
 
 <header>
-  <img src="logo.png" alt="گسترش فناوری خوارزمی" onerror="this.style.display='none'">
+  <img src="logo-sm.png" alt="گسترش فناوری خوارزمی" onerror="this.style.display='none'">
   <div>
     <h1>نرم‌افزار جامع HSE</h1>
     <div class="mu">گسترش فناوری خوارزمی</div>
@@ -276,13 +274,14 @@ async function getAllRows(t) {
 const pickK = (o, ks) => { for (const k of ks) if (o[k] != null && o[k] !== '') return o[k]; return null; };
 
 async function computeHR() {
-  const [emp, inc, vis, ex, fu, ekh, tr, ta] = await Promise.all(['employees?select=id,emp_id,first_name,last_name,department', 'clinic_incidents?select=employee_id,incident_date,severity,description', 'clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days', 'clinic_exams?select=employee_id,exam_date,history,vitals,fitness,restrictions', 'clinic_followups?select=employee_id,status,due_date', 'ekhtars?select=*', 'trainings?select=id,training_date', 'training_attendees?select=training_id,employee_id'].map(getAllRows));
+  const [emp, inc, vis, ex, fu, ekh, tr, ta] = await Promise.all(['employees?select=*', 'clinic_incidents?select=employee_id,incident_date,severity,description', 'clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days', 'clinic_exams?select=employee_id,exam_date,history,vitals,fitness,restrictions', 'clinic_followups?select=employee_id,status,due_date', 'ekhtars?select=*', 'trainings?select=id,training_date', 'training_attendees?select=training_id,employee_id'].map(getAllRows));
   if (!emp) return null;
   const c24 = agoISO(24), c36 = agoISO(36), c60 = agoISO(60), c12 = agoISO(12), c6 = agoISO(6), today = new Date().toISOString().slice(0, 10);
   /* کل سوابق لحاظ می‌شود؛ هرچه قدیمی‌تر، وزن کمتر (۲ سال اخیر ۱۰۰٪، تا ۵ سال ۶۰٪، قدیمی‌تر ۳۵٪؛ حادثه شدید/فوتی حداقل ۶۰٪) */
   const wAge = (d, sev) => { const w = d >= c24 ? 1 : d >= c60 ? 0.6 : 0.35; return sev >= 3 ? Math.max(w, 0.6) : w; };
   const P = {}, byCode = {};
-  emp.forEach(e => { P[e.id] = { e, n: 0, nRec: 0, n36: 0, sevMax: 0, pts: 0, lostInc: 0, lostVis: 0, lostIncW: 0, lostVisW: 0, warnPts: 0, lastEv: null, warnW: 0, warnO: 0, v6: 0, vBP: 0, seizV: 0, cond: new Set(), bp: false, restr: false, fuOver: 0, lastTr: null, chips: [], act: new Set() }; if (e.emp_id != null) byCode[String(e.emp_id)] = e.id; });
+  const empA = emp.filter(e => HSEP.isActive(e)); /* قطع همکاری: از فهرست افراد پرخطر حذف */
+  empA.forEach(e => { P[e.id] = { e, n: 0, nRec: 0, n36: 0, sevMax: 0, pts: 0, lostInc: 0, lostVis: 0, lostIncW: 0, lostVisW: 0, warnPts: 0, lastEv: null, warnW: 0, warnO: 0, v6: 0, vBP: 0, seizV: 0, cond: new Set(), bp: false, restr: false, fuOver: 0, lastTr: null, chips: [], act: new Set() }; if (e.emp_id != null) byCode[String(e.emp_id)] = e.id; });
   const SO = { minor: 1, moderate: 2, severe: 3, fatal: 4 };
   (inc || []).forEach(i => { const p = P[i.employee_id], d = dISO(i.incident_date); if (!p || !d) return; const sv = HRW.sev[i.severity] ? i.severity : 'minor', w = wAge(d, SO[sv]); if (!p.lastEv || d > p.lastEv) p.lastEv = d; p.n++; if (d >= c24) p.nRec++; if (d >= c36) p.n36++; p.pts += HRW.sev[sv] * w; p.sevMax = Math.max(p.sevMax, SO[sv]); const m = ndg(i.description).match(/روز از دست رفته:\s*(\d+)/); if (m) { p.lostInc += +m[1]; p.lostIncW += +m[1] * w; } });
   (vis || []).forEach(v => { const p = P[v.employee_id], d = dISO(v.visit_date); if (!p || !d) return; const ld = Number(v.medical_leave_days) || 0; p.lostVis += ld; p.lostVisW += ld * wAge(d, 0); if (d >= c6) p.v6++; const r = String(v.visit_reason || ''); if (d >= c12 && /فشار/.test(r)) p.vBP++; if (/تشنج|صرع|غش|بیهوش/.test(r)) p.seizV++; });
@@ -322,7 +321,7 @@ async function computeHR() {
     p.actions = a;
   });
   const list = out.concat(Object.values(P).filter(p => p.level !== 'low')).sort((a, b) => ({ high: 0, mid: 1, med: 2 }[a.level] - { high: 0, mid: 1, med: 2 }[b.level]) || b.score - a.score);
-  return { list, total: emp.length, haveTr };
+  return { list, total: empA.length, haveTr };
 }
 let HRC = null, HRN = 8;
 function renderHR() {

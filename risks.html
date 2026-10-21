@@ -5,8 +5,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ثبت ریسک - نرم‌افزار جامع HSE</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <link rel="stylesheet" href="hse_ui.css">
 <style>
 .lv{display:inline-block;padding:0 8px;border-radius:99px;font-size:12px;font-weight:700;color:#0f172a}
@@ -143,7 +141,7 @@ function render(){
   $('list').innerHTML=L.length?L.map(r=>{const v=lvl(r),e=evid(r.id),fl=flags(r),rs=resScore(r);
    const sc=r.method==='fmea'?`S ${fa(r.severity)} × O ${fa(r.likelihood)} × D ${r.detection?fa(r.detection):'؟'} = <b>RPN ${fa(r.score)}</b>`:r.method==='hazop'?`S ${fa(r.severity)} × L ${fa(r.likelihood)} = <b>${fa(r.score)}</b>`:`امتیاز نهایی ${MN[r.method]}: <b>${fa(r.score)}</b>`;
    return`<details class="card"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:8px"><span><b>${esc(r.hazard)}</b> <span class="tag">${esc(r.category||'بدون دسته')}</span> <span class="tag">${MN[r.method]}</span> <span class="mu">· ${esc(r.unit)}${r.activity?' · '+esc(r.activity):''}</span></span><span style="text-align:left;white-space:nowrap"><span class="lv" style="background:${v.c}">${v.t} · ${fa(r.score)}</span> ${r.status==='draft'?'<span class="tag wa">در انتظار تأیید</span>':r.status==='archived'?'<span class="tag">بایگانی</span>':''}</span></summary>
-   <div style="margin-top:8px;border-top:1px solid #334155;padding-top:8px">
+   <div style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px">
    ${r.chemical_id&&CH.find(x=>x.id==r.chemical_id)?`<div class="mu">ماده مرتبط: <a href="chemicals.html">${esc(CH.find(x=>x.id==r.chemical_id).name)}</a></div>`:''}
    ${r.process?`<div class="mu">فرآیند: ${esc(r.process)}${r.assessed_on?' · تاریخ ارزیابی: '+esc(r.assessed_on):''}</div>`:''}
    ${r.consequence?`<div><b>پیامد:</b> ${esc(r.consequence)}</div>`:''}${r.causes?`<div><b>علل:</b> ${esc(r.causes)}</div>`:''}

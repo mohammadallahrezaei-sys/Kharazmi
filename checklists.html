@@ -5,24 +5,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ماژول چک‌لیست‌ها و بازرسی - نرم‌افزار جامع HSE</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap"></noscript>
+<link rel="stylesheet" href="fonts.css">
 <style>
-:root {
-  --bg: #0f172a;
-  --card-bg: #1e293b;
-  --ink: #f8fafc;
-  --mu: #94a3b8;
-  --ln: #334155;
-  --ac: #10b981;
-  --ac-hover: #059669;
-  --ok: #22c55e;
-  --nc: #ef4444;
-  --warn: #f59e0b;
-  --shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
-}
+:root{--bg:#f1f5f9;--card-bg:#fff;--ink:#0f172a;--mu:#64748b;--ln:#e2e8f0;--ac:#0f766e;--acx:#fff;--ac-hover:#115e59;--ok:#059669;--nc:#dc2626;--warn:#d97706;--shadow:0 4px 14px rgba(15,23,42,.12);--shadow-sm:0 1px 3px rgba(15,23,42,.12);color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card-bg:#1e293b;--ink:#f1f5f9;--mu:#94a3b8;--ln:#334155;--ac:#14b8a6;--acx:#042f2e;--ac-hover:#2dd4bf;--ok:#34d399;--nc:#f87171;--warn:#fbbf24;--shadow:0 10px 15px -3px rgba(0,0,0,.3);--shadow-sm:0 1px 3px rgba(0,0,0,.2)}}
 * { box-sizing: border-box; transition: all 0.15s ease-in-out; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.7 Vazirmatn, Tahoma, sans-serif; padding: 16px 16px 100px; }
 #app { max-width: 680px; margin: auto; }
@@ -30,15 +16,15 @@ h2 { font-size: 20px; font-weight: 800; margin: 16px 0 8px; color: var(--ink); d
 small { color: var(--mu); display: block; font-size: 12px; }
 
 input, select { width: 100%; font: inherit; color: var(--ink); background: var(--card-bg); border: 1.5px solid var(--ln); border-radius: 10px; padding: 10px 14px; margin-top: 8px; min-height: 46px; outline: none; }
-input:focus, select:focus { border-color: var(--ac); box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+input:focus, select:focus { border-color: var(--ac); box-shadow: 0 0 0 3px color-mix(in srgb,var(--ac) 18%,transparent); }
 button, .btn-link { font: inherit; color: var(--ink); background: var(--card-bg); border: 1.5px solid var(--ln); border-radius: 12px; min-height: 48px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
 button:hover, .btn-link:hover { background: var(--ln); }
 
 body div#app { display: flex; flex-direction: column; }
 .m:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--ac); }
 .m b { display: block; font-size: 16px; font-weight: 700; color: var(--ink); }
-.p { width: 100%; margin-top: 10px; background: var(--ac); border-color: var(--ac); color: #0f172a; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 12px rgba(16,185,129,0.25); }
-.p:hover { background: var(--ac-hover); border-color: var(--ac-hover); color: #fff; }
+.p { width: 100%; margin-top: 10px; background: var(--ac); border-color: var(--ac); color: var(--acx); font-weight: 700; border-radius: 12px; }
+.p:hover { background: var(--ac-hover); border-color: var(--ac-hover); color: var(--acx); }
 .l { border: 0; background: none; color: var(--mu); padding: 0; min-height: auto; font-size: 13px; }
 .l:hover { color: var(--ac); background: none; }
 
@@ -50,20 +36,20 @@ body div#app { display: flex; flex-direction: column; }
 
 .b { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
 .b button { min-height: 40px; border-radius: 8px; font-size: 13px; font-weight: 600; background: var(--bg); border-color: var(--ln); }
-.b .on.ok { background: rgba(34,197,94,0.1); color: var(--ok); border-color: var(--ok); }
-.b .on.nc { background: rgba(239,68,68,0.1); color: var(--nc); border-color: var(--nc); }
-.b .on.na { background: rgba(148,163,184,0.1); color: var(--mu); border-color: var(--mu); }
+.b .on.ok { background: color-mix(in srgb,var(--ok) 12%,var(--card-bg)); color: var(--ok); border-color: var(--ok); }
+.b .on.nc { background: color-mix(in srgb,var(--nc) 12%,var(--card-bg)); color: var(--nc); border-color: var(--nc); }
+.b .on.na { background: color-mix(in srgb,var(--mu) 12%,var(--card-bg)); color: var(--mu); border-color: var(--mu); }
 
 .ph { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .th { position: relative; width: 72px; height: 72px; border-radius: 10px; overflow: hidden; border: 1px solid var(--ln); }
 .th img { width: 100%; height: 100%; object-fit: cover; }
 .th b { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.6); color: #fff; width: 20px; height: 20px; border-radius: 50%; line-height: 20px; text-align: center; cursor: pointer; font-size: 12px; }
-.ad { border: 1.5px dashed var(--ac); color: var(--ac); background: rgba(16,185,129,0.04); padding: 0 12px; min-height: 44px; border-radius: 10px; width: 100%; }
+.ad { border: 1.5px dashed var(--ac); color: var(--ac); background: color-mix(in srgb,var(--ac) 6%,var(--card-bg)); padding: 0 12px; min-height: 44px; border-radius: 10px; width: 100%; }
 
 .fx { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-weight: 600; font-size: 13px; }
 .fx input[type=checkbox] { width: 20px; height: 20px; margin: 0; min-height: 0; cursor: pointer; }
 
-.meta-box { background: rgba(16,185,129,0.03); border: 1px solid rgba(16,185,129,0.15); border-radius: 12px; padding: 12px; margin-top: 12px; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.meta-box { background: color-mix(in srgb,var(--ac) 5%,var(--card-bg)); border: 1px solid color-mix(in srgb,var(--ac) 25%,var(--ln)); border-radius: 12px; padding: 12px; margin-top: 12px; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .meta-box input { margin-top: 0; background: var(--card-bg); }
 
 #zm { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 99; backdrop-filter: blur(4px); }
@@ -71,9 +57,9 @@ body div#app { display: flex; flex-direction: column; }
 #zm img { max-width: 92%; max-height: 92%; border-radius: 12px; }
 
 .bg { display: inline-block; font-size: 11px; border-radius: 20px; padding: 2px 10px; margin-right: 6px; font-weight: 700; }
-.bg.g { background: rgba(34,197,94,0.15); color: var(--ok); }
-.bg.r { background: rgba(239,68,68,0.15); color: var(--nc); }
-.ct { display: inline-block; font-size: 10px; border-radius: 20px; padding: 1px 8px; margin-right: 6px; background: rgba(148,163,184,.15); color: var(--mu); font-weight: 600; vertical-align: middle; }
+.bg.g { background: color-mix(in srgb,var(--ok) 15%,var(--card-bg)); color: var(--ok); }
+.bg.r { background: color-mix(in srgb,var(--nc) 15%,var(--card-bg)); color: var(--nc); }
+.ct { display: inline-block; font-size: 10px; border-radius: 20px; padding: 1px 8px; margin-right: 6px; background: color-mix(in srgb,var(--mu) 15%,var(--card-bg)); color: var(--mu); font-weight: 600; vertical-align: middle; }
 .step { font-weight: 700; font-size: 13px; margin-top: 14px; color: var(--ac); display: flex; align-items: center; }
 
 /* استایل‌های داشبورد آماری */
@@ -86,20 +72,20 @@ body div#app { display: flex; flex-direction: column; }
 .row .t { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 6px; }
 .sb { background: var(--bg); border-radius: 6px; height: 8px; overflow: hidden; margin-top: 4px; }
 .sb i { display: block; height: 100%; border-radius: 6px; }
-.ins { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 12px; margin-top: 8px; font-size: 13px; color: #fca5a5; font-weight: 500; }
-.ins.hi { border-color: var(--nc); background: rgba(239,68,68,0.15); }
+.ins { background: color-mix(in srgb,var(--nc) 10%,var(--card-bg)); border: 1px solid color-mix(in srgb,var(--nc) 40%,var(--ln)); border-radius: 12px; padding: 12px; margin-top: 8px; font-size: 13px; color: var(--nc); font-weight: 500; }
+.ins.hi { border-color: var(--nc); background: color-mix(in srgb,var(--nc) 15%,var(--card-bg)); }
 .tr { display: flex; align-items: flex-end; gap: 6px; height: 120px; background: var(--card-bg); border: 1px solid var(--ln); border-radius: 12px; padding: 12px; margin-top: 8px; overflow-x: auto; }
 .tr div { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; min-width: 32px; }
 .tr i { width: 100%; background: var(--ac); border-radius: 4px 4px 0 0; min-height: 4px; }
 .tr span { font-size: 10px; color: var(--mu); margin-top: 4px; }
 
-.hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; background:var(--card-bg); padding:14px; border-radius:16px; border:1px solid var(--ln); }
+.hdr { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
 .hdr-r { display:flex; align-items:center; gap:12px; min-width:0; }
-.logo { width:40px; height:40px; object-fit:contain; border-radius:8px; flex-shrink:0; }
-.hdr h2 { margin:0; font-size:16px; }
+.logo { width:44px; height:auto; object-fit:contain; border-radius:8px; flex-shrink:0; }
+.hdr h2 { margin:0; font-size:20px; font-weight:800; }
 
-.back { display:inline-flex; align-items:center; padding:6px 12px; background:var(--ln); color:#fff; border-radius:12px; font-size:12px; text-decoration:none; white-space:nowrap; flex-shrink:0; }
-.back:hover { background:#475569; }
+.back { display:inline-flex; align-items:center; padding:6px 12px; background:var(--card-bg); border:1px solid var(--ac); color:var(--ac); border-radius:12px; font-size:12px; font-weight:700; text-decoration:none; white-space:nowrap; flex-shrink:0; min-height:0; }
+.back:hover { filter:brightness(1.06); }
 
 .top-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
 .top-grid .p { margin:0; min-height:50px; font-size:13px; padding:8px; text-align:center; }
@@ -107,13 +93,13 @@ body div#app { display: flex; flex-direction: column; }
 
 @media print { .np { display: none !important; } body { padding: 0; background: #fff; color: #000; } }
 [hidden] { display: none !important; }
-.th { background: #1e293b; }
+.th { background: var(--card-bg); }
 .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .fgrid select, .fgrid input { margin-top: 0; min-height: 42px; font-size: 13px; }
 .fgrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .chip { min-height: 38px; padding: 0 14px; border-radius: 20px; font-size: 13px; }
-.chip.on { background: var(--ac); color: #0f172a; border-color: var(--ac); }
+.chip.on { background: var(--ac); color: var(--acx); border-color: var(--ac); }
 .pager { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
 .pager button { padding: 0 14px; min-height: 42px; }
 .pager button:disabled { opacity: .4; }
@@ -130,7 +116,6 @@ textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1.5p
 <div id="app"></div>
 <input type="file" id="fi" accept="image/*" multiple hidden>
 <div id="zm" hidden></div>
-<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <script>
 const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 
@@ -306,7 +291,7 @@ async function home() {
   view(`
     <div class="hdr">
       <div class="hdr-r">
-        <img src="logo.png" alt="لوگو" class="logo" onerror="this.style.display='none'">
+        <img src="logo-sm.png" alt="لوگو" class="logo" onerror="this.style.display='none'">
         <div>
           <h2>ماژول چک‌لیست‌های ایمنی</h2>
           <small>بازرسی‌های تخصصی کارخانه</small>
@@ -1348,6 +1333,9 @@ async function renderManagementReport() {
 const GEN = { cancel: false, busy: false };
 async function genSlides() {
   if (GEN.busy) return;
+  if (typeof PptxGenJS == 'undefined') { /* کتابخانه‌ی PowerPoint فقط هنگام نیاز بارگذاری می‌شود */
+    await new Promise(r => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'; sc.onload = sc.onerror = r; document.head.appendChild(sc); });
+  }
   if (typeof PptxGenJS == 'undefined') return alert('کتابخانه ساخت PowerPoint بارگذاری نشده است؛ اینترنت را بررسی و صفحه را دوباره باز کنید.');
   const box = $('#slides-container'), btn = $('[data-a=gen-slides]');
   GEN.cancel = false; GEN.busy = true; btn.disabled = true;
