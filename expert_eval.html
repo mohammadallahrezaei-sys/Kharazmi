@@ -80,12 +80,12 @@ async function start(){
   let ek=await getAll('ekhtars?select=record_type,record_date,registered_by');const ekAttr=ek!=null;
   if(!ek)ek=await getAll('ekhtars?select=record_type,record_date')||[];
   const [ins,fin]=await Promise.all([getAll('inspections?select=module,location,total,ok,nc,na,created_at,inspector&created_at=gte.'+since),
-    getAll('findings?select=status,created_at,closed_at,due_date,inspector')]);
+    getAll('findings?select=status,module,created_at,closed_at,due_date,inspector')]);
   if(!ins||!fin)return loginUI('دریافت اطلاعات ناموفق بود (دسترسی یا اتصال)');
   const [cards,cul]=await Promise.all(['hse_cards?select=card_type,card_date,status','culture_assessments?select=assessed_at'].map(getAll));
   const [tr,ta,emp,inc,fu]=await Promise.all(['trainings?select=id,training_date','training_attendees?select=training_id,employee_id','employees?select=*',
     'clinic_incidents?select=corrective_action,action_status,action_due_date','clinic_followups?select=status,due_date'].map(getAll));
-  D={cards,cul,ins:ins.filter(r=>!String(r.location||'').startsWith(IMPORT_LOC)),fin,ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc||[],fu:fu||[]};
+  D={cards,cul,ins:ins.filter(r=>r.module!=='Q'&&!String(r.location||'').startsWith(IMPORT_LOC)),fin:fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc||[],fu:fu||[]};
   const es=document.getElementById('esel'),ms=document.getElementById('msel');
   const mine=isMgr()?people():[ME];
   es.innerHTML=mine.map(e=>`<option value="${esc(e)}">${esc(nm(e))}</option>`).join('');es.style.display=isMgr()?'':'none';

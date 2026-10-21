@@ -109,14 +109,14 @@ async function load(){
   const [evB,cuL]=await Promise.all([HSE.loadEval().catch(()=>null),HSE.loadCulture().catch(()=>null)]);
   const [ins,fin,inc,fu,ek,tr,ta,emp]=await Promise.all([
     getAll('inspections?select=module,location,ok,nc,na,created_at,inspector&created_at=gte.'+since),
-    getAll('findings?select=status,created_at,closed_at,notice_at,severity,due_date,inspector'),
+    getAll('findings?select=status,module,created_at,closed_at,notice_at,severity,due_date,inspector'),
     getAll('clinic_incidents?select=incident_date,severity,description,body_part,corrective_action,action_status,action_due_date,social_security_reported'),
     getAll('clinic_followups?select=kind,status,due_date,completed_at,created_at'),
     getAll('ekhtars?select=record_type,record_date,reason,employee_id'),
     getAll('trainings?select=id,training_type,training_date,duration_hours'),
     getAll('training_attendees?select=training_id,employee_id'),
     getAll('employees?select=id,termination_date').then(r=>r||getAll('employees?select=id'))]);
-  D={ins,fin,inc,fu,ek,tr,ta,emp,ev:evB,cu:cuL};
+  D={ins:ins&&ins.filter(r=>r.module!=='Q'),fin:fin&&fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),inc,fu,ek,tr,ta,emp,ev:evB,cu:cuL}; /* لغوشده‌ها و هشدارهای دارو عدم‌انطباق حساب نمی‌شوند */
   const sel=document.getElementById('msel');
   sel.innerHTML=buildOptions();
   sel.value='m:'+nowK.slice(0,4)+':'+(+nowK.slice(5));

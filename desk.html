@@ -79,7 +79,7 @@ async function load(){
   } else sec('rk','ریسک‌های نیازمند اقدام','risks.html',null);
   // ۱) عدم‌انطباق‌های باز
   if(fin){
-    const L=fin.filter(x=>x.status==='open').map(x=>{const over=x.due_date?dd(TODAY,x.due_date):dd(TODAY,x.created_at.slice(0,10))-14;return{x,over}}).sort((a,b)=>((RM[b.x.risk_id]||{}).high?1:0)-((RM[a.x.risk_id]||{}).high?1:0)||b.over-a.over||(b.x.severity||0)-(a.x.severity||0));
+    const L=fin.filter(x=>x.status==='open'&&x.module!=='MED').map(x=>{const over=x.due_date?dd(TODAY,x.due_date):dd(TODAY,x.created_at.slice(0,10))-14;return{x,over}}).sort((a,b)=>((RM[b.x.risk_id]||{}).high?1:0)-((RM[a.x.risk_id]||{}).high?1:0)||b.over-a.over||(b.x.severity||0)-(a.x.severity||0));
     sec('fin','عدم‌انطباق‌های باز','checklists.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(x.question||'—'),`${esc(x.location||'')} · ثبت: ${fday(x.created_at)}${x.severity?' · شدت '+fa(x.severity):''}${RM[x.risk_id]?' · ریسک '+fa(RM[x.risk_id].score):''}`,over>0?fa(over)+' روز معوق':(x.due_date?'تا '+fday(x.due_date):'در مهلت'),over>0?'r':'y')})),'پیگیری در «پیگیری عدم‌انطباق‌ها»');
   } else sec('fin','عدم‌انطباق‌های باز','checklists.html',null);
   // ۲) اقدام اصلاحی حوادث
