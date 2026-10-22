@@ -103,7 +103,7 @@ const SCHED=[{"t": "جرثقیل سقفی", "daily": false, "m": {"1405-08": [3,
 const KW=[['جرثقیل'],['بالابر'],['لیفتراک'],['پساب','پسماند'],['اماکن عمومی','بهداشتی'],['انبارها','انبار'],['واحد فنی'],['انبار سیلندر'],['سیلندرهای','سیلندر'],['ایمنی دستگاه','تجهیزات'],['کپسول'],['فایر'],['ایمنی برق','برق'],['سالن','دفاتر','ایمنی عمومی'],['دارو'],['رستوران'],['خودرو']];
 const nz=s=>String(s||'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\u200c/g,' ');
 /* کد ماژول ← ردیف(های) جدول؛ از تعریف چک‌لیست‌ها در checklists.html */
-const MODS={CR:[0,1],FK:[2],ENV:[3],SAN:[4],W:[5],CY:[7,8],EQ:[9],F:[10,11],E:[12],S:[13],KIT:[15],V:[16]}; // D, CH, CT در جدول ۱۴۰۵ نیستند
+const MODS={CR:[0],LF:[1],FK:[2],ENV:[3],SAN:[4],W:[5],CY:[7,8],EQ:[9],F:[10,11],E:[12],S:[13],KIT:[15],V:[16]}; // D, CH, CT در جدول ۱۴۰۵ نیستند
 const MAPPED=new Set(Object.values(MODS).flat());
 function itemsOf(r){return MODS[r.module]||[]}
 const PFD=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
