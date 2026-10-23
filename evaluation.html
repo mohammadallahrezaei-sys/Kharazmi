@@ -12,7 +12,7 @@
 <div class="w" style="max-width:1100px">
   <div class="top">
     <div><h1>📊 ارزیابی عملکرد واحدها</h1><p>شاخص ایمنی، شاخص مشارکت و ماتریس مقایسه — محاسبه‌ی خودکار با فرمول‌های فایل اکسل</p></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><button class="p" id="bSave">💾 ذخیره ورودی‌ها</button><button id="bZero">ثبت صفر برای واحدهای خالی</button><button id="bUnits">⚙ مدیریت واحدها</button><a class="btn" href="cards.html">کارت‌ها</a><a class="btn" href="index.html">← بازگشت</a></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><button class="p" id="bSave">💾 ذخیره ورودی‌ها</button><button id="bUnits">⚙ مدیریت واحدها</button><a class="btn" href="cards.html">کارت‌ها</a><a class="btn" href="index.html">← بازگشت</a></div>
   </div>
   <div id="err" class="err"></div>
   <div id="sum"></div>
@@ -42,24 +42,32 @@ function draw(){
   const zn=['الگو','ایمن ولی ساکت','ریسک بالا، شفاف','نیازمند مداخله فوری'];
   $('sum').innerHTML=`<div class="g3" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:10px">${R.zones.map((z,i)=>`<div class="card" style="margin:0"><div class="mu">${ZONES[i]}</div><b class="z${i}" style="font-size:22px">${fa(z.length)}</b><div class="mu">${z.map(r=>esc(r.u.name)).join('، ')||'—'}</div></div>`).join('')}
    <div class="card" style="margin:0"><div class="mu">واجد شرایط واحد نمونه</div><b class="z0" style="font-size:22px">${fa(R.rank.length)}</b><div class="mu">${R.rank.slice(0,3).map(r=>fa(r.rank)+'. '+esc(r.u.name)).join('، ')||'—'}</div></div>
-   <div class="card" style="margin:0"><div class="mu">داده‌ی ناقص (ورودی PPE/ناایمن ثبت نشده)</div><b class="${R.incomplete.length?'wa':'ok'}" style="font-size:22px">${fa(R.incomplete.length)}</b><div class="mu">${R.incomplete.length?'این واحدها در ماتریس و رتبه‌بندی نیامده‌اند':'همه ثبت شده'}</div></div></div>`;
-  const h='<tr><th>واحد</th><th>ریسک</th><th>نفر</th><th>خطر</th><th>شبه</th><th>پیشنهاد</th><th>جلسه</th><th>PPE</th><th>ناایمن</th><th>حادثه/جزئی</th><th>روز</th><th>ایمنی</th><th>مشارکت</th><th>ناحیه</th><th>رتبه</th></tr>';
+   <div class="card" style="margin:0"><div class="mu">داده‌ی ناقص (PPE/ناایمن یا تعداد مشاهده‌ی کافی ثبت نشده)</div><b class="${R.incomplete.length?'wa':'ok'}" style="font-size:22px">${fa(R.incomplete.length)}</b><div class="mu">${R.incomplete.length?'این واحدها در ماتریس و رتبه‌بندی نیامده‌اند':'همه ثبت شده'}</div></div></div>`;
+  const h='<tr><th>واحد</th><th>ریسک</th><th>نفر</th><th>خطر</th><th>شبه</th><th>پیشنهاد</th><th>جلسه</th><th>PPE</th><th>ناایمن</th><th>مشاهده</th><th>حادثه/جزئی (ماه)</th><th>حادثه ۱۲ماهه</th><th>روز</th><th>ایمنی</th><th>مشارکت</th><th>ناحیه</th><th>رتبه</th></tr>';
   $('tb').innerHTML=h+R.rows.map(r=>`<tr class="${r.entered?'':'inc'}"><td><b>${esc(r.u.name)}</b><div class="mu">${esc(r.u.manager||'بدون مسئول')}</div></td><td>${r.u.risk_level}</td><td>${fa(r.C)}</td><td>${fa(r.hz)}</td><td>${fa(r.nm)}</td><td>${fa(r.sg)}</td><td>${fa(r.talks)}</td>
    <td><input type="number" min="0" data-u="${r.u.id}" data-k="ppe" value="${r.entered?r.ppe:''}" placeholder="—"></td><td><input type="number" min="0" data-u="${r.u.id}" data-k="unsafe" value="${r.entered?r.unsafe:''}" placeholder="—"></td>
-   <td>${fa(r.ac)}/${fa(r.ak)}</td><td>${fa(r.lost)}</td><td>${r.entered?n1(r.safety):'—'}</td><td>${n1(r.part)}</td><td class="${r.zone==null?'mu':'z'+r.zone}">${r.zone==null?'داده ناقص':ZONES[r.zone]}</td><td>${r.rank?fa(r.rank):'—'}</td></tr>`).join('');
-  $('notes').innerHTML=`<b>یادداشت‌ها:</b> ساعت کار = روزهای ماه × نفرات × ${fa(PARAM.HOURS_PER_DAY)}؛ آستانه‌ها: ایمنی ≥ ${fa(PARAM.SAFETY_T)} و مشارکت ≥ ${fa(PARAM.PART_T)} (مطابق شیت پارامترها).«حادثه» = حوادثی با شدت متوسط به بالا و «جزئی» = حوادث جزئی ماژول بهداری؛ نسبت حادثه به واحد از روی «واحد» پرسنل در بانک پرسنل است.${R.incNoUnit?`<span class="wa">${fa(R.incNoUnit)} حادثه‌ی این ماه به هیچ واحدی نسبت داده نشد (واحد پرسنل یا نام معادل را در «مدیریت واحدها» تنظیم کنید).</span>`:''}
-   کارت‌های این ماه: ${fa(R.cardsTotal)} (خطر ${fa(R.cardTypes.hazard)}، شبه‌حادثه ${fa(R.cardTypes.near_miss)}، پیشنهاد ${fa(R.cardTypes.suggestion)}؛ کارت‌های ردشده شمرده نمی‌شوند). جلسه‌ی ایمنی از ماژول آموزش (نوع «جلسه کوتاه ایمنی») گرفته می‌شود.`;
+   <td><input type="number" min="0" data-u="${r.u.id}" data-k="obs" value="${r.obs!=null?r.obs:''}" placeholder="≥${fa(r.need)}"></td>
+   <td>${fa(r.ac)}/${fa(r.ak)}</td><td>${fa(r.ac12)}</td><td>${fa(r.lost)}</td><td>${r.entered?n1(r.safety):'—'}</td><td>${n1(r.part)}</td><td class="${r.zone==null?'mu':'z'+r.zone}">${r.zone==null?'داده ناقص':ZONES[r.zone]}</td><td>${r.rank?fa(r.rank):'—'}</td></tr>`).join('');
+  $('notes').innerHTML=`<b>روش محاسبه:</b> ساعت کار = روزهای کاری واقعی (شنبه تا چهارشنبه) × نفرات × ${fa(PARAM.HOURS_PER_DAY)}. نرخ حادثه و روز از دست رفته روی <b>۱۲ ماه متحرک</b> و با کفِ مواجهه‌ی ${fa(PARAM.FLOOR_H.toLocaleString('en'))} ساعت (پایه‌ی OSHA) حساب می‌شود تا نوسان تصادفی واحد کوچک نتیجه را تعیین نکند. PPE و رفتار ناایمن درصدِ <b>تعداد مشاهده</b> است و از ${PARAM.OBS_FROM.replace('1405-','ماه ')} بدون مشاهده‌ی کافی (حداقل ${fa(PARAM.MIN_OBS)} یا نصف نفرات) امتیاز نمی‌گیرد؛ «صفر» بدون مشاهده بهترین امتیاز نیست. حادثه‌ی جزئی (کمک‌های اولیه) از امتیاز ایمنی خارج است تا گزارش‌دهی جریمه نشود. ارفاق ریسک حذف شده و همه‌ی واحدها با یک ترازو سنجیده می‌شوند. وزن ایمنی: PPE ${fa(PARAM.W.X)}، رفتار ناایمن ${fa(PARAM.W.AB)}، تعداد حادثه ${fa(PARAM.W.AF)}، روز از دست رفته ${fa(PARAM.W.AJ)} (۵۰٪ پیشرو، ۵۰٪ پسرو). آستانه‌ها: ایمنی ≥ ${fa(PARAM.SAFETY_T)} و مشارکت ≥ ${fa(PARAM.PART_T)}.«حادثه» = شدت متوسط به بالا؛ «جزئی» = حوادث جزئی ماژول بهداری.<br>   کارت‌های این ماه: ${fa(R.cardsTotal)} (خطر ${fa(R.cardTypes.hazard)}، شبه‌حادثه ${fa(R.cardTypes.near_miss)}، پیشنهاد ${fa(R.cardTypes.suggestion)}؛ کارت‌های ردشده شمرده نمی‌شوند). جلسه‌ی ایمنی از ماژول آموزش (نوع «جلسه کوتاه ایمنی») گرفته می‌شود.`;
 }
 $('mSel').onchange=draw;
 function inputs(){const m={};document.querySelectorAll('#tb input[data-u]').forEach(i=>{(m[i.dataset.u]=m[i.dataset.u]||{})[i.dataset.k]=i.value});return m}
-async function saveRows(all,zeroEmpty){
+async function saveRows(){
   const m=inputs(),rows=[];
-  Object.entries(m).forEach(([uid,v])=>{const e=v.ppe!==''||v.unsafe!=='';if(!e&&!zeroEmpty)return;if(!e&&R.rows.find(r=>r.u.id===uid).entered)return;rows.push({unit_id:uid,month_key:K,ppe_count:+v.ppe||0,unsafe_count:+v.unsafe||0})});
-  if(!rows.length){alert('ورودی جدیدی برای ذخیره وجود ندارد.');return}
-  try{await req('hse_unit_monthly?on_conflict=unit_id,month_key','POST',rows,'resolution=merge-duplicates,return=minimal');B=await loadEval({days:450});draw()}catch(e){alert('خطا در ذخیره: '+e.message)}
+  Object.entries(m).forEach(([uid,v])=>{if(v.ppe===''&&v.unsafe===''&&v.obs==='')return;
+    const need=R.rows.find(r=>r.u.id===uid).need;
+    if(K>=PARAM.OBS_FROM&&(v.obs===''||+v.obs<need)){rows.push({err:uid});return}
+    rows.push({unit_id:uid,month_key:K,ppe_count:+v.ppe||0,unsafe_count:+v.unsafe||0,obs_count:v.obs===''?null:+v.obs})});
+  const bad=rows.filter(x=>x.err).map(x=>R.rows.find(r=>r.u.id===x.err).u.name),ok=rows.filter(x=>!x.err);
+  if(bad.length)alert('تعداد مشاهده کمتر از حداقل است (هر مشاهده یک نفر/یک بازدید ثبت‌شده است). برای این واحدها ذخیره نشد:\n'+bad.join('، '));
+  if(!ok.length){if(!bad.length)alert('ورودی جدیدی برای ذخیره وجود ندارد.');return}
+  try{
+    try{await req('hse_unit_monthly?on_conflict=unit_id,month_key','POST',ok,'resolution=merge-duplicates,return=minimal')}
+    catch(e){if(!/obs_count/.test(e.message))throw e;alert('ستون obs_count در دیتابیس نیست؛ فایل hse_unit_obs.sql را اجرا کنید. فعلاً بدون تعداد مشاهده ذخیره می‌شود.');
+      await req('hse_unit_monthly?on_conflict=unit_id,month_key','POST',ok.map(({obs_count,...x})=>x),'resolution=merge-duplicates,return=minimal')}
+    B=await loadEval({days:450});draw()}catch(e){alert('خطا در ذخیره: '+e.message)}
 }
-$('bSave').onclick=()=>saveRows(false,false);
-$('bZero').onclick=()=>{if(confirm('برای واحدهایی که ورودی ندارند، «۰ مورد PPE و ۰ مورد رفتار ناایمن» ثبت شود؟\nاین یعنی در این ماه موردی مشاهده نشده است.'))saveRows(true,true)};
+$('bSave').onclick=()=>saveRows();
 /* ---- مدیریت واحدها ---- */
 function uDraw(){
   $('uList').innerHTML='<table><tr><th>نام واحد</th><th>مسئول</th><th>ریسک</th><th>نفر</th><th>نام‌های معادل در بانک پرسنل</th><th>فعال</th></tr>'+B.units.map(u=>`<tr data-id="${u.id||''}"><td><input type="text" data-k="name" value="${esc(u.name)}"></td><td><input type="text" data-k="manager" value="${esc(u.manager||'')}"></td><td><select data-k="risk_level" style="width:60px">${['A','B','C'].map(x=>`<option ${u.risk_level===x?'selected':''}>${x}</option>`).join('')}</select></td><td><input type="number" min="1" data-k="headcount" value="${u.headcount}" style="width:60px"></td><td><input type="text" data-k="aliases" value="${esc(u.aliases||'')}"></td><td><input type="checkbox" data-k="active" ${u.active!==false?'checked':''}></td></tr>`).join('')+'</table>';

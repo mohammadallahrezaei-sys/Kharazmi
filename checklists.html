@@ -949,7 +949,7 @@ async function send() {
 }
 
 /* ===== ثبت موردی عدم‌انطباق: وقتی در بازرسی یک مورد دیده‌اید و نمی‌خواهید چک‌لیست کامل پر کنید ===== */
-const QD = { loc: '', desc: '', sev: 2, cat: '', resp: '', shift: '', eq: null };
+const QD = { loc: '', desc: '', sev: 2, cat: '', resp: '', shift: '', eq: null, missed_by: '' };
 function quickForm() {
   QD.shift = QD.shift || SHIFTS[0];
   view(`
@@ -972,6 +972,9 @@ function quickForm() {
       <small id="qsla" style="margin-top:6px;">مهلت اصلاح بر اساس شدت: ${fa(SLA[QD.sev])} روز</small>
       <select data-qf="cat"><option value="">دسته: خودکار (بر اساس متن)</option>${CATN.map(c => `<option ${QD.cat == c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
       <input data-qf="resp" placeholder="مسئول پیگیری (اختیاری)" value="${esc(QD.resp)}">
+      <label style="font-size:12px; font-weight:700; display:block; margin-top:8px;">بازرسی تأییدی مدیر (اختیاری)</label>
+      <select data-qf="missed_by"><option value="">این مورد از قلم افتاده‌ی بازدید کارشناس نیست</option>${Object.entries((window.HSEAuth && HSEAuth.EXPERTS) || {}).map(([e, n]) => `<option value="${esc(e)}" ${QD.missed_by == e ? 'selected' : ''}>در بازدید «${esc(n)}» از قلم افتاده بود</option>`).join('')}</select>
+      <small>فقط وقتی انتخاب کنید که خودتان بازرسی تأییدی کرده‌اید و مورد باید در بازدید قبلی کارشناس دیده می‌شد؛ در «اعتبارسنجی بازدید» ارزیابی او لحاظ می‌شود.</small>
       <select data-qf="shift">${SHIFTS.map(h => `<option ${QD.shift == h ? 'selected' : ''}>${h}</option>`).join('')}</select>
       <div class="ph">
         ${(PH['Q-quick'] || []).map((p, j) => `<span class="th"><img src="${p.u}"><b data-a="rmph" data-id="Q-quick" data-j="${j}">×</b></span>`).join('')}
@@ -989,8 +992,11 @@ async function quickSend() {
   try {
     const sev = +QD.sev || 2;
     const [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ module: 'Q', location: loc, freq: 'موردی', total: 1, ok: 0, nc: 1, na: 0, inspector: mail, shift: QD.shift || SHIFTS[0] }) });
-    await api('findings', { method: 'POST', body: JSON.stringify([{ inspection_id: r.id, module: 'Q', location: loc, qid: 'Q-' + Date.now().toString(36), question: desc, note: '', severity: sev, category: QD.cat || cat('Q', desc), responsible: QD.resp.trim() || null, due_date: addDays(SLA[sev]), photos_before: await Promise.all(ph.map(p => up(p.b))), ...(EQ_OK && QD.eq ? { equipment_code: QD.eq.code, equipment_title: QD.eq.title || null } : {}) }]) });
-    Object.assign(QD, { loc: '', desc: '', sev: 2, cat: '', resp: '', eq: null }); delete PH['Q-quick'];
+    const fRow = { inspection_id: r.id, module: 'Q', location: loc, qid: 'Q-' + Date.now().toString(36), question: desc, note: '', severity: sev, category: QD.cat || cat('Q', desc), responsible: QD.resp.trim() || null, due_date: addDays(SLA[sev]), photos_before: await Promise.all(ph.map(p => up(p.b))), ...(EQ_OK && QD.eq ? { equipment_code: QD.eq.code, equipment_title: QD.eq.title || null } : {}) };
+    if (QD.missed_by) fRow.missed_by = QD.missed_by;
+    try { await api('findings', { method: 'POST', body: JSON.stringify([fRow]) }); }
+    catch (e) { if (!/missed_by/.test(e.message)) throw e; delete fRow.missed_by; await api('findings', { method: 'POST', body: JSON.stringify([fRow]) }); alert('ستون missed_by در دیتابیس نیست؛ فایل hse_findings_missed.sql را اجرا کنید. مورد بدون برچسب «از قلم‌افتاده» ثبت شد.'); }
+    Object.assign(QD, { loc: '', desc: '', sev: 2, cat: '', resp: '', eq: null, missed_by: '' }); delete PH['Q-quick'];
     alert('عدم‌انطباق موردی ثبت شد.'); home();
   } catch (e) { alert('خطا در ثبت: ' + e.message); sb.disabled = false; sb.textContent = 'ثبت عدم‌انطباق'; }
 }
