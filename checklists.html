@@ -808,7 +808,7 @@ async function send() {
 }
 
 /* ===== ثبت موردی عدم‌انطباق: وقتی در بازرسی یک مورد دیده‌اید و نمی‌خواهید چک‌لیست کامل پر کنید ===== */
-const QD = { loc: '', desc: '', sev: 2, cat: '', resp: '', shift: '' };
+const QD = { loc: '', desc: '', sev: 2, cat: '', resp: '', shift: '', eq: null };
 function quickForm() {
   QD.shift = QD.shift || SHIFTS[0];
   view(`
@@ -821,6 +821,11 @@ function quickForm() {
     <datalist id="locs">${LOCS.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
     <div class="q" style="margin-top:10px;">
       <input data-qf="loc" list="locs" placeholder="محل / سالن / بخش (الزامی)" value="${esc(QD.loc)}">
+      ${EQ_OK ? `<div class="eqb" style="margin-top:8px;">
+        <label style="font-size:12px; font-weight:700;">تجهیز مربوط (اختیاری — اگر مورد مربوط به یک تجهیز است انتخاب کنید):</label>
+        ${QD.eq ? `<div class="chip on">🔧 <span dir="ltr">${esc(QD.eq.code)}</span> — ${esc(QD.eq.title || '')} <b data-a="eqclear" data-id="__q">✕</b></div>` : ''}
+        <input data-eqs="__q" placeholder="🔎 کد یا نام تجهیز..." autocomplete="off"><div class="eqr" data-eqr="__q"></div>
+      </div>` : ''}
       <textarea data-qf="desc" rows="3" placeholder="شرح مشخص عدم‌انطباق (الزامی)" style="width:100%; margin-top:8px;">${esc(QD.desc)}</textarea>
       <select data-qf="sev">${[1, 2, 3, 4].map(v => `<option value="${v}" ${QD.sev == v ? 'selected' : ''}>شدت: ${SEVN[v]}</option>`).join('')}</select>
       <small id="qsla" style="margin-top:6px;">مهلت اصلاح بر اساس شدت: ${fa(SLA[QD.sev])} روز</small>
@@ -843,8 +848,8 @@ async function quickSend() {
   try {
     const sev = +QD.sev || 2;
     const [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ module: 'Q', location: loc, freq: 'موردی', total: 1, ok: 0, nc: 1, na: 0, inspector: mail, shift: QD.shift || SHIFTS[0] }) });
-    await api('findings', { method: 'POST', body: JSON.stringify([{ inspection_id: r.id, module: 'Q', location: loc, qid: 'Q-' + Date.now().toString(36), question: desc, note: '', severity: sev, category: QD.cat || cat('Q', desc), responsible: QD.resp.trim() || null, due_date: addDays(SLA[sev]), photos_before: await Promise.all(ph.map(p => up(p.b))) }]) });
-    Object.assign(QD, { loc: '', desc: '', sev: 2, cat: '', resp: '' }); delete PH['Q-quick'];
+    await api('findings', { method: 'POST', body: JSON.stringify([{ inspection_id: r.id, module: 'Q', location: loc, qid: 'Q-' + Date.now().toString(36), question: desc, note: '', severity: sev, category: QD.cat || cat('Q', desc), responsible: QD.resp.trim() || null, due_date: addDays(SLA[sev]), photos_before: await Promise.all(ph.map(p => up(p.b))), ...(EQ_OK && QD.eq ? { equipment_code: QD.eq.code, equipment_title: QD.eq.title || null } : {}) }]) });
+    Object.assign(QD, { loc: '', desc: '', sev: 2, cat: '', resp: '', eq: null }); delete PH['Q-quick'];
     alert('عدم‌انطباق موردی ثبت شد.'); home();
   } catch (e) { alert('خطا در ثبت: ' + e.message); sb.disabled = false; sb.textContent = 'ثبت عدم‌انطباق'; }
 }
@@ -1736,7 +1741,7 @@ document.onclick = async e => {
     else if (a == 'rep') renderManagementReport();
   else if (a == 'gen-slides') genSlides();
   else if (a == 'gen-cancel') GEN.cancel = true;
-  else if (a == 'quick') quickForm();
+  else if (a == 'quick') { await eqInit(); quickForm(); }
   else if (a == 'qsend') quickSend();
   else if (a == 'med') medHome();
   else if (a == 'medform') medForm();
@@ -1755,10 +1760,11 @@ document.onclick = async e => {
   else if (a == 'rmloc') { const k = t.dataset.id, b = baseId(k); EX[b] = (EX[b] || []).filter(x => x != k); delete N[k]; delete SV[k]; delete RS[k]; delete LC[k]; delete PH[k]; save(); form(); scrollTo(0, y); }
   else if (a == 'eqpick') {
     const e = { code: t.dataset.code, title: t.dataset.title };
+    if (t.dataset.id == '__q') { QD.eq = e; quickForm(); scrollTo(0, y); return; }
     if (t.dataset.id == '__insp') D.eq = e; else { EQP[t.dataset.id] = e; delete LNK[t.dataset.id]; }
     save(); form(); scrollTo(0, y);
   }
-  else if (a == 'eqclear') { if (t.dataset.id == '__insp') D.eq = null; else { delete EQP[t.dataset.id]; delete LNK[t.dataset.id]; } save(); form(); scrollTo(0, y); }
+  else if (a == 'eqclear') { if (t.dataset.id == '__q') { QD.eq = null; quickForm(); scrollTo(0, y); return; } if (t.dataset.id == '__insp') D.eq = null; else { delete EQP[t.dataset.id]; delete LNK[t.dataset.id]; } save(); form(); scrollTo(0, y); }
   else if (a == 'eqlink') { LNK[t.dataset.id] = { no: t.dataset.no, created_on: t.dataset.d, status: t.dataset.s }; save(); const el = document.querySelector('[data-eqn="' + t.dataset.id + '"]'); if (el) el.innerHTML = eqNoticesHtml(t.dataset.id); }
   else if (a == 'equnlink') { delete LNK[t.dataset.id]; save(); const el = document.querySelector('[data-eqn="' + t.dataset.id + '"]'); if (el) el.innerHTML = eqNoticesHtml(t.dataset.id); }
   else if (a == 'addph') { FT = { m: 'addph', id: t.dataset.id }; fi.click(); }
