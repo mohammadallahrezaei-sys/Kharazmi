@@ -79,13 +79,16 @@ async function start(){
   const since=encodeURIComponent(new Date(Date.now()-400*864e5).toISOString());
   let ek=await getAll('ekhtars?select=record_type,record_date,registered_by');const ekAttr=ek!=null;
   if(!ek)ek=await getAll('ekhtars?select=record_type,record_date')||[];
-  const [ins,fin]=await Promise.all([getAll('inspections?select=module,location,total,ok,nc,na,created_at,inspector&created_at=gte.'+since),
+  const INS='inspections?select=module,location,total,ok,nc,na,created_at,inspector';
+  let [ins,fin]=await Promise.all([getAll(INS+',equipment_code&created_at=gte.'+since),
     getAll('findings?select=status,module,created_at,closed_at,due_date,inspector')]);
+  const eqCol=ins!=null; if(!eqCol)ins=await getAll(INS+'&created_at=gte.'+since);
+  const eqRows=await getAll('equipment?select=code,category&active=eq.true')||[];
   if(!ins||!fin)return loginUI('دریافت اطلاعات ناموفق بود (دسترسی یا اتصال)');
   const [cards,cul]=await Promise.all(['hse_cards?select=card_type,card_date,status','culture_assessments?select=assessed_at'].map(getAll));
   const [tr,ta,emp,inc,fu]=await Promise.all(['trainings?select=id,training_date','training_attendees?select=training_id,employee_id','employees?select=*',
     'clinic_incidents?select=corrective_action,action_status,action_due_date','clinic_followups?select=status,due_date'].map(getAll));
-  D={cards,cul,ins:ins.filter(r=>r.module!=='Q'&&!String(r.location||'').startsWith(IMPORT_LOC)),fin:fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc||[],fu:fu||[]};
+  D={eqCol,eqRows,cards,cul,ins:ins.filter(r=>r.module!=='Q'&&!String(r.location||'').startsWith(IMPORT_LOC)),fin:fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc||[],fu:fu||[]};
   const es=document.getElementById('esel'),ms=document.getElementById('msel');
   const mine=isMgr()?people():[ME];
   es.innerHTML=mine.map(e=>`<option value="${esc(e)}">${esc(nm(e))}</option>`).join('');es.style.display=isMgr()?'':'none';
@@ -106,6 +109,9 @@ const nz=s=>String(s||'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\u200
 const MODS={CR:[0],LF:[1],FK:[2],ENV:[3],SAN:[4],W:[5],CY:[7,8],EQ:[9],F:[10,11],E:[12],S:[13],KIT:[15],V:[16],PV:[17],AC:[18],BL:[19],PJ:[20]}; // D, CH, CT در جدول ۱۴۰۵ نیستند
 const MAPPED=new Set(Object.values(MODS).flat());
 const NOSCHED=new Set(['D','CT','CH','Q']); // چک‌لیست‌های خارج از جدول ۱۴۰۵ (بدون موعد)
+const EQC={CR:[['جرثقیل سقفی','جرثقیل دروازه‌ای'],6],LF:[['بالابر'],6],FK:[['لیفتراک'],3],PV:[['مخزن تحت فشار'],6],AC:[['اتوکلاو'],6],BL:[['دیگ بخار'],3],PJ:[['جک پالت'],12]}; // هم‌راستا با EQCYC در checklists.html
+const EQMOD={0:'CR',1:'LF',2:'FK',17:'PV',18:'AC',19:'BL',20:'PJ'};
+const eqN=m=>D.eqRows.filter(e=>EQC[m][0].includes(e.category)).length;
 function itemsOf(r){return MODS[r.module]||[]}
 const PFD=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
 const pk=s=>{const p=PFD.formatToParts(new Date(s+'T12:00:00Z'));return{k:key(p),d:+p.find(x=>x.type==='day').value}};
@@ -127,7 +133,7 @@ function core(email,K){
   D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
     mine.push({t:new Date(r.created_at).getTime(),m:r.module,k:[r.total,r.ok,r.nc,r.na].join(' - ')});
     const ii=itemsOf(r);if(!ii.length){if(!NOSCHED.has(r.module))un.add((r.module||'')+' | '+(r.location||''));return}
-    ii.forEach(i=>{const o=recs[i]||(recs[i]={days:new Set(),nc:0});o.days.add(d);o.nc+=(r.nc||0)})});
+    ii.forEach(i=>{const o=recs[i]||(recs[i]={days:new Set(),nc:0});o.days.add(d);o.nc+=(r.nc||0);if(r.equipment_code)(o.eq=o.eq||new Set()).add(r.equipment_code);else(o.leg=o.leg||new Set()).add(d)})});
   const flags=[],bm={};mine.forEach(x=>(bm[x.m]=bm[x.m]||[]).push(x));
   Object.entries(bm).forEach(([m,a])=>{if(a.length<8)return;const c={};a.forEach(x=>c[x.k]=(c[x.k]||0)+1);const [k,n]=Object.entries(c).sort((p,q)=>q[1]-p[1])[0];
     if(n/a.length>=0.8)flags.push(`${fa(n)} از ${fa(a.length)} ثبت ماژول ${m} دقیقاً نتیجه‌ی یکسان دارد (کل - تأیید - عدم‌انطباق - ن.م.: ${k})`)});
@@ -145,6 +151,12 @@ function calc(email,K){
     if(it.daily){if(K<'1405-07'||K>'1405-12')return;const wd=workdays(R),dn=wd.filter(d=>recs[i]&&recs[i].days.has(d)).length;
       if(wd.length)items.push({i,t:it.t,daily:1,sc:dn/wd.length,st:dn<wd.length?'bad':'ok',txt:`روزانه: ${fa(dn)} از ${fa(wd.length)} روز کاری`});return}
     const w=it.m[K];if(!w)return;const o=recs[i];
+    const em=EQMOD[i];
+    if(em&&D.eqCol&&eqN(em)>0){ /* بازدید بر اساس سررسید تجهیز: تعداد دستگاه‌های بازدیدشده در برابر سهم ماهانه‌ی دوره */
+      const N=eqN(em),tg=Math.max(1,Math.ceil(N/EQC[em][1])),dn=o?(o.eq?o.eq.size:0)+(o.leg?o.leg.size:0):0,sc=Math.min(1,dn/tg);
+      if(past||dn>=tg||(cur&&nowP.d>=25))items.push({i,t:it.t,w:null,sc,st:sc>=1?'ok':sc>0?'wa':'bad',txt:`${fa(dn)} از ${fa(tg)} دستگاهِ سهم این ماه بازدید شد (${fa(N)} دستگاه، هر ${fa(EQC[em][1])} ماه یک‌بار)`,eqm:1});
+      else items.push({i,t:it.t,w:null,st:'mu',txt:`سهم این ماه ${fa(tg)} دستگاه از ${fa(N)} (تا امروز ${fa(dn)})`,eqm:1});
+      return}
     if(!MAPPED.has(i)){items.push({i,t:it.t,w,st:'wa',txt:'کد ماژول تعریف نشده — از امتیاز خارج است (به مدیر اطلاع دهید)'});return}
     if(o){const last=pk([...o.days].sort().pop()).d,late=Math.max(0,last-w[1]);
       items.push({i,t:it.t,w,sc:Math.max(0,1-CFG.LATE_PEN*late),st:late?'wa':'ok',txt:late?`${fa(late)} روز تأخیر`:'به‌موقع'})}
@@ -210,7 +222,8 @@ const NAMES={sched:'رعایت جدول زمان‌بندی چک‌لیست‌ه
 function card(email,K){
   const c=calc(email,K),weak=[];
   c.items.filter(x=>x.miss).forEach(x=>weak.push(`«${x.t}» تا ${wtxt(x.w,K)} انجام نشده است.`));
-  c.items.filter(x=>x.sc>0&&x.st==='wa').forEach(x=>weak.push(`«${x.t}» ${x.txt} (مهلت: ${wtxt(x.w,K)}).`));
+  c.items.filter(x=>x.sc>0&&x.st==='wa'&&!x.eqm).forEach(x=>weak.push(`«${x.t}» ${x.txt} (مهلت: ${wtxt(x.w,K)}).`));
+  c.items.filter(x=>x.eqm&&x.sc!=null&&x.sc<1).forEach(x=>weak.push(`«${x.t}»: ${x.txt}.`));
   if(c.cr<c.tgtNc)weak.push(`${fa(c.cr)} عدم‌انطباق ثبت شده؛ با توجه به ${fa(c.doneN)} چک‌لیست انجام‌شده و میانگین ۶ ماه گذشته‌ی واحد، انتظار حداقل ${fa(c.tgtNc)} مورد بود.`);
   if(c.zero.length)weak.push(`${fa(c.zero.length)} چک‌لیست بدون هیچ عدم‌انطباقی ثبت شده: ${c.zero.map(x=>x.t).join('، ')}.`);
   if(c.over)weak.push(`${fa(c.over)} عدم‌انطباق ثبت‌شده‌ی شما از مهلت گذشته و هنوز باز است.`);

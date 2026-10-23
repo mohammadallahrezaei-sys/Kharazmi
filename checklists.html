@@ -274,7 +274,7 @@ const M = [
     'سیلندر با جرثقیل یا لیفتراک جابه‌جا نمی‌شود'
   ], []],
 
-  ['CR', 'جرثقیل سقفی و دروازه‌ای', 'ماهانه', '', [
+  ['CR', 'جرثقیل سقفی و دروازه‌ای', 'هر ۶ ماه برای هر دستگاه', '', [
     'کارت مشخصات و گواهی سلامت (بازرسی دوره‌ای) معتبر است',
     'بار مجاز (SWL) روی جرثقیل و قلاب خوانا درج شده است',
     'اپراتور آموزش دیده و دارای صلاحیت کار با جرثقیل است',
@@ -295,7 +295,7 @@ const M = [
     'سرویس و روانکاری دوره‌ای طبق برنامه انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه جرثقیل (الزامی)'}]],
 
-  ['LF', 'بالابر', 'ماهانه', '', [
+  ['LF', 'بالابر', 'هر ۶ ماه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای بالابر معتبر و در محل نصب است',
     'ظرفیت مجاز (کیلوگرم یا نفر) روی کابین یا سکو درج و خوانا است',
     'بالابر بیش از ظرفیت مجاز بارگیری نمی‌شود',
@@ -313,7 +313,7 @@ const M = [
     'سرویس و نگهداری دوره‌ای توسط شرکت مجاز انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه بالابر (الزامی)'}]],
 
-  ['PV', 'مخزن تحت فشار', 'ماهانه', '', [
+  ['PV', 'مخزن تحت فشار', 'هر ۶ ماه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای مخزن (بازرس مجاز) معتبر است',
     'پلاک مشخصات مخزن (فشار و دمای طراحی، ظرفیت) خوانا است',
     'شیر اطمینان (ایمنی) نصب، سالم و دارای برچسب کالیبراسیون معتبر است',
@@ -331,7 +331,7 @@ const M = [
     'اپراتور آموزش دیده و دستورالعمل کار ایمن در دسترس است'
   ], [{key: 'eq_code', ph: 'کد / شناسه مخزن (الزامی)'}]],
 
-  ['AC', 'اتوکلاو', 'ماهانه', '', [
+  ['AC', 'اتوکلاو', 'هر ۶ ماه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای اتوکلاو معتبر است',
     'اپراتور آموزش دیده است و دستورالعمل راه‌اندازی و توقف ایمن در دسترس است',
     'درب و قفل ایمنی اتوکلاو سالم است و در حالت تحت فشار باز نمی‌شود',
@@ -350,7 +350,7 @@ const M = [
     'سرویس و نگهداری دوره‌ای توسط شرکت مجاز انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه اتوکلاو (الزامی)'}]],
 
-  ['BL', 'دیگ بخار و موتورخانه', 'ماهانه', '', [
+  ['BL', 'دیگ بخار و موتورخانه', 'هر ۳ ماه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای دیگ بخار معتبر است',
     'اپراتور دارای گواهی صلاحیت است و در هر شیفت حضور دارد',
     'شیرهای اطمینان سالم و دارای برچسب کالیبراسیون معتبر هستند',
@@ -369,7 +369,7 @@ const M = [
     'سرویس و نگهداری دوره‌ای انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه دیگ بخار (الزامی)'}]],
 
-  ['PJ', 'جک پالت و ترالی دستی', 'ماهانه', '', [
+  ['PJ', 'جک پالت و ترالی دستی', 'هر ۱۲ ماه برای هر دستگاه', '', [
     'ظرفیت مجاز روی دستگاه درج و خوانا است',
     'دستگاه بیش از ظرفیت مجاز بارگیری نمی‌شود',
     'چنگال‌ها (فورک) صاف و بدون ترک، خمیدگی و ترک جوش هستند',
@@ -384,7 +384,7 @@ const M = [
     'دستگاه معیوب برچسب «خارج از سرویس» دارد و استفاده نمی‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه دستگاه (الزامی)'}]],
 
-  ['FK', 'لیفتراک', 'ماهانه', '', [
+  ['FK', 'لیفتراک', 'هر ۳ ماه برای هر دستگاه', '', [
     'راننده دارای گواهینامه ویژه لیفتراک و آموزش است',
     'لیفتراک دارای تاییدیه فنی معتبر است',
     'ترمز (پایی و دستی) سالم است',
@@ -533,6 +533,7 @@ const INSPN = (() => { const o = { 'm.rezaei@gmail.com': 'اله‌رضایی' }
 const inspL = e => INSPN[e] || e || 'نامشخص';
 const RCS = ['آموزش/آگاهی نیروی انسانی','خرابی/فرسودگی تجهیزات','نبود یا ضعف رویه و دستورالعمل','نظارت و پیگیری ناکافی','بودجه/تأمین ناکافی','شرایط محیطی/طراحی'];
 let SV = {}, RS = {}, LC = {}, EX = {}; /* EX: محل‌های اضافه برای یک سؤال در گشت روزانه */
+const Q_ALL = () => cur[6].map(q => cur[0] + '-' + q.id);
 const baseId = k => String(k).split('#')[0];
 const ROUND_LOC = 'گشت کل کارخانه'; /* بازدید روزانه ایمنی (D) یک‌بار برای کل کارخانه ثبت می‌شود */
 
@@ -608,6 +609,68 @@ async function api(p, o = {}) {
   return r.json();
 }
 
+
+/* ===== سررسید بازدید تجهیزات: هر دستگاه با دوره‌ی خودش (به‌جای موعد ثابت ماهانه) ===== */
+const EQCYC = { /* ماژول: [دسته‌های تجهیز در جدول equipment، دوره‌ی بازدید به ماه] */
+  CR: [['جرثقیل سقفی', 'جرثقیل دروازه‌ای'], 6], LF: [['بالابر'], 6], FK: [['لیفتراک'], 3],
+  PV: [['مخزن تحت فشار'], 6], AC: [['اتوکلاو'], 6], BL: [['دیگ بخار'], 3], PJ: [['جک پالت'], 12]
+};
+const EQ_START = '2026-10-23'; /* شروع دوره: دستگاه‌های بدون بازدید از این تاریخ در طول دوره‌شان پخش می‌شوند */
+let EQ_COL = null, DUE = null;
+const addM = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); };
+const dayDiff = (a, b) => Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 864e5);
+async function dueLoad() {
+  const cats = [...new Set(Object.values(EQCYC).flatMap(v => v[0]))];
+  const eq = await api('equipment?select=code,title,category,hall,location&active=eq.true&order=code.asc&limit=1000&category=' + encodeURIComponent('in.(' + cats.map(c => '"' + c + '"').join(',') + ')'));
+  let last = {};
+  try {
+    const ins = await api('inspections?select=equipment_code,created_at&equipment_code=not.is.null&order=created_at.desc&limit=5000');
+    ins.forEach(x => { if (!last[x.equipment_code]) last[x.equipment_code] = x.created_at.slice(0, 10); });
+    EQ_COL = true;
+  } catch (e) { EQ_COL = false; }
+  const today = new Date().toISOString().slice(0, 10), out = {};
+  for (const [mk, [cs, n]] of Object.entries(EQCYC)) {
+    const list = eq.filter(e => cs.includes(e.category));
+    out[mk] = list.map((e, i) => {
+      const l = last[e.code] || null;
+      const due = l ? addM(l, n) : addDays2(EQ_START, Math.floor(i * n * 30.4 / Math.max(1, list.length)));
+      return { ...e, last: l, due, days: dayDiff(due, today) };
+    }).sort((a, b) => a.days - b.days);
+  }
+  return DUE = out;
+}
+const addDays2 = (iso, n) => new Date(new Date(iso + 'T12:00:00').getTime() + n * 864e5).toISOString().slice(0, 10);
+const dueSum = d => { let o = 0, s = 0; Object.values(d).forEach(l => l.forEach(x => { if (x.days < 0) o++; else if (x.days <= 30) s++; })); return [o, s]; };
+async function dueCard() {
+  const el = $('#duecard'); if (!el) return;
+  try {
+    const d = await dueLoad(), [o, s] = dueSum(d), tot = Object.values(d).reduce((a, l) => a + l.length, 0);
+    if (!$('#duecard')) return;
+    el.innerHTML = `📅 سررسید بازدید تجهیزات — ${o ? `<b style="color:var(--nc);">${fa(o)} عقب‌افتاده</b>` : 'عقب‌افتاده ندارد'} · ${fa(s)} مورد تا ۳۰ روز آینده <small style="display:block;">از مجموع ${fa(tot)} دستگاه</small>`;
+    el.disabled = false;
+  } catch (e) { el.textContent = '📅 سررسید تجهیزات (خطا در بارگذاری: ' + e.message.slice(0, 60) + ')'; }
+}
+function dueList() {
+  const mod = k => (M.find(m => m[0] == k) || [])[1];
+  const badge = x => x.days < 0 ? `<span class="bg r">${fa(-x.days)} روز عقب‌افتاده</span>` : x.days <= 30 ? `<span class="bg" style="background:#f59e0b33;color:#b45309">${fa(x.days)} روز دیگر</span>` : `<span class="bg g">${fa(x.days)} روز دیگر</span>`;
+  view(`
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
+      <a href="index.html" class="back">← داشبورد اصلی</a>
+    </div>
+    <h2>📅 سررسید بازدید تجهیزات</h2>
+    <small>هر دستگاه بر اساس آخرین بازدید ثبت‌شده با کد خودش و دوره‌ی ماژولش سررسید می‌گیرد. دستگاه‌هایی که تا امروز بازدید نشده‌اند در طول دوره‌ی خود پخش شده‌اند تا یک‌جا عقب‌افتاده نشوند.
+    ${EQ_COL === false ? '<br><b style="color:var(--nc);">توجه: ستون کد تجهیز در جدول بازدیدها ساخته نشده؛ فایل hse_inspections_equipment.sql را اجرا کنید تا سررسیدها ثبت شوند.</b>' : ''}</small>
+    ${Object.entries(DUE || {}).map(([mk, l]) => `
+      <h3 style="margin:16px 0 6px;">${esc(mod(mk))} <small style="display:inline;">(هر ${fa(EQCYC[mk][1])} ماه · ${fa(l.length)} دستگاه · ${fa(l.filter(x => x.days < 0).length)} عقب‌افتاده)</small></h3>
+      ${l.map(x => `<div class="q" style="padding:8px 10px;">
+        <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+          <div><b dir="ltr">${esc(x.code)}</b> — ${esc(x.title || '')}<small style="display:block;">${esc(x.hall || '')} · آخرین بازدید: ${x.last ? fd(x.last) : 'ثبت نشده'} · سررسید: ${fd(x.due)}</small></div>
+          <div style="text-align:left;">${badge(x)}<button class="ad" data-a="duego" data-k="${mk}" data-code="${esc(x.code)}" data-title="${esc(x.title || '')}" data-hall="${esc(x.hall || '')}" style="display:block; margin-top:4px;">شروع بازدید</button></div>
+        </div></div>`).join('') || '<small>دستگاهی در فهرست تجهیزات نیست.</small>'}
+    `).join('')}`);
+}
+
 async function home() {
   view('<p style="text-align:center; padding:40px;">در حال بارگذاری چک‌لیست‌ها...</p>');
   let L = {};
@@ -628,6 +691,7 @@ async function home() {
       <button class="p" data-a="history" style="background:var(--ok); border-color:var(--ok); color:#fff;">📋 تاریخچه بازدیدها</button>
       <button class="p" data-a="finds">🛠️ پیگیری عدم‌انطباق‌ها</button>
       <button class="p" data-a="quick" style="grid-column:1/-1; background:var(--warn); border-color:var(--warn); color:#0f172a;">⚡ ثبت موردی عدم‌انطباق (بدون چک‌لیست)</button>
+      <button class="p" id="duecard" data-a="due" style="grid-column:1/-1;">📅 سررسید بازدید تجهیزات (در حال بارگذاری...)</button>
     </div>
 
     <div class="mgrid">${M.map(m => `
@@ -638,6 +702,7 @@ async function home() {
       </button>
     `).join('')}</div>
   `);
+  dueCard();
 }
 
 async function historyList() {
@@ -811,6 +876,7 @@ function form() {
       `).join('')}
     </div>
 
+    ${!rd ? '<button class="ad" data-a="allok" style="margin:8px 0;">✔ همه‌ی بی‌پاسخ‌ها «مطابق» (فقط موارد مشکل‌دار را علامت بزنید)</button>' : ''}
     ${m[6].map((q, i) => {
       const id = m[0] + '-' + q.id, a = A[id], sv = SV[id] || dsev(q.t);
       return `
@@ -853,10 +919,14 @@ async function send() {
   const c = v => ids.filter(i => A[i] == v).length;
 
   try {
-    const [r] = await api('inspections', {
-      method: 'POST',
-      body: JSON.stringify({ module: m[0], location: loc, freq: m[2], total: ids.length, ok: c('ok'), nc: rd ? ncs.length : c('nc'), na: c('na'), inspector: mail, shift: D.shift || SHIFTS[0] })
-    });
+    const insBody = { module: m[0], location: loc, freq: m[2], total: ids.length, ok: c('ok'), nc: rd ? ncs.length : c('nc'), na: c('na'), inspector: mail, shift: D.shift || SHIFTS[0] };
+    let r;
+    if (EQCYC[m[0]] && D.eq && EQ_COL !== false) {
+      try { [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ ...insBody, equipment_code: D.eq.code, equipment_title: D.eq.title || null }) }); }
+      catch (e) { if (!/equipment_(code|title)/.test(e.message)) throw e; EQ_COL = false; }
+    }
+    if (!r) [r] = await api('inspections', { method: 'POST', body: JSON.stringify(insBody) });
+    DUE = null;
     const f = [];
     for (const i of ncs) {
       let extNote = N[i] || '';
@@ -1813,6 +1883,13 @@ document.onclick = async e => {
   else if (a == 'gen-slides') genSlides();
   else if (a == 'gen-cancel') GEN.cancel = true;
   else if (a == 'quick') { await eqInit(); quickForm(); }
+  else if (a == 'due') { if (!DUE) await dueLoad(); dueList(); }
+  else if (a == 'duego') {
+    cur = M.find(m => m[0] == t.dataset.k);
+    A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; D.loc = t.dataset.hall || ''; D.extra = {}; D.shift = ''; D.oth = false; EQP = {}; LNK = {}; D.eq = { code: t.dataset.code, title: t.dataset.title };
+    Object.keys(PH).forEach(k => delete PH[k]); await eqInit(); form(); scrollTo(0, 0);
+  }
+  else if (a == 'allok') { Q_ALL().forEach(id => { if (!A[id]) A[id] = 'ok'; }); save(); form(); scrollTo(0, y); }
   else if (a == 'qsend') quickSend();
   else if (a == 'med') medHome();
   else if (a == 'medform') medForm();
