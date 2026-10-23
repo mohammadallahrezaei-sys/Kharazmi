@@ -105,6 +105,7 @@ const nz=s=>String(s||'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\u200
 /* کد ماژول ← ردیف(های) جدول؛ از تعریف چک‌لیست‌ها در checklists.html */
 const MODS={CR:[0],LF:[1],FK:[2],ENV:[3],SAN:[4],W:[5],CY:[7,8],EQ:[9],F:[10,11],E:[12],S:[13],KIT:[15],V:[16]}; // D, CH, CT در جدول ۱۴۰۵ نیستند
 const MAPPED=new Set(Object.values(MODS).flat());
+const NOSCHED=new Set(['D','CT','CH','PV','AC','BL','PJ','Q']); // چک‌لیست‌های خارج از جدول ۱۴۰۵ (بدون موعد)
 function itemsOf(r){return MODS[r.module]||[]}
 const PFD=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
 const pk=s=>{const p=PFD.formatToParts(new Date(s+'T12:00:00Z'));return{k:key(p),d:+p.find(x=>x.type==='day').value}};
@@ -125,7 +126,7 @@ function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
   D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
     mine.push({t:new Date(r.created_at).getTime(),m:r.module,k:[r.total,r.ok,r.nc,r.na].join(' - ')});
-    const ii=itemsOf(r);if(!ii.length){if(r.module!=='D'&&r.module!=='CT'&&r.module!=='CH')un.add((r.module||'')+' | '+(r.location||''));return}
+    const ii=itemsOf(r);if(!ii.length){if(!NOSCHED.has(r.module))un.add((r.module||'')+' | '+(r.location||''));return}
     ii.forEach(i=>{const o=recs[i]||(recs[i]={days:new Set(),nc:0});o.days.add(d);o.nc+=(r.nc||0)})});
   const flags=[],bm={};mine.forEach(x=>(bm[x.m]=bm[x.m]||[]).push(x));
   Object.entries(bm).forEach(([m,a])=>{if(a.length<8)return;const c={};a.forEach(x=>c[x.k]=(c[x.k]||0)+1);const [k,n]=Object.entries(c).sort((p,q)=>q[1]-p[1])[0];
