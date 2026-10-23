@@ -56,8 +56,9 @@ const people=()=>{const a=Object.keys(NAME_MAP);if(ME&&!a.some(e=>eqm(e,ME)))a.u
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PFU=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',timeZone:'UTC'});
 const key=p=>p.find(x=>x.type==='year').value+'-'+String(+p.find(x=>x.type==='month').value).padStart(2,'0');
-function monthRange(K){const y=+K.slice(0,4),st=Date.UTC(y+621,2,10);let a=null,b=null;
-  for(let i=0;i<400;i++){const t=new Date(st+i*864e5);if(key(PFU.formatToParts(t))===K){const s=t.toISOString().slice(0,10);if(!a)a=s;b=s}}return{a,b}}
+const _MR={};
+function monthRange(K){if(_MR[K])return _MR[K];const y=+K.slice(0,4),st=Date.UTC(y+621,2,10);let a=null,b=null;
+  for(let i=0;i<400;i++){const t=new Date(st+i*864e5);if(key(PFU.formatToParts(t))===K){const s=t.toISOString().slice(0,10);if(!a)a=s;b=s}}return _MR[K]={a,b}}
 const today=new Date().toLocaleDateString('en-CA');
 const nowK=key(PFU.formatToParts(new Date()));
 const lab=K=>MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
@@ -128,7 +129,8 @@ function workdays(R){const end=R.b<today?R.b:today,o=[];
   for(let t=new Date(R.a+'T12:00:00');;t.setDate(t.getDate()+1)){const s=t.toLocaleDateString('en-CA');if(s>end)break;
     if(CFG.WORKDAYS.includes(t.getDay())&&!CFG.HOLIDAYS.includes(s))o.push(s)}return o}
 /* پرسنل فعال در ماه K (قطع همکاری از ماه بعد حذف می‌شود) */
-function empOn(K){return (D.emp||[]).filter(e=>HSEP.isActive(e,monthRange(K).a))}
+const _EO={};
+function empOn(K){if(_EO[K])return _EO[K];const a=monthRange(K).a;return _EO[K]=(D.emp||[]).filter(e=>HSEP.isActive(e,a))}
 function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
   D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
@@ -142,7 +144,9 @@ function core(email,K){
   if(mx>=15)flags.push(`${fa(mx)} ثبت در یک بازه‌ی ۳۰ دقیقه‌ای (ممکن است ثبت دسته‌ای بعد از بازدید باشد)`);
   return{R,recs,un,flags}}
 const created=(e,R)=>D.fin.filter(f=>eqm(f.inspector,e)&&d10(f.created_at)>=R.a&&d10(f.created_at)<=R.b).length;
-function calc(email,K){
+const _CC={};
+function calc(email,K){const ck=String(email).toLowerCase()+'|'+K;return _CC[ck]||(_CC[ck]=calc_(email,K))}
+function calc_(email,K){
   const {R,recs,un,flags}=core(email,K),end=R.b<today?R.b:today,inR=d=>d>=R.a&&d<=end,past=K<nowK,cur=K===nowK;
   const items=[];
   SCHED.forEach((it,i)=>{
@@ -201,7 +205,9 @@ function jAddM(s,n){const m=/^(1[34]\d\d)[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(
 /* ---------- شاخص‌های مدیر واحد HSE (عملکرد واحد، نه بازرسی شخصی) ---------- */
 const MW={train:15,fup:10,close:10,team:10,cards:10,culture:10,risk:15,equip:10,med:5,drill:5};
 const MNAMES={train:'آموزش (جلسات ماهانه و پوشش ۱۲ ماهه‌ی پرسنل)',fup:'اقدام اصلاحی حوادث و پیگیری طب کار بدون معوقه',close:'مدیریت عدم‌انطباق‌های واحد (بستن به‌موقع و نبود معوقه)',team:'رعایت جدول زمان‌بندی توسط تیم کارشناسان',cards:'پاسخ به کارت‌های گزارش خطر/پیشنهاد (حداکثر ۷ روز)',culture:'ارزیابی نردبان فرهنگ ایمنی (حداکثر هر ۶ ماه)',risk:'سلامت ثبت ریسک (تأییدشده و بازبینی‌نشده‌ی معوق نباشد؛ ISO 45001 بند ۶٫۱)',equip:'تجهیزات حیاتی با بازرسی معتبر (سررسید و تأیید بازرس)',med:'معاینات دوره‌ای طب کار (پوشش ۱۲ ماهه)',drill:'مانور و تمرین اضطراری (ISO 45001 بند ۸٫۲)'};
-function mgrCalc(K){
+const _MC={};
+function mgrCalc(K){return _MC[K]||(_MC[K]=mgrCalc_(K))}
+function mgrCalc_(K){
   const R=monthRange(K),end=R.b<today?R.b:today,cl0=ME&&calc(ME,K),m={},det={};
   m.train=cl0.s.train;det.train=`${fa(cl0.trN)} جلسه (حداقل ${fa(CFG.MIN_TRAIN)}) · پوشش ${fa(Math.round(cl0.cov*100))}٪ (هدف ${fa(Math.round(CFG.COV_TARGET*100))}٪)`;
   m.fup=cl0.s.fup;det.fup=`${fa(cl0.capaO)} اقدام اصلاحی و ${fa(cl0.fuO)} پیگیری طب کار معوق`;
