@@ -15,10 +15,12 @@
     const m = s.match(/^(1[34]\d\d)[\/\-](\d{1,2})/); if (m) return m[1] + '-' + String(+m[2]).padStart(2, '0');
     const d = new Date(s); return isNaN(d) ? null : mkey(PF.formatToParts(d));
   }
+  const MR = {};
   function monthRange(K) {
-    const y = +K.slice(0, 4), st = Date.UTC(y + 621, 2, 10); let a = null, b = null, n = 0;
-    for (let i = 0; i < 400; i++) { const t = new Date(st + i * 864e5), j = toJal(t); if (j[0] + '-' + String(j[1]).padStart(2, '0') === K) { const s = t.toISOString().slice(0, 10); if (!a) a = s; b = s; n++; } }
-    return { a, b, days: n };
+    if (MR[K]) return MR[K];
+    const y = +K.slice(0, 4), st = Date.UTC(y + 621, 2, 10); let a = null, b = null, n = 0, w = 0;
+    for (let i = 0; i < 400; i++) { const t = new Date(st + i * 864e5), j = toJal(t); if (j[0] + '-' + String(j[1]).padStart(2, '0') === K) { const s = t.toISOString().slice(0, 10); if (!a) a = s; b = s; n++; if (PARAM.WORKDAYS.includes(t.getUTCDay())) w++; } }
+    return MR[K] = { a, b, days: n, work: w };
   }
   /* قطع همکاری: تا ماهی که قطع همکاری در آن رخ داده محاسبه می‌شود و از ماه بعد حذف (قاعده‌ی مشترک؛ HSEP در auth.js) */
   const isActive = (e, refISO) => !e || !e.termination_date || String(e.termination_date).slice(0, 10) >= refISO;
@@ -69,7 +71,7 @@
   /* ---- بارگذاری داده‌های ارزیابی ---- */
   /* o.days: فقط داده‌ی چند روز اخیر خوانده شود (سریع‌تر؛ برای ارزیابی ماهانه کافی است). بدون آن، کل تاریخچه. */
   async function loadEval(o) {
-    const days = o && o.days, since = days ? new Date(Date.now() - days * 864e5).toISOString().slice(0, 10) : null,
+    const days = o && o.days ? o.days + 365 : null, since = days ? new Date(Date.now() - days * 864e5).toISOString().slice(0, 10) : null,
       F = (t, col) => since ? `${t}&${col}=gte.${since}` : t;
     const [units, monthly, cards, inc, emp, tr] = await Promise.all([
       getAll('hse_units?select=*'), getAll('hse_unit_monthly?select=*'), getAll(F('hse_cards?select=*', 'card_date')),
@@ -86,24 +88,36 @@
     return { units, monthly, cards, inc, emp, tr, ta };
   }
 
-  /* ---- پارامترها (شیت «پارامترها» در اکسل) ---- */
-  const PARAM = { SAFETY_T: 80, PART_T: 20, ASR: [3, 15, 27], RISK: { A: { cap: 80, coef: 0.59 }, B: { cap: 90, coef: 1 }, C: { cap: 100, coef: 1 } }, HOURS_PER_DAY: 9 };
+  /* ---- پارامترها (مطابق اصلاح استانداردسازی شاخص‌ها) ----
+     - ساعت کار بر اساس روزهای کاری واقعی (شنبه تا چهارشنبه) نه روزهای تقویمی
+     - نرخ‌های حادثه روی ۱۲ ماه متحرک و با کفِ مواجهه‌ی ۲۰۰٬۰۰۰ ساعت (پایه‌ی OSHA) تا واحد کوچک بی‌ثباتی آماری نداشته باشد
+     - PPE و رفتار ناایمن به‌صورت درصد از «تعداد مشاهده» سنجیده می‌شود؛ صفر بدون مشاهده‌ی کافی امتیاز کامل نمی‌گیرد
+     - حادثه‌ی جزئی (کمک‌های اولیه) از شاخص ایمنی خارج است تا گزارش‌دهی جریمه نشود
+     - بدون ارفاق ریسک: واحد پرریسک با همان ترازو سنجیده می‌شود */
+  const PARAM = { SAFETY_T: 80, PART_T: 20, WORKDAYS: [6, 0, 1, 2, 3], HOURS_PER_DAY: 9, FLOOR_H: 200000, MIN_OBS: 5, MIN_OBS_FRAC: 0.5, OBS_FROM: '1405-08',
+    W: { X: 3, AB: 2, AF: 2.5, AJ: 2.5 }, RISK: { A: { cap: 100, coef: 1 }, B: { cap: 100, coef: 1 }, C: { cap: 100, coef: 1 } } };
   const ZONES = ['الگو (ایمن و مشارکت‌جو)', 'ایمن ولی ساکت', 'ریسک بالا، شفاف', 'نیازمند مداخله فوری'];
   const ratioPts = (n, c, t) => { if (!n) return 0; const r = n / c * 10; return r <= 1 ? t[0] : r <= 3 ? t[1] : r <= 5 ? t[2] : t[3]; };
-  const pctPts = v => v === 0 ? 10 : v <= 10 ? -1 : v <= 30 ? -4 : v <= 60 ? -6 : -10;
+  /* امتیاز درصد تخلف (۰..۱۰۰): درون‌یابی خطی بین نقاط؛ بدون پرش ناگهانی از +۱۰ به −۱ */
+  const PCT_ANCH = [[0, 10], [2, 7], [5, 3], [10, 0], [30, -4], [60, -8], [100, -10]];
+  const pctPts = v => { v = Math.max(0, Math.min(100, v)); for (let i = 1; i < PCT_ANCH.length; i++) { const [x1, y1] = PCT_ANCH[i - 1], [x2, y2] = PCT_ANCH[i]; if (v <= x2) return y1 + (y2 - y1) * (v - x1) / (x2 - x1); } return -10; };
+  const minObs = C => Math.max(PARAM.MIN_OBS, Math.ceil(C * PARAM.MIN_OBS_FRAC));
+  const prevKeyOf = k => { let y = +k.slice(0, 4), m = +k.slice(5) - 1; if (m < 1) { m = 12; y--; } return y + '-' + String(m).padStart(2, '0'); };
+  const keys12 = K => { const o = []; let k = K; for (let i = 0; i < 12; i++) { o.push(k); k = prevKeyOf(k); } return o; };
+  const lostOf = i => +((i.description || '').match(/روز از دست رفته:\s*(\d+)/) || [0, 0])[1]; /* مقدار را خود برنامه‌ی بهداری در شرح ثبت می‌کند */
 
-  /* امتیازدهی یک واحد (تابع خالص؛ مطابق فرمول‌های اکسل) */
+  /* امتیازدهی یک واحد (تابع خالص)
+     i: C نفر، hz/nm/sg/talks مشارکت، ppe/unsafe شمار تخلف، obs شمار مشاهده (null = داده‌ی قدیمی)،
+        ac12/lost12/hours12 حادثه‌ی غیرجزئی، روز از دست رفته و ساعت کار ۱۲ ماه اخیر */
   function scoreUnit(i) {
-    const C = i.C, hours = i.days * C * PARAM.HOURS_PER_DAY;
-    // ✅ استفاده از امتیازهای وزنی (hz/nm/sg قبلاً به‌صورت وزنی محاسبه شده‌اند)
+    const C = i.C, h12 = Math.max(i.hours12 || 0, PARAM.FLOOR_H);
     const L = ratioPts(i.hz, C, [3, 6, 8, 10]), O = ratioPts(i.nm, C, [3, 6, 8, 10]), R = ratioPts(i.sg, C, [3, 6, 8, 10]), T = ratioPts(i.talks, C, [3, 5, 8, 10]);
-    const X = pctPts(i.ppe / C * 100), AB = pctPts(i.unsafe / C * 100);
-    const afr = i.ac * 1e6 / hours, AF = afr === 0 ? 10 : afr < 400 ? 5 : afr < 600 ? 0 : afr < 800 ? -5 : -10;
-    const asr = i.lost * 1000 / hours, AJ = asr === 0 ? 10 : asr <= PARAM.ASR[0] ? -1 : asr <= PARAM.ASR[1] ? -4 : asr <= PARAM.ASR[2] ? -6 : -10;
-    const mi = i.ak * 33333 / hours, AN = mi === 0 ? 10 : mi < 100 ? 5 : mi < 200 ? 0 : mi < 300 ? -5 : -10;
-    const rk = PARAM.RISK[i.risk] || PARAM.RISK.B, ad = v => v < 0 ? v * rk.coef : v;
-    const AS = ad(X) * 2 + ad(AB) * 0.5 + ad(AF) * 2.5 + ad(AJ) * 2.5 + ad(AN) * 2.5;
-    return { hours, afr, asr, pts: { L, O, R, T, X, AB, AF, AJ, AN }, safety: Math.min(100, Math.max(0, 50 + (AS > 0 ? AS * 100 / rk.cap : AS) / 2)), part: Math.min(100, ((L + O + R + T) * 0.5 / 20) * 100) };
+    const den = i.obs > 0 ? i.obs : C; /* داده‌ی قدیمی بدون مخرج مشاهده: به نسبت نفرات (مثل قبل) */
+    const X = pctPts(i.ppe / den * 100), AB = pctPts(i.unsafe / den * 100);
+    const afr = (i.ac12 || 0) / h12 * 1e6, AF = afr === 0 ? 10 : afr <= 5 ? 0 : afr <= 10 ? -5 : -10;
+    const dr = (i.lost12 || 0) / h12 * 200000, AJ = dr === 0 ? 10 : dr <= 10 ? 4 : dr <= 50 ? -2 : dr <= 150 ? -6 : -10;
+    const W = PARAM.W, AS = X * W.X + AB * W.AB + AF * W.AF + AJ * W.AJ;
+    return { hours: i.hours12 || 0, afr, asr: dr, pts: { L, O, R, T, X, AB, AF, AJ }, safety: Math.min(100, Math.max(0, 50 + AS / 2)), part: Math.min(100, ((L + O + R + T) * 0.5 / 20) * 100) };
   }
 
   function compute(K, B) {
@@ -113,8 +127,11 @@
     const cards = inM(B.cards, 'card_date').filter(c => c.status !== 'rejected');
     const talkIds = new Set(inM(B.tr, 'training_date').filter(t => t.training_type === 'safety_talk').map(t => t.id));
     const talkUnits = {}; (B.ta || []).filter(a => talkIds.has(a.training_id) && empU[a.employee_id]).forEach(a => { (talkUnits[empU[a.employee_id]] = talkUnits[empU[a.employee_id]] || new Set()).add(a.training_id); });
-    const incU = {}; let incNoUnit = 0;
-    inM(B.inc, 'incident_date').forEach(i => { const uid = empU[i.employee_id]; if (!uid) { incNoUnit++; return; } (incU[uid] = incU[uid] || []).push(i); });
+    const incU = {}, incY = {}; let incNoUnit = 0;
+    const K12 = keys12(K), S12 = new Set(K12);
+    (B.inc || []).forEach(i => { const k = jk(i.incident_date); if (!k) return; const uid = empU[i.employee_id];
+      if (S12.has(k) && uid) (incY[uid] = incY[uid] || []).push(i);
+      if (k === K) { if (!uid) incNoUnit++; else (incU[uid] = incU[uid] || []).push(i); } });
     const mon = {}; (B.monthly || []).filter(m => m.month_key === K).forEach(m => mon[m.unit_id] = m);
     
     const rows = B.units.filter(u => u.active !== false && u.headcount > 0).map(u => {
@@ -134,13 +151,17 @@
       const sg = getWeightedScore('suggestion');
       const talks = (talkUnits[u.id] || new Set()).size;
       
-      const m = mon[u.id], entered = !!m, ppe = m ? m.ppe_count : 0, unsafe = m ? m.unsafe_count : 0;
+      const m = mon[u.id], ppe = m ? m.ppe_count : 0, unsafe = m ? m.unsafe_count : 0, obs = m && m.obs_count != null ? +m.obs_count : null;
+      /* از ۱۴۰۵-۰۸ ورودی بدون تعداد مشاهده‌ی کافی «داده ناقص» است (صفرِ بدون مشاهده امتیاز نمی‌گیرد) */
+      const need = minObs(C), entered = !!m && (K < PARAM.OBS_FROM || (obs != null && obs >= need));
       const ii = incU[u.id] || [], ak = ii.filter(i => i.severity === 'minor').length, ac = ii.length - ak;
-      const lost = ii.reduce((s, i) => s + (+((i.description || '').match(/روز از دست رفته:\s*(\d+)/) || [0, 0])[1]), 0);
-      const sc = scoreUnit({ C, hz, nm, sg, talks, ppe, unsafe, ac, ak, lost, days: R.days, risk: u.risk_level }), { hours, afr, asr, pts, safety, part } = sc;
+      const lost = ii.reduce((s, i) => s + lostOf(i), 0);
+      const y = incY[u.id] || [], ac12 = y.filter(i => i.severity !== 'minor').length, ak12 = y.length - ac12, lost12 = y.reduce((s, i) => s + lostOf(i), 0);
+      const hours12 = K12.reduce((s, k) => s + monthRange(k).work * C * PARAM.HOURS_PER_DAY, 0);
+      const sc = scoreUnit({ C, hz, nm, sg, talks, ppe, unsafe, obs, ac12, lost12, hours12 }), { hours, afr, asr, pts, safety, part } = sc;
       const zone = !entered ? null : (safety >= PARAM.SAFETY_T && part >= PARAM.PART_T && part > 0) ? 0 : safety >= PARAM.SAFETY_T ? 1 : (part >= PARAM.PART_T && part > 0) ? 2 : 3;
       const eligible = entered && !!u.manager && ac === 0 && zone === 0;
-      return { u, C, hz, nm, sg, talks, ppe, unsafe, entered, ac, ak, lost, hours, afr, asr, pts, safety: Math.round(safety * 10) / 10, part: Math.round(part * 10) / 10, zone, eligible, score: eligible ? Math.sqrt(safety * part) : 0 };
+      return { u, C, hz, nm, sg, talks, ppe, unsafe, obs, need, entered, ac, ak, lost, ac12, ak12, lost12, hours, afr, asr, pts, safety: Math.round(safety * 10) / 10, part: Math.round(part * 10) / 10, zone, eligible, score: eligible ? Math.sqrt(safety * part) : 0 };
     });
     rows.filter(r => r.eligible).sort((a, b) => b.score - a.score).forEach((r, i) => r.rank = i + 1);
     const zones = [0, 1, 2, 3].map(z => rows.filter(r => r.zone === z));
@@ -176,5 +197,5 @@
   async function loadCulture() { const r = await getAll('culture_assessments?select=id,assessed_at,assessor,answers,avg,notes'); return r ? r.sort((a, b) => String(b.assessed_at).localeCompare(String(a.assessed_at))) : null; }
   function cultureAt(list, K) { if (!list) return null; const end = monthRange(K).b; const ok = list.filter(x => x.assessed_at <= end); return { latest: ok[0] || null, prev: ok[1] || null }; }
 
-  window.HSE = { URL_, H, JH, MN, fa, esc, nd, jk, monthRange, monthKeys, monthLabel, nowK, jalToISO, toJal, jdInit, jdSet, jdGet, jdHTML, getAll, req, norm, unitMatcher, isActive, loadEval, compute, scoreUnit, PARAM, ZONES, LV, levelOf, loadCulture, cultureAt };
+  window.HSE = { URL_, H, JH, MN, fa, esc, nd, jk, monthRange, monthKeys, monthLabel, nowK, jalToISO, toJal, jdInit, jdSet, jdGet, jdHTML, getAll, req, norm, unitMatcher, isActive, loadEval, compute, scoreUnit, lostOf, PARAM, ZONES, LV, levelOf, loadCulture, cultureAt };
 })();
