@@ -1553,8 +1553,54 @@ async function recon() {
     ${B.map(([t], i) => row('باز: ' + t, r => fa(r.b[i]) + ' (' + pc(r.b[i], r.op.length) + ')')).join('')}
     </table></div>
     <div class="q" style="margin-top:10px; font-size:13px;"><b>مرجع گزارش فنی (تصویر شما):</b> کل ۶۳۴ · در جریان ۲۱۰ (۳۳٫۱۲٪) · بسته ۴۱۱ (۶۴٫۸۳٪) · لغو ۱۳ (۲٫۰۵٪) · سنی: ۱۰ / ۳۰ / ۲۶ / ۱۹ / ۱۲۵.</div>
+    <div class="q" style="margin-top:12px;"><b>📎 مقایسهٔ دقیق با فایل اکسل اعلان‌های فنی</b>
+      <small style="display:block; margin:4px 0;">فایل خروجی فنی را انتخاب کنید (فقط ردیف‌های اولویت HSE خوانده می‌شود). فایل در همین مرورگر پردازش می‌شود و جایی ارسال نمی‌شود.</small>
+      <input type="file" id="techf" accept=".xlsx,.xls"></div>
+    <div id="techout"></div>
     <small>اگر «دارای اعلان» از فنی بیشتر است: موارد تکراری یا اعلان‌دار دو بار ثبت‌شده. اگر در جریان بیشتر است: مواردی که فنی بسته ولی اینجا تأیید نشده. اگر بسته کمتر است: همین علت.</small>`);
 }
+
+/* ===== مقایسهٔ ردیف‌به‌ردیف با اکسل فنی (اعلان‌های اولویت HSE) بر اساس شمارهٔ اعلان ===== */
+async function techCompare(file) {
+  const out = $('#techout'); out.innerHTML = '<p>در حال خواندن فایل...</p>';
+  try {
+    if (!window.XLSX) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('بارگذاری کتابخانهٔ اکسل ممکن نشد (اینترنت یا فیلتر).')); document.head.appendChild(sc); });
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' }), ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+    const clean = v => String(v == null ? '' : v).replace(/[\u200e\u200f\u202a-\u202e]/g, '').trim();
+    const dig = v => clean(v).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/\D/g, '');
+    const T = raw.filter(r => clean(r['اولویت']) == 'HSE').map(r => ({ no: dig(r['شماره']), date: clean(r['تاریخ ایجاد']), st: clean(r['وضعیت']), eq: clean(r['عنوان تجهیز']), txt: clean(r['شرح']) }));
+    if (!T.length) { out.innerHTML = '<div class="q bad">ردیفی با اولویت «HSE» در فایل پیدا نشد (ستون‌های «اولویت» و «شماره» لازم است).</div>'; return; }
+    const tk = st => /خاتمه|انجام شده/.test(st) ? 'closed' : /باطل/.test(st) ? 'cancelled' : 'open';
+    T.forEach(t => t.k = tk(t.st));
+    let rows = []; for (let o = 0; o < 40000; o += 1000) { const r = await api('findings?select=id,module,question,note,location,status,notice_code&order=id.asc&limit=1000&offset=' + o); rows = rows.concat(r || []); if (!r || r.length < 1000) break; }
+    rows = rows.filter(x => x.module != 'MED');
+    const appBy = {}; rows.forEach(x => { const d = dig(x.notice_code); if (d) (appBy[d] = appBy[d] || []).push(x); });
+    const techBy = {}; T.forEach(t => techBy[t.no] = t);
+    const cnt = k => T.filter(t => t.k == k).length;
+    const noApp = T.filter(t => !appBy[t.no]);
+    const free = rows.filter(x => !dig(x.notice_code) && x.status != 'cancelled');
+    free.forEach(x => x._t = dtok((x.question || '') + ' ' + (x.note || '')));
+    noApp.forEach(t => { const tt = dtok(t.txt + ' ' + t.eq); let b = null, bs = 0; free.forEach(x => { const v = dsim(tt, x._t); if (v > bs) { bs = v; b = x; } }); t._c = bs >= .5 ? b : null; t._s = Math.round(bs * 100); });
+    const notInTech = rows.filter(x => dig(x.notice_code) && !techBy[dig(x.notice_code)]);
+    const mism = []; T.forEach(t => (appBy[t.no] || []).forEach(x => { if (x.status != t.k) mism.push({ t, x }); }));
+    const dupNo = Object.entries(appBy).filter(([n, L]) => L.length > 1 && techBy[n]);
+    const stA = { open: 'باز', closed: 'اصلاح‌شده', cancelled: 'لغو' }, stT = { open: 'در جریان', closed: 'بسته', cancelled: 'باطل' };
+    const lim = (a, f) => a.slice(0, 80).map(f).join('') + (a.length > 80 ? `<small>و ${fa(a.length - 80)} مورد دیگر...</small>` : '');
+    const sec = (t, n, body) => `<details class="q" style="margin-top:8px;" ${n ? 'open' : ''}><summary style="cursor:pointer; font-weight:700;">${t} — ${fa(n)} مورد</summary>${body || '<small>موردی نیست ✅</small>'}</details>`;
+    const li = h => `<div style="border-top:1px solid var(--bd); padding:6px 0; font-size:13px;">${h}</div>`;
+    window._ttxt = [`اعلان فنی بدون مورد در برنامه (${noApp.length}):`, ...noApp.map(t => `#${t.no} ${t.date} [${t.st}] ${t.txt}${t._c ? ' | احتمالاً مورد #' + t._c.id + ' (' + t._s + '٪)' : ''}`)].join('\n');
+    out.innerHTML = `<h3 style="margin-top:14px;">نتیجهٔ مقایسه با فایل فنی</h3>
+      <div class="q" style="font-size:13px;">فایل فنی (اولویت HSE): <b>${fa(T.length)}</b> اعلان — در جریان <b>${fa(cnt('open'))}</b> · بسته <b>${fa(cnt('closed'))}</b> · باطل <b>${fa(cnt('cancelled'))}</b><br>
+      برنامه: <b>${fa(rows.length)}</b> مورد (غیر دارو)، از این‌ها <b>${fa(Object.values(appBy).reduce((n, L) => n + L.length, 0))}</b> مورد کد اعلان دارد؛ اعلان‌های فنی پیداشده در برنامه: <b>${fa(T.length - noApp.length)}</b> از ${fa(T.length)}.</div>
+      <button class="l" data-a="ttcopy" style="margin-top:6px;">📋 کپی فهرست اعلان‌های فاقد مورد در برنامه</button>
+      ${sec('۱) اعلان فنی که در برنامه نیست (یا کدش وارد نشده)', noApp.length, lim(noApp, t => li(`<b>#${esc(t.no)}</b> · ${esc(t.date)} · ${esc(t.st)} · ${esc(t.eq)}<br>${esc(t.txt)}${t._c ? `<br><small style="color:var(--wa)">🔗 احتمالاً همان مورد #${esc(t._c.id)} برنامه (${fa(t._s)}٪، بدون کد اعلان): ${esc(t._c.question || '')}</small>` : ''}`)))}
+      ${sec('۲) وضعیت متفاوت بین فنی و برنامه', mism.length, lim(mism, m => li(`<b>#${esc(m.t.no)}</b> فنی: ${stT[m.t.k]} (${esc(m.t.st)}) ↔ برنامه: ${stA[m.x.status] || esc(m.x.status)} (مورد #${esc(m.x.id)})<br>${esc(m.t.txt)}`)))}
+      ${sec('۳) مورد برنامه که کد اعلانش در فایل فنی (HSE) نیست', notInTech.length, lim(notInTech, x => li(`مورد #${esc(x.id)} · کد «${esc(x.notice_code)}» · ${esc(x.question || '')}`)))}
+      ${sec('۴) یک اعلان فنی که چند بار در برنامه ثبت شده (تکراری)', dupNo.length, lim(dupNo, ([n, L]) => li(`<b>اعلان #${esc(n)}</b> در ${fa(L.length)} مورد برنامه: ${L.map(x => '#' + esc(x.id)).join('، ')}<br>${esc(techBy[n].txt)}`)))}`;
+  } catch (e) { out.innerHTML = '<div class="q bad">خطا: ' + esc(e.message) + '</div>'; }
+}
+document.addEventListener('change', e => { if (e.target && e.target.id == 'techf' && e.target.files[0]) techCompare(e.target.files[0]); });
 async function finds(iid) {
   if (iid !== undefined) { FI = iid; EDIT = null; }
   view('<p style="text-align:center; padding:40px;">در حال بارگذاری عدم‌انطباق‌ها...</p>');
@@ -2153,6 +2199,7 @@ document.onclick = async e => {
   else if (a == 'send') send();
   else if (a == 'finds') finds();
   else if (a == 'recon') recon();
+  else if (a == 'ttcopy') { navigator.clipboard.writeText(window._ttxt || '').then(() => alert('کپی شد'), () => prompt('کپی کنید:', window._ttxt || '')); }
   else if (a == 'dups') dups(t.dataset.k == 'all');
   else if (a == 'dcopy') { navigator.clipboard.writeText(window._dtxt || '').then(() => alert('لیست کپی شد'), () => prompt('کپی کنید:', window._dtxt || '')); }
   else if (a == 'edit-insp') {
