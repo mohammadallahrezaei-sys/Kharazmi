@@ -15,16 +15,28 @@
 .it:last-child{border-bottom:0}.it small{display:block;color:var(--mu);font-size:11px}
 .bd{font-size:11px;padding:1px 8px;border-radius:99px;white-space:nowrap;align-self:flex-start;border:1px solid}
 .bd.r{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 55%,transparent)}.bd.y{color:var(--wa);border-color:color-mix(in srgb,var(--wa) 55%,transparent)}.bd.g{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 55%,transparent)}
+.hero .bad{color:var(--bad)}.hero .wa{color:var(--wa)}.hero .ok,.clean .wa{color:var(--ok)}.clean .wa{color:var(--wa)}
+button.tile{width:100%;text-align:right;font:inherit;cursor:pointer}
+.tile.on{outline:2px solid var(--ac);outline-offset:1px}
+.tile small{display:block;font-size:10px;color:var(--mu)}
+.hero{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.hero b{font-size:34px;line-height:1.2}.hero span{color:var(--mu);font-size:13px}
+.clean{font-size:12px;color:var(--mu);margin:2px 0 10px}
+.clean b{color:var(--ok);font-weight:600}
+.pn{margin-bottom:12px}
+.pn h2{display:flex;justify-content:space-between;align-items:center;gap:8px}
 h2 a{font-size:11px;font-weight:400;margin-inline-start:8px;color:var(--mu)}
 </style>
 </head>
 <body>
 <div class="w">
   <div class="top">
-    <div><h1>🧭 میز کار HSE</h1><p>همه‌ی موارد معوق و نیازمند اقدام در یک نگاه — <span id="today"></span></p></div>
+    <div><h1>🧭 میز کار HSE</h1><p>اول ببینید چه چیزی معوق است؛ روی هر کارت بزنید تا فهرستش باز شود — <span id="today"></span></p></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="p" onclick="load()">🔄 به‌روزرسانی</button><a class="btn" href="index.html">← بازگشت</a></div>
   </div>
+  <div id="hero" class="hero"></div>
   <div id="tiles" class="tiles"></div>
+  <div id="clean" class="clean"></div>
   <div id="secs"><div class="card">در حال بارگذاری...</div></div>
 </div>
 <script src="eval_core.js"></script>
@@ -111,22 +123,40 @@ async function load(){
     const TY={hazard:'خطر',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد'};
     sec('cd','کارت‌های گزارش بدون نتیجه','cards.html',L.map(({c,age})=>({k:age>7?'r':'y',h:row(esc(String(c.description||'').slice(0,90)),`${TY[c.card_type]} · ${esc(c.unit||'بدون واحد')} · ${esc(c.reporter_name||'')}`,fa(age)+' روز پیش',age>7?'r':'y')})));
   } else sec('cd','کارت‌های گزارش بدون نتیجه','cards.html',null);
+  // ۵.۵) داروی کمد کمک‌های اولیه (کمبود / انقضا)
+  if(fin){
+    const L=fin.filter(x=>x.status==='open'&&x.module==='MED').map(x=>({x,over:x.due_date?dd(TODAY,x.due_date):0})).sort((a,b)=>b.over-a.over);
+    sec('med','داروی کمد: کمبود یا انقضا','checklists.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(x.question||'—'),esc(x.location||''),over>0?fa(over)+' روز معوق':'باز',over>0?'r':'y')})));
+  } else sec('med','داروی کمد: کمبود یا انقضا','checklists.html',null);
   // ۶) یادآورها
   const K=HSE.nowK(),rem=[];
   if(units&&mon){const act=units.filter(u=>u.active!==false),done=new Set(mon.filter(m=>m.month_key===K).map(m=>m.unit_id)),miss=act.filter(u=>!done.has(u.id));if(miss.length)rem.push({k:'y',h:row('ورودی ماهانه PPE و رفتار ناایمن ثبت نشده',`${miss.length} از ${act.length} واحد: ${esc(miss.slice(0,5).map(u=>u.name).join('، '))}${miss.length>5?' ...':''}`,'این ماه','y')})}
   if(cul){const last=cul.map(c=>c.assessed_at).sort().pop();const age=last?dd(TODAY,last):null;if(age==null||age>180)rem.push({k:'y',h:row('ارزیابی نردبان فرهنگ ایمنی',last?'آخرین ارزیابی '+fday(last):'هنوز ارزیابی ثبت نشده',age==null?'ثبت نشده':fa(Math.round(age/30))+' ماه پیش','y')})}
-  rem.push({k:'y',h:row('بررسی شایستگی تشویق پرسنل','کسانی که شایسته‌ی تشویق‌اند ولی هنوز تشویق ثبت نشده','ماهانه','y')});
   sec('rm','یادآورها','evaluation.html',rem);
   draw();
 }
+const SHORT={rk:'ریسک‌ها',fin:'عدم‌انطباق‌ها',inc:'اقدام حوادث',fu:'پیگیری طب کار',eq:'تجهیزات',cd:'کارت‌ها',med:'داروی کمد',rm:'یادآورها'};
+let OPEN=(location.hash||'').replace('#','').replace(/^s_/,'')||null;
 function draw(){
-  const cnt=s=>s.items?s.items.filter(i=>i.k==='r').length:null;
-  $('tiles').innerHTML=SECS.map(s=>{const r=cnt(s),n=s.items?s.items.length:null;return`<a class="tile ${n==null?'':r?'r':n?'y':'g'}" href="#s_${s.id}"><b>${n==null?'—':fa(r)}</b><span>${esc(s.title.split(':')[0])}${n?` (${fa(n)} باز)`:''}</span></a>`}).join('');
-  $('secs').innerHTML=SECS.map(s=>{
-    if(!s.items)return`<div class="card" id="s_${s.id}"><h2>${esc(s.title)}</h2><div class="mu">در دسترس نیست (جدول پیدا نشد یا دسترسی ندارد).</div></div>`;
-    const top=s.items.slice(0,8),rest=s.items.slice(8);
-    return`<div class="card" id="s_${s.id}"><h2>${esc(s.title)} <a href="${s.link}">باز کردن ماژول ←</a></h2>${s.items.length?top.map(i=>i.h).join('')+(rest.length?`<details><summary class="mu" style="cursor:pointer;margin-top:6px">${fa(rest.length)} مورد دیگر</summary>${rest.map(i=>i.h).join('')}</details>`:''):'<div class="ok">✓ موردی باز نیست</div>'}</div>`}).join('');
+  const info=SECS.map(s=>{const it=s.items;return{...s,n:it?it.length:null,r:it?it.filter(i=>i.k==='r').length:null}});
+  const act=info.filter(s=>s.n>0).sort((a,b)=>b.r-a.r||b.n-a.n),clean=info.filter(s=>s.n===0),na=info.filter(s=>s.n==null);
+  const R=act.reduce((a,s)=>a+s.r,0),N=act.reduce((a,s)=>a+s.n,0);
+  $('hero').innerHTML=act.length?`<b class="${R?'bad':'wa'}">${fa(R)}</b><span>مورد معوق${N-R?` · ${fa(N-R)} مورد در مهلت`:''}</span>`:'<b class="ok">✓</b><span>موردی معوق یا باز نیست</span>';
+  $('tiles').innerHTML=act.map(s=>`<button type="button" class="tile ${s.r?'r':'y'} ${OPEN===s.id?'on':''}" data-s="${s.id}"><b>${fa(s.r||s.n)}</b><span>${SHORT[s.id]||esc(s.title)}</span><small>${s.r?`معوق${s.n-s.r?` · ${fa(s.n-s.r)} در مهلت`:''}`:'در مهلت'}</small></button>`).join('');
+  $('clean').innerHTML=(clean.length?`<b>✓ بدون مورد:</b> ${clean.map(s=>SHORT[s.id]||esc(s.title)).join('، ')}`:'')+(na.length?` · <span class="wa">در دسترس نیست: ${na.map(s=>SHORT[s.id]||esc(s.title)).join('، ')}</span>`:'');
+  const s=info.find(x=>x.id===OPEN);
+  const old=$('secs');
+  if(!s||!s.items||!s.items.length){old.innerHTML=act.length?'<div class="mu" style="text-align:center;padding:10px">برای دیدن فهرست، روی یکی از کارت‌های بالا بزنید.</div>':'';return}
+  const top=s.items.slice(0,12),rest=s.items.slice(12);
+  old.innerHTML=`<div class="card pn" id="s_${s.id}"><h2><span>${esc(s.title)}</span><span><a href="${s.link}">باز کردن ماژول ←</a> <a href="#" data-close="1">✕ بستن</a></span></h2>${s.note?`<div class="mu" style="margin-bottom:6px">${esc(s.note)}</div>`:''}${top.map(i=>i.h).join('')}${rest.length?`<details><summary class="mu" style="cursor:pointer;margin-top:6px">${fa(rest.length)} مورد دیگر</summary>${rest.map(i=>i.h).join('')}</details>`:''}</div>`;
 }
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-s]'),c=e.target.closest('[data-close]');
+  if(c){e.preventDefault();OPEN=null;history.replaceState(null,'',location.pathname);draw();return}
+  if(!t)return;
+  OPEN=OPEN===t.dataset.s?null:t.dataset.s;history.replaceState(null,'',OPEN?'#'+OPEN:location.pathname);draw();
+  if(OPEN)$('secs').scrollIntoView({behavior:'smooth',block:'start'});
+});
 load();
 </script>
 </body>
