@@ -126,12 +126,7 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
   <a href="clinic.html">＋ مراجعه بهداری</a>
 </div>
 
-<div class="wg" aria-label="وضعیت در یک نگاه">
-  <a class="wi" id="wFin" href="checklists.html"><i id="wFinI">📋</i><div><b id="wFinT">عدم‌انطباق‌های باز</b><span id="wFinD">در حال بررسی...</span></div></a>
-  <a class="wi" id="wRisk" href="risks.html"><i id="wRiskI">⚠️</i><div><b id="wRiskT">ریسک‌ها</b><span id="wRiskD">در حال بررسی...</span></div></a>
-  <a class="wi" id="wClin" href="clinic.html"><i id="wClinI">🏥</i><div><b id="wClinT">وضعیت بهداری و حوادث</b><span id="wClinD">در حال دریافت آمار...</span></div></a>
-  <a class="wi" id="wEkh" href="ekhtar.html"><i id="wEkhI">⚖️</i><div><b id="wEkhT">سوابق انضباطی</b><span id="wEkhD">در حال بارگذاری...</span></div></a>
-</div>
+<div class="wg" id="wg" aria-label="نیازمند اقدام"><div class="wi"><i>⏳</i><div><b>در حال بررسی...</b><span>موارد نیازمند اقدام</span></div></div></div>
 
 <section class="mg grp" id="gRisk">
   <h2>ریسک و بازرسی</h2>
@@ -190,50 +185,54 @@ function widget(id, state, icon, title, desc) {
 }
 const meta = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t || ''; };
 
+/* ===== نیازمند اقدام: فقط مواردی که واقعاً باید پیگیری شوند (با لینک مستقیم به همان بخش میز کار) ===== */
+function renderAlerts(L) {
+  const g = document.getElementById('wg'); if (!g) return;
+  const A = L.filter(x => x.n > 0).sort((a, b) => (b.s === 'bad') - (a.s === 'bad') || b.n - a.n);
+  if (!A.length) { g.innerHTML = '<a class="wi ok" href="desk.html"><i>✓</i><div><b>همه‌چیز در مهلت است</b><span>موردی معوق یا نیازمند اقدام فوری نیست.</span></div></a>'; return; }
+  g.innerHTML = A.map(x => `<a class="wi ${x.s}" href="desk.html#${x.id}"><i>${x.i}</i><div><b>${fa(x.n)} ${x.t}</b><span>${x.d}</span></div></a>`).join('');
+}
 async function loadStatus() {
-  const [fin, inc, fu, rk, cd] = await Promise.all([
-    get('findings?status=eq.open&module=neq.MED&select=id,due_date').catch(() => null),
-    get('clinic_incidents?select=id,severity').catch(() => null),
-    get('clinic_followups?status=in.(pending,overdue)&select=id').catch(() => null),
+  const [fin, fu, inc, rk, cd] = await Promise.all([
+    get('findings?status=eq.open&select=id,due_date,module').catch(() => null),
+    get('clinic_followups?status=in.(pending,overdue)&select=id,due_date,status').catch(() => null),
+    get('clinic_incidents?select=id,corrective_action,action_status,action_due_date').catch(() => null),
     get('risks?status=neq.archived&select=id,high,status,review_date').catch(() => null),
-    get('hse_cards?status=in.(pending,in_review)&select=id').catch(() => null)
+    get('hse_cards?status=in.(pending,in_review)&select=id,card_date').catch(() => null)
   ]);
-  const today = new Date().toISOString().slice(0, 10), bits = [];
-  /* ویجت عدم‌انطباق */
+  const today = new Date().toISOString().slice(0, 10), ago7 = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10), A = [];
+  const late = d => d && d < today;
   if (fin) {
-    const over = fin.filter(x => x.due_date && x.due_date < today).length;
-    if (fin.length) { widget('wFin', over ? 'bad' : 'wa', '⚠️', `هشدار: ${fa(fin.length)} مورد عدم‌انطباق باز`, over ? `${fa(over)} مورد معوق شده؛ نیازمند پیگیری و اقدام اصلاحی` : 'نیازمند پیگیری، اعلان و اقدام اصلاحی'); bits.push(`${fa(fin.length)} عدم‌انطباق باز`); }
-    else widget('wFin', 'ok', '✓', 'وضعیت ایمنی مطلوب', 'هیچ عدم‌انطباق باز و معلقی وجود ندارد.');
-    meta('mChk', fin.length ? fa(fin.length) + ' باز' : '');
-  } else widget('wFin', '', '📋', null, 'آماده‌به‌کار (متصل به دیتابیس)');
-  /* ویجت ریسک */
+    const f = fin.filter(x => x.module !== 'MED'), m = fin.filter(x => x.module === 'MED'), fo = f.filter(x => late(x.due_date)).length, mo = m.filter(x => late(x.due_date)).length;
+    A.push({ id: 'fin', i: '📋', n: fo || f.length, s: fo ? 'bad' : 'wa', t: fo ? 'عدم‌انطباق معوق' : 'عدم‌انطباق باز', d: fo ? `از ${fa(f.length)} مورد باز` : 'همه در مهلت' });
+    A.push({ id: 'med', i: '💊', n: m.length, s: mo ? 'bad' : 'wa', t: 'هشدار داروی کمد', d: 'کمبود موجودی یا انقضا' });
+    meta('mChk', f.length ? fa(f.length) + ' باز' : '');
+  }
   if (rk) {
-    const hi = rk.filter(x => x.high).length, pend = rk.filter(x => x.status === 'draft').length, od = rk.filter(x => x.review_date && x.review_date < today).length;
+    const hi = rk.filter(x => x.high).length, pend = rk.filter(x => x.status === 'draft').length, od = rk.filter(x => late(x.review_date)).length;
     const note = [pend ? `${fa(pend)} در انتظار تأیید` : '', od ? `${fa(od)} بازبینی معوق` : ''].filter(Boolean).join(' · ');
-    if (hi) { widget('wRisk', 'bad', '⚠️', `ریسک بالا: ${fa(hi)} مورد`, note || 'ریسک‌های بالا را بازبینی و کنترل کنید'); bits.push(`${fa(hi)} ریسک بالا`); }
-    else if (pend || od) widget('wRisk', 'wa', '⚠️', `${fa(rk.length)} ریسک فعال`, note);
-    else widget('wRisk', 'ok', '✓', rk.length ? `${fa(rk.length)} ریسک فعال، بدون ریسک بالا` : 'هنوز ریسکی ثبت نشده', rk.length ? 'ریسک بالا یا معوقی وجود ندارد.' : 'از «ثبت ریسک» شروع کنید.');
+    A.push({ id: 'rk', i: '⚠️', n: hi || pend + od, s: hi ? 'bad' : 'wa', t: hi ? 'ریسک بالا' : 'ریسک نیازمند اقدام', d: note || 'ریسک‌های بالا را کنترل کنید' });
     meta('mRisk', hi ? fa(hi) + ' بالا' : (pend ? fa(pend) + ' در انتظار' : ''));
-  } else widget('wRisk', '', '⚠️', null, 'آماده‌به‌کار (جدول ریسک)');
-  /* ویجت بهداری و حوادث */
-  if (inc || fu) {
-    const incN = inc ? inc.length : 0, fuN = fu ? fu.length : 0, sev = inc ? inc.filter(i => ['severe', 'fatal'].includes(i.severity)).length : 0;
-    if (sev || fuN) { widget('wClin', 'wa', '🏥', `حوادث: ${fa(incN)} مورد | پیگیری باز: ${fa(fuN)}`, sev ? `⚠️ ${fa(sev)} حادثه شدید ثبت شده است` : 'نیازمند رسیدگی به ارجاعات و پیگیری‌ها'); if (fuN) bits.push(`${fa(fuN)} پیگیری باز`); }
-    else widget('wClin', 'ok', '🏥', `مجموع حوادث ثبت‌شده: ${fa(incN)}`, 'وضعیت مراجعات و پیگیری‌های بهداری پایدار است.');
-    meta('mClinic', fuN ? fa(fuN) + ' پیگیری' : '');
-  } else widget('wClin', '', '🏥', null, 'آماده‌به‌کار (بخش بهداری)');
+  }
+  if (fu || inc) {
+    const fo = (fu || []).filter(x => x.status === 'overdue' || late(x.due_date)).length, co = (inc || []).filter(x => x.corrective_action && x.action_status !== 'done' && late(x.action_due_date)).length, n = fo + co;
+    A.push({ id: fo ? 'fu' : 'inc', i: '🏥', n, s: 'bad', t: 'پیگیری بهداری معوق', d: [fo ? `${fa(fo)} پیگیری طب کار` : '', co ? `${fa(co)} اقدام اصلاحی حادثه` : ''].filter(Boolean).join(' · ') });
+    const fuN = fu ? fu.length : 0; meta('mClinic', fuN ? fa(fuN) + ' پیگیری' : '');
+  }
+  if (cd) {
+    const old = cd.filter(x => x.card_date && x.card_date < ago7).length;
+    A.push({ id: 'cd', i: '🗂️', n: old, s: 'wa', t: 'کارت بدون پاسخ بیش از ۷ روز', d: `${fa(cd.length)} کارت بی‌پاسخ در مجموع` });
+    if (cd.length) meta('mCard', fa(cd.length) + ' بی‌پاسخ');
+  }
+  renderAlerts(A);
+  const bad = A.filter(x => x.s === 'bad').reduce((t, x) => t + x.n, 0);
+  document.getElementById('deskLine').textContent = bad ? `${fa(bad)} مورد معوق نیازمند اقدام` : 'موردی معوق نیست';
   get('chemicals?status=neq.archived&select=id,review_note').then(ch => { if (ch) { const k = ch.filter(x => x.review_note).length; meta('mChem', k ? fa(k) + ' ناسازگاری' : ''); } }).catch(() => {});
-  if (cd && cd.length) meta('mCard', fa(cd.length) + ' بی‌پاسخ');
-  if (bits.length) document.getElementById('deskLine').textContent = bits.join(' · ');
 }
 
 async function loadEkhtar() {
-  const d = await get('ekhtars?select=record_type').catch(() => null);
-  if (!d) { widget('wEkh', '', '⚖️', null, 'آماده‌به‌کار (بخش انضباطی)'); return; }
-  const w = d.filter(x => x.record_type === 'اخطار کتبی').length;
-  document.getElementById('ekhtarMeta').textContent = w ? `${fa(w)} اخطار` : '';
-  if (w) widget('wEkh', 'wa', '⚠️', `سوابق انضباطی: ${fa(d.length)} مورد ثبت‌شده`, `${fa(w)} اخطار کتبی ثبت شده است.`);
-  else widget('wEkh', 'ok', '✓', `مجموع سوابق انضباطی: ${fa(d.length)}`, 'وضعیت انضباطی پرسنل پایدار است.');
+  const d = await get('ekhtars?select=record_type').catch(() => null); if (!d) return;
+  const w = d.filter(x => x.record_type === 'اخطار کتبی').length, e = document.getElementById('ekhtarMeta'); if (e) e.textContent = w ? `${fa(w)} اخطار` : '';
 }
 
 /* اگر auth.js همه لینک‌های بخش مدیر را برای این کاربر پنهان یا حذف کرد، خود بخش هم پنهان شود */
@@ -373,7 +372,7 @@ function applyOrder() {
 }
 applyOrder();
 
-loadStatus().catch(() => ['wFin', 'wRisk', 'wClin'].forEach(id => widget(id, '', null, null, 'آماده‌به‌کار (متصل به دیتابیس)')));
+loadStatus().catch(() => { const g = document.getElementById('wg'); if (g) g.innerHTML = '<a class="wi" href="desk.html"><i>🧭</i><div><b>میز کار HSE</b><span>برای دیدن موارد نیازمند اقدام باز کنید.</span></div></a>'; });
 loadEkhtar();
 [300, 1200, 3000].forEach(t => setTimeout(syncMgr, t));
 </script>
