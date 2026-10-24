@@ -1475,6 +1475,43 @@ async function moveToLocal() {
   btn.disabled = false; refreshUsage();
 }
 
+
+/* ===== یافتن عدم‌انطباق‌های تکراری: محل یکسان + شباهت متن (نه لزوماً عین هم) ===== */
+const DSTOP = new Set('در به از و با که این آن است شده شود می باید را برای یا هم تا بر یک های ها ای بی نیز بوده نشده نیست وجود دارد دارند بدون'.split(' '));
+const dnorm = t => String(t || '').replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/[\u200c\u200f\u064b-\u065f]/g, ' ').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+const dtok = t => { const a = dnorm(t).split(' ').filter(w => w.length > 1 && !DSTOP.has(w)).map(w => w.replace(/(ها|های|ان|ات)$/, '')); return new Set(a); };
+function dsim(a, b) { if (!a.size || !b.size) return 0; let i = 0; a.forEach(w => { if (b.has(w)) i++; }); return Math.max(i / (a.size + b.size - i), i / Math.min(a.size, b.size) * .85); }
+async function dups(all) {
+  view('<p style="text-align:center; padding:40px;">در حال خواندن عدم‌انطباق‌ها و مقایسه...</p>');
+  let rows = [];
+  try {
+    for (let o = 0; o < 20000; o += 1000) {
+      const r = await api('findings?select=id,qid,module,question,location,status,severity,created_at,due_date&status=' + (all ? 'neq.cancelled' : 'eq.open') + '&order=id.asc&limit=1000&offset=' + o);
+      rows = rows.concat(r || []); if (!r || r.length < 1000) break;
+    }
+  } catch (e) { view('<p class="q bad">خطا: ' + esc(e.message) + '</p><button class="l" data-a="finds">‹ بازگشت</button>'); return; }
+  rows = rows.filter(x => x.module != 'MED');
+  const by = {}; rows.forEach(x => { x._t = dtok(x.question); (by[nl(x.location).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))] = by[nl(x.location).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))] || []).push(x); });
+  const groups = [];
+  Object.entries(by).forEach(([loc, L]) => {
+    const par = L.map((_, i) => i), f = i => par[i] == i ? i : (par[i] = f(par[i]));
+    for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
+      const same = dnorm(L[i].question) == dnorm(L[j].question);
+      if (same || dsim(L[i]._t, L[j]._t) >= .6) par[f(i)] = f(j);
+    }
+    const m = {}; L.forEach((x, i) => (m[f(i)] = m[f(i)] || []).push(x));
+    Object.values(m).filter(g => g.length > 1).forEach(g => groups.push({ loc, g: g.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))) }));
+  });
+  groups.sort((a, b) => b.g.length - a.g.length);
+  const stN = { open: 'باز', closed: 'اصلاح‌شده' };
+  const total = groups.reduce((t, x) => t + x.g.length - 1, 0);
+  view(`<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><button class="l" data-a="finds" style="margin:0;">‹ بازگشت به پیگیری</button></div>
+    <h2>🔍 عدم‌انطباق‌های تکراری ${all ? '(باز و اصلاح‌شده)' : '(باز)'}</h2>
+    <p>${fa(rows.length)} مورد بررسی شد؛ <b>${fa(groups.length)}</b> گروه مشکوک به تکرار (جمعاً <b>${fa(total)}</b> مورد اضافه). معیار: محل یکسان و متن مشابه (حداقل ۶۰٪ اشتراک کلمات). قدیمی‌ترین مورد هر گروه معمولاً مورد اصلی است.</p>
+    <div class="fgrid2"><button class="l" data-a="dups" data-k="${all ? 'open' : 'all'}">${all ? 'فقط موارد باز' : 'شامل اصلاح‌شده‌ها هم بشود'}</button><button class="l" data-a="dcopy">📋 کپی لیست</button></div>
+    ${groups.map((x, n) => `<div class="q" style="margin-top:10px;"><b>${fa(n + 1)}. ${esc(x.loc)} — ${fa(x.g.length)} مورد مشابه</b>${x.g.map(r => `<div style="border-top:1px solid var(--bd); padding:6px 0; font-size:13px;"><span style="color:var(--mu)">#${esc(r.id)} · ${esc(mn(r.module) || r.module || '')} · ${fd(r.created_at)} · ${stN[r.status] || esc(r.status)}${r.due_date ? ' · مهلت ' + fd(r.due_date) : ''}</span><br>${esc(r.question || '—')}</div>`).join('')}</div>`).join('') || '<div class="q">موردی تکراری پیدا نشد.</div>'}`);
+  window._dtxt = groups.map((x, n) => `${n + 1}. ${x.loc} (${x.g.length} مورد)\n` + x.g.map(r => `   - #${r.id} [${r.status}] ${r.question || ''}`).join('\n')).join('\n\n');
+}
 async function finds(iid) {
   if (iid !== undefined) { FI = iid; EDIT = null; }
   view('<p style="text-align:center; padding:40px;">در حال بارگذاری عدم‌انطباق‌ها...</p>');
@@ -1514,6 +1551,7 @@ async function finds(iid) {
         <button class="l" data-a="rprint" data-k="open">🖨️ گزارش چاپی موارد باز</button>
         <button class="l" data-a="rprint" data-k="photo">📷 گزارش عکس‌های ناقص</button>
       </div>
+      <button class="l" data-a="dups" data-k="open" style="margin-top:8px;">🔍 یافتن عدم‌انطباق‌های تکراری (باز)</button>
       <small id="rpmsg" style="margin-top:4px;">گزارش چاپی طبق فیلترهای بالا (محل، چک‌لیست، شدت و ...) ساخته می‌شود؛ وضعیت را خودش تعیین می‌کند.</small>
     </div>
     <div id="fchips" class="chips"></div>
@@ -2070,6 +2108,8 @@ document.onclick = async e => {
   else if (a == 'rmph') { PH[t.dataset.id].splice(+t.dataset.j, 1); t.dataset.id == 'Q-quick' ? quickForm() : form(); scrollTo(0, y); }
   else if (a == 'send') send();
   else if (a == 'finds') finds();
+  else if (a == 'dups') dups(t.dataset.k == 'all');
+  else if (a == 'dcopy') { navigator.clipboard.writeText(window._dtxt || '').then(() => alert('لیست کپی شد'), () => prompt('کپی کنید:', window._dtxt || '')); }
   else if (a == 'edit-insp') {
     const box = t.closest('.q').querySelector('.edit-area');
     box.hidden = !box.hidden;
