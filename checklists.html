@@ -2,6 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
      <script src="auth.js"></script>
+    <script src="sched.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ماژول چک‌لیست‌ها و بازرسی - نرم‌افزار جامع HSE</title>
@@ -274,7 +275,7 @@ const M = [
     'سیلندر با جرثقیل یا لیفتراک جابه‌جا نمی‌شود'
   ], []],
 
-  ['CR', 'جرثقیل سقفی و دروازه‌ای', 'هر ۶ ماه برای هر دستگاه', '', [
+  ['CR', 'جرثقیل سقفی و دروازه‌ای', 'ماهانه برای هر دستگاه', '', [
     'کارت مشخصات و گواهی سلامت (بازرسی دوره‌ای) معتبر است',
     'بار مجاز (SWL) روی جرثقیل و قلاب خوانا درج شده است',
     'اپراتور آموزش دیده و دارای صلاحیت کار با جرثقیل است',
@@ -295,7 +296,7 @@ const M = [
     'سرویس و روانکاری دوره‌ای طبق برنامه انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه جرثقیل (الزامی)'}]],
 
-  ['LF', 'بالابر', 'هر ۶ ماه برای هر دستگاه', '', [
+  ['LF', 'بالابر', 'ماهانه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای بالابر معتبر و در محل نصب است',
     'ظرفیت مجاز (کیلوگرم یا نفر) روی کابین یا سکو درج و خوانا است',
     'بالابر بیش از ظرفیت مجاز بارگیری نمی‌شود',
@@ -313,7 +314,7 @@ const M = [
     'سرویس و نگهداری دوره‌ای توسط شرکت مجاز انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه بالابر (الزامی)'}]],
 
-  ['PV', 'مخزن تحت فشار', 'هر ۶ ماه برای هر دستگاه', '', [
+  ['PV', 'مخزن تحت فشار', 'ماهانه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای مخزن (بازرس مجاز) معتبر است',
     'پلاک مشخصات مخزن (فشار و دمای طراحی، ظرفیت) خوانا است',
     'شیر اطمینان (ایمنی) نصب، سالم و دارای برچسب کالیبراسیون معتبر است',
@@ -331,7 +332,7 @@ const M = [
     'اپراتور آموزش دیده و دستورالعمل کار ایمن در دسترس است'
   ], [{key: 'eq_code', ph: 'کد / شناسه مخزن (الزامی)'}]],
 
-  ['AC', 'اتوکلاو', 'هر ۶ ماه برای هر دستگاه', '', [
+  ['AC', 'اتوکلاو', 'ماهانه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای اتوکلاو معتبر است',
     'اپراتور آموزش دیده است و دستورالعمل راه‌اندازی و توقف ایمن در دسترس است',
     'درب و قفل ایمنی اتوکلاو سالم است و در حالت تحت فشار باز نمی‌شود',
@@ -350,7 +351,7 @@ const M = [
     'سرویس و نگهداری دوره‌ای توسط شرکت مجاز انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه اتوکلاو (الزامی)'}]],
 
-  ['BL', 'دیگ بخار و موتورخانه', 'هر ۳ ماه برای هر دستگاه', '', [
+  ['BL', 'دیگ بخار و موتورخانه', 'ماهانه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای دیگ بخار معتبر است',
     'اپراتور دارای گواهی صلاحیت است و در هر شیفت حضور دارد',
     'شیرهای اطمینان سالم و دارای برچسب کالیبراسیون معتبر هستند',
@@ -369,7 +370,7 @@ const M = [
     'سرویس و نگهداری دوره‌ای انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه دیگ بخار (الزامی)'}]],
 
-  ['PJ', 'جک پالت و ترالی دستی', 'هر ۱۲ ماه برای هر دستگاه', '', [
+  ['PJ', 'جک پالت و ترالی دستی', 'هر ۲ ماه برای هر دستگاه', '', [
     'ظرفیت مجاز روی دستگاه درج و خوانا است',
     'دستگاه بیش از ظرفیت مجاز بارگیری نمی‌شود',
     'چنگال‌ها (فورک) صاف و بدون ترک، خمیدگی و ترک جوش هستند',
@@ -384,7 +385,7 @@ const M = [
     'دستگاه معیوب برچسب «خارج از سرویس» دارد و استفاده نمی‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه دستگاه (الزامی)'}]],
 
-  ['FK', 'لیفتراک', 'هر ۳ ماه برای هر دستگاه', '', [
+  ['FK', 'لیفتراک', 'ماهانه برای هر دستگاه', '', [
     'راننده دارای گواهینامه ویژه لیفتراک و آموزش است',
     'لیفتراک دارای تاییدیه فنی معتبر است',
     'ترمز (پایی و دستی) سالم است',
@@ -611,11 +612,8 @@ async function api(p, o = {}) {
 
 
 /* ===== سررسید بازدید تجهیزات: هر دستگاه با دوره‌ی خودش (به‌جای موعد ثابت ماهانه) ===== */
-const EQCYC = { /* ماژول: [دسته‌های تجهیز در جدول equipment، دوره‌ی بازدید به ماه] */
-  CR: [['جرثقیل سقفی', 'جرثقیل دروازه‌ای'], 6], LF: [['بالابر'], 6], FK: [['لیفتراک'], 3],
-  PV: [['مخزن تحت فشار'], 6], AC: [['اتوکلاو'], 6], BL: [['دیگ بخار'], 3], PJ: [['جک پالت'], 12]
-};
-const EQ_START = '2026-10-23'; /* شروع دوره: دستگاه‌های بدون بازدید از این تاریخ در طول دوره‌شان پخش می‌شوند */
+const EQCYC = HSE_SCHED.EQC; /* ماژول: [دسته‌های تجهیز در جدول equipment، دوره‌ی بازدید به ماه] — تعریف در sched.js */
+const EQ_START = HSE_SCHED.EQ_START; /* شروع دوره: دستگاه‌های بدون بازدید از این تاریخ در طول دوره‌شان پخش می‌شوند */
 let EQ_COL = null, DUE = null;
 const addM = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); };
 const dayDiff = (a, b) => Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 864e5);
@@ -629,11 +627,12 @@ async function dueLoad() {
     EQ_COL = true;
   } catch (e) { EQ_COL = false; }
   const today = new Date().toISOString().slice(0, 10), out = {};
+  const SP = HSE_SCHED.spread(Object.fromEntries(Object.entries(EQCYC).map(([mk, [cs]]) => [mk, eq.filter(e => cs.includes(e.category)).map(e => e.code)])));
   for (const [mk, [cs, n]] of Object.entries(EQCYC)) {
     const list = eq.filter(e => cs.includes(e.category));
     out[mk] = list.map((e, i) => {
       const l = last[e.code] || null;
-      const due = l ? addM(l, n) : addDays2(EQ_START, Math.floor(i * n * 30.4 / Math.max(1, list.length)));
+      const due = l ? addM(l, n) : SP[mk + '|' + e.code];
       return { ...e, last: l, due, days: dayDiff(due, today) };
     }).sort((a, b) => a.days - b.days);
   }
@@ -691,6 +690,7 @@ async function home() {
       <button class="p" data-a="history" style="background:var(--ok); border-color:var(--ok); color:#fff;">📋 تاریخچه بازدیدها</button>
       <button class="p" data-a="finds">🛠️ پیگیری عدم‌انطباق‌ها</button>
       <button class="p" data-a="quick" style="grid-column:1/-1; background:var(--warn); border-color:var(--warn); color:#0f172a;">⚡ ثبت موردی عدم‌انطباق (بدون چک‌لیست)</button>
+      <a class="p" href="calendar.html" style="grid-column:1/-1; text-align:center; text-decoration:none; display:block;">📅 تقویم بازرسی (برنامه‌ی هر روز و تیک انجام)</a>
       <button class="p" id="duecard" data-a="due" style="grid-column:1/-1;">📅 سررسید بازدید تجهیزات (در حال بارگذاری...)</button>
     </div>
 
@@ -1880,6 +1880,12 @@ async function printFinds(_a, kind) {
   } catch (er) { w.close(); alert(er.message); }
 }
 
+/* شروع بازدید یک تجهیز (از فهرست سررسید یا تقویم) */
+async function startVisit(k, code, title, hall) {
+  cur = M.find(m => m[0] == k); if (!cur) return;
+  A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; D.loc = hall || ''; D.extra = {}; D.shift = ''; D.oth = false; EQP = {}; LNK = {}; D.eq = code ? { code, title: title || '' } : null;
+  Object.keys(PH).forEach(k => delete PH[k]); await eqInit(); form(); scrollTo(0, 0);
+}
 document.onclick = async e => {
   const t = e.target.closest('[data-a]'); if (!t) return;
   const a = t.dataset.a, y = scrollY;
@@ -1890,11 +1896,7 @@ document.onclick = async e => {
   else if (a == 'gen-cancel') GEN.cancel = true;
   else if (a == 'quick') { await eqInit(); quickForm(); }
   else if (a == 'due') { if (!DUE) await dueLoad(); dueList(); }
-  else if (a == 'duego') {
-    cur = M.find(m => m[0] == t.dataset.k);
-    A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; D.loc = t.dataset.hall || ''; D.extra = {}; D.shift = ''; D.oth = false; EQP = {}; LNK = {}; D.eq = { code: t.dataset.code, title: t.dataset.title };
-    Object.keys(PH).forEach(k => delete PH[k]); await eqInit(); form(); scrollTo(0, 0);
-  }
+  else if (a == 'duego') startVisit(t.dataset.k, t.dataset.code, t.dataset.title, t.dataset.hall);
   else if (a == 'allok') { Q_ALL().forEach(id => { if (!A[id]) A[id] = 'ok'; }); save(); form(); scrollTo(0, y); }
   else if (a == 'qsend') quickSend();
   else if (a == 'med') medHome();
@@ -2064,7 +2066,10 @@ document.oninput = async e => {
   save();
 };
 
-home().then(() => { if (location.hash == '#rep') renderManagementReport(); });
+home().then(() => {
+  if (location.hash == '#rep') renderManagementReport();
+  else if (/^#visit=/.test(location.hash)) { const q = new URLSearchParams(location.hash.slice(1)), k = q.get('visit'); if (k == 'MED') medHome(); else startVisit(k, q.get('code'), q.get('title'), q.get('hall')); }
+});
 </script>
 </body>
 </html>
