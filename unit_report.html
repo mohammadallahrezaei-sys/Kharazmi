@@ -43,6 +43,7 @@
     <div class="mu" style="margin-top:6px;font-size:12px">قبل از ارسال، هر بخشی که نمی‌خواهید در ایمیل بیاید را بردارید. جزئیات پزشکی (تشخیص، دارو، یافته‌های معاینه) هرگز در گزارش واحدها نمی‌آید؛ فقط نام، تاریخ، علت کوتاه مراجعه و روز استراحت.</div>
   </div>
   <div id="note" class="mu" style="font-size:12px"></div>
+  <div id="evnote" class="card" style="display:none;font-size:13px"></div>
   <div id="out"><div class="card">در حال بارگذاری...</div></div>
 </div>
 <script src="eval_core.js"></script>
@@ -343,9 +344,13 @@ function draw(){
     const m=buildGroup(items,g.mgr,openAll,K,O);MAIL[g.key]=m;
     const cs=items.map(i=>chipsOf(i.D,K)),anyTech=items.some(i=>i.tech),multi=items.length>1,ov=sum(cs,c=>c.fuOver);
     return`<div class="card"><div class="sub"><b>${esc(multi?(g.mgr||'سرپرست'):items[0].r.u.name)}</b>${multi?`<span class="mu">${items.length} واحد: ${esc(items.map(i=>i.r.u.name).join('، '))}</span>`:`<span class="mu">${esc(items[0].r.u.manager||'بدون مسئول')}</span>`}${anyTech?'<span class="mu">(مسئول رفع عدم‌انطباق‌ها)</span>':''}<span style="flex:1"></span><button data-c="${esc(g.key)}" class="p">📋 کپی برای Outlook</button><button data-s="${esc(g.key)}">کپی موضوع</button><button data-p="${esc(g.key)}">🖨 چاپ</button></div>
-<div class="chips"><span>${fa(sum(cs,c=>c.vis))} مراجعه بهداری</span><span class="${sum(cs,c=>c.inc)?'bad':''}">${fa(sum(cs,c=>c.inc))} حادثه</span><span class="${sum(cs,c=>c.mw)?'wa':''}">${fa(sum(cs,c=>c.mw))} اخطار این ماه</span><span class="${ov?'bad':''}">${fa(sum(cs,c=>c.fu))} پیگیری باز</span>${anyTech?`<span class="${openAll.some(isOver)?'bad':'wa'}">${fa(openAll.length)} عدم‌انطباق باز</span>`:''}</div><div class="pv">${m.html}</div></div>`}).join(''):'<div class="card mu">واحدی برای نمایش نیست.</div>';
+<div class="chips">${items.some(i=>!i.r.entered)?`<span class="bad" title="شاخص ایمنی و مشارکت فقط پس از ثبت ارزیابی ماهانه محاسبه می‌شود">ارزیابی ماهانه ${esc(monthLabel(K))} ثبت نشده${items.length>1?': '+esc(items.filter(i=>!i.r.entered).map(i=>i.r.u.name).join('، ')):''}</span>`:''}<span>${fa(sum(cs,c=>c.vis))} مراجعه بهداری</span><span class="${sum(cs,c=>c.inc)?'bad':''}">${fa(sum(cs,c=>c.inc))} حادثه</span><span class="${sum(cs,c=>c.mw)?'wa':''}">${fa(sum(cs,c=>c.mw))} اخطار این ماه</span><span class="${ov?'bad':''}">${fa(sum(cs,c=>c.fu))} پیگیری باز</span>${anyTech?`<span class="${openAll.some(isOver)?'bad':'wa'}">${fa(openAll.length)} عدم‌انطباق باز</span>`:''}</div><div class="pv">${m.html}</div></div>`}).join(''):'<div class="card mu">واحدی برای نمایش نیست.</div>';
   if(!hasTech&&!sel){MAIL.__nc=buildNCOnly(openAll,K);html+=`<div class="card"><div class="sub"><b>🔧 گزارش عدم‌انطباق‌ها برای واحد فنی</b><span class="mu">واحدی با نام «فنی» پیدا نشد؛ این گزارش جداگانه است</span><span style="flex:1"></span><button data-c="__nc" class="p">📋 کپی برای Outlook</button><button data-s="__nc">کپی موضوع</button><button data-p="__nc">🖨 چاپ</button></div><div class="pv">${MAIL.__nc.html}</div></div>`}
   $('out').innerHTML=html;
+  const miss=R.rows.filter(r=>!r.entered&&(!sel||groups.some(g=>g.units.some(u=>u.id===r.u.id))));
+  const ev=$('evnote');
+  if(miss.length){ev.style.display='block';ev.innerHTML=`<b>ارزیابی ماهانه ${esc(monthLabel(K))} برای ${fa(miss.length)} واحد ثبت نشده است</b>، به همین دلیل شاخص ایمنی، مشارکت و ناحیه‌ی این واحدها در گزارش نمی‌آید: <span class="mu">${esc(miss.map(r=>r.u.name).join('، '))}</span>. <a class="btn" href="evaluation.html" style="margin-top:6px">رفتن به ارزیابی عملکرد واحدها و ثبت مشاهدات (PPE و رفتار ناایمن) ←</a>`}
+  else{ev.style.display='none';ev.innerHTML=''}
 }
 
 async function copyHTML(html,text){
