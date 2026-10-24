@@ -1728,7 +1728,7 @@ async function findingSlide(f, n, tot, logo) {
   const get = a => Promise.all((a || []).slice(0, 4).map(photoImg)).then(r => r.filter(Boolean));
   const [bp, ap] = await Promise.all([get(f.photos_before), get(f.photos_after)]);
   panel(x, pw + 80, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
-  panel(x, 60, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی', GREEN, ap, 'اقدام اصلاحی انجام نشده است');
+  panel(x, 60, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی' + (f.status == 'closed' && f.closed_at ? ' — تاریخ انجام: ' + fl(f.closed_at) : ''), GREEN, ap, 'اقدام اصلاحی انجام نشده است');
   [...bp, ...ap].forEach(b => b.close && b.close());
   return c.toDataURL('image/jpeg', 0.85);
 }
