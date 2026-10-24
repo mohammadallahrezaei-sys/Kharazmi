@@ -258,18 +258,7 @@ function dISO(v) {
   const d = new Date(s); return isNaN(d) ? null : d.toISOString().slice(0, 10);
 }
 const agoISO = mo => { const d = new Date(); d.setMonth(d.getMonth() - mo); return d.toISOString().slice(0, 10); };
-async function getAllRows(t) {
-  for (const ord of ['order=id.asc', '']) {
-    let all = [], o = 0, ok = true;
-    for (let n = 0; n < 60; n++) {
-      const r = await fetch(`${URL_}/rest/v1/${t}${t.includes('?') ? '&' : '?'}${ord ? ord + '&' : ''}limit=1000&offset=${o}`, { headers }).catch(() => null);
-      if (!r || !r.ok) { ok = false; break; }
-      const j = await r.json(); if (!Array.isArray(j) || !j.length) break; all = all.concat(j); o += j.length; if (j.length < 1000) break;
-    }
-    if (ok) return all;
-  }
-  return null;
-}
+const getAllRows = t => HSEDB.getAll(t);
 const pickK = (o, ks) => { for (const k of ks) if (o[k] != null && o[k] !== '') return o[k]; return null; };
 
 async function computeHR() {

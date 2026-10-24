@@ -81,8 +81,7 @@ const MODT={CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخزن
 let INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[];
 
 async function hd(){let t=KEY;try{t=(await HSEAuth.token())||KEY}catch(e){}return{apikey:KEY,Authorization:'Bearer '+t}}
-async function getAll(t){const h=await hd();let all=[];for(let o=0,n=0;n<50;n++){const r=await fetch(`${URL_}/rest/v1/${t}${t.includes('?')?'&':'?'}limit=1000&offset=${o}`,{headers:h}).catch(()=>null);
-  if(!r||!r.ok)return null;const j=await r.json();if(!j.length)break;all=all.concat(j);o+=j.length}return all}
+const getAll=t=>HSEDB.getAll(t);
 
 async function load(){
   const since=new Date(Date.now()-500*864e5).toISOString().slice(0,10),base='inspections?select=module,location,created_at&order=created_at.desc&created_at=gte.'+since;
