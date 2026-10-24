@@ -1622,7 +1622,7 @@ function jNow() { const o = {}; new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-l
 const jStart = (y, m) => { const [a, b, c] = j2g(y, m, 1); return new Date(a, b - 1, c); };
 
 /* وضعیت فیلترهای گزارش */
-const R = { mode: 'days', days: 30, jy: 0, jm: 0, from: '', to: '', mod: '', st: '', ord: 'sev', per: 60 };
+const R = { mode: 'days', days: 30, jy: 0, jm: 0, from: '', to: '', mod: '', st: '', ord: 'done', per: 60 };
 function rRange() {
   if (R.mode == 'days') return { from: R.days ? new Date(Date.now() - R.days * 864e5) : null, to: null, label: R.days ? fa(R.days) + ' روز گذشته' : 'تمام سوابق' };
   if (R.mode == 'j') {
@@ -1635,9 +1635,9 @@ function rRange() {
   return { from: f, to: t, label: (f ? fl(f) : 'ابتدا') + ' تا ' + (R.to ? fl(R.to + 'T00:00:00') : 'اکنون') };
 }
 /* بخش‌های کوئری: تاریخ، ماژول، وضعیت */
-function rDateQ() { const r = rRange(); let q = ''; if (r.from) q += '&created_at=gte.' + encodeURIComponent(r.from.toISOString()); if (r.to) q += '&created_at=lt.' + encodeURIComponent(r.to.toISOString()); return q; }
+function rDateQ(fld = 'created_at') { const r = rRange(); let q = ''; if (r.from) q += '&' + fld + '=gte.' + encodeURIComponent(r.from.toISOString()); if (r.to) q += '&' + fld + '=lt.' + encodeURIComponent(r.to.toISOString()); return q; }
 const rModQ = () => (R.mod ? '&module=eq.' + encodeURIComponent(R.mod) : '') + '&module=neq.MED';
-const rQuery = () => rDateQ() + rModQ() + (R.st ? '&status=eq.' + R.st : '&status=in.(open,closed)');
+const rQuery = () => rDateQ(R.ord == 'done' ? 'closed_at' : 'created_at') + rModQ() + (R.st ? '&status=eq.' + R.st : '&status=in.(open,closed)');
 
 async function fetchAll(p) {
   const out = [];
@@ -1719,6 +1719,45 @@ function coverSlide(logo, sub, bz, S, cl) {
   return c.toDataURL('image/jpeg', 0.85);
 }
 
+/* ماه/سال شمسی (به وقت تهران) و برچسب فارسی */
+function jym(d) { const o = {}; new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric' }).formatToParts(new Date(d)).forEach(p => o[p.type] = +p.value); return [o.year, o.month]; }
+const jlab = (y, m) => JMN[m - 1] + ' ' + fa(y);
+
+function dividerSlide(logo, it, n, tot) {
+  const [c, x] = mkS(); x.fillStyle = NAVY; x.fillRect(0, 0, SW, SH);
+  if (logo) x.drawImage(logo, SW - 360, 80, 280, 280 * logo.height / logo.width);
+  x.fillStyle = it.col || GREEN; x.fillRect(SW - 130, 430, 14, 230);
+  x.fillStyle = '#ffffff'; x.font = '800 120px ' + FONT; x.fillText(it.label, SW - 160, 430);
+  x.font = '400 44px ' + FONT; x.fillStyle = '#94a3b8'; x.fillText(it.sub, SW - 160, 600);
+  x.font = '400 24px ' + FONT; x.fillStyle = '#64748b'; x.direction = 'ltr'; x.textAlign = 'left'; x.fillText(n + ' / ' + tot, SW - 120, 1030); x.textAlign = 'right'; x.direction = 'rtl';
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
+/* آمار اقدام‌های اصلاح‌شده به تفکیک ماه و سال شمسی (هر اسلاید تا ۱۶ ماه) */
+function statsSlide(logo, n, tot, S, page, pages) {
+  const [c, x] = mkS(); frame(x, logo, n, tot, 'MONTHLY');
+  x.fillStyle = NAVY; x.font = '800 44px ' + FONT;
+  x.fillText('آمار اقدام‌های اصلاح‌شده به تفکیک ماه و سال' + (pages > 1 ? ' (' + fa(page + 1) + ' از ' + fa(pages) + ')' : ''), SW - 60, 170);
+  const yt = {}; S.months.forEach(m => yt[m.y] = (yt[m.y] || 0) + m.n);
+  x.font = '600 28px ' + FONT; let cx = SW - 60;
+  Object.keys(yt).sort().forEach(y => {
+    const t = 'سال ' + fa(y) + ': ' + fa(yt[y]) + ' مورد', w = x.measureText(t).width + 60; cx -= w;
+    x.fillStyle = '#e0f2fe'; x.fillRect(cx, 235, w, 60); x.fillStyle = NAVY; x.textAlign = 'center'; x.fillText(t, cx + w / 2, 249); x.textAlign = 'right'; cx -= 20;
+  });
+  const rows = S.months.slice(page * 16, page * 16 + 16), mx = Math.max(1, ...S.months.map(m => m.n)), pw = 880;
+  if (!rows.length) { x.fillStyle = '#94a3b8'; x.font = '400 30px ' + FONT; x.textAlign = 'center'; x.fillText('هیچ مورد اصلاح‌شده‌ای با تاریخ انجام ثبت‌شده در این بازه نیست', SW / 2, 520); x.textAlign = 'right'; }
+  rows.forEach((r, k) => {
+    const col = Math.floor(k / 8), px = col ? 60 : SW - 60 - pw, y = 340 + (k % 8) * 76;
+    x.fillStyle = NAVY; x.font = '600 28px ' + FONT; x.fillText(jlab(r.y, r.m), px + pw - 20, y);
+    x.direction = 'ltr'; x.textAlign = 'left'; x.fillText(fa(r.n), px + 20, y); x.textAlign = 'right'; x.direction = 'rtl';
+    x.fillStyle = '#e2e8f0'; x.fillRect(px + 20, y + 44, pw - 40, 10);
+    const bw = (pw - 40) * r.n / mx; x.fillStyle = GREEN; x.fillRect(px + pw - 20 - bw, y + 44, bw, 10);
+  });
+  x.fillStyle = '#64748b'; x.font = '400 24px ' + FONT;
+  x.fillText('جمع اصلاح‌شده با تاریخ انجام: ' + fa(S.months.reduce((a, m) => a + m.n, 0)) + '  |  اصلاح‌شده بدون تاریخ انجام ثبت‌شده: ' + fa(S.noDate) + '  |  باز: ' + fa(S.openN), SW - 60, 960);
+  return c.toDataURL('image/jpeg', 0.9);
+}
+
 async function findingSlide(f, n, tot, logo) {
   const [c, x] = mkS();
   frame(x, logo, n, tot, f.module + '-' + f.qid);
@@ -1773,7 +1812,7 @@ async function renderManagementReport() {
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
           ${lab('چک‌لیست / ماژول', `<select data-rf="mod">${o('', 'همه', R.mod)}${M.map(m => o(m[0], m[1], R.mod)).join('')}</select>`)}
           ${lab('وضعیت', `<select data-rf="st">${o('', 'همه', R.st)}${o('open', 'فقط باز', R.st)}${o('closed', 'فقط اصلاح‌شده', R.st)}</select>`)}
-          ${lab('ترتیب اسلایدها', `<select data-rf="ord">${o('sev', 'باز و شدت بالا اول', R.ord)}${o('date', 'جدیدترین اول', R.ord)}${o('old', 'قدیمی‌ترین اول', R.ord)}</select>`)}
+          ${lab('ترتیب اسلایدها', `<select data-rf="ord">${o('done', 'بر اساس تاریخ انجام (ماه‌به‌ماه)', R.ord)}${o('sev', 'باز و شدت بالا اول', R.ord)}${o('date', 'جدیدترین اول', R.ord)}${o('old', 'قدیمی‌ترین اول', R.ord)}</select>`)}
           ${lab('اسلاید در هر فایل', `<select data-rf="per">${[30, 60, 100, 150].map(v => o(v, fa(v), R.per)).join('') + o(0, 'همه اسلایدها در یک فایل', R.per)}</select>`)}
         </div>
       </div>
@@ -1782,6 +1821,7 @@ async function renderManagementReport() {
         <div class="t" style="margin-top:8px;"><span>اصلاح‌شده و بسته</span><span style="color:var(--ok);">${fa(nc)} مورد</span></div>
         <div class="t" style="margin-top:8px;"><span>باز و نیازمند پیگیری</span><span style="color:var(--nc);">${fa(no)} مورد</span></div>
         <div class="t" style="margin-top:8px;"><span>خروجی</span><span>${fa(n + 2)} اسلاید در ${fa(parts)} فایل</span></div>
+        ${R.ord == 'done' ? '<small style="margin-top:8px;">ترتیب ماه‌به‌ماه: بازه‌ی زمانی روی «تاریخ انجام اصلاح» اعمال می‌شود؛ هر ماه با یک اسلاید عنوان شروع می‌شود و موارد باز / بدون تاریخ انجام در انتها می‌آیند.</small>' : ''}
         ${!R.per && n > 300 ? '<small style="margin-top:8px; color:var(--warn);">⚠️ تعداد اسلایدها زیاد است؛ ساخت یک فایل واحد حافظه و زمان زیادی می‌گیرد. اگر مرورگر کند شد، تعداد اسلاید در هر فایل را کمتر کنید.</small>' : ''}
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" class="np">
@@ -1825,27 +1865,52 @@ async function genSlides(preview) {
       topLocs: cnt(OF, x => nl(x.location)).slice(0, 5),
       topCats: cnt(P, x => x.category || cat(x.module, x.question || '')).slice(0, 5)
     };
-    const F = [...P].sort(R.ord == 'date' ? (a, b) => new Date(b.created_at) - new Date(a.created_at)
-      : R.ord == 'old' ? (a, b) => new Date(a.created_at) - new Date(b.created_at)
-      : (a, b) => (a.status == 'open' ? 0 : 1) - (b.status == 'open' ? 0 : 1) || sev_(b) - sev_(a) || new Date(b.created_at) - new Date(a.created_at));
+    const byCr = (a, b) => new Date(a.created_at) - new Date(b.created_at);
+    const mc = new Map(); P.forEach(x => { if (x.status == 'closed' && x.closed_at) { const [y, m] = jym(x.closed_at), k = y * 100 + m; mc.set(k, (mc.get(k) || 0) + 1); } });
+    S.months = [...mc.keys()].sort((a, b) => a - b).map(k => ({ y: Math.floor(k / 100), m: k % 100, n: mc.get(k) }));
+    S.noDate = P.filter(x => x.status == 'closed' && !x.closed_at).length; S.openN = P.filter(x => x.status == 'open').length;
+    const body = [];
+    if (R.ord == 'done') { /* ماه‌به‌ماه بر اساس تاریخ انجام: اسلاید عنوان ماه، سپس موارد همان ماه به ترتیب انجام */
+      const mm = new Map();
+      P.filter(x => x.status == 'closed' && x.closed_at).forEach(x => { const [y, m] = jym(x.closed_at), k = y * 100 + m; if (!mm.has(k)) mm.set(k, []); mm.get(k).push(x); });
+      [...mm.keys()].sort((a, b) => a - b).forEach(k => {
+        const arr = mm.get(k).sort((a, b) => new Date(a.closed_at) - new Date(b.closed_at));
+        body.push({ t: 'd', label: jlab(Math.floor(k / 100), k % 100), sub: fa(arr.length) + ' اقدام اصلاحی در این ماه انجام شد', col: GREEN });
+        arr.forEach(f => body.push({ t: 'f', f }));
+      });
+      const nd = P.filter(x => x.status == 'closed' && !x.closed_at).sort(byCr);
+      if (nd.length) { body.push({ t: 'd', label: 'اصلاح‌شده بدون تاریخ انجام', sub: fa(nd.length) + ' مورد؛ تاریخ انجام در سیستم ثبت نشده است', col: '#f59e0b' }); nd.forEach(f => body.push({ t: 'f', f })); }
+      const op = P.filter(x => x.status == 'open').sort((a, b) => sev_(b) - sev_(a) || byCr(b, a));
+      if (op.length) { body.push({ t: 'd', label: 'موارد باز و در دست اقدام', sub: fa(op.length) + ' مورد هنوز اصلاح نشده است', col: RED }); op.forEach(f => body.push({ t: 'f', f })); }
+    } else {
+      const F = [...P].sort(R.ord == 'date' ? (a, b) => byCr(b, a)
+        : R.ord == 'old' ? byCr
+        : (a, b) => (a.status == 'open' ? 0 : 1) - (b.status == 'open' ? 0 : 1) || sev_(b) - sev_(a) || byCr(b, a));
+      F.forEach(f => body.push({ t: 'f', f }));
+    }
     try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
-    const logo = await loadImg('logo.png'), per = +R.per || F.length, parts = Math.ceil(F.length / per), tot = F.length + 2, t0 = Date.now();
-    let done = 0; const gp = $('#gp'); gp.max = F.length;
+    const nStats = Math.max(1, Math.ceil(S.months.length / 16)), preN = 2 + nStats;
+    const logo = await loadImg('logo.png'), per = +R.per || body.length, tot = preN + body.length, t0 = Date.now();
+    const chunks = []; let cur = [];
+    for (const it of body) { cur.push(it); if (cur.length >= per) { if (cur[cur.length - 1].t == 'd' && cur.length > 1) { const d = cur.pop(); chunks.push(cur); cur = [d]; } else { chunks.push(cur); cur = []; } } }
+    if (cur.length) chunks.push(cur);
+    const parts = chunks.length;
+    let done = 0; const gp = $('#gp'); gp.max = body.length;
     for (let pi = 0; pi < parts && !GEN.cancel; pi++) {
-      const chunk = F.slice(pi * per, (pi + 1) * per), imgs = [];
-      if (pi == 0) { imgs.push(coverSlide(logo, 'گزارش عملکرد کارخانه', S.bz, S, cl)); imgs.push(summarySlide(logo, 2, tot, S)); }
-      const res = await pool(6, chunk, async (f, i) => {
-        const d = await findingSlide(f, pi * per + i + 3, tot, logo);
+      const chunk = chunks[pi], imgs = [], base = preN + chunks.slice(0, pi).reduce((a, c) => a + c.length, 0);
+      if (pi == 0) { imgs.push(coverSlide(logo, 'گزارش عملکرد کارخانه', S.bz, S, cl)); imgs.push(summarySlide(logo, 2, tot, S)); for (let q = 0; q < nStats; q++) imgs.push(statsSlide(logo, 3 + q, tot, S, q, nStats)); }
+      const res = await pool(6, chunk, async (it, i) => {
+        const d = it.t == 'd' ? dividerSlide(logo, it, base + i + 1, tot) : await findingSlide(it.f, base + i + 1, tot, logo);
         done++; gp.value = done;
-        const sec = (Date.now() - t0) / 1000, eta = Math.round(sec / done * (F.length - done));
-        prog(`در حال تولید اسلایدها... ${fa(done)} از ${fa(F.length)} — فایل ${fa(pi + 1)} از ${fa(parts)} — حدود ${fa(Math.ceil(eta / 60))} دقیقه باقی‌مانده`);
+        const sec = (Date.now() - t0) / 1000, eta = Math.round(sec / done * (body.length - done));
+        prog(`در حال تولید اسلایدها... ${fa(done)} از ${fa(body.length)} — فایل ${fa(pi + 1)} از ${fa(parts)} — حدود ${fa(Math.ceil(eta / 60))} دقیقه باقی‌مانده`);
         return d;
       });
       imgs.push(...res);
       if (preview) { PV.parts.push({ imgs }); continue; } /* حالت پیش‌نمایش: فایل بعد از تأیید کاربر ساخته می‌شود */
       prog(`در حال ساخت فایل ${fa(pi + 1)} از ${fa(parts)}...`);
       const blob = await buildPptx(imgs), url = URL.createObjectURL(blob), name = `HSE-report-${pi + 1}-of-${parts}.pptx`;
-      $('#parts').insertAdjacentHTML('beforeend', `<a href="${url}" download="${name}" class="p" style="display:block; text-align:center; text-decoration:none; margin-top:8px;">📥 دانلود فایل ${fa(pi + 1)} از ${fa(parts)} (${fa(chunk.length + (pi == 0 ? 2 : 0))} اسلاید، ${fa(Math.round(blob.size / 1048576))} مگابایت)</a>`);
+      $('#parts').insertAdjacentHTML('beforeend', `<a href="${url}" download="${name}" class="p" style="display:block; text-align:center; text-decoration:none; margin-top:8px;">📥 دانلود فایل ${fa(pi + 1)} از ${fa(parts)} (${fa(chunk.length + (pi == 0 ? preN : 0))} اسلاید، ${fa(Math.round(blob.size / 1048576))} مگابایت)</a>`);
       const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
     }
     if (preview && PV.parts.length) { PV.imgs = PV.parts.flatMap(x => x.imgs); PV.i = 0; showPreview(); prog(GEN.cancel ? 'متوقف شد؛ پیش‌نمایش بخش ساخته‌شده در پایین است.' : '✅ آماده شد. اسلایدها را مرور کنید و سپس دانلود بزنید.'); }
