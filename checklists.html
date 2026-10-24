@@ -1242,7 +1242,12 @@ const nm = k => (M.find(m => m[0] == k) || [])[1] || (k == 'Q' ? 'بازرسی �
 const FMODS = M.filter(m => m[0] != 'MED').map(m => [m[0], m[1]]).concat([['Q', 'بازرسی موردی']]);
 
 fi.onchange = async () => {
-  const fs = [...fi.files].slice(0, 4), y = scrollY; fi.value = ''; if (!FT) return;
+  const fs = [...fi.files].slice(0, 4), y = scrollY; fi.value = '';
+  if (!FT) { try { FT = JSON.parse(sessionStorage.getItem('hse_ft') || 'null'); } catch (e) {} }
+  if (!FT) { if (fs.length) alert('صفحه هنگام باز شدن دوربین دوباره بارگذاری شد؛ دکمهٔ افزودن عکس را دوباره بزنید و عکس را انتخاب کنید.'); return; }
+  const fin = document.createElement('div');
+  fin.style.cssText = 'position:fixed;inset:auto 12px 16px;z-index:9999;background:#1f2937;color:#fff;padding:12px;border-radius:10px;text-align:center;font-weight:700';
+  fin.textContent = '⏳ در حال ذخیرهٔ عکس…'; document.body.appendChild(fin);
   try {
     if (FT.m == 'addph') {
       for (const f of fs) {
@@ -1255,9 +1260,12 @@ fi.onchange = async () => {
       const ps = []; for (const f of fs) ps.push(await up(await shrink(f)));
       const [x] = await api('findings?select=' + key + '&id=eq.' + FT.id);
       await api('findings?id=eq.' + FT.id, { method: 'PATCH', body: JSON.stringify({ [key]: [...(x[key] || []).filter(p => !/^no-photo/.test(p)), ...ps] }) });
+      fin.textContent = '✅ عکس ذخیره شد' + (FQ.ph ? ' (این مورد دیگر در فیلتر «بدون عکس» نمی‌آید)' : '');
       await loadFinds(); scrollTo(0, y);
     }
-  } catch (e) { alert(e.message); }
+    try { sessionStorage.removeItem('hse_ft'); } catch (e) {}
+    setTimeout(() => fin.remove(), 2500);
+  } catch (e) { fin.remove(); alert('ذخیرهٔ عکس انجام نشد: ' + (e.message || e)); }
 };
 
 /* ===== مدیریت و پیگیری عدم‌انطباق‌ها: جستجو، فیلتر، گروه‌بندی، صفحه‌بندی، ویرایش ===== */
@@ -2112,8 +2120,8 @@ document.onclick = async e => {
       await loadFinds(); scrollTo(0, y);
     } catch (er) { alert(er.message); }
   }
-  else if (a == 'addaf') { FT = { m: 'addaf', id: t.dataset.id }; fi.click(); }
-  else if (a == 'addbf') { FT = { m: 'addbf', id: t.dataset.id }; fi.click(); }
+  else if (a == 'addaf') { FT = { m: 'addaf', id: t.dataset.id }; try { sessionStorage.setItem('hse_ft', JSON.stringify(FT)); } catch (e) {} fi.click(); }
+  else if (a == 'addbf') { FT = { m: 'addbf', id: t.dataset.id }; try { sessionStorage.setItem('hse_ft', JSON.stringify(FT)); } catch (e) {} fi.click(); }
   else if (a == 'fedit') { EDIT = t.dataset.id; await loadFinds(); }
   else if (a == 'fcancel') { EDIT = null; await loadFinds(); scrollTo(0, y); }
   else if (a == 'fsave') {
