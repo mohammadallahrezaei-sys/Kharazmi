@@ -1523,6 +1523,38 @@ async function dups(all) {
     ${groups.map((x, n) => `<div class="q" style="margin-top:10px;"><b>${fa(n + 1)}. ${esc(x.loc)} — ${fa(x.g.length)} مورد مشابه</b>${x.g.map(r => `<div data-dr style="border-top:1px solid var(--bd); padding:6px 0; font-size:13px;"><span style="color:var(--mu)">#${esc(r.id)} · ${esc(mn(r.module) || r.module || '')} · ${fd(r.created_at)} · ${stN[r.status] || esc(r.status)}${r.due_date ? ' · مهلت ' + fd(r.due_date) : ''}</span><br>${hl(r.question || '—', r._w)}${r._p ? `<br><small style="color:var(--wa)">🔗 تکراریِ مورد ${x.g.indexOf(r._p) < x.g.indexOf(r) ? 'بالا' : 'پایین'} (#${esc(r._p.id)}) — شباهت ${fa(r._s)}٪${r._w.length ? ' · کلمات مشترک: ' + esc(r._w.join('، ')) : ''}</small>` : ''}${r.note ? `<br><small>شرح: ${hl(r.note, r._w)}</small>` : ''}${window.HSEAuth && HSEAuth.role === 'manager' ? `<br><button class="l" data-a="fdel" data-id="${r.id}" style="margin-top:4px; color:var(--bad); min-height:32px;">🗑 حذف این مورد</button>` : ''}</div>`).join('')}</div>`).join('') || '<div class="q">موردی تکراری پیدا نشد.</div>'}`);
   window._dtxt = groups.map((x, n) => `${n + 1}. ${x.loc} (${x.g.length} مورد)\n` + x.g.map(r => `   - #${r.id} [${r.status}] ${r.question || ''}${r.note ? ' | شرح: ' + r.note : ''}${r._p ? ' | مشابه #' + r._p.id + ' (' + r._s + '٪)' : ''}`).join('\n')).join('\n\n');
 }
+
+/* ===== تطبیق آمار با خروجی واحد فنی: همان دسته‌ها و بازه‌های سنی؛ جدا برای «دارای اعلان» (ثبت‌شده در سامانه فنی) و «بدون اعلان» ===== */
+async function recon() {
+  view('<p style="text-align:center; padding:40px;">در حال محاسبه...</p>');
+  let rows = [];
+  try {
+    for (let o = 0; o < 40000; o += 1000) {
+      const r = await api('findings?select=id,module,status,created_at,notice_code,notice_at,closed_at&order=id.asc&limit=1000&offset=' + o);
+      rows = rows.concat(r || []); if (!r || r.length < 1000) break;
+    }
+  } catch (e) { view('<p class="q bad">خطا: ' + esc(e.message) + '</p><button class="l" data-a="finds">‹ بازگشت</button>'); return; }
+  rows = rows.filter(x => x.module != 'MED');
+  const now = Date.now(), age = x => Math.floor((now - new Date(x.notice_at || x.created_at)) / 864e5);
+  const B = [['جدید ۰–۷ روز', 0, 7], ['در پیگیری ۸–۳۰', 8, 30], ['تأخیر ۳۱–۶۰', 31, 60], ['تأخیر جدی ۶۱–۹۰', 61, 90], ['تأخیر بحرانی بیش از ۹۰', 91, 1e9]];
+  const grp = { all: rows, yes: rows.filter(x => x.notice_code), no: rows.filter(x => !x.notice_code) };
+  const calc = L => { const op = L.filter(x => x.status == 'open'), cl = L.filter(x => x.status == 'closed'), cn = L.filter(x => x.status == 'cancelled'); return { n: L.length, op, cl, cn, b: B.map(([, a, z]) => op.filter(x => age(x) >= a && age(x) <= z).length) }; };
+  const R = { all: calc(grp.all), yes: calc(grp.yes), no: calc(grp.no) };
+  const pc = (a, n) => n ? fa((a / n * 100).toFixed(2)) + '٪' : '—';
+  const row = (t, f) => `<tr><td>${t}</td>${['all', 'yes', 'no'].map(k => `<td>${f(R[k])}</td>`).join('')}</tr>`;
+  view(`<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><button class="l" data-a="finds" style="margin:0;">‹ بازگشت به پیگیری</button></div>
+    <h2>📊 تطبیق با گزارش واحد فنی</h2>
+    <p style="font-size:13px;">همان دسته‌های خروجی فنی (کل، در جریان، بسته، لغو و بازه‌های سنی). چون واحد فنی فقط مواردی را دارد که برایشان اعلان صادر شده، ستون <b>«دارای اعلان»</b> را با گزارش فنی مقایسه کنید. سن از تاریخ اعلان (اگر نبود تاریخ ثبت) حساب شده و موارد داروها شمرده نمی‌شوند.</p>
+    <div style="overflow-x:auto"><table style="width:100%; border-collapse:collapse; font-size:13px;" class="rtb">
+    <tr><th>شرح</th><th>همه موارد</th><th>دارای اعلان</th><th>بدون اعلان</th></tr>
+    ${row('کل', r => fa(r.n))}${row('در جریان (باز)', r => fa(r.op.length))}${row('درصد در جریان', r => pc(r.op.length, r.n))}
+    ${row('بسته (اصلاح‌شده)', r => fa(r.cl.length))}${row('درصد بسته', r => pc(r.cl.length, r.n))}
+    ${row('لغو شده', r => fa(r.cn.length))}${row('درصد لغو', r => pc(r.cn.length, r.n))}
+    ${B.map(([t], i) => row('باز: ' + t, r => fa(r.b[i]) + ' (' + pc(r.b[i], r.op.length) + ')')).join('')}
+    </table></div>
+    <div class="q" style="margin-top:10px; font-size:13px;"><b>مرجع گزارش فنی (تصویر شما):</b> کل ۶۳۴ · در جریان ۲۱۰ (۳۳٫۱۲٪) · بسته ۴۱۱ (۶۴٫۸۳٪) · لغو ۱۳ (۲٫۰۵٪) · سنی: ۱۰ / ۳۰ / ۲۶ / ۱۹ / ۱۲۵.</div>
+    <small>اگر «دارای اعلان» از فنی بیشتر است: موارد تکراری یا اعلان‌دار دو بار ثبت‌شده. اگر در جریان بیشتر است: مواردی که فنی بسته ولی اینجا تأیید نشده. اگر بسته کمتر است: همین علت.</small>`);
+}
 async function finds(iid) {
   if (iid !== undefined) { FI = iid; EDIT = null; }
   view('<p style="text-align:center; padding:40px;">در حال بارگذاری عدم‌انطباق‌ها...</p>');
@@ -1563,6 +1595,7 @@ async function finds(iid) {
         <button class="l" data-a="rprint" data-k="photo">📷 گزارش عکس‌های ناقص</button>
       </div>
       <button class="l" data-a="dups" data-k="open" style="margin-top:8px;">🔍 یافتن عدم‌انطباق‌های تکراری (باز)</button>
+      <button class="l" data-a="recon" style="margin-top:8px;">📊 تطبیق آمار با گزارش واحد فنی</button>
       <small id="rpmsg" style="margin-top:4px;">گزارش چاپی طبق فیلترهای بالا (محل، چک‌لیست، شدت و ...) ساخته می‌شود؛ وضعیت را خودش تعیین می‌کند.</small>
     </div>
     <div id="fchips" class="chips"></div>
@@ -2119,6 +2152,7 @@ document.onclick = async e => {
   else if (a == 'rmph') { PH[t.dataset.id].splice(+t.dataset.j, 1); t.dataset.id == 'Q-quick' ? quickForm() : form(); scrollTo(0, y); }
   else if (a == 'send') send();
   else if (a == 'finds') finds();
+  else if (a == 'recon') recon();
   else if (a == 'dups') dups(t.dataset.k == 'all');
   else if (a == 'dcopy') { navigator.clipboard.writeText(window._dtxt || '').then(() => alert('لیست کپی شد'), () => prompt('کپی کنید:', window._dtxt || '')); }
   else if (a == 'edit-insp') {
