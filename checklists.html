@@ -1503,18 +1503,24 @@ async function dups(all) {
     const m = {}; L.forEach((x, i) => (m[f(i)] = m[f(i)] || []).push(x));
     Object.values(m).filter(g => g.length > 1).forEach(g => groups.push({ loc, g: g.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))) }));
   });
+  groups.forEach(x => {
+    const rest = x.g.slice(), ord = [rest.shift()];
+    while (rest.length) { const l = ord[ord.length - 1]; let bi = 0, bv = -1; rest.forEach((o, i) => { const v = dsim(l._t, o._t); if (v > bv) { bv = v; bi = i; } }); ord.push(rest.splice(bi, 1)[0]); }
+    x.g = ord;
+  });
   groups.forEach(x => x.g.forEach(r => {
-    let best = null, bs = -1; x.g.forEach(o => { if (o === r) return; const v = dnorm((r.question || '') + ' ' + (r.note || '')) == dnorm((o.question || '') + ' ' + (o.note || '')) ? 1 : dsim(r._t, o._t); if (v > bs) { bs = v; best = o; } });
+    const ix = x.g.indexOf(r); let best = null, bs = -1; x.g.forEach((o, oi) => { if (o === r || (ix > 0 && oi != ix - 1)) return; const v = dnorm((r.question || '') + ' ' + (r.note || '')) == dnorm((o.question || '') + ' ' + (o.note || '')) ? 1 : dsim(r._t, o._t); if (v > bs) { bs = v; best = o; } });
     r._p = best; r._s = Math.round(Math.max(0, bs) * 100); r._w = best ? [...r._t].filter(w => best._t.has(w)) : [];
   }));
   groups.sort((a, b) => b.g.length - a.g.length);
   const stN = { open: 'باز', closed: 'اصلاح‌شده' };
+  const hl = (txt, ws) => { const set = new Set(ws); return String(txt || '').split(/(\s+)/).map(w => { const k = dnorm(w).replace(/(ها|های|ان|ات)$/, ''); return set.has(k) && k ? `<mark style="background:#fde68a;color:#111;border-radius:3px;padding:0 2px">${esc(w)}</mark>` : esc(w); }).join(''); };
   const total = groups.reduce((t, x) => t + x.g.length - 1, 0);
   view(`<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><button class="l" data-a="finds" style="margin:0;">‹ بازگشت به پیگیری</button></div>
     <h2>🔍 عدم‌انطباق‌های تکراری ${all ? '(باز و اصلاح‌شده)' : '(باز)'}</h2>
-    <p>${fa(rows.length)} مورد بررسی شد؛ <b>${fa(groups.length)}</b> گروه مشکوک به تکرار (جمعاً <b>${fa(total)}</b> مورد اضافه). معیار: محل یکسان و متن مشابه (حداقل ۶۰٪ اشتراک کلمات در عنوان و شرح). زیر هر مورد نوشته شده با کدام مورد (#شماره) و با چند درصد شباهت و کدام کلمات مشترک تکراری تشخیص داده شده است. قدیمی‌ترین مورد هر گروه معمولاً مورد اصلی است.</p>
+    <p>${fa(rows.length)} مورد بررسی شد؛ <b>${fa(groups.length)}</b> گروه مشکوک به تکرار (جمعاً <b>${fa(total)}</b> مورد اضافه). معیار: محل یکسان و متن مشابه (حداقل ۶۰٪ اشتراک کلمات در عنوان و شرح). کلمات مشترک با رنگ زرد مشخص شده‌اند و مورد مشابه دقیقاً بالای هر مورد است. زیر هر مورد نوشته شده با کدام مورد (#شماره) و با چند درصد شباهت و کدام کلمات مشترک تکراری تشخیص داده شده است. قدیمی‌ترین مورد هر گروه معمولاً مورد اصلی است.</p>
     <div class="fgrid2"><button class="l" data-a="dups" data-k="${all ? 'open' : 'all'}">${all ? 'فقط موارد باز' : 'شامل اصلاح‌شده‌ها هم بشود'}</button><button class="l" data-a="dcopy">📋 کپی لیست</button></div>
-    ${groups.map((x, n) => `<div class="q" style="margin-top:10px;"><b>${fa(n + 1)}. ${esc(x.loc)} — ${fa(x.g.length)} مورد مشابه</b>${x.g.map(r => `<div data-dr style="border-top:1px solid var(--bd); padding:6px 0; font-size:13px;"><span style="color:var(--mu)">#${esc(r.id)} · ${esc(mn(r.module) || r.module || '')} · ${fd(r.created_at)} · ${stN[r.status] || esc(r.status)}${r.due_date ? ' · مهلت ' + fd(r.due_date) : ''}</span><br>${esc(r.question || '—')}${r._p ? `<br><small style="color:var(--wa)">🔗 تکراریِ #${esc(r._p.id)} — شباهت ${fa(r._s)}٪${r._w.length ? ' · کلمات مشترک: ' + esc(r._w.join('، ')) : ''}</small>` : ''}${r.note ? `<br><small>شرح: ${esc(r.note)}</small>` : ''}${window.HSEAuth && HSEAuth.role === 'manager' ? `<br><button class="l" data-a="fdel" data-id="${r.id}" style="margin-top:4px; color:var(--bad); min-height:32px;">🗑 حذف این مورد</button>` : ''}</div>`).join('')}</div>`).join('') || '<div class="q">موردی تکراری پیدا نشد.</div>'}`);
+    ${groups.map((x, n) => `<div class="q" style="margin-top:10px;"><b>${fa(n + 1)}. ${esc(x.loc)} — ${fa(x.g.length)} مورد مشابه</b>${x.g.map(r => `<div data-dr style="border-top:1px solid var(--bd); padding:6px 0; font-size:13px;"><span style="color:var(--mu)">#${esc(r.id)} · ${esc(mn(r.module) || r.module || '')} · ${fd(r.created_at)} · ${stN[r.status] || esc(r.status)}${r.due_date ? ' · مهلت ' + fd(r.due_date) : ''}</span><br>${hl(r.question || '—', r._w)}${r._p ? `<br><small style="color:var(--wa)">🔗 تکراریِ مورد ${x.g.indexOf(r._p) < x.g.indexOf(r) ? 'بالا' : 'پایین'} (#${esc(r._p.id)}) — شباهت ${fa(r._s)}٪${r._w.length ? ' · کلمات مشترک: ' + esc(r._w.join('، ')) : ''}</small>` : ''}${r.note ? `<br><small>شرح: ${hl(r.note, r._w)}</small>` : ''}${window.HSEAuth && HSEAuth.role === 'manager' ? `<br><button class="l" data-a="fdel" data-id="${r.id}" style="margin-top:4px; color:var(--bad); min-height:32px;">🗑 حذف این مورد</button>` : ''}</div>`).join('')}</div>`).join('') || '<div class="q">موردی تکراری پیدا نشد.</div>'}`);
   window._dtxt = groups.map((x, n) => `${n + 1}. ${x.loc} (${x.g.length} مورد)\n` + x.g.map(r => `   - #${r.id} [${r.status}] ${r.question || ''}${r.note ? ' | شرح: ' + r.note : ''}${r._p ? ' | مشابه #' + r._p.id + ' (' + r._s + '٪)' : ''}`).join('\n')).join('\n\n');
 }
 async function finds(iid) {
