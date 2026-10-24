@@ -1377,6 +1377,7 @@ function fcard(x) {
         <textarea data-cr="${x.id}" rows="2" placeholder="دلیل لغو (الزامی؛ مثلاً: بررسی شد و عدم‌انطباق نبود / تکراری بود / ثبت اشتباه / مورد منتفی شد)"></textarea>
         <button class="p" data-a="fcancelnc" data-id="${x.id}" style="margin-top:6px; min-height:40px;">ثبت لغو با این دلیل</button>
       </details>` : ''}`}
+      ${window.HSEAuth && HSEAuth.role === 'manager' ? `<button class="l" data-a="fdel" data-id="${x.id}" style="margin-top:10px; color:var(--bad);">🗑 حذف کامل این مورد (تکراری / ثبت اشتباه)</button>` : ''}
     </div>`;
 }
 
@@ -1486,17 +1487,17 @@ async function dups(all) {
   let rows = [];
   try {
     for (let o = 0; o < 20000; o += 1000) {
-      const r = await api('findings?select=id,qid,module,question,location,status,severity,created_at,due_date&status=' + (all ? 'neq.cancelled' : 'eq.open') + '&order=id.asc&limit=1000&offset=' + o);
+      const r = await api('findings?select=id,qid,module,question,note,location,status,severity,created_at,due_date&status=' + (all ? 'neq.cancelled' : 'eq.open') + '&order=id.asc&limit=1000&offset=' + o);
       rows = rows.concat(r || []); if (!r || r.length < 1000) break;
     }
   } catch (e) { view('<p class="q bad">خطا: ' + esc(e.message) + '</p><button class="l" data-a="finds">‹ بازگشت</button>'); return; }
   rows = rows.filter(x => x.module != 'MED');
-  const by = {}; rows.forEach(x => { x._t = dtok(x.question); (by[nl(x.location).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))] = by[nl(x.location).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))] || []).push(x); });
+  const by = {}; rows.forEach(x => { x._t = dtok((x.question || '') + ' ' + (x.note || '')); (by[nl(x.location).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))] = by[nl(x.location).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))] || []).push(x); });
   const groups = [];
   Object.entries(by).forEach(([loc, L]) => {
     const par = L.map((_, i) => i), f = i => par[i] == i ? i : (par[i] = f(par[i]));
     for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
-      const same = dnorm(L[i].question) == dnorm(L[j].question);
+      const same = dnorm((L[i].question || '') + ' ' + (L[i].note || '')) == dnorm((L[j].question || '') + ' ' + (L[j].note || ''));
       if (same || dsim(L[i]._t, L[j]._t) >= .6) par[f(i)] = f(j);
     }
     const m = {}; L.forEach((x, i) => (m[f(i)] = m[f(i)] || []).push(x));
@@ -1507,10 +1508,10 @@ async function dups(all) {
   const total = groups.reduce((t, x) => t + x.g.length - 1, 0);
   view(`<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><button class="l" data-a="finds" style="margin:0;">‹ بازگشت به پیگیری</button></div>
     <h2>🔍 عدم‌انطباق‌های تکراری ${all ? '(باز و اصلاح‌شده)' : '(باز)'}</h2>
-    <p>${fa(rows.length)} مورد بررسی شد؛ <b>${fa(groups.length)}</b> گروه مشکوک به تکرار (جمعاً <b>${fa(total)}</b> مورد اضافه). معیار: محل یکسان و متن مشابه (حداقل ۶۰٪ اشتراک کلمات). قدیمی‌ترین مورد هر گروه معمولاً مورد اصلی است.</p>
+    <p>${fa(rows.length)} مورد بررسی شد؛ <b>${fa(groups.length)}</b> گروه مشکوک به تکرار (جمعاً <b>${fa(total)}</b> مورد اضافه). معیار: محل یکسان و متن مشابه (حداقل ۶۰٪ اشتراک کلمات در عنوان و شرح). قدیمی‌ترین مورد هر گروه معمولاً مورد اصلی است.</p>
     <div class="fgrid2"><button class="l" data-a="dups" data-k="${all ? 'open' : 'all'}">${all ? 'فقط موارد باز' : 'شامل اصلاح‌شده‌ها هم بشود'}</button><button class="l" data-a="dcopy">📋 کپی لیست</button></div>
-    ${groups.map((x, n) => `<div class="q" style="margin-top:10px;"><b>${fa(n + 1)}. ${esc(x.loc)} — ${fa(x.g.length)} مورد مشابه</b>${x.g.map(r => `<div style="border-top:1px solid var(--bd); padding:6px 0; font-size:13px;"><span style="color:var(--mu)">#${esc(r.id)} · ${esc(mn(r.module) || r.module || '')} · ${fd(r.created_at)} · ${stN[r.status] || esc(r.status)}${r.due_date ? ' · مهلت ' + fd(r.due_date) : ''}</span><br>${esc(r.question || '—')}</div>`).join('')}</div>`).join('') || '<div class="q">موردی تکراری پیدا نشد.</div>'}`);
-  window._dtxt = groups.map((x, n) => `${n + 1}. ${x.loc} (${x.g.length} مورد)\n` + x.g.map(r => `   - #${r.id} [${r.status}] ${r.question || ''}`).join('\n')).join('\n\n');
+    ${groups.map((x, n) => `<div class="q" style="margin-top:10px;"><b>${fa(n + 1)}. ${esc(x.loc)} — ${fa(x.g.length)} مورد مشابه</b>${x.g.map(r => `<div data-dr style="border-top:1px solid var(--bd); padding:6px 0; font-size:13px;"><span style="color:var(--mu)">#${esc(r.id)} · ${esc(mn(r.module) || r.module || '')} · ${fd(r.created_at)} · ${stN[r.status] || esc(r.status)}${r.due_date ? ' · مهلت ' + fd(r.due_date) : ''}</span><br>${esc(r.question || '—')}${r.note ? `<br><small>شرح: ${esc(r.note)}</small>` : ''}${window.HSEAuth && HSEAuth.role === 'manager' ? `<br><button class="l" data-a="fdel" data-id="${r.id}" style="margin-top:4px; color:var(--bad); min-height:32px;">🗑 حذف این مورد</button>` : ''}</div>`).join('')}</div>`).join('') || '<div class="q">موردی تکراری پیدا نشد.</div>'}`);
+  window._dtxt = groups.map((x, n) => `${n + 1}. ${x.loc} (${x.g.length} مورد)\n` + x.g.map(r => `   - #${r.id} [${r.status}] ${r.question || ''}${r.note ? ' | شرح: ' + r.note : ''}`).join('\n')).join('\n\n');
 }
 async function finds(iid) {
   if (iid !== undefined) { FI = iid; EDIT = null; }
@@ -2190,6 +2191,15 @@ document.onclick = async e => {
       await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify({ status: 'cancelled', cancel_reason: why, cancelled_at: new Date().toISOString(), cancelled_by: mail, closed_at: null }) });
       await loadFinds(); scrollTo(0, y);
     } catch (er) { alert(/cancel|status|enum|check/i.test(er.message) ? 'ابتدا فایل hse_findings_cancel.sql را یک‌بار در Supabase اجرا کنید.\n' + er.message.slice(0, 160) : er.message); }
+  }
+  else if (a == 'fdel') {
+    if (!(window.HSEAuth && HSEAuth.role === 'manager')) return alert('حذف فقط برای مدیر مجاز است.');
+    if (!confirm('این مورد برای همیشه حذف شود؟ این کار قابل بازگشت نیست.\n(اگر فقط لازم نیست پیگیری شود، به‌جای حذف «لغو» را بزنید تا سابقه بماند.)')) return;
+    try {
+      const r = await api('findings?id=eq.' + t.dataset.id, { method: 'DELETE' });
+      if (!r || !r.length) return alert('حذف انجام نشد (دسترسی حذف در دیتابیس بسته است یا مورد قبلاً حذف شده).');
+      const row = t.closest('[data-dr]'); if (row) { row.remove(); } else { await loadFinds(); scrollTo(0, y); }
+    } catch (er) { alert('خطا در حذف: ' + er.message); }
   }
   else if (a == 'funcancel') {
     if (!confirm('این مورد دوباره باز شود؟')) return;
