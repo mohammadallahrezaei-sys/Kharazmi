@@ -1295,7 +1295,7 @@ function fQuery(skipSt) {
   q += '&module=neq.MED'; /* هشدارهای دارو عدم‌انطباق نیستند */
   const lc = FQ.loc.trim().replace(/[,()*%\\:"]/g, ' ').trim();
   if (lc) q += '&location=ilike.' + encodeURIComponent('*' + lc + '*');
-  if (FQ.ntc == 'yes') q += '&notice_at=not.is.null'; else if (FQ.ntc == 'no') q += '&notice_at=is.null';
+  if (FQ.ntc == 'yes') q += '&and=(or(notice_at.not.is.null,notice_code.neq.))'; else if (FQ.ntc == 'no') q += '&and=(notice_at.is.null,or(notice_code.is.null,notice_code.eq.))';
   if (FQ.ph == 'noafter') q += '&photos_after=eq.%7B%7D';
   else if (FQ.ph == 'phafter') q += '&photos_after=cs.%7Bno-photo-after-placeholder.jpg%7D';
   else if (FQ.ph == 'ph') q += '&photos_before=cs.%7Bno-photo-placeholder.jpg%7D';
@@ -1396,7 +1396,8 @@ async function loadFinds() {
     if (FQ.page >= pages) { FQ.page = pages - 1; return loadFinds(); }
     const no = cOpen.total ?? 0, na = cAll.total ?? 0, nx = cCan.total ?? 0;
     $('#fchips').innerHTML = [['', 'همه', na], ['open', 'باز', no], ['closed', 'اصلاح‌شده', na - no - nx], ['cancelled', 'لغو شده', nx]].map(([v, t, n]) =>
-      `<button class="chip ${FQ.st == v ? 'on' : ''}" data-a="fst" data-v="${v}">${t} <b>${fa(n)}</b></button>`).join('');
+      `<button class="chip ${FQ.st == v ? 'on' : ''}" data-a="fst" data-v="${v}">${t} <b>${fa(n)}</b></button>`).join('') +
+      `<button class="chip ${FQ.ntc == 'no' ? 'on' : ''}" data-a="fntc" data-v="no">📭 بدون اعلان</button><button class="chip ${FQ.ntc == 'yes' ? 'on' : ''}" data-a="fntc" data-v="yes">📬 دارای اعلان</button>`;
     let last = null, html = '';
     pg.rows.forEach(x => { if (FQ.grp) { const g = gLabel(x); if (g !== last) { html += `<div class="sec" style="margin-top:18px;">${esc(g)}</div>`; last = g; } } html += fcard(x); });
     box.innerHTML = html || '<p style="margin-top:20px;">هیچ عدم‌انطباقی با این فیلترها یافت نشد.</p>';
@@ -1537,7 +1538,7 @@ async function recon() {
   rows = rows.filter(x => x.module != 'MED');
   const now = Date.now(), age = x => Math.floor((now - new Date(x.notice_at || x.created_at)) / 864e5);
   const B = [['جدید ۰–۷ روز', 0, 7], ['در پیگیری ۸–۳۰', 8, 30], ['تأخیر ۳۱–۶۰', 31, 60], ['تأخیر جدی ۶۱–۹۰', 61, 90], ['تأخیر بحرانی بیش از ۹۰', 91, 1e9]];
-  const grp = { all: rows, yes: rows.filter(x => x.notice_code), no: rows.filter(x => !x.notice_code) };
+  const grp = { all: rows, yes: rows.filter(x => x.notice_code || x.notice_at), no: rows.filter(x => !x.notice_code && !x.notice_at) };
   const calc = L => { const op = L.filter(x => x.status == 'open'), cl = L.filter(x => x.status == 'closed'), cn = L.filter(x => x.status == 'cancelled'); return { n: L.length, op, cl, cn, b: B.map(([, a, z]) => op.filter(x => age(x) >= a && age(x) <= z).length) }; };
   const R = { all: calc(grp.all), yes: calc(grp.yes), no: calc(grp.no) };
   const pc = (a, n) => n ? fa((a / n * 100).toFixed(2)) + '٪' : '—';
@@ -2296,6 +2297,7 @@ document.onclick = async e => {
     if (!confirm('این مورد دوباره باز شود؟')) return;
     try { await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify({ status: 'open', cancel_reason: null, cancelled_at: null, cancelled_by: null }) }); await loadFinds(); scrollTo(0, y); } catch (er) { alert(er.message); }
   }
+  else if (a == 'fntc') { FQ.ntc = FQ.ntc == t.dataset.v ? '' : t.dataset.v; FQ.page = 0; const sl = document.querySelector('[data-ff=ntc]'); if (sl) sl.value = FQ.ntc; await loadFinds(); }
   else if (a == 'fst') { FQ.st = t.dataset.v; FQ.page = 0; await loadFinds(); }
   else if (a == 'fpage') { FQ.page = Math.max(0, FQ.page + +t.dataset.d); await loadFinds(); scrollTo(0, 0); }
   else if (a == 'fclear') { Object.assign(FQ, { q: '', mod: '', insp: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', grp: '', ord: 'new', page: 0 }); finds(); }
