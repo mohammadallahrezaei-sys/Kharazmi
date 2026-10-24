@@ -107,7 +107,7 @@ function build(K){
   /* ۲) چک‌لیست‌های ماهانه‌ی جدول (ردیف‌های هم‌چک‌لیست ادغام می‌شوند؛ تجهیزات حیاتی در بخش سررسید دستگاه‌ها می‌آیند) */
   const EQROWS=new Set(Object.keys(EQC).flatMap(k=>MODS[k]||[])),groups={};
   SCHED.forEach((it,i)=>{if(it.daily||EQROWS.has(i))return;const mk=Object.keys(MODS).filter(k=>MODS[k].includes(i));if(!mk.length)return;
-    const w=it.m[K]||it.m['1405-10'];if(!w)return;const sig=mk.join(',');
+    const inT=K>='1405-07'&&K<='1405-12',w=inT?it.m[K]:((!it.every||(+K.slice(5))%it.every===it.phase%it.every)?it.m['1405-10']||it.m['1405-09']:null);if(!w)return;const sig=mk.join(',');
     const g=groups[sig]||(groups[sig]={mk,t:[],a:w[0],b:w[1]});if(!g.t.includes(it.t))g.t.push(it.t);g.a=Math.min(g.a,w[0]);g.b=Math.max(g.b,w[1])});
   Object.values(groups).forEach(g=>{const A=Math.min(g.a,days.length),B=Math.min(g.b,days.length),pl=A+(B-A>4?Math.floor((B-A)/4):0),
     plan=adjust(days[pl-1].iso,days),due=days[B-1].iso,dn=doneOn(g.mk,a,b);
