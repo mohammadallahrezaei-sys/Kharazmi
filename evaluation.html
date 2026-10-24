@@ -12,7 +12,7 @@
 <div class="w" style="max-width:1100px">
   <div class="top">
     <div><h1>📊 ارزیابی عملکرد واحدها</h1><p>شاخص ایمنی، شاخص مشارکت و ماتریس مقایسه — محاسبه‌ی خودکار با فرمول‌های فایل اکسل</p></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><button class="p" id="bSave">💾 ذخیره ورودی‌ها</button><button id="bUnits">⚙ مدیریت واحدها</button><a class="btn" href="cards.html">کارت‌ها</a><a class="btn" href="index.html">← بازگشت</a></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><button class="p" id="bSave">💾 ذخیره ورودی‌ها</button><button id="bZero" title="برای واحدهای ثبت‌نشده این ماه، PPE و ناایمن صفر ثبت می‌شود">0️⃣ ثبت صفر برای ثبت‌نشده‌ها</button><button id="bUnits">⚙ مدیریت واحدها</button><a class="btn" href="cards.html">کارت‌ها</a><a class="btn" href="index.html">← بازگشت</a></div>
   </div>
   <div id="err" class="err"></div>
   <div id="sum"></div>
@@ -42,7 +42,7 @@ function draw(){
   const zn=['الگو','ایمن ولی ساکت','ریسک بالا، شفاف','نیازمند مداخله فوری'];
   $('sum').innerHTML=`<div class="g3" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:10px">${R.zones.map((z,i)=>`<div class="card" style="margin:0"><div class="mu">${ZONES[i]}</div><b class="z${i}" style="font-size:22px">${fa(z.length)}</b><div class="mu">${z.map(r=>esc(r.u.name)).join('، ')||'—'}</div></div>`).join('')}
    <div class="card" style="margin:0"><div class="mu">واجد شرایط واحد نمونه</div><b class="z0" style="font-size:22px">${fa(R.rank.length)}</b><div class="mu">${R.rank.slice(0,3).map(r=>fa(r.rank)+'. '+esc(r.u.name)).join('، ')||'—'}</div></div>
-   <div class="card" style="margin:0"><div class="mu">داده‌ی ناقص (PPE/ناایمن یا تعداد مشاهده‌ی کافی ثبت نشده)</div><b class="${R.incomplete.length?'wa':'ok'}" style="font-size:22px">${fa(R.incomplete.length)}</b><div class="mu">${R.incomplete.length?'این واحدها در ماتریس و رتبه‌بندی نیامده‌اند':'همه ثبت شده'}</div></div></div>`;
+   <div class="card" style="margin:0"><div class="mu">داده‌ی ناقص (PPE/ناایمن یا تعداد مشاهده‌ی کافی ثبت نشده)</div><b class="${R.incomplete.length?'wa':'ok'}" style="font-size:22px">${fa(R.incomplete.length)}</b><div class="mu">${R.incomplete.length?'این واحدها در ماتریس و رتبه‌بندی نیامده‌اند؛ ورودی را ثبت کنید یا (برای ماه‌های قبل از آبان ۱۴۰۵) دکمهٔ «ثبت صفر» را بزنید':'همه ثبت شده'}</div></div></div>`;
   const h='<tr><th>واحد</th><th>ریسک</th><th>نفر</th><th>خطر</th><th>شبه</th><th>پیشنهاد</th><th>جلسه</th><th>PPE</th><th>ناایمن</th><th>مشاهده</th><th>حادثه/جزئی (ماه)</th><th>حادثه ۱۲ماهه</th><th>روز</th><th>ایمنی</th><th>مشارکت</th><th>ناحیه</th><th>رتبه</th></tr>';
   $('tb').innerHTML=h+R.rows.map(r=>`<tr class="${r.entered?'':'inc'}"><td><b>${esc(r.u.name)}</b><div class="mu">${esc(r.u.manager||'بدون مسئول')}</div></td><td>${r.u.risk_level}</td><td>${fa(r.C)}</td><td>${fa(r.hz)}</td><td>${fa(r.nm)}</td><td>${fa(r.sg)}</td><td>${fa(r.talks)}</td>
    <td><input type="number" min="0" data-u="${r.u.id}" data-k="ppe" value="${r.entered?r.ppe:''}" placeholder="—"></td><td><input type="number" min="0" data-u="${r.u.id}" data-k="unsafe" value="${r.entered?r.unsafe:''}" placeholder="—"></td>
@@ -68,6 +68,14 @@ async function saveRows(){
     B=await loadEval({days:450});draw()}catch(e){alert('خطا در ذخیره: '+e.message)}
 }
 $('bSave').onclick=()=>saveRows();
+/* ثبت صفر: فقط برای ماه‌های قبل از شروع الزام «تعداد مشاهده» (PARAM.OBS_FROM)؛ از آن ماه به بعد صفرِ بدون مشاهده معتبر نیست */
+$('bZero').onclick=async()=>{
+  if(K>=PARAM.OBS_FROM){alert('از '+monthLabel(PARAM.OBS_FROM)+' به بعد برای هر واحد باید تعداد مشاهده‌ی واقعی (حداقل مقدار نشان‌داده‌شده) ثبت شود؛ ثبت صفر برای این ماه مجاز نیست.');return}
+  const miss=R.rows.filter(r=>!r.entered);
+  if(!miss.length){alert('همه‌ی واحدهای این ماه قبلاً ثبت شده‌اند.');return}
+  if(!confirm('برای '+miss.length+' واحد ثبت‌نشده ('+miss.map(r=>r.u.name).join('، ')+') مقدار PPE و ناایمن = ۰ ثبت شود؟\nاین یعنی در این ماه موردی مشاهده نشده است.'))return;
+  try{await req('hse_unit_monthly?on_conflict=unit_id,month_key','POST',miss.map(r=>({unit_id:r.u.id,month_key:K,ppe_count:0,unsafe_count:0})),'resolution=merge-duplicates,return=minimal');B=await loadEval({days:450});draw()}
+  catch(e){alert('خطا در ثبت: '+e.message)}};
 /* ---- مدیریت واحدها ---- */
 function uDraw(){
   $('uList').innerHTML='<table><tr><th>نام واحد</th><th>مسئول</th><th>ریسک</th><th>نفر</th><th>نام‌های معادل در بانک پرسنل</th><th>فعال</th></tr>'+B.units.map(u=>`<tr data-id="${u.id||''}"><td><input type="text" data-k="name" value="${esc(u.name)}"></td><td><input type="text" data-k="manager" value="${esc(u.manager||'')}"></td><td><select data-k="risk_level" style="width:60px">${['A','B','C'].map(x=>`<option ${u.risk_level===x?'selected':''}>${x}</option>`).join('')}</select></td><td><input type="number" min="1" data-k="headcount" value="${u.headcount}" style="width:60px"></td><td><input type="text" data-k="aliases" value="${esc(u.aliases||'')}"></td><td><input type="checkbox" data-k="active" ${u.active!==false?'checked':''}></td></tr>`).join('')+'</table>';

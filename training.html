@@ -22,7 +22,7 @@
 
 <div id="modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50">
  <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 max-w-lg w-full max-h-[92vh] overflow-y-auto">
-  <h2 class="font-bold mb-3">ثبت جلسه آموزشی</h2>
+  <h2 class="font-bold mb-3" id="mTitle">ثبت جلسه آموزشی</h2>
   <div class="space-y-2">
    <select id="fType" class="fld"></select>
    <input id="fTitle" class="fld" placeholder="عنوان دوره (مثلاً کار در ارتفاع)">
@@ -49,7 +49,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 const fday=d=>{try{return new Date(d+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d}};
 const api=async(p,o)=>{const r=await fetch(`${URL_}/rest/v1/${p}`,{headers:H,...o});if(!r.ok)throw new Error(await r.text());const tx=await r.text();return tx?JSON.parse(tx):null};
-let emps=[],trs=[],att=[],incs=[],sel=new Map();
+let emps=[],trs=[],att=[],incs=[],sel=new Map(),EDIT=null;
 const name=e=>`${e.first_name||''} ${e.last_name||''}`.trim();
 async function load(){
   try{
@@ -69,7 +69,7 @@ function render(){
   const L=trs.filter(t=>ft==='all'||t.training_type===ft);
   $('list').innerHTML=L.length?L.map(t=>{const A=att.filter(a=>a.training_id===t.id),names=A.map(a=>{const e=emps.find(x=>x.id===a.employee_id);return e?name(e):a.person_name}).filter(Boolean);
    return `<details class="bg-slate-800 border border-slate-700 rounded-xl"><summary class="p-3 cursor-pointer flex justify-between gap-2"><div><p class="font-bold text-sm">${esc(t.title)}</p><p class="text-[11px] text-slate-400">${fday(t.training_date)} · ${fa(t.duration_hours||0)} ساعت${t.trainer?' · مدرس: '+esc(t.trainer):''}${t.contractor_name?' · پیمانکار: '+esc(t.contractor_name):''}</p></div><div class="text-left shrink-0"><span class="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">${T[t.training_type]}</span><div class="text-[11px] text-slate-400 mt-1">${fa(A.length)} نفر</div></div></summary>
-   <div class="px-3 pb-3 text-xs text-slate-300 border-t border-slate-700 pt-2">${names.map(esc).join('، ')||'—'}${t.notes?`<p class="text-slate-400 mt-1">${esc(t.notes)}</p>`:''}<div class="mt-2 flex gap-4 items-center"><a href="training_print.html?id=${t.id}" target="_blank" class="text-emerald-400 text-[11px] font-bold">🖨 فرم چاپی (امضا)</a><button data-del="${t.id}" class="text-rose-400 text-[11px]">حذف جلسه</button></div></div></details>`}).join(''):'<p class="text-center text-slate-500 text-sm py-6">جلسه‌ای ثبت نشده.</p>';
+   <div class="px-3 pb-3 text-xs text-slate-300 border-t border-slate-700 pt-2">${names.map(esc).join('، ')||'—'}${t.notes?`<p class="text-slate-400 mt-1">${esc(t.notes)}</p>`:''}<div class="mt-2 flex gap-4 items-center"><a href="training_print.html?id=${t.id}" target="_blank" class="text-emerald-400 text-[11px] font-bold">🖨 فرم چاپی (امضا)</a><button data-edit="${t.id}" class="text-sky-400 text-[11px] font-bold">✏️ ویرایش</button><button data-del="${t.id}" class="text-rose-400 text-[11px]">حذف جلسه</button></div></div></details>`}).join(''):'<p class="text-center text-slate-500 text-sm py-6">جلسه‌ای ثبت نشده.</p>';
 }
 $('flt').innerHTML='<option value="all">همه انواع آموزش</option>'+Object.entries(T).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
 $('flt').onchange=render;
@@ -86,25 +86,38 @@ const toJ=d=>{const p=JF.formatToParts(d),g=t=>+p.find(x=>x.type===t).value;retu
 function jToISO(y,m,d){const st=Date.UTC(y+621,2,17);for(let i=0;i<400;i++){const t=new Date(st+i*864e5),j=toJ(t);if(j[0]===y&&j[1]===m&&j[2]===d)return t.toISOString().slice(0,10)}return null}
 function getDate(){const y=+$('dY').value,m=+$('dM').value;let d=+$('dD').value,iso=jToISO(y,m,d);if(!iso&&d>29){d=29;$('dD').value=29;iso=jToISO(y,m,d)}return iso}
 function setDate(iso){const [y,m,d]=toJ(new Date(iso+'T00:00:00Z')),ty=toJ(new Date())[0];
-  $('dY').innerHTML=[ty-1,ty,ty+1].map(v=>`<option value="${v}">${fa(v)}</option>`).join('');
+  $('dY').innerHTML=[...new Set([ty-1,ty,ty+1,y])].sort().map(v=>`<option value="${v}">${fa(v)}</option>`).join('');
   $('dM').innerHTML=JM.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('');
   $('dD').innerHTML=Array.from({length:31},(_,i)=>`<option value="${i+1}">${fa(i+1)}</option>`).join('');
   $('dY').value=y;$('dM').value=m;$('dD').value=d}
-$('btnNew').onclick=()=>{sel.clear();chips();pick();setDate(new Date().toISOString().slice(0,10));
+$('btnNew').onclick=()=>{EDIT=null;$('mTitle').textContent='ثبت جلسه آموزشی';$('fSave').textContent='ثبت';$('fType').value='onboarding';$('fType').onchange();$('fHours').value='';sel.clear();chips();pick();setDate(new Date().toISOString().slice(0,10));
   $('fInc').innerHTML='<option value="">حادثه مرتبط (اختیاری)</option>'+incs.map(i=>`<option value="${i.id}">${fday((i.incident_date||'').slice(0,10))} - ${esc(i.location)}</option>`).join('');
   $('modal').classList.remove('hidden');$('modal').classList.add('flex')};
-$('fCancel').onclick=()=>{$('modal').classList.add('hidden');$('modal').classList.remove('flex')};
+$('fCancel').onclick=()=>{EDIT=null;$('modal').classList.add('hidden');$('modal').classList.remove('flex')};
 $('fSave').onclick=async()=>{
   const title=$('fTitle').value.trim(),extra=$('fExtra').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(!title||!getDate()||(!sel.size&&!extra.length)){alert('عنوان، تاریخ و حداقل یک شرکت‌کننده لازم است.');return}
   const ty=$('fType').value;
   try{
-    const [t]=await api('trainings',{method:'POST',headers:{...JH,Prefer:'return=representation'},body:JSON.stringify({training_type:ty,title,training_date:getDate(),duration_hours:+$('fHours').value||0,trainer:$('fTrainer').value.trim()||null,contractor_name:ty==='contractor'?($('fContr').value.trim()||null):null,incident_id:ty==='post_incident'?($('fInc').value||null):null,notes:$('fNotes').value.trim()||null})});
+    const body={training_type:ty,title,training_date:getDate(),duration_hours:+$('fHours').value||0,trainer:$('fTrainer').value.trim()||null,contractor_name:ty==='contractor'?($('fContr').value.trim()||null):null,incident_id:ty==='post_incident'?($('fInc').value||null):null,notes:$('fNotes').value.trim()||null};
+    let t;
+    if(EDIT){await api('trainings?id=eq.'+EDIT,{method:'PATCH',headers:{...JH,Prefer:'return=minimal'},body:JSON.stringify(body)});t={id:EDIT};await api('training_attendees?training_id=eq.'+EDIT,{method:'DELETE'})}
+    else [t]=await api('trainings',{method:'POST',headers:{...JH,Prefer:'return=representation'},body:JSON.stringify(body)});
     await api('training_attendees',{method:'POST',headers:{...JH,Prefer:'return=minimal'},body:JSON.stringify([...[...sel.keys()].map(id=>({training_id:t.id,employee_id:id})),...extra.map(n=>({training_id:t.id,person_name:n}))])});
-    $('fCancel').onclick();['fTitle','fTrainer','fContr','fExtra','fNotes'].forEach(i=>$(i).value='');load();
+    EDIT=null;$('fCancel').onclick();['fTitle','fTrainer','fContr','fExtra','fNotes'].forEach(i=>$(i).value='');load();
   }catch(e){alert('خطا در ثبت: '+e.message)}
 };
-$('list').onclick=async ev=>{const id=ev.target.dataset.del;if(id&&confirm('این جلسه و فهرست حاضرین حذف شود؟')){try{await api('trainings?id=eq.'+id,{method:'DELETE'});load()}catch(e){alert(e.message)}}};
+function editTr(id){
+  const t=trs.find(x=>String(x.id)===String(id));if(!t)return;EDIT=t.id;
+  sel.clear();att.filter(a=>a.training_id===t.id&&a.employee_id).forEach(a=>{const e=emps.find(x=>x.id===a.employee_id);if(e)sel.set(e.id,e)});
+  $('fExtra').value=att.filter(a=>a.training_id===t.id&&!a.employee_id&&a.person_name).map(a=>a.person_name).join('\n');
+  $('fType').value=t.training_type;$('fTitle').value=t.title||'';$('fHours').value=t.duration_hours||'';$('fTrainer').value=t.trainer||'';$('fContr').value=t.contractor_name||'';$('fNotes').value=t.notes||'';
+  $('fType').onchange();setDate(String(t.training_date).slice(0,10));
+  $('fInc').innerHTML='<option value="">حادثه مرتبط (اختیاری)</option>'+incs.map(i=>`<option value="${i.id}">${fday((i.incident_date||'').slice(0,10))} - ${esc(i.location)}</option>`).join('');$('fInc').value=t.incident_id||'';
+  chips();pick();$('mTitle').textContent='ویرایش جلسه آموزشی';$('fSave').textContent='ذخیرهٔ ویرایش';
+  $('modal').classList.remove('hidden');$('modal').classList.add('flex');
+}
+$('list').onclick=async ev=>{if(ev.target.dataset.edit){editTr(ev.target.dataset.edit);return}const id=ev.target.dataset.del;if(id&&confirm('این جلسه و فهرست حاضرین حذف شود؟')){try{await api('trainings?id=eq.'+id,{method:'DELETE'});load()}catch(e){alert(e.message)}}};
 load();
 </script>
 </body>
