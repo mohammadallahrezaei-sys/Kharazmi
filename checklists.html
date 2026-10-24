@@ -1747,7 +1747,8 @@ async function renderManagementReport() {
     const years = []; for (let y = jNow().year; y >= jNow().year - 3; y--) years.push(y);
     const o = (v, t, cur) => `<option value="${v}" ${String(cur) == String(v) ? 'selected' : ''}>${t}</option>`;
     const lab = (t, h) => `<label style="display:block; margin-top:10px; font-size:12px; color:var(--mu);">${t}${h}</label>`;
-    const parts = Math.ceil(n / R.per) || 0;
+    const parts = n ? (R.per ? Math.ceil(n / R.per) : 1) : 0;
+    PV.parts = []; PV.imgs = []; PV.i = 0;
     view(`
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;" class="np">
         <button class="l" data-a="home" style="margin:0;">‹ بازگشت به لیست</button>
@@ -1770,7 +1771,7 @@ async function renderManagementReport() {
           ${lab('چک‌لیست / ماژول', `<select data-rf="mod">${o('', 'همه', R.mod)}${M.map(m => o(m[0], m[1], R.mod)).join('')}</select>`)}
           ${lab('وضعیت', `<select data-rf="st">${o('', 'همه', R.st)}${o('open', 'فقط باز', R.st)}${o('closed', 'فقط اصلاح‌شده', R.st)}</select>`)}
           ${lab('ترتیب اسلایدها', `<select data-rf="ord">${o('sev', 'باز و شدت بالا اول', R.ord)}${o('date', 'جدیدترین اول', R.ord)}${o('old', 'قدیمی‌ترین اول', R.ord)}</select>`)}
-          ${lab('اسلاید در هر فایل', `<select data-rf="per">${[30, 60, 100, 150].map(v => o(v, fa(v), R.per)).join('')}</select>`)}
+          ${lab('اسلاید در هر فایل', `<select data-rf="per">${[30, 60, 100, 150].map(v => o(v, fa(v), R.per)).join('') + o(0, 'همه اسلایدها در یک فایل', R.per)}</select>`)}
         </div>
       </div>
       <div class="row" style="margin-top:16px;">
@@ -1778,10 +1779,12 @@ async function renderManagementReport() {
         <div class="t" style="margin-top:8px;"><span>اصلاح‌شده و بسته</span><span style="color:var(--ok);">${fa(nc)} مورد</span></div>
         <div class="t" style="margin-top:8px;"><span>باز و نیازمند پیگیری</span><span style="color:var(--nc);">${fa(no)} مورد</span></div>
         <div class="t" style="margin-top:8px;"><span>خروجی</span><span>${fa(n + 2)} اسلاید در ${fa(parts)} فایل</span></div>
+        ${!R.per && n > 300 ? '<small style="margin-top:8px; color:var(--warn);">⚠️ تعداد اسلایدها زیاد است؛ ساخت یک فایل واحد حافظه و زمان زیادی می‌گیرد. اگر مرورگر کند شد، تعداد اسلاید در هر فایل را کمتر کنید.</small>' : ''}
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" class="np">
         <button class="p" onclick="window.print()" style="background:var(--card-bg); color:var(--ink); border:1.5px solid var(--ln); margin:0;">🖨️ چاپ مستقیم گزارش</button>
-        <button class="p" data-a="gen-slides" ${n ? '' : 'disabled'} style="background:#6366f1; border-color:#6366f1; color:#fff; margin:0;">🎬 تولید فایل‌های PowerPoint</button>
+        <button class="p" data-a="gen-preview" ${n ? '' : 'disabled'} style="background:var(--card-bg); color:var(--ink); border:1.5px solid var(--ln); margin:0;">👁 پیش‌نمایش قبل از دانلود</button>
+        <button class="p" data-a="gen-slides" ${n ? '' : 'disabled'} style="grid-column:1/-1; background:#6366f1; border-color:#6366f1; color:#fff; margin:0;">🎬 تولید فایل‌های PowerPoint</button>
       </div>
       <div id="slides-container" style="margin-top:20px;"></div>
     `);
@@ -1789,14 +1792,15 @@ async function renderManagementReport() {
 }
 
 const GEN = { cancel: false, busy: false };
-async function genSlides() {
+const PV = { parts: [], imgs: [], i: 0 };
+async function genSlides(preview) {
   if (GEN.busy) return;
   if (typeof PptxGenJS == 'undefined') { /* کتابخانه‌ی PowerPoint فقط هنگام نیاز بارگذاری می‌شود */
     await new Promise(r => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'; sc.onload = sc.onerror = r; document.head.appendChild(sc); });
   }
   if (typeof PptxGenJS == 'undefined') return alert('کتابخانه ساخت PowerPoint بارگذاری نشده است؛ اینترنت را بررسی و صفحه را دوباره باز کنید.');
-  const box = $('#slides-container'), btn = $('[data-a=gen-slides]');
-  GEN.cancel = false; GEN.busy = true; btn.disabled = true;
+  const box = $('#slides-container'), btns = [...document.querySelectorAll('[data-a=gen-slides],[data-a=gen-preview]')];
+  GEN.cancel = false; GEN.busy = true; btns.forEach(b => b.disabled = true); PV.parts = []; PV.imgs = []; PV.i = 0;
   box.innerHTML = `<progress id="gp" value="0" max="1" style="width:100%;"></progress>
     <p id="slides-progress" style="text-align:center;">در حال دریافت اطلاعات...</p>
     <button class="p np" data-a="gen-cancel" style="background:var(--card-bg); color:var(--ink); border:1.5px solid var(--ln);">⏹ توقف</button>
@@ -1822,7 +1826,7 @@ async function genSlides() {
       : R.ord == 'old' ? (a, b) => new Date(a.created_at) - new Date(b.created_at)
       : (a, b) => (a.status == 'open' ? 0 : 1) - (b.status == 'open' ? 0 : 1) || sev_(b) - sev_(a) || new Date(b.created_at) - new Date(a.created_at));
     try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
-    const logo = await loadImg('logo.png'), per = +R.per, parts = Math.ceil(F.length / per), tot = F.length + 2, t0 = Date.now();
+    const logo = await loadImg('logo.png'), per = +R.per || F.length, parts = Math.ceil(F.length / per), tot = F.length + 2, t0 = Date.now();
     let done = 0; const gp = $('#gp'); gp.max = F.length;
     for (let pi = 0; pi < parts && !GEN.cancel; pi++) {
       const chunk = F.slice(pi * per, (pi + 1) * per), imgs = [];
@@ -1835,16 +1839,62 @@ async function genSlides() {
         return d;
       });
       imgs.push(...res);
+      if (preview) { PV.parts.push({ imgs }); continue; } /* حالت پیش‌نمایش: فایل بعد از تأیید کاربر ساخته می‌شود */
       prog(`در حال ساخت فایل ${fa(pi + 1)} از ${fa(parts)}...`);
       const blob = await buildPptx(imgs), url = URL.createObjectURL(blob), name = `HSE-report-${pi + 1}-of-${parts}.pptx`;
       $('#parts').insertAdjacentHTML('beforeend', `<a href="${url}" download="${name}" class="p" style="display:block; text-align:center; text-decoration:none; margin-top:8px;">📥 دانلود فایل ${fa(pi + 1)} از ${fa(parts)} (${fa(chunk.length + (pi == 0 ? 2 : 0))} اسلاید، ${fa(Math.round(blob.size / 1048576))} مگابایت)</a>`);
       const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
     }
-    prog(GEN.cancel ? 'متوقف شد؛ فایل‌های ساخته‌شده در پایین قابل دانلودند.' : '✅ تمام شد. اگر مرورگر چند دانلود را مسدود کرد، از دکمه‌های زیر دانلود کنید.');
+    if (preview && PV.parts.length) { PV.imgs = PV.parts.flatMap(x => x.imgs); PV.i = 0; showPreview(); prog(GEN.cancel ? 'متوقف شد؛ پیش‌نمایش بخش ساخته‌شده در پایین است.' : '✅ آماده شد. اسلایدها را مرور کنید و سپس دانلود بزنید.'); }
+    else prog(GEN.cancel ? 'متوقف شد؛ فایل‌های ساخته‌شده در پایین قابل دانلودند.' : '✅ تمام شد. اگر مرورگر چند دانلود را مسدود کرد، از دکمه‌های زیر دانلود کنید.');
   } catch (e) { prog(''); alert('خطا در تولید گزارش: ' + e.message); }
-  GEN.busy = false; if (btn) btn.disabled = false;
+  GEN.busy = false; btns.forEach(b => b.disabled = false);
 }
 
+
+/* ===== پیش‌نمایش گزارش قبل از دانلود + دانلود تکی یا یکجا ===== */
+function pvFileOf(i) { let c = 0; for (let k = 0; k < PV.parts.length; k++) { c += PV.parts[k].imgs.length; if (i < c) return k; } return 0; }
+function pvShow() {
+  const im = $('#pv-img'); if (!im || !PV.imgs.length) return;
+  PV.i = Math.max(0, Math.min(PV.imgs.length - 1, PV.i));
+  im.src = PV.imgs[PV.i];
+  $('#pv-info').textContent = `اسلاید ${fa(PV.i + 1)} از ${fa(PV.imgs.length)} — فایل ${fa(pvFileOf(PV.i) + 1)} از ${fa(PV.parts.length)}`;
+}
+function showPreview() {
+  const multi = PV.parts.length > 1;
+  const bs = 'min-height:42px; font-size:13px; margin:0;';
+  $('#parts').innerHTML = `
+    <div class="q">
+      <b>👁 پیش‌نمایش گزارش</b>
+      <small>برای مرور اسلایدها از دکمه‌ها یا کلیدهای جهت‌دار کیبورد استفاده کنید؛ با کلیک روی تصویر، بزرگ می‌شود.</small>
+      <img id="pv-img" data-a="zoom" alt="" style="width:100%; border-radius:10px; border:1px solid var(--ln); margin-top:10px; cursor:zoom-in;">
+      <p id="pv-info" style="text-align:center; margin:8px 0 0; font-size:13px; color:var(--mu);"></p>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px;" class="np">
+        <button data-a="pv-first" style="${bs}">⏮ اول</button>
+        <button data-a="pv-prev" style="${bs}">قبلی</button>
+        <button data-a="pv-next" style="${bs}">بعدی</button>
+        <button data-a="pv-last" style="${bs}">آخر ⏭</button>
+      </div>
+    </div>
+    <div class="np" style="margin-top:12px;">
+      ${PV.parts.map((x, k) => `<button class="p" data-a="dl-part" data-i="${k}">📥 دانلود ${multi ? 'فایل ' + fa(k + 1) + ' از ' + fa(PV.parts.length) : 'PowerPoint'} (${fa(x.imgs.length)} اسلاید)</button>`).join('')}
+      ${multi ? `<button class="p" data-a="dl-all" style="background:#6366f1; border-color:#6366f1; color:#fff;">📦 ادغام همه در یک فایل (${fa(PV.imgs.length)} اسلاید)</button>` : ''}
+    </div>`;
+  pvShow();
+}
+async function pvDownload(list, name, btn) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ در حال ساخت فایل...';
+  try {
+    const blob = await buildPptx(list), url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+  } catch (e) { alert('خطا در ساخت فایل: ' + e.message); }
+  btn.disabled = false; btn.textContent = old;
+}
+document.addEventListener('keydown', e => {
+  if (!$('#pv-img') || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.key == 'ArrowLeft') { PV.i++; pvShow(); } else if (e.key == 'ArrowRight') { PV.i--; pvShow(); }
+});
 
 /* ===== گزارش چاپی فشرده: موارد باز و موارد با عکس ناقص ===== */
 async function printFinds(_a, kind) {
@@ -1903,6 +1953,13 @@ document.onclick = async e => {
   else if (a == 'history') historyList();
     else if (a == 'rep') renderManagementReport();
   else if (a == 'gen-slides') genSlides();
+  else if (a == 'gen-preview') genSlides(true);
+  else if (a == 'pv-first') { PV.i = 0; pvShow(); }
+  else if (a == 'pv-prev') { PV.i--; pvShow(); }
+  else if (a == 'pv-next') { PV.i++; pvShow(); }
+  else if (a == 'pv-last') { PV.i = PV.imgs.length - 1; pvShow(); }
+  else if (a == 'dl-part') { const k = +t.dataset.i; pvDownload(PV.parts[k].imgs, `HSE-report-${k + 1}-of-${PV.parts.length}.pptx`, t); }
+  else if (a == 'dl-all') { if (PV.imgs.length > 300 && !confirm('تعداد اسلایدها زیاد است و ساخت یک فایل واحد ممکن است کند یا سنگین باشد. ادامه می‌دهید؟')) return; pvDownload(PV.imgs, 'HSE-report-all.pptx', t); }
   else if (a == 'gen-cancel') GEN.cancel = true;
   else if (a == 'quick') { await eqInit(); quickForm(); }
   else if (a == 'due') { if (!DUE) await dueLoad(); dueList(); }
