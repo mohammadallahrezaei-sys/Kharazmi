@@ -22,9 +22,13 @@
 <div class="w">
   <div class="top">
     <div><h1>✉️ گزارش واحدها برای Outlook</h1><p>کارنامه‌ی کامل ماهانه؛ واحدهای هر سرپرست در یک گزارش (هم تجمیعی هم به تفکیک): شاخص‌ها، حوادث، مراجعات بهداری، اخطارها و اقدام‌های پیشنهادی — کپی کنید و در Outlook بچسبانید</p></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><select id="gSel" style="width:auto" title="شیوه‌ی گروه‌بندی"><option value="mgr">تجمیع بر اساس سرپرست</option><option value="unit">هر واحد جدا</option></select><select id="uSel" style="width:auto"></select><a class="btn" href="evaluation.html">ارزیابی واحدها</a><a class="btn" href="index.html">← بازگشت</a></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="mSel" style="width:auto"></select><select id="gSel" style="width:auto" title="شیوه‌ی گروه‌بندی"><option value="mgr">تجمیع بر اساس سرپرست</option><option value="unit">هر واحد جدا</option></select><select id="uSel" style="width:auto"></select><button class="btn" id="bSup">⚙ سرپرست و واحدها</button><a class="btn" href="evaluation.html">ارزیابی واحدها</a><a class="btn" href="index.html">← بازگشت</a></div>
   </div>
   <div id="err" class="err"></div>
+  <div id="supBox" class="card" style="display:none"><b>سرپرست و وضعیت واحدها</b>
+    <div class="mu" style="font-size:12px;margin:4px 0">نام سرپرست را برای هر واحد بنویسید (واحدهای هم‌سرپرست در یک گزارش تجمیع می‌شوند). واحد غیرفعال در گزارش نمی‌آید. «نام‌های معادل» نام واحد در بانک پرسنل است که با ویرگول جدا می‌شود.</div>
+    <div id="supList" style="overflow-x:auto"></div>
+    <div style="display:flex;gap:6px;margin-top:8px"><button class="p" id="supSave">ذخیره</button><button id="supClose">بستن</button></div></div>
   <div class="card">
     <div class="opts"><b>بخش‌های گزارش:</b>
       <label><input type="checkbox" data-o="trend" checked> روند ۳ ماهه</label>
@@ -56,6 +60,8 @@ const FITL={fit_restricted:'مجاز با محدودیت',temp_unfit:'موقتا
 let B=null,FIN=null,EMP=null,VIS=null,INC=null,FU=null,EXM=null,EKH=null,K=null,MAIL={},match=null,EMPBY={},EMPCODE={};
 $('mSel').innerHTML=monthKeys(12).map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join('');
 const g=p=>getAll(p).catch(()=>null);
+/* اگر ستونی از select نبود، کل جدول با select=* خوانده می‌شود تا منبع «خوانده‌نشده» نماند */
+const g2=async p=>{let r=await g(p);if(r)return r;const t=p.split('?')[0];return g(t+'?select=*')};
 const pick=(o,ks)=>{for(const k of ks)if(o[k]!=null&&o[k]!=='')return o[k];return null};
 const nm=e=>e?((e.first_name||'')+' '+(e.last_name||'')).trim()||'—':'—';
 const prevK=k=>{let y=+k.slice(0,4),m=+k.slice(5)-1;if(m<1){m=12;y--}return y+'-'+String(m).padStart(2,'0')};
@@ -71,12 +77,13 @@ const monthsSince=d=>{const t=new Date(String(d).slice(0,10)+'T00:00:00').getTim
 
 /* ---------- بارگذاری ---------- */
 async function load(){
-  [B,FIN,EMP,VIS,INC,FU,EXM,EKH]=await Promise.all([loadEval({days:450}),g('findings?select=*'),g('employees?select=*'),g('clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days,is_referred'),g('clinic_incidents?select=*'),g('clinic_followups?select=employee_id,kind,status,due_date'),g('clinic_exams?select=employee_id,exam_date,exam_type,fitness,restrictions'),g('ekhtars?select=*')]);
+  [B,FIN,EMP,VIS,INC,FU,EXM,EKH]=await Promise.all([loadEval({days:450}),g('findings?select=*'),g('employees?select=*'),g2('clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days,is_referred'),g('clinic_incidents?select=*'),g2('clinic_followups?select=employee_id,kind,status,due_date'),g2('clinic_exams?select=employee_id,exam_date,exam_type,fitness,restrictions'),g('ekhtars?select=*')]);
   if(!B.units){$('err').style.display='block';$('err').textContent='جدول واحدها پیدا نشد. فایل hse_eval_setup.sql را در Supabase اجرا کنید.';$('out').innerHTML='';return}
   match=unitMatcher(B.units);
   (EMP||[]).forEach(e=>{e._u=match(e.department||'')||null;EMPBY[e.id]=e;if(e.emp_id!=null)EMPCODE[String(e.emp_id)]=e});
   const miss=[['عدم‌انطباق‌ها',FIN],['پرسنل',EMP],['مراجعات بهداری',VIS],['حوادث',INC],['پیگیری‌های بهداری',FU],['معاینات طب کار',EXM],['اخطارها',EKH]].filter(x=>!x[1]).map(x=>x[0]);
-  $('note').textContent=miss.length?'⚠️ این منابع خوانده نشد و در گزارش نیامده: '+miss.join('، '):'';
+  window._unm=(EMP||[]).filter(e=>!e._u&&isActive(e,TODAY));
+  $('note').dataset.base=miss.length?'⚠️ این منابع خوانده نشد و در گزارش نیامده: '+miss.join('، ')+'. ':'';
   try{const gm=localStorage.getItem('ur_mode');if(gm)$('gSel').value=gm}catch(e){}
   fillU();
   try{document.querySelectorAll('[data-o]').forEach(c=>{const v=localStorage.getItem('ur_o_'+c.dataset.o);if(v!==null)c.checked=v==='1'})}catch(e){}
@@ -200,7 +207,7 @@ function secWarn(D,U){
 /* عدم‌انطباق: مسئولیت رفع فقط با واحد فنی است */
 function secNCTech(openF){
   const over=openF.filter(isOver),avg=openF.length?Math.round(openF.reduce((a,f)=>a+Math.max(0,ageOf(f)),0)/openF.length):0,t='عدم‌انطباق‌های باز (مسئول رفع: واحد فنی)';
-  const byL={};openF.forEach(f=>{const u=match(f.location||'');const key=u?u.name:(f.location||'نامشخص');const c=byL[key]=byL[key]||{n:0,o:0};c.n++;if(isOver(f))c.o++});
+  const byL={};openF.forEach(f=>{const loc=(f.location||'').trim(),blank=!loc||loc==='نامشخص',u=blank?null:match(loc);const key=u?u.name:(blank?'محل ثبت نشده (بدون محل در فرم)':'بدون تطبیق با واحد: '+loc);const c=byL[key]=byL[key]||{n:0,o:0};c.n++;if(isOver(f))c.o++});
   const rows=Object.entries(byL).sort((a,b)=>b[1].o-a[1].o||b[1].n-a[1].n).slice(0,12).map(([k,c])=>[esc(k),fa(c.n),c.o?red(fa(c.o)):'—']);
   const lst=openF.slice().sort((a,b)=>(isOver(b)?1:0)-(isOver(a)?1:0)||(a.due_date||'9').localeCompare(b.due_date||'9')).slice(0,15).map(f=>[esc(f.question||'—'),esc(f.location||'—'),f.due_date?fday(f.due_date):'—',isOver(f)?red('معوق'):'در مهلت']);
   const cd=['closed_at','resolved_at','done_at','closed_date'].find(c=>(FIN||[]).some(f=>f[c]));
@@ -318,8 +325,14 @@ function fillU(){
 }
 
 /* ---------- نمایش ---------- */
+function diagNote(D){
+  const nv=(VIS||[]).filter(v=>mkOf(v.visit_date)===K),ok=Object.values(D).reduce((a,x)=>a+x.vis.length,0),lost=nv.filter(v=>!unitOfEmp(v.employee_id));
+  const un=[...new Set(lost.map(v=>{const e=EMPBY[v.employee_id];return e?(e.department||'بدون واحد'):'پرسنل ثبت‌نشده'}))];
+  const nn=(window._unm||[]).length;
+  $('note').innerHTML=($('note').dataset.base||'')+(VIS?`مراجعات بهداری این ماه: ${fa(nv.length)} ثبت، ${fa(ok)} در گزارش واحدها${lost.length?` — <b>${fa(lost.length)} مورد به هیچ واحدی وصل نشد</b> (واحد پرسنل: ${esc(un.join('، '))}؛ در «⚙ سرپرست و واحدها» نام معادل را اضافه کنید)`:''}.`:'')+(nn?` · ${fa(nn)} نفر پرسنل فعال واحدشان با واحدهای ارزیابی تطبیق ندارد.`:'');
+}
 function draw(){
-  K=$('mSel').value;const O=opts(),R=compute(K,B),P1=compute(prevK(K),B),P2=compute(prevK(prevK(K)),B),sel=$('uSel').value,D=gather(K);
+  K=$('mSel').value;const O=opts(),R=compute(K,B),P1=compute(prevK(K),B),P2=compute(prevK(prevK(K)),B),sel=$('uSel').value,D=gather(K);diagNote(D);
   const openAll=(FIN||[]).filter(f=>f.status==='open'&&f.module!=='MED'),byU={};
   openAll.forEach(f=>{const u=match(f.location||'');if(u)(byU[u.id]=byU[u.id]||[]).push(f)});
   const hasTech=B.units.some(u=>TECH_RE.test(u.name));MAIL={};
@@ -346,6 +359,21 @@ $('out').addEventListener('click',async ev=>{const t=ev.target,id=t.dataset.c||t
 $('mSel').onchange=draw;$('uSel').onchange=draw;
 $('gSel').onchange=()=>{try{localStorage.setItem('ur_mode',$('gSel').value)}catch(e){}$('uSel').value='';fillU();draw()};
 document.querySelectorAll('[data-o]').forEach(c=>c.onchange=()=>{try{localStorage.setItem('ur_o_'+c.dataset.o,c.checked?'1':'0')}catch(e){}draw()});
+/* ---------- سرپرست و فعال/غیرفعال بودن واحدها ---------- */
+const {req}=HSE;
+function supDraw(){
+  const mg=[...new Set(B.units.map(u=>(u.manager||'').trim()).filter(Boolean))];
+  $('supList').innerHTML=`<datalist id="mgL">${mg.map(m=>`<option value="${esc(m)}">`).join('')}</datalist><table style="width:100%"><tr><th>واحد</th><th>سرپرست</th><th>نام‌های معادل در بانک پرسنل</th><th>فعال</th></tr>`+
+    B.units.slice().sort((a,b)=>(b.active!==false)-(a.active!==false)||a.name.localeCompare(b.name,'fa')).map(u=>`<tr data-id="${u.id}"><td><b>${esc(u.name)}</b></td><td><input list="mgL" data-k="manager" value="${esc(u.manager||'')}" placeholder="بدون سرپرست" style="width:100%;min-width:140px"></td><td><input data-k="aliases" value="${esc(u.aliases||'')}" style="width:100%;min-width:140px"></td><td><input type="checkbox" data-k="active" ${u.active!==false?'checked':''}></td></tr>`).join('')+'</table>';
+}
+$('bSup').onclick=()=>{const b=$('supBox');b.style.display=b.style.display==='none'?'block':'none';if(b.style.display==='block')supDraw()};
+$('supClose').onclick=()=>$('supBox').style.display='none';
+$('supSave').onclick=async()=>{
+  try{for(const tr of document.querySelectorAll('#supList tr[data-id]')){const q=k=>tr.querySelector('[data-k="'+k+'"]');
+      await req('hse_units?id=eq.'+tr.dataset.id,'PATCH',{manager:q('manager').value.trim()||null,aliases:q('aliases').value.trim()||null,active:q('active').checked},'return=minimal')}
+    await load();supDraw();$('supBox').style.display='none'}
+  catch(e){alert('خطا در ذخیره: '+e.message)}};
+
 load();
 </script>
 </body>

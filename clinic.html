@@ -923,6 +923,7 @@ function visitCard(v) {
                 ${v.is_referred ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border-blue-500/30">اعزام: ${esc(v.referral_destination || '')}</span>` : ''}
                 ${v.medical_leave_days ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border-amber-500/30">استعلاجی ${v.medical_leave_days} روز</span>` : ''}
                 ${e ? `<button data-profile="${esc(v.employee_id)}" class="text-[11px] text-blue-400 px-1">پرونده</button>` : ''}
+                <button data-editvisit="${esc(v.id)}" class="text-[11px] text-emerald-400 px-1">ویرایش</button>
                 <button data-delvisit="${esc(v.id)}" class="text-[11px] text-rose-400 px-1">حذف</button>
             </div>
         </div>
@@ -1850,9 +1851,46 @@ document.addEventListener('click', e => {
     else if (d.fudone !== undefined) openDoneModal(d.fudone);
     else if (d.fucancel !== undefined) cancelFu(d.fucancel);
     else if (d.capadone !== undefined) closeCapa(d.capadone);
+    else if (d.editvisit !== undefined) editVisit(d.editvisit);
     else if (d.delvisit !== undefined) deleteRow('clinic_visits', d.delvisit, 'این مراجعه حذف شود؟ این کار قابل بازگشت نیست. (داروی کسرشده از موجودی کمد برمی‌گردد.)', async () => { await loadVisits(); await loadFollowups(); }, () => restoreMeds(d.delvisit));
     else if (d.delinc !== undefined) deleteRow('clinic_incidents', d.delinc, 'این حادثه حذف شود؟ این کار قابل بازگشت نیست. (مواد مصرفی کسرشده به موجودی کمد برمی‌گردد.)', loadIncidents, () => restoreMeds(d.delinc, 'incident'));
 });
+
+
+/* ---------- ویرایش مراجعه ثبت‌شده (داروها دست‌نخورده می‌مانند تا موجودی کمد به‌هم نخورد) ---------- */
+function editVisit(id) {
+    const v = visits.find(x => String(x.id) === String(id)); if (!v) return;
+    const e = empById(v.employee_id) || {};
+    const bp = (v.blood_pressure || '').split('/');
+    const dt = (() => { const d = new Date(v.visit_date); if (isNaN(d)) return ''; const z = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + 'T' + z(d.getHours()) + ':' + z(d.getMinutes()); })();
+    const f = (i, l, val, ty) => `<label class="block text-xs text-slate-300">${l}<input id="ev_${i}" type="${ty || 'text'}" value="${esc(val == null ? '' : val)}" class="w-full mt-1 p-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm"></label>`;
+    const ta = (i, l, val) => `<label class="block text-xs text-slate-300">${l}<textarea id="ev_${i}" rows="2" class="w-full mt-1 p-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm">${esc(val || '')}</textarea></label>`;
+    const o = document.createElement('div');
+    o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);overflow:auto;padding:12px';
+    o.innerHTML = `<div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 max-w-lg mx-auto space-y-2" dir="rtl">
+      <h3 class="font-bold text-white text-sm">✏️ ویرایش مراجعه: ${esc((e.first_name || '') + ' ' + (e.last_name || ''))}</h3>
+      ${f('date', 'تاریخ و ساعت مراجعه', dt, 'datetime-local')}${f('reason', 'علت مراجعه', v.visit_reason)}
+      ${ta('complaint', 'شکایت / علائم', v.chief_complaint)}${ta('diagnosis', 'ارزیابی / نتیجه', v.diagnosis)}${ta('treatments', 'اقدامات / توصیه‌ها', v.treatments_given)}
+      <div class="grid grid-cols-2 gap-2">${f('sys', 'فشار بالا', bp[0], 'number')}${f('dia', 'فشار پایین', bp[1], 'number')}${f('pulse', 'ضربان', v.pulse_rate, 'number')}${f('temp', 'دما', v.temperature, 'number')}${f('spo2', 'SpO2', v.spo2, 'number')}${f('leave', 'روز استعلاجی', v.medical_leave_days || 0, 'number')}</div>
+      <label class="text-xs text-slate-300 flex gap-2 items-center"><input id="ev_ref" type="checkbox" ${v.is_referred ? 'checked' : ''}> اعزام شد</label>${f('dest', 'محل اعزام', v.referral_destination)}
+      <p class="text-[11px] text-slate-500">داروهای تحویلی در ویرایش تغییر نمی‌کنند؛ برای تغییر دارو، مراجعه را حذف و دوباره ثبت کنید.</p>
+      <div class="flex gap-2 pt-1"><button id="ev_save" class="flex-1 bg-emerald-600 text-white rounded-lg py-2 text-sm font-bold">ذخیره</button><button id="ev_cancel" class="flex-1 bg-slate-700 text-white rounded-lg py-2 text-sm">انصراف</button></div></div>`;
+    document.body.appendChild(o);
+    const g = i => o.querySelector('#ev_' + i), num = i => g(i).value === '' ? null : Number(g(i).value);
+    g('cancel').onclick = () => o.remove();
+    g('save').onclick = async () => {
+        const sys = g('sys').value, dia = g('dia').value;
+        if ((sys && !dia) || (!sys && dia)) { alert('فشار بالا و پایین هر دو باید وارد شوند.'); return; }
+        if (sys && +sys <= +dia) { alert('فشار بالا باید از فشار پایین بیشتر باشد.'); return; }
+        if (g('ref').checked && !g('dest').value.trim()) { alert('محل اعزام را وارد کنید.'); return; }
+        const body = { visit_reason: g('reason').value.trim() || 'illness', chief_complaint: g('complaint').value.trim() || null, diagnosis: g('diagnosis').value.trim() || null, treatments_given: g('treatments').value.trim() || null,
+            blood_pressure: sys ? sys + '/' + dia : null, pulse_rate: num('pulse'), temperature: num('temp'), spo2: num('spo2'), medical_leave_days: num('leave') || 0, is_referred: g('ref').checked, referral_destination: g('ref').checked ? g('dest').value.trim() : null };
+        if (g('date').value) body.visit_date = new Date(g('date').value).toISOString();
+        g('save').disabled = true; g('save').textContent = 'در حال ذخیره...';
+        try { await api('clinic_visits?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(body) }); o.remove(); await loadVisits(); }
+        catch (er) { showDebug(er.message); alert('ذخیره نشد: ' + er.message); g('save').disabled = false; g('save').textContent = 'ذخیره'; }
+    };
+}
 
 // بارگذاری اولیه کل داده‌ها
 loadAll();
