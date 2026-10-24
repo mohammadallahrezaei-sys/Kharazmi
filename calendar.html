@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js"></script>
+<script src="sched.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تقویم بازرسی - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.w{max-width:1000px;margin:0 auto;padding:14px}
+.nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0}
+.nav button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:6px 12px;font:inherit;cursor:pointer}
+.nav b{font-size:17px;min-width:120px;text-align:center}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px}
+.sum div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:8px 10px}
+.sum b{display:block;font-size:20px}
+.bar{height:8px;border-radius:99px;background:var(--bd);overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--ok)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.chd{text-align:center;font-size:12px;color:var(--mu);padding:2px 0}
+.cd{min-height:62px;border:1px solid var(--bd);border-radius:10px;background:var(--card);padding:4px 5px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;font:inherit;color:var(--tx);text-align:right}
+.cd.off{background:var(--soft);color:var(--mu);cursor:default;opacity:.7}
+.cd.out{visibility:hidden}
+.cd.today{outline:2px solid var(--ac)}
+.cd.sel{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 10%,var(--card))}
+.cd .cn{font-weight:700;font-size:13px}
+.cd .cc{font-size:11px;border-radius:99px;padding:0 6px;align-self:flex-start;background:var(--nabg)}
+.cd .cc.ok{background:var(--okbg);color:var(--ok)}.cd .cc.bad{background:var(--badbg);color:var(--bad)}.cd .cc.wa{background:var(--warnbg);color:var(--wa)}
+.ct{display:flex;gap:10px;align-items:center;border:1px solid var(--bd);border-radius:12px;padding:8px 10px;margin:6px 0;background:var(--card)}
+.ct.done{opacity:.75}
+.ctk{width:26px;height:26px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;line-height:1}
+.ct.done .ctk{background:var(--ok);border-color:var(--ok);color:#fff}
+.ct.late .ctk{border-color:var(--bad)}
+.ct .cx{flex:1;min-width:0}.ct .cx small{display:block;color:var(--mu)}
+.ct a.cgo{border:1px solid var(--ac);color:var(--ac);border-radius:10px;padding:3px 12px;font-size:13px;white-space:nowrap}
+.ctag{font-size:11px;border-radius:99px;padding:0 7px;margin-inline-start:6px;background:var(--nabg);color:var(--mu)}
+.ctag.bad{background:var(--badbg);color:var(--bad)}
+.cerr{background:var(--warnbg);border:1px solid var(--wa);border-radius:10px;padding:8px 10px;margin:8px 0;color:var(--tx)}
+@media(max-width:560px){.cd{min-height:52px}.cd .cc{font-size:10px;padding:0 4px}}
+</style>
+</head>
+<body>
+<div class="w">
+  <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">
+    <div><h1>📅 تقویم بازرسی</h1><div class="mu" style="color:var(--mu);font-size:13px">کارهای هر روز: چک‌لیست‌های روزانه، موعد ماهانه‌ی جدول، و سررسید بازدید هر دستگاه. بعد از ثبت چک‌لیست، تیک خودکار می‌خورد.</div></div>
+    <div style="display:flex;gap:10px;font-size:13px"><a href="checklists.html" style="color:var(--ac)">چک‌لیست‌ها</a><a href="expert_eval.html" style="color:var(--ac)">ارزیابی کارشناس</a><a href="index.html" style="color:var(--ac)">← صفحه اصلی</a></div>
+  </div>
+  <div class="nav"><button id="pv">‹ ماه قبل</button><b id="mt"></b><button id="nx">ماه بعد ›</button><button id="td">امروز</button></div>
+  <div id="warn"></div>
+  <div class="sum" id="sum"></div>
+  <div class="grid" id="grid"></div>
+  <div id="day" style="margin-top:14px"></div>
+  <div id="late"></div>
+</div>
+<script>
+const URL_='https://priopguwfjawybffarhd.supabase.co',KEY='sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+const {SCHED,MODS,EQC,EQ_START}=window.HSE_SCHED;
+const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const WD=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'];
+const WORKDAYS=[6,0,1,2,3]; /* شنبه تا چهارشنبه (تعطیلات رسمی تقویم در برنامه لحاظ نشده) */
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id);
+const PF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
+const jal=d=>{const p=PF.formatToParts(d),g=t=>+p.find(x=>x.type===t).value;return[g('year'),g('month'),g('day')]};
+const kOf=d=>{const j=jal(d);return j[0]+'-'+String(j[1]).padStart(2,'0')};
+const today=new Date().toLocaleDateString('en-CA');
+const nowK=kOf(new Date(today+'T12:00:00Z'));
+const addDays=(iso,n)=>new Date(new Date(iso+'T12:00:00Z').getTime()+n*864e5).toISOString().slice(0,10);
+const addM=(iso,n)=>{const d=new Date(iso+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+n);return d.toISOString().slice(0,10)};
+const dowOf=iso=>new Date(iso+'T12:00:00Z').getUTCDay();
+const isWork=iso=>WORKDAYS.includes(dowOf(iso));
+const lbl=iso=>new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR',{day:'numeric',month:'long',timeZone:'UTC'});
+const _MD={};
+function monthDays(K){if(_MD[K])return _MD[K];const y=+K.slice(0,4),st=Date.UTC(y+621,2,10),o=[];
+  for(let i=0;i<400;i++){const t=new Date(st+i*864e5),j=jal(t);if(j[0]+'-'+String(j[1]).padStart(2,'0')===K)o.push({iso:t.toISOString().slice(0,10),j:j[2]})}return _MD[K]=o}
+const prevK=K=>{let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}return y+'-'+String(m).padStart(2,'0')};
+const nextK=K=>{let y=+K.slice(0,4),m=+K.slice(5)+1;if(m>12){m=1;y++}return y+'-'+String(m).padStart(2,'0')};
+
+const MODT={CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخزن تحت فشار',AC:'اتوکلاو',BL:'دیگ بخار',PJ:'جک پالت'};
+let INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[];
+
+async function hd(){let t=KEY;try{t=(await HSEAuth.token())||KEY}catch(e){}return{apikey:KEY,Authorization:'Bearer '+t}}
+async function getAll(t){const h=await hd();let all=[];for(let o=0,n=0;n<50;n++){const r=await fetch(`${URL_}/rest/v1/${t}${t.includes('?')?'&':'?'}limit=1000&offset=${o}`,{headers:h}).catch(()=>null);
+  if(!r||!r.ok)return null;const j=await r.json();if(!j.length)break;all=all.concat(j);o+=j.length}return all}
+
+async function load(){
+  const since=new Date(Date.now()-500*864e5).toISOString().slice(0,10),base='inspections?select=module,location,created_at&order=created_at.desc&created_at=gte.'+since;
+  let ins=await getAll(base.replace('location,','location,equipment_code,'));
+  if(!ins){EQ_COL=false;ins=await getAll(base)||[]}
+  INS=ins.map(x=>({m:x.module,code:x.equipment_code||null,d:new Date(x.created_at).toLocaleDateString('en-CA')}));
+  const cats=[...new Set(Object.values(EQC).flatMap(v=>v[0]))];
+  EQ=await getAll('equipment?select=code,title,category,hall&active=eq.true&category=in.('+cats.map(c=>'"'+c+'"').join(',')+')&order=code.asc')||[];
+  $('warn').innerHTML=EQ_COL?'':'<div class="cerr">ستون کد تجهیز در جدول بازدیدها نیست؛ فایل <b>hse_inspections_equipment.sql</b> را در Supabase اجرا کنید تا بازدید هر دستگاه تیک بخورد. فعلاً فقط کارهای روزانه و ماهانه‌ی جدول تیک می‌خورند.</div>';
+}
+/* روز کاری نزدیک به تاریخ هدف داخل ماه (اول عقب‌تر، بعد جلوتر) */
+function adjust(iso,days){let i=days.findIndex(d=>d.iso===iso);if(i<0)i=iso<days[0].iso?0:days.length-1;
+  for(let k=i;k>=0;k--)if(isWork(days[k].iso))return days[k].iso;for(let k=i;k<days.length;k++)if(isWork(days[k].iso))return days[k].iso;return days[i].iso}
+const doneOn=(mk,a,b)=>INS.filter(x=>mk.includes(x.m)&&x.d>=a&&x.d<=b).map(x=>x.d).sort().pop()||null;
+
+function build(K){
+  const days=monthDays(K),a=days[0].iso,b=days[days.length-1].iso,T=[];
+  /* ۱) کارهای روزانه */
+  days.filter(d=>isWork(d.iso)).forEach(d=>{
+    T.push({id:'D'+d.iso,date:d.iso,due:d.iso,t:'بازدید روزانه ایمنی (گشت کل کارخانه)',sub:'روزانه',mk:'D',done:INS.some(x=>x.m==='D'&&x.d===d.iso),kind:'daily'});
+    if(K>='1405-07'&&K<='1405-12')T.push({id:'K'+d.iso,date:d.iso,due:d.iso,t:'رستوران و آشپزخانه',sub:'روزانه',mk:'KIT',done:INS.some(x=>x.m==='KIT'&&x.d===d.iso),kind:'daily'})});
+  /* ۲) چک‌لیست‌های ماهانه‌ی جدول (ردیف‌های هم‌چک‌لیست ادغام می‌شوند؛ تجهیزات حیاتی در بخش سررسید دستگاه‌ها می‌آیند) */
+  const EQROWS=new Set(Object.keys(EQC).flatMap(k=>MODS[k]||[])),groups={};
+  SCHED.forEach((it,i)=>{if(it.daily||EQROWS.has(i))return;const mk=Object.keys(MODS).filter(k=>MODS[k].includes(i));if(!mk.length)return;
+    const w=it.m[K]||it.m['1405-10'];if(!w)return;const sig=mk.join(',');
+    const g=groups[sig]||(groups[sig]={mk,t:[],a:w[0],b:w[1]});if(!g.t.includes(it.t))g.t.push(it.t);g.a=Math.min(g.a,w[0]);g.b=Math.max(g.b,w[1])});
+  Object.values(groups).forEach(g=>{const A=Math.min(g.a,days.length),B=Math.min(g.b,days.length),pl=A+(B-A>4?Math.floor((B-A)/4):0),
+    plan=adjust(days[pl-1].iso,days),due=days[B-1].iso,dn=doneOn(g.mk,a,b);
+    T.push({id:'M'+g.mk,date:plan,due,t:g.t.join(' و '),sub:'مهلت: '+lbl(due)+(A!==B?' (بازه‌ی '+fa(A)+' تا '+fa(B)+')':''),mk:g.mk[0],done:!!dn,doneAt:dn,kind:'month'})});
+  /* ۳) سررسید بازدید هر دستگاه */
+  const SP=HSE_SCHED.spread(Object.fromEntries(Object.entries(EQC).map(([mk,[cs]])=>[mk,EQ.filter(e=>cs.includes(e.category)).map(e=>e.code)])));
+  if(EQ_COL)for(const [mk,[cs,n]] of Object.entries(EQC)){
+    const list=EQ.filter(e=>cs.includes(e.category)),last={};INS.filter(x=>x.m===mk&&x.code).forEach(x=>{if(!last[x.code]||x.d>last[x.code])last[x.code]=x.d});
+    list.forEach((e,i)=>{
+      const visits=INS.filter(x=>x.m===mk&&x.code===e.code&&x.d>=a&&x.d<=b).map(x=>x.d);
+      visits.forEach(v=>T.push({id:'E'+mk+e.code+v,date:v,due:v,t:`بازدید ${MODT[mk]} — ${e.code}`,sub:e.title||'',mk,code:e.code,title:e.title,hall:e.hall,done:true,doneAt:v,kind:'equip'}));
+      if(visits.length)return;
+      let due=last[e.code]?addM(last[e.code],n):SP[mk+'|'+e.code];
+      if(K>nowK)while(due<a)due=addM(due,n); /* ماه‌های آینده: تکرار دوره‌ای برنامه */
+      if(due>b)return;
+      T.push({id:'E'+mk+e.code,date:adjust(due<a?a:due,days),due,t:`بازدید ${MODT[mk]} — ${e.code}`,sub:(e.title||'')+' · سررسید: '+lbl(due),mk,code:e.code,title:e.title,hall:e.hall,done:false,kind:'equip'})});
+  }
+  T.forEach(x=>{x.late=!x.done&&x.date<today});
+  return T;
+}
+function href(x){return 'checklists.html#visit='+encodeURIComponent(x.mk)+(x.code?'&code='+encodeURIComponent(x.code)+'&title='+encodeURIComponent(x.title||'')+'&hall='+encodeURIComponent(x.hall||''):'')}
+function taskHTML(x){
+  return `<div class="ct ${x.done?'done':''} ${x.late?'late':''}"><div class="ctk">${x.done?'✓':''}</div>
+   <div class="cx"><b>${esc(x.t)}</b>${x.late?'<span class="ctag bad">عقب‌افتاده</span>':''}<small>${esc(x.sub||'')}${x.done&&x.doneAt?' · انجام شد '+lbl(x.doneAt):''}</small></div>
+   ${x.done?'':`<a class="cgo" href="${href(x)}">شروع</a>`}</div>`}
+function render(){
+  TASKS=build(K);const days=monthDays(K);
+  $('mt').textContent=MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
+  const by={};TASKS.forEach(x=>(by[x.date]=by[x.date]||[]).push(x));
+  const tot=TASKS.length,dn=TASKS.filter(x=>x.done).length,lt=TASKS.filter(x=>x.late).length,tdy=by[today]||[];
+  $('sum').innerHTML=`<div>کارهای امروز<b>${fa(tdy.filter(x=>x.done).length)} از ${fa(tdy.length)}</b></div><div>این ماه<b>${fa(dn)} از ${fa(tot)}</b><div class="bar"><i style="width:${tot?Math.round(dn/tot*100):0}%"></i></div></div><div>عقب‌افتاده<b style="color:${lt?'var(--bad)':'var(--ok)'}">${fa(lt)}</b></div>`;
+  const first=(dowOf(days[0].iso)+1)%7; /* ستون اول = شنبه */
+  let h=WD.map(w=>`<div class="chd">${w}</div>`).join('')+'<div class="cd out"></div>'.repeat(first);
+  days.forEach(d=>{const L=by[d.iso]||[],done=L.filter(x=>x.done).length,work=isWork(d.iso),cl=!L.length?'':done===L.length?'ok':L.some(x=>x.late)?'bad':'wa';
+    h+=`<button class="cd ${work?'':'off'} ${d.iso===today?'today':''} ${d.iso===SEL?'sel':''}" data-d="${d.iso}"><span class="cn">${fa(d.j)}</span>${L.length?`<span class="cc ${cl}">${fa(done)}/${fa(L.length)}</span>`:''}</button>`});
+  $('grid').innerHTML=h;
+  const L=by[SEL]||[];
+  $('day').innerHTML=`<div class="card"><h2>${WD[(dowOf(SEL)+1)%7]} ${lbl(SEL)}${SEL===today?' <span class="ctag">امروز</span>':''}</h2>${L.length?[...L].sort((p,q)=>(p.done-q.done)||(p.kind<q.kind?-1:1)).map(taskHTML).join(''):`<div class="mu" style="color:var(--mu)">${isWork(SEL)?'کاری برای این روز برنامه‌ریزی نشده است.':'روز تعطیل (پنجشنبه یا جمعه).'}</div>`}</div>`;
+  const LT=TASKS.filter(x=>x.late&&x.date!==SEL).sort((p,q)=>p.date<q.date?-1:1);
+  $('late').innerHTML=LT.length?`<div class="card" style="margin-top:12px"><h2 style="color:var(--bad)">عقب‌افتاده‌های این ماه (${fa(LT.length)})</h2>${LT.slice(0,40).map(x=>taskHTML({...x,sub:(x.sub||'')+' · برنامه: '+lbl(x.date)})).join('')}${LT.length>40?`<div class="mu" style="color:var(--mu)">و ${fa(LT.length-40)} مورد دیگر</div>`:''}</div>`:'';
+}
+$('grid').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;SEL=b.dataset.d;render()};
+$('pv').onclick=()=>{K=prevK(K);SEL=monthDays(K)[0].iso;render()};
+$('nx').onclick=()=>{K=nextK(K);SEL=monthDays(K)[0].iso;render()};
+$('td').onclick=()=>{K=nowK;SEL=today;render()};
+HSEAuth.ready.then(async()=>{$('mt').textContent='در حال بارگذاری...';await load();render()});
+</script>
+</body>
+</html>
