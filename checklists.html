@@ -1360,6 +1360,9 @@ function fcard(x) {
       <div class="ph">${th(x.photos_after, x.id, 'after', ed)}<button class="ad" data-a="addaf" data-id="${x.id}">+ تصویر پس از اصلاح</button></div>
       ${(x.photos_after || []).length ? `
         <label class="fx"><input type="checkbox" data-a="fix" data-id="${x.id}" data-pa="${x.photos_after.filter(p => !/^no-photo/.test(p)).length}" ${x.status == 'closed' ? 'checked' : ''}> تایید انجام اقدام اصلاحی (${x.closed_at ? fd(x.closed_at) : ''})</label>
+        <label style="display:block; margin-top:8px; font-size:12px; color:var(--mu);">تاریخ انجام (همان تاریخ خاتمه‌ای که واحد فنی در سیستم ثبت کرده)</label>
+        <input type="date" data-cd="${x.id}" value="${x.closed_at ? new Date(x.closed_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tehran' }) : ''}">
+        <small>اگر خالی بماند، هنگام تایید، تاریخ امروز ثبت می‌شود.</small>
       ` : '<small style="margin-top:6px;">برای ثبت نهایی اصلاح، بارگذاری حداقل یک عکس الزامی است.</small>'}
     
       ${x.status == 'open' ? `<details class="cxbox"><summary>🚫 لغو این مورد (اصلاح لازم نیست)</summary>
@@ -2094,7 +2097,7 @@ document.onclick = async e => {
     try {
       await api('findings?id=eq.' + t.dataset.id, {
         method: 'PATCH',
-        body: JSON.stringify({ status: t.checked ? 'closed' : 'open', closed_at: t.checked ? new Date().toISOString() : null })
+        body: JSON.stringify({ status: t.checked ? 'closed' : 'open', closed_at: t.checked ? ((cdv => cdv ? new Date(cdv + 'T12:00:00+03:30').toISOString() : new Date().toISOString())((t.closest('.q').querySelector('[data-cd]') || {}).value)) : null })
       });
       await loadFinds(); scrollTo(0, y);
     } catch (er) { alert(er.message); }
@@ -2108,6 +2111,12 @@ document.onclick = async e => {
 document.oninput = async e => {
   const t = e.target, y = scrollY;
   if (t.dataset.qf) { const k = t.dataset.qf; QD[k] = k == 'sev' ? +t.value : t.value; if (k == 'sev') { const el = $('#qsla'); if (el) el.textContent = 'مهلت اصلاح بر اساس شدت: ' + fa(SLA[QD.sev]) + ' روز'; } return; }
+  if (t.dataset.cd) { /* ثبت/اصلاح دستی تاریخ انجام برای موارد بسته‌شده */
+    const q = t.closest('.q'), cb = q && q.querySelector('[data-a=fix]');
+    if (!cb || !cb.checked || !t.value) return;
+    try { await api('findings?id=eq.' + t.dataset.cd, { method: 'PATCH', body: JSON.stringify({ closed_at: new Date(t.value + 'T12:00:00+03:30').toISOString() }) }); await loadFinds(); scrollTo(0, y); } catch (er) { alert(er.message); }
+    return;
+  }
   if (t.dataset.rf) { const k = t.dataset.rf; R[k] = ['days', 'per', 'jy', 'jm'].includes(k) ? +t.value : t.value; renderManagementReport(); return; }
   if (t.dataset.eqs) { eqSearch(t.dataset.eqs, t.value); return; }
   if (t.dataset.sf == 'thr') { localStorage.thr = Math.max(50, +t.value || 800); refreshUsage(); return; }
