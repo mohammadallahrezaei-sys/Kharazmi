@@ -42,18 +42,7 @@
   const jdHTML = id => `<div id="${id}" class="jd"><select></select><select></select><select></select></div>`;
 
   /* ---- ارتباط با Supabase ---- */
-  async function getAll(t) {
-    for (const ord of ['order=id.asc', '']) {
-      let all = [], o = 0, ok = true;
-      for (let n = 0; n < 80; n++) {
-        const r = await fetch(`${URL_}/rest/v1/${t}${t.includes('?') ? '&' : '?'}${ord ? ord + '&' : ''}limit=1000&offset=${o}`, { headers: H }).catch(() => null);
-        if (!r || !r.ok) { ok = false; break; }
-        const j = await r.json(); if (!j.length) break; all = all.concat(j); o += j.length;
-      }
-      if (ok) return all;
-    }
-    return null;
-  }
+  const getAll = t => HSEDB.getAll(t, H);
   async function req(path, method, body, prefer) {
     const r = await fetch(`${URL_}/rest/v1/${path}`, { method, headers: { ...JH, Prefer: prefer || 'return=representation' }, body: body == null ? undefined : JSON.stringify(body) });
     const tx = await r.text(); if (!r.ok) throw new Error(tx); return tx ? JSON.parse(tx) : null;
@@ -193,7 +182,7 @@
 
   /* ---- نردبان فرهنگ ---- */
   const LV = [['بیمارگونه', '#c81414'], ['واکنشی', '#f08a1c'], ['محاسبه‌گر', '#e6d600'], ['پیشگیرانه', '#9cc63b'], ['خلاقانه', '#4f9a12']];
-  const levelOf = avg => LV[Math.min(5, Math.max(1, Math.round(avg))) - 1];
+  const levelOf = avg => LV[Math.min(5, Math.max(1, Math.round(+avg || 1))) - 1];
   async function loadCulture() { const r = await getAll('culture_assessments?select=id,assessed_at,assessor,answers,avg,notes'); return r ? r.sort((a, b) => String(b.assessed_at).localeCompare(String(a.assessed_at))) : null; }
   function cultureAt(list, K) { if (!list) return null; const end = monthRange(K).b; const ok = list.filter(x => x.assessed_at <= end); return { latest: ok[0] || null, prev: ok[1] || null }; }
 

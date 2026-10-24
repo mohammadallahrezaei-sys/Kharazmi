@@ -94,5 +94,39 @@
     if (PAGE_ROLES && !PAGE_ROLES.includes(role)) return deny(email, 'دسترسی به این صفحه برای شما مجاز نیست');
     A.email = email; A.role = role; done(); chrome();
   }
+
+  /* ===== دریافت‌کنندهٔ مشترک داده (HSEDB): موازی، مرتب (بدون جاافتادگی/تکرار) و بدون سقف ۱۰۰۰ ردیف =====
+     HSEDB.getAll('table?select=a,b&filter...') → آرایهٔ همهٔ ردیف‌ها یا null در صورت خطا.
+     درخواست اول تعداد کل را می‌گیرد و بقیهٔ صفحه‌ها همزمان دریافت می‌شوند؛ درخواست‌های یکسانِ هم‌زمان یکی می‌شوند. */
+  const inflight = {};
+  async function pageAll(t, hdr) {
+    const H0 = Object.assign({ apikey: KEY }, hdr || {}), hasOrd = /[?&]order=/.test(t);
+    const url = (ord, o) => `${SB}/rest/v1/${t}${t.includes('?') ? '&' : '?'}${ord ? ord + '&' : ''}limit=1000&offset=${o}`;
+    for (const ord of hasOrd ? [''] : ['order=id.asc', '']) {
+      try {
+        const r0 = await window.fetch(url(ord, 0), { headers: Object.assign({}, H0, { Prefer: 'count=exact' }) });
+        if (!r0.ok) continue;
+        const first = await r0.json(); if (!Array.isArray(first)) continue;
+        if (first.length < 1000) return first;
+        const m = /\/(\d+)\s*$/.exec(r0.headers.get('content-range') || ''), total = m ? +m[1] : null;
+        let all = first, ok = true;
+        if (total != null) {
+          const offs = []; for (let o = 1000; o < total; o += 1000) offs.push(o);
+          const out = new Array(offs.length);
+          for (let i = 0; i < offs.length && ok; i += 6) {
+            await Promise.all(offs.slice(i, i + 6).map(async (o, k) => { const r = await window.fetch(url(ord, o), { headers: H0 }); if (!r.ok) { ok = false; return; } const j = await r.json(); if (!Array.isArray(j)) { ok = false; return; } out[i + k] = j; }));
+          }
+          if (!ok) continue;
+          out.forEach(a => { all = all.concat(a); });
+          return all;
+        }
+        for (let o = 1000, n = 0; n < 80; n++) { const r = await window.fetch(url(ord, o), { headers: H0 }); if (!r.ok) { ok = false; break; } const j = await r.json(); if (!Array.isArray(j) || !j.length) break; all = all.concat(j); o += j.length; if (j.length < 1000) break; }
+        if (ok) return all;
+      } catch (e) { /* ادامه با حالت بعدی */ }
+    }
+    return null;
+  }
+  window.HSEDB = { getAll(t, hdr) { return inflight[t] || (inflight[t] = pageAll(t, hdr).finally(() => { delete inflight[t]; })); } };
+
   if (document.body) init(); else document.addEventListener('DOMContentLoaded', init);
 })();

@@ -71,9 +71,7 @@ const isMgr=()=>HSEAuth.role==='manager';
 
 function loginUI(m){document.getElementById('out').innerHTML='<div class="card bad">'+esc(m||'')+'</div>'}
 const logout=()=>HSEAuth.logout();
-async function getAll(t){let all=[],o=0;for(let n=0;n<50;n++){
-  const r=await fetch(`${URL_}/rest/v1/${t}${t.includes('?')?'&':'?'}limit=1000&offset=${o}`,{headers:hd()}).catch(()=>null);
-  if(!r||!r.ok)return null;const j=await r.json();if(!j.length)break;all=all.concat(j);o+=j.length}return all}
+const getAll=t=>HSEDB.getAll(t);
 
 async function start(){
   document.getElementById('out').innerHTML='<div class="card">در حال دریافت اطلاعات...</div>';
