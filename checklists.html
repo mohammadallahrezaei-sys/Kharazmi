@@ -163,7 +163,7 @@ const M = [
     'دوش و چشم‌شوی اضطراری سالم و دارای آب است'
   ], []],
 
-  ['E', 'ایمنی برق', 'ماهانه', '', [
+  ['E', 'ایمنی برق', 'هر ۲ ماه', '', [
     'درب تابلوهای برق بسته است',
     'جلوی تابلوهای برق کفپوش عایق موجود است',
     'جلوی تابلوهای برق یک متر فضای آزاد رعایت شده و چیزی انبار نشده است',
@@ -177,7 +177,7 @@ const M = [
     'قفل و برچسب (LOTO) هنگام تعمیر برق و دستگاه رعایت می‌شود'
   ], []],
 
-  ['EQ', 'ایمنی ماشین‌آلات و دستگاه‌ها', 'ماهانه', 'L14029/01', [
+  ['EQ', 'ایمنی ماشین‌آلات و دستگاه‌ها', 'هر ۲ ماه', 'L14029/01', [
     'حفاظ‌های ثابت و متحرک دستگاه (روی قطعات گردان، تسمه، چرخ‌دنده) سالم و در جای خود است',
     'میکروسوئیچ‌ها و قفل‌های ایمنی حفاظ‌ها سالم و فعال است',
     'دوشستی‌ها (استارت/استپ) سالم و دارای برچسب خوانا است',
@@ -275,7 +275,7 @@ const M = [
     'سیلندر با جرثقیل یا لیفتراک جابه‌جا نمی‌شود'
   ], []],
 
-  ['CR', 'جرثقیل سقفی و دروازه‌ای', 'ماهانه برای هر دستگاه', '', [
+  ['CR', 'جرثقیل سقفی و دروازه‌ای', 'هر ۲ ماه برای هر دستگاه', '', [
     'کارت مشخصات و گواهی سلامت (بازرسی دوره‌ای) معتبر است',
     'بار مجاز (SWL) روی جرثقیل و قلاب خوانا درج شده است',
     'اپراتور آموزش دیده و دارای صلاحیت کار با جرثقیل است',
@@ -296,7 +296,7 @@ const M = [
     'سرویس و روانکاری دوره‌ای طبق برنامه انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه جرثقیل (الزامی)'}]],
 
-  ['LF', 'بالابر', 'ماهانه برای هر دستگاه', '', [
+  ['LF', 'بالابر', 'هر ۲ ماه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای بالابر معتبر و در محل نصب است',
     'ظرفیت مجاز (کیلوگرم یا نفر) روی کابین یا سکو درج و خوانا است',
     'بالابر بیش از ظرفیت مجاز بارگیری نمی‌شود',
@@ -314,7 +314,7 @@ const M = [
     'سرویس و نگهداری دوره‌ای توسط شرکت مجاز انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه بالابر (الزامی)'}]],
 
-  ['PV', 'مخزن تحت فشار', 'ماهانه برای هر دستگاه', '', [
+  ['PV', 'مخزن تحت فشار', 'هر ۲ ماه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای مخزن (بازرس مجاز) معتبر است',
     'پلاک مشخصات مخزن (فشار و دمای طراحی، ظرفیت) خوانا است',
     'شیر اطمینان (ایمنی) نصب، سالم و دارای برچسب کالیبراسیون معتبر است',
@@ -351,7 +351,7 @@ const M = [
     'سرویس و نگهداری دوره‌ای توسط شرکت مجاز انجام و ثبت می‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه اتوکلاو (الزامی)'}]],
 
-  ['BL', 'دیگ بخار و موتورخانه', 'ماهانه برای هر دستگاه', '', [
+  ['BL', 'دیگ بخار و موتورخانه', 'هر ۲ ماه برای هر دستگاه', '', [
     'گواهی بازرسی دوره‌ای دیگ بخار معتبر است',
     'اپراتور دارای گواهی صلاحیت است و در هر شیفت حضور دارد',
     'شیرهای اطمینان سالم و دارای برچسب کالیبراسیون معتبر هستند',
@@ -385,7 +385,7 @@ const M = [
     'دستگاه معیوب برچسب «خارج از سرویس» دارد و استفاده نمی‌شود'
   ], [{key: 'eq_code', ph: 'کد / شناسه دستگاه (الزامی)'}]],
 
-  ['FK', 'لیفتراک', 'ماهانه برای هر دستگاه', '', [
+  ['FK', 'لیفتراک', 'هر ۲ ماه برای هر دستگاه', '', [
     'راننده دارای گواهینامه ویژه لیفتراک و آموزش است',
     'لیفتراک دارای تاییدیه فنی معتبر است',
     'ترمز (پایی و دستی) سالم است',
@@ -556,7 +556,7 @@ M.forEach(m => { m[6] = m[4].map((t, i) => ({ id: String(i + 1), t })); });
 const sevB = x => x.severity ? `<span class="bg" style="background:${SEVC[x.severity]}22;color:${SEVC[x.severity]}">شدت: ${SEVN[x.severity]}</span>` : '';
 const dueB = x => { if (!x.due_date) return ''; const o = x.status == 'open' && new Date(x.due_date + 'T23:59:59') < Date.now(); return `<span class="bg ${o ? 'r' : 'g'}">مهلت: ${fd(x.due_date)}${o ? ' (گذشته)' : ''}</span>`; };
 
-const FREQ = { 'روزانه': 1, 'ماهانه': 31, 'فصلی': 92, 'هر پروژه': null };
+const FREQ = { 'روزانه': 1, 'ماهانه': 31, 'هر ۲ ماه': 62, 'هر ۲ ماه برای هر دستگاه': 62, 'فصلی': 92, 'هر پروژه': null };
 const nl = l => (l || '').trim().replace(/\s+/g, ' ') || 'نامشخص';
 const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
 const bar = (v, mx, c) => `<div class="sb"><i style="width:${mx ? Math.max(2, v / mx * 100) : 0}%;background:${c}"></i></div>`;
@@ -612,12 +612,17 @@ async function api(p, o = {}) {
 
 
 /* ===== سررسید بازدید تجهیزات: هر دستگاه با دوره‌ی خودش (به‌جای موعد ثابت ماهانه) ===== */
-const EQCYC = HSE_SCHED.EQC; /* ماژول: [دسته‌های تجهیز در جدول equipment، دوره‌ی بازدید به ماه] — تعریف در sched.js */
-const EQ_START = HSE_SCHED.EQ_START; /* شروع دوره: دستگاه‌های بدون بازدید از این تاریخ در طول دوره‌شان پخش می‌شوند */
+/* اگر sched.js بارگذاری نشود (مسیر یا نام فایل اشتباه / کنار این صفحه نیست)، چک‌لیست‌ها کار می‌کنند و فقط سررسید تجهیزات غیرفعال می‌شود */
+const SCHED = (typeof HSE_SCHED !== 'undefined' && HSE_SCHED) || null, SCHED_OK = !!(SCHED && SCHED.EQC);
+const EQCYC = SCHED_OK ? SCHED.EQC : {}; /* ماژول: [دسته‌های تجهیز در جدول equipment، دوره‌ی بازدید به ماه] — تعریف در sched.js */
+/* دوره‌ی بازدید دوماهه برای برق، ماشین‌آلات، جرثقیل، بالابر، لیفتراک، مخزن تحت فشار و دیگ بخار (هماهنگ با برچسب «هر ۲ ماه») */
+['E', 'EQ', 'CR', 'LF', 'FK', 'PV', 'BL'].forEach(k => { if (EQCYC[k]) EQCYC[k][1] = 2; });
+const EQ_START = SCHED_OK ? SCHED.EQ_START : new Date().toISOString().slice(0, 10); /* شروع دوره: دستگاه‌های بدون بازدید از این تاریخ در طول دوره‌شان پخش می‌شوند */
 let EQ_COL = null, DUE = null;
 const addM = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); };
 const dayDiff = (a, b) => Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 864e5);
 async function dueLoad() {
+  if (!SCHED_OK) return DUE = {};
   const cats = [...new Set(Object.values(EQCYC).flatMap(v => v[0]))];
   const eq = await api('equipment?select=code,title,category,hall,location&active=eq.true&order=code.asc&limit=1000&category=' + encodeURIComponent('in.(' + cats.map(c => '"' + c + '"').join(',') + ')'));
   let last = {};
@@ -627,7 +632,7 @@ async function dueLoad() {
     EQ_COL = true;
   } catch (e) { EQ_COL = false; }
   const today = new Date().toISOString().slice(0, 10), out = {};
-  const SP = HSE_SCHED.spread(Object.fromEntries(Object.entries(EQCYC).map(([mk, [cs]]) => [mk, eq.filter(e => cs.includes(e.category)).map(e => e.code)])));
+  const SP = SCHED.spread(Object.fromEntries(Object.entries(EQCYC).map(([mk, [cs]]) => [mk, eq.filter(e => cs.includes(e.category)).map(e => e.code)])));
   for (const [mk, [cs, n]] of Object.entries(EQCYC)) {
     const list = eq.filter(e => cs.includes(e.category));
     out[mk] = list.map((e, i) => {
@@ -642,6 +647,7 @@ const addDays2 = (iso, n) => new Date(new Date(iso + 'T12:00:00').getTime() + n 
 const dueSum = d => { let o = 0, s = 0; Object.values(d).forEach(l => l.forEach(x => { if (x.days < 0) o++; else if (x.days <= 30) s++; })); return [o, s]; };
 async function dueCard() {
   const el = $('#duecard'); if (!el) return;
+  if (!SCHED_OK) { el.textContent = '📅 سررسید تجهیزات در دسترس نیست (فایل sched.js بارگذاری نشد)'; el.disabled = true; return; }
   try {
     const d = await dueLoad(), [o, s] = dueSum(d), tot = Object.values(d).reduce((a, l) => a + l.length, 0);
     if (!$('#duecard')) return;
