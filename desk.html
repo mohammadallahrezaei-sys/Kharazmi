@@ -74,11 +74,11 @@ async function load(){
   const [fin,inc,fu,emp,eq,ins,cards,units,mon,cul,rk]=await Promise.all([
     getAll('findings?select=id,status,created_at,due_date,location,question,severity,module,risk_id'),
     getAll('clinic_incidents?select=incident_date,body_part,corrective_action,action_status,action_due_date,location'),
-    getAll('clinic_followups?select=*'),getAll('employees?select=*'),
+    getAll('clinic_followups?select=*'),getAll('employees?select=id,emp_id,first_name,last_name,department,termination_date'),
     getAll('equipment?select=code,category,title,hall,location,active,requires_inspection,interval_months'),
     getAll('equipment_inspections?select=equipment_code,inspected_on,result,next_due,defects'),
     getAll('hse_cards?select=card_type,card_date,status,unit,description,reporter_name'),
-    getAll('hse_units?select=id,name,active'),getAll('hse_unit_monthly?select=unit_id,month_key'),
+    getAll('hse_units?select=id,name,active,aliases,manager'),getAll('hse_unit_monthly?select=unit_id,month_key'),
     getAll('culture_assessments?select=assessed_at'),getAll('risks?select=*&status=neq.archived')]);
   const RM={};(rk||[]).forEach(r=>RM[r.id]=r);
   // ۰) ریسک‌های نیازمند اقدام
@@ -128,6 +128,25 @@ async function load(){
     const L=fin.filter(x=>x.status==='open'&&x.module==='MED').map(x=>({x,over:x.due_date?dd(TODAY,x.due_date):0})).sort((a,b)=>b.over-a.over);
     sec('med','داروی کمد: کمبود یا انقضا','checklists.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(x.question||'—'),esc(x.location||''),over>0?fa(over)+' روز معوق':'باز',over>0?'r':'y')})));
   } else sec('med','داروی کمد: کمبود یا انقضا','checklists.html',null);
+  // ۵.۸) سلامت داده: مواردی که ارتباط بین بخش‌ها را قطع می‌کنند و باعث ناقص‌شدن گزارش‌ها می‌شوند
+  {
+    const D=[],add=(n,t,sub,cls)=>{if(n>0)D.push({k:cls,h:row(t,sub,fa(n)+' مورد',cls)})};
+    if(emp&&units){
+      const match=HSE.unitMatcher(units.filter(u=>u.active!==false)),act=emp.filter(e=>HSEP.isActive(e));
+      const bad=act.filter(e=>!(e.department||'').trim()||!match(e.department||'')),deps=[...new Set(bad.map(e=>(e.department||'').trim()||'بدون واحد'))];
+      add(bad.length,'پرسنل فعال بدون واحد منطبق (در گزارش واحدها نمی‌آیند)',esc(deps.slice(0,6).join('، '))+(deps.length>6?'…':'')+' — در «سرپرست و واحدها» نام معادل اضافه کنید','r');
+    }
+    if(units){const nm=units.filter(u=>u.active!==false&&!(u.manager||'').trim());add(nm.length,'واحد فعال بدون سرپرست (ایمیل گزارش واحد بی‌مخاطب می‌شود)',esc(nm.slice(0,6).map(u=>u.name).join('، ')),'y')}
+    if(fin){
+      const o=fin.filter(x=>x.status==='open'&&x.module!=='MED');
+      add(o.filter(x=>!(x.location||'').trim()||x.location==='نامشخص').length,'عدم‌انطباق باز بدون محل (در پراکندگی محل به «نامشخص» می‌رود)','محل را در پیگیری عدم‌انطباق‌ها ویرایش کنید','y');
+      add(o.filter(x=>!x.due_date).length,'عدم‌انطباق باز بدون مهلت (معوق‌شدن دیر تشخیص داده می‌شود؛ پیش‌فرض ۱۴ روز)','مهلت را در پیگیری عدم‌انطباق‌ها ثبت کنید','y');
+    }
+    if(rk)add(rk.filter(r=>!(r.unit||'').trim()).length,'ریسک فعال بدون واحد','واحد را در ماژول ریسک‌ها تکمیل کنید','y');
+    if(cards)add(cards.filter(c=>!(c.unit||'').trim()).length,'کارت گزارش بدون واحد (در شاخص مشارکت واحدها حساب نمی‌شود)','واحد کارت را در ماژول کارت‌ها تکمیل کنید','y');
+    if(eq)add(eq.filter(e=>e.active&&e.requires_inspection&&!e.interval_months).length,'تجهیز نیازمند بازرسی بدون دورهٔ بازدید (پیش‌فرض ۱۲ ماه حساب می‌شود)','دوره را در ماژول تجهیزات ثبت کنید','y');
+    sec('dq','سلامت داده و ارتباط بخش‌ها','unit_report.html',D);
+  }
   // ۶) یادآورها
   const K=HSE.nowK(),rem=[];
   if(units&&mon){const act=units.filter(u=>u.active!==false),done=new Set(mon.filter(m=>m.month_key===K).map(m=>m.unit_id)),miss=act.filter(u=>!done.has(u.id));if(miss.length)rem.push({k:'y',h:row('ورودی ماهانه PPE و رفتار ناایمن ثبت نشده',`${miss.length} از ${act.length} واحد: ${esc(miss.slice(0,5).map(u=>u.name).join('، '))}${miss.length>5?' ...':''}`,'این ماه','y')})}
@@ -135,13 +154,13 @@ async function load(){
   sec('rm','یادآورها','evaluation.html',rem);
   draw();
 }
-const SHORT={rk:'ریسک‌ها',fin:'عدم‌انطباق‌ها',inc:'اقدام حوادث',fu:'پیگیری طب کار',eq:'تجهیزات',cd:'کارت‌ها',med:'داروی کمد',rm:'یادآورها'};
+const SHORT={dq:'سلامت داده',rk:'ریسک‌ها',fin:'عدم‌انطباق‌ها',inc:'اقدام حوادث',fu:'پیگیری طب کار',eq:'تجهیزات',cd:'کارت‌ها',med:'داروی کمد',rm:'یادآورها'};
 let OPEN=(location.hash||'').replace('#','').replace(/^s_/,'')||null;
 function draw(){
   const info=SECS.map(s=>{const it=s.items;return{...s,n:it?it.length:null,r:it?it.filter(i=>i.k==='r').length:null}});
   const act=info.filter(s=>s.n>0).sort((a,b)=>b.r-a.r||b.n-a.n),clean=info.filter(s=>s.n===0),na=info.filter(s=>s.n==null);
-  const R=act.reduce((a,s)=>a+s.r,0),N=act.reduce((a,s)=>a+s.n,0);
-  $('hero').innerHTML=act.length?`<b class="${R?'bad':'wa'}">${fa(R)}</b><span>مورد معوق${N-R?` · ${fa(N-R)} مورد در مهلت`:''}</span>`:'<b class="ok">✓</b><span>موردی معوق یا باز نیست</span>';
+  const core=act.filter(s=>s.id!=='dq'),R=core.reduce((a,s)=>a+s.r,0),N=core.reduce((a,s)=>a+s.n,0);
+  $('hero').innerHTML=core.length?`<b class="${R?'bad':'wa'}">${fa(R)}</b><span>مورد معوق${N-R?` · ${fa(N-R)} مورد در مهلت`:''}</span>`:'<b class="ok">✓</b><span>موردی معوق یا باز نیست</span>';
   $('tiles').innerHTML=act.map(s=>`<button type="button" class="tile ${s.r?'r':'y'} ${OPEN===s.id?'on':''}" data-s="${s.id}"><b>${fa(s.r||s.n)}</b><span>${SHORT[s.id]||esc(s.title)}</span><small>${s.r?`معوق${s.n-s.r?` · ${fa(s.n-s.r)} در مهلت`:''}`:'در مهلت'}</small></button>`).join('');
   $('clean').innerHTML=(clean.length?`<b>✓ بدون مورد:</b> ${clean.map(s=>SHORT[s.id]||esc(s.title)).join('، ')}`:'')+(na.length?` · <span class="wa">در دسترس نیست: ${na.map(s=>SHORT[s.id]||esc(s.title)).join('، ')}</span>`:'');
   const s=info.find(x=>x.id===OPEN);

@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="fa" dir="rtl">
 <head>
-     <script src="auth.js"></script>
 <meta charset="utf-8">
 <script src="auth.js" data-roles="manager"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -87,27 +86,16 @@ function endMonthOf(type,y,n){
 }
 const pwOf=t=>t==='m'?'ماه':t==='q'?'فصل':'سال';
 
-async function getAll(t){
-  for(const ord of ['order=id.asc','']){
-    let all=[],o=0,ok=true;
-    for(let n=0;n<80;n++){
-      const r=await fetch(`${URL_}/rest/v1/${t}${t.includes('?')?'&':'?'}${ord?ord+'&':''}limit=1000&offset=${o}`,{headers:H}).catch(()=>null);
-      if(!r||!r.ok){ok=false;break}
-      const j=await r.json();if(!j.length)break;all=all.concat(j);o+=j.length;
-    }
-    if(ok)return all;
-  }
-  return null;
-}
+const getAll=t=>HSEDB.getAll(t,H);
 const pct=(a,b)=>b?Math.round(a/b*100):null;
 const P=v=>v==null?'ثبت نشده':fa(v)+'٪';
 const col=v=>v==null?'':v>=85?'ok':v>=65?'wa':'bad';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let D={};
 async function load(){
-  const since=encodeURIComponent(new Date(Date.now()-1500*864e5).toISOString());
-  const [evB,cuL]=await Promise.all([HSE.loadEval().catch(()=>null),HSE.loadCulture().catch(()=>null)]);
-  const [ins,fin,inc,fu,ek,tr,ta,emp]=await Promise.all([
+  const sinceOf=d=>encodeURIComponent(new Date(Date.now()-d*864e5).toISOString()),since=sinceOf(600);
+  /* همه‌ی منابع هم‌زمان؛ بازرسی‌ها فقط ۶۰۰ روز اخیر (برای گزارش ماهانه کافی است) و در انتخاب فصل/سال کامل دریافت می‌شود */
+  const [[evB,cuL],[ins,fin,inc,fu,ek,tr,ta,emp]]=await Promise.all([Promise.all([HSE.loadEval().catch(()=>null),HSE.loadCulture().catch(()=>null)]),Promise.all([
     getAll('inspections?select=module,location,ok,nc,na,created_at,inspector&created_at=gte.'+since),
     getAll('findings?select=status,module,created_at,closed_at,notice_at,severity,due_date,inspector'),
     getAll('clinic_incidents?select=incident_date,severity,description,body_part,corrective_action,action_status,action_due_date,social_security_reported'),
@@ -115,12 +103,19 @@ async function load(){
     getAll('ekhtars?select=record_type,record_date,reason,employee_id'),
     getAll('trainings?select=id,training_type,training_date,duration_hours'),
     getAll('training_attendees?select=training_id,employee_id'),
-    getAll('employees?select=id,termination_date').then(r=>r||getAll('employees?select=id'))]);
+    getAll('employees?select=id,termination_date').then(r=>r||getAll('employees?select=id'))])]);
   D={ins:ins&&ins.filter(r=>r.module!=='Q'),fin:fin&&fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),inc,fu,ek,tr,ta,emp,ev:evB,cu:cuL}; /* لغوشده‌ها و هشدارهای دارو عدم‌انطباق حساب نمی‌شوند */
   const sel=document.getElementById('msel');
   sel.innerHTML=buildOptions();
   sel.value='m:'+nowK.slice(0,4)+':'+(+nowK.slice(5));
-  sel.onchange=()=>render(sel.value);
+  let insFull=false;
+  sel.onchange=async()=>{
+    if(!insFull&&sel.value[0]!=='m'){ /* فصل/سال: روند چند فصل/سال به بازرسی‌های قدیمی‌تر نیاز دارد */
+      document.getElementById('mname').textContent='در حال دریافت بازرسی‌های قدیمی‌تر...';
+      const all=await getAll('inspections?select=module,location,ok,nc,na,created_at,inspector&created_at=gte.'+sinceOf(1500));
+      if(all){D.ins=all.filter(r=>r.module!=='Q');insFull=true}
+    }
+    render(sel.value)};
   render(sel.value);
 }
 function buildOptions(){

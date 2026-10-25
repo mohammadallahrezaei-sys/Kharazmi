@@ -53,7 +53,7 @@ let emps=[],trs=[],att=[],incs=[],sel=new Map(),EDIT=null;
 const name=e=>`${e.first_name||''} ${e.last_name||''}`.trim();
 async function load(){
   try{
-    [emps,trs,att,incs]=await Promise.all([api('employees?select=*&limit=2000'),api('trainings?order=training_date.desc&limit=3000'),api('training_attendees?select=*&limit=20000'),api('clinic_incidents?select=id,incident_date,location&order=incident_date.desc&limit=200').catch(()=>[])]);
+    [emps,trs,att,incs]=await Promise.all([HSEDB.getAll('employees?select=*').then(r=>{if(!r)throw new Error('خواندن پرسنل ناموفق بود');return r}),HSEDB.getAll('trainings?select=*&order=training_date.desc,id.desc').then(r=>{if(!r)throw new Error('جدول trainings خوانده نشد');return r}),HSEDB.getAll('training_attendees?select=*').then(r=>{if(!r)throw new Error('جدول training_attendees خوانده نشد');return r}),api('clinic_incidents?select=id,incident_date,location&order=incident_date.desc&limit=200').catch(()=>[])]);
     $('err').classList.add('hidden');
   }catch(e){$('err').textContent='خطا: '+e.message+' — اگر جدول‌های trainings و training_attendees ساخته نشده، فایل training_setup.sql را در Supabase اجرا کنید.';$('err').classList.remove('hidden');trs=[];att=[]}
   render();

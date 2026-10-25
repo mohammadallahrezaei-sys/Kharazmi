@@ -9,6 +9,8 @@
   const MANAGER_ONLY_LINKS = ['report.html', 'reward_eval.html']; // برای کارشناس از منوها پنهان می‌شود
   /* ================================================= */
   const SCR = document.currentScript, PAGE_ROLES = SCR && SCR.dataset.roles ? SCR.dataset.roles.split(',') : null;
+  /* اتصال زودهنگام به Supabase: چند صد میلی‌ثانیه از اولین درخواست داده کم می‌کند */
+  try { const pc = document.createElement('link'); pc.rel = 'preconnect'; pc.href = SB; pc.crossOrigin = ''; document.head.appendChild(pc); } catch (e) { }
   const rawFetch = window.fetch.bind(window);
   const load = () => { try { return JSON.parse(localStorage.getItem(STORE)); } catch (e) { return null; } };
   const save = s => localStorage.setItem(STORE, JSON.stringify(s));
@@ -36,7 +38,19 @@
   const A = window.HSEAuth = { EXPERTS, MANAGERS, ready, token, email: '', role: '', logout() { localStorage.removeItem(STORE); location.reload(); } };
 
   /* همه‌ی درخواست‌های Supabase بعد از ورود و با توکن کاربر می‌روند (صفحه‌ها تغییری نمی‌خواهند) */
-  window.fetch = async function (u, o) {
+  /* جلوگیری از ثبت دوباره با دوبار لمس: درخواست POST کاملاً یکسان به دیتابیس در ۴ ثانیه یک‌بار فرستاده می‌شود */
+  const recentPost = {};
+  window.fetch = function (u, o) {
+    const url = typeof u === 'string' ? u : (u && u.url) || String(u);
+    if (o && o.method && String(o.method).toUpperCase() === 'POST' && url.startsWith(SB + '/rest/v1/') && typeof o.body === 'string') {
+      const key = url + '|' + o.body, now = Date.now();
+      if (recentPost[key] && now - recentPost[key].t < 4000) return recentPost[key].p.then(r => r.clone());
+      const p = fetchCore(u, o); recentPost[key] = { t: now, p }; p.then(r => { if (!r.ok) delete recentPost[key]; }, () => { delete recentPost[key]; });
+      return p.then(r => r.clone());
+    }
+    return fetchCore(u, o);
+  };
+  async function fetchCore(u, o) {
     const url = typeof u === 'string' ? u : (u && u.url) || String(u);
     if (url.startsWith(SB + '/rest/') || url.startsWith(SB + '/storage/') || url.startsWith(SB + '/functions/')) {
       await ready; const t = await token();
@@ -44,7 +58,7 @@
         if (typeof Request !== 'undefined' && u instanceof Request) u = new Request(u, { headers: h }); else o = { ...(o || {}), headers: h }; }
     }
     return rawFetch(u, o);
-  };
+  }
 
   const roleOf = e => MANAGERS.includes(e) ? 'manager' : EXPERTS[e] ? 'expert' : null;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -94,5 +108,39 @@
     if (PAGE_ROLES && !PAGE_ROLES.includes(role)) return deny(email, 'دسترسی به این صفحه برای شما مجاز نیست');
     A.email = email; A.role = role; done(); chrome();
   }
+
+  /* ===== دریافت‌کنندهٔ مشترک داده (HSEDB): موازی، مرتب (بدون جاافتادگی/تکرار) و بدون سقف ۱۰۰۰ ردیف =====
+     HSEDB.getAll('table?select=a,b&filter...') → آرایهٔ همهٔ ردیف‌ها یا null در صورت خطا.
+     درخواست اول تعداد کل را می‌گیرد و بقیهٔ صفحه‌ها همزمان دریافت می‌شوند؛ درخواست‌های یکسانِ هم‌زمان یکی می‌شوند. */
+  const inflight = {};
+  async function pageAll(t, hdr) {
+    const H0 = Object.assign({ apikey: KEY }, hdr || {}), hasOrd = /[?&]order=/.test(t);
+    const url = (ord, o) => `${SB}/rest/v1/${t}${t.includes('?') ? '&' : '?'}${ord ? ord + '&' : ''}limit=1000&offset=${o}`;
+    for (const ord of hasOrd ? [''] : ['order=id.asc', '']) {
+      try {
+        const r0 = await window.fetch(url(ord, 0), { headers: Object.assign({}, H0, { Prefer: 'count=exact' }) });
+        if (!r0.ok) continue;
+        const first = await r0.json(); if (!Array.isArray(first)) continue;
+        if (first.length < 1000) return first;
+        const m = /\/(\d+)\s*$/.exec(r0.headers.get('content-range') || ''), total = m ? +m[1] : null;
+        let all = first, ok = true;
+        if (total != null) {
+          const offs = []; for (let o = 1000; o < total; o += 1000) offs.push(o);
+          const out = new Array(offs.length);
+          for (let i = 0; i < offs.length && ok; i += 6) {
+            await Promise.all(offs.slice(i, i + 6).map(async (o, k) => { const r = await window.fetch(url(ord, o), { headers: H0 }); if (!r.ok) { ok = false; return; } const j = await r.json(); if (!Array.isArray(j)) { ok = false; return; } out[i + k] = j; }));
+          }
+          if (!ok) continue;
+          out.forEach(a => { all = all.concat(a); });
+          return all;
+        }
+        for (let o = 1000, n = 0; n < 80; n++) { const r = await window.fetch(url(ord, o), { headers: H0 }); if (!r.ok) { ok = false; break; } const j = await r.json(); if (!Array.isArray(j) || !j.length) break; all = all.concat(j); o += j.length; if (j.length < 1000) break; }
+        if (ok) return all;
+      } catch (e) { /* ادامه با حالت بعدی */ }
+    }
+    return null;
+  }
+  window.HSEDB = { getAll(t, hdr) { return inflight[t] || (inflight[t] = pageAll(t, hdr).finally(() => { delete inflight[t]; })); } };
+
   if (document.body) init(); else document.addEventListener('DOMContentLoaded', init);
 })();
