@@ -9,6 +9,8 @@
   const MANAGER_ONLY_LINKS = ['report.html', 'reward_eval.html']; // برای کارشناس از منوها پنهان می‌شود
   /* ================================================= */
   const SCR = document.currentScript, PAGE_ROLES = SCR && SCR.dataset.roles ? SCR.dataset.roles.split(',') : null;
+  /* اتصال زودهنگام به Supabase: چند صد میلی‌ثانیه از اولین درخواست داده کم می‌کند */
+  try { const pc = document.createElement('link'); pc.rel = 'preconnect'; pc.href = SB; pc.crossOrigin = ''; document.head.appendChild(pc); } catch (e) { }
   const rawFetch = window.fetch.bind(window);
   const load = () => { try { return JSON.parse(localStorage.getItem(STORE)); } catch (e) { return null; } };
   const save = s => localStorage.setItem(STORE, JSON.stringify(s));

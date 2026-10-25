@@ -1784,10 +1784,11 @@ async function fetchAll(p) {
   }
   return out;
 }
-/* آخرین بازدید هر ماژول: یک درخواست کوچک برای هر ماژول (به تعداد کل بازدیدها وابسته نیست) */
+/* آخرین بازدید هر ماژول: یک درخواست برای ۶۰۰ بازدید اخیر؛ فقط برای ماژول‌هایی که در آن‌ها نبودند (بازدید کم‌تکرار) درخواست جدا */
 async function lastVisits() {
-  const rows = [];
-  await Promise.all(M.map(async m => { try { const r = await api('inspections?select=module,created_at&module=eq.' + encodeURIComponent(m[0]) + '&order=created_at.desc&limit=1'); if (r[0]) rows.push(r[0]); } catch (e) { } }));
+  const rows = [], seen = new Set();
+  try { (await api('inspections?select=module,created_at&order=created_at.desc&limit=600')).forEach(r => { if (!seen.has(r.module)) { seen.add(r.module); rows.push(r); } }); } catch (e) { }
+  await Promise.all(M.filter(m => !seen.has(m[0])).map(async m => { try { const r = await api('inspections?select=module,created_at&module=eq.' + encodeURIComponent(m[0]) + '&order=created_at.desc&limit=1'); if (r[0]) rows.push(r[0]); } catch (e) { } }));
   return rows;
 }
 async function rCount(extra = '') {
