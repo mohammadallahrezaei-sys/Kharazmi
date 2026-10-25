@@ -163,6 +163,10 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
     <a class="m" href="culture.html" data-k="فرهنگ ایمنی نردبان سنجش"><span class="im" style="--g:linear-gradient(135deg,#f472b6,#9d174d)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="56" y="10" width="5" height="64" rx="2.5" fill="#fff"/><rect x="87" y="10" width="5" height="64" rx="2.5" fill="#fff"/><rect x="58" y="22" width="32" height="4" rx="2" fill="#fff"/><rect x="58" y="34" width="32" height="4" rx="2" fill="#fff"/><rect x="58" y="46" width="32" height="4" rx="2" fill="#fff"/><rect x="58" y="58" width="32" height="4" rx="2" fill="#fff"/><line x1="116" y1="16" x2="116" y2="68" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/><path d="M116 17 L138 25 L116 34 Z" fill="#fde047"/></svg></span><b>نردبان فرهنگ ایمنی</b></a>
     <a class="m" href="ekhtar.html" data-k="اخطار انضباطی تذکر سوابق"><span class="im" style="--g:linear-gradient(135deg,#f87171,#7f1d1d)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="78" y="14" width="4" height="52" rx="2" fill="#fff"/><rect x="60" y="64" width="40" height="7" rx="3.5" fill="#fff"/><circle cx="80" cy="13" r="4.5" fill="#fff"/><line x1="40" y1="26" x2="120" y2="26" stroke="#fff" stroke-width="4" stroke-linecap="round"/><g stroke="#fff" stroke-width="2.2"><line x1="40" y1="26" x2="29" y2="50"/><line x1="40" y1="26" x2="51" y2="50"/><line x1="120" y1="26" x2="109" y2="50"/><line x1="120" y1="26" x2="131" y2="50"/></g><path d="M25 50 H55 Q53 61 40 61 Q27 61 25 50 Z" fill="#fff"/><path d="M105 50 H135 Q133 61 120 61 Q107 61 105 50 Z" fill="#fff"/></svg></span><b>سوابق انضباطی و اخطارها</b><small id="ekhtarMeta"></small></a>
   </div>
+  <div style="margin-top:12px">
+    <button id="bkBtn" class="p" style="width:100%;min-height:46px">💾 دانلود پشتیبان همهٔ اطلاعات (فایل JSON)</button>
+    <div id="bkMsg" class="mu" style="margin-top:6px;font-size:12px">قبل از حذف‌های دسته‌جمعی یا تغییرات بزرگ بگیرید. عکس‌ها در فایل نیستند؛ فقط جدول‌های اطلاعات.</div>
+  </div>
 </details>
 <div id="nores">موردی با این جستجو پیدا نشد.</div>
 
@@ -350,6 +354,31 @@ document.addEventListener('keydown', e => { if (e.key === '/' && !/INPUT|TEXTARE
 
 /* ترتیب ماژول‌ها ثابت و منطقی است (بر اساس ترتیب گروه‌ها در صفحه)؛ دیگر بر اساس تعداد کلیک جابه‌جا نمی‌شود */
 try { localStorage.removeItem('hse_use'); } catch (_) {}
+
+/* ===== پشتیبان‌گیری یک‌کلیکی از جدول‌های اصلی (فقط مدیر؛ دکمه داخل بخش مدیر است) ===== */
+(function () {
+  const TB = ['findings', 'inspections', 'employees', 'clinic_visits', 'clinic_incidents', 'clinic_followups', 'clinic_exams', 'hse_cards', 'trainings', 'training_attendees', 'risks', 'chemicals', 'equipment', 'equipment_inspections', 'ekhtars', 'hse_units', 'hse_unit_monthly', 'culture_assessments', 'med_items', 'med_stock'];
+  const b = document.getElementById('bkBtn'); if (!b) return;
+  b.onclick = async () => {
+    const msg = document.getElementById('bkMsg'); b.disabled = true;
+    const out = { app: 'HSE-Kharazmi', created_at: new Date().toISOString(), tables: {}, missing: [] };
+    try {
+      let n = 0;
+      for (const t of TB) {
+        msg.textContent = `در حال دریافت ${t} (${n + 1} از ${TB.length})...`;
+        const rows = window.HSEDB ? await HSEDB.getAll(t + '?select=*') : null;
+        if (rows) out.tables[t] = rows; else out.missing.push(t);
+        n++;
+      }
+      const blob = new Blob([JSON.stringify(out)], { type: 'application/json' }), a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'hse-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+      const tot = Object.values(out.tables).reduce((x, r) => x + r.length, 0);
+      msg.textContent = `✅ پشتیبان آماده شد: ${tot.toLocaleString('fa-IR')} ردیف از ${Object.keys(out.tables).length} جدول` + (out.missing.length ? ` — دریافت نشد (جدول وجود ندارد یا دسترسی نیست): ${out.missing.join('، ')}` : '');
+    } catch (e) { msg.textContent = 'خطا: ' + e.message; }
+    b.disabled = false;
+  };
+})();
 
 loadStatus().catch(() => { const g = document.getElementById('wg'); if (g) g.innerHTML = '<a class="wi" href="desk.html"><i>🧭</i><div><b>میز کار HSE</b><span>برای دیدن موارد نیازمند اقدام باز کنید.</span></div></a>'; });
 loadEkhtar();
