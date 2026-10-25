@@ -36,7 +36,19 @@
   const A = window.HSEAuth = { EXPERTS, MANAGERS, ready, token, email: '', role: '', logout() { localStorage.removeItem(STORE); location.reload(); } };
 
   /* همه‌ی درخواست‌های Supabase بعد از ورود و با توکن کاربر می‌روند (صفحه‌ها تغییری نمی‌خواهند) */
-  window.fetch = async function (u, o) {
+  /* جلوگیری از ثبت دوباره با دوبار لمس: درخواست POST کاملاً یکسان به دیتابیس در ۴ ثانیه یک‌بار فرستاده می‌شود */
+  const recentPost = {};
+  window.fetch = function (u, o) {
+    const url = typeof u === 'string' ? u : (u && u.url) || String(u);
+    if (o && o.method && String(o.method).toUpperCase() === 'POST' && url.startsWith(SB + '/rest/v1/') && typeof o.body === 'string') {
+      const key = url + '|' + o.body, now = Date.now();
+      if (recentPost[key] && now - recentPost[key].t < 4000) return recentPost[key].p.then(r => r.clone());
+      const p = fetchCore(u, o); recentPost[key] = { t: now, p }; p.then(r => { if (!r.ok) delete recentPost[key]; }, () => { delete recentPost[key]; });
+      return p.then(r => r.clone());
+    }
+    return fetchCore(u, o);
+  };
+  async function fetchCore(u, o) {
     const url = typeof u === 'string' ? u : (u && u.url) || String(u);
     if (url.startsWith(SB + '/rest/') || url.startsWith(SB + '/storage/') || url.startsWith(SB + '/functions/')) {
       await ready; const t = await token();
@@ -44,7 +56,7 @@
         if (typeof Request !== 'undefined' && u instanceof Request) u = new Request(u, { headers: h }); else o = { ...(o || {}), headers: h }; }
     }
     return rawFetch(u, o);
-  };
+  }
 
   const roleOf = e => MANAGERS.includes(e) ? 'manager' : EXPERTS[e] ? 'expert' : null;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
