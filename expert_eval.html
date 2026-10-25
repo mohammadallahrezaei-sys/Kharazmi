@@ -106,7 +106,7 @@ const KW=[['جرثقیل'],['بالابر'],['لیفتراک'],['پساب','پس
 const nz=s=>String(s||'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/\u200c/g,' ');
 /* کد ماژول ← ردیف(های) جدول؛ از تعریف چک‌لیست‌ها در checklists.html */
 const {SCHED,SW,MODS,EQC}=window.HSE_SCHED;
-const MAPPED=new Set(Object.values(MODS).flat());
+const MAPPED=new Set([...Object.values(MODS).flat(),6]); // ۶ = «واحد فنی»: از بازرسی ایمنی عمومی با محل فنی و مهندسی
 const NOSCHED=new Set(['D','CT','CH','Q']); // چک‌لیست‌های خارج از جدول ۱۴۰۵ (بدون موعد)
 const EQMOD={0:'CR',1:'LF',2:'FK',17:'PV',18:'AC',19:'BL',20:'PJ'};
 const eqN=m=>D.eqRows.filter(e=>EQC[m][0].includes(e.category)).length;
@@ -131,7 +131,8 @@ function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
   D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
     mine.push({t:new Date(r.created_at).getTime(),m:r.module,k:[r.total,r.ok,r.nc,r.na].join(' - ')});
-    const ii=itemsOf(r);if(!ii.length){if(!NOSCHED.has(r.module))un.add((r.module||'')+' | '+(r.location||''));return}
+    const ii=itemsOf(r).slice();if(r.module==='S'&&/فنی/.test(nz(r.location)))ii.push(6); /* ردیف «واحد فنی»: بازرسی ایمنی عمومی که محلش فنی و مهندسی است */
+    if(!ii.length){if(!NOSCHED.has(r.module))un.add((r.module||'')+' | '+(r.location||''));return}
     ii.forEach(i=>{const o=recs[i]||(recs[i]={days:new Set(),nc:0});o.days.add(d);o.nc+=(r.nc||0);if(r.equipment_code)(o.eq=o.eq||new Set()).add(r.equipment_code);else(o.leg=o.leg||new Set()).add(d)})});
   const flags=[],bm={};mine.forEach(x=>(bm[x.m]=bm[x.m]||[]).push(x));
   Object.entries(bm).forEach(([m,a])=>{if(a.length<8)return;const c={};a.forEach(x=>c[x.k]=(c[x.k]||0)+1);const [k,n]=Object.entries(c).sort((p,q)=>q[1]-p[1])[0];
@@ -146,7 +147,7 @@ function calc_(email,K){
   const {R,recs,un,flags}=core(email,K),end=R.b<today?R.b:today,inR=d=>d>=R.a&&d<=end,past=K<nowK,cur=K===nowK;
   const items=[];
   SCHED.forEach((it,i)=>{
-    if(it.daily){if(K<'1405-07'||K>'1405-12')return;const wd=workdays(R),dn=wd.filter(d=>recs[i]&&recs[i].days.has(d)).length;
+    if(it.daily){if(K<'1405-07'||K>'1405-12')return;const wd=workdays(R).filter(d=>d<today||(recs[i]&&recs[i].days.has(d))),dn=wd.filter(d=>recs[i]&&recs[i].days.has(d)).length;
       if(wd.length)items.push({i,t:it.t,daily:1,sc:dn/wd.length,st:dn<wd.length?'bad':'ok',txt:`روزانه: ${fa(dn)} از ${fa(wd.length)} روز کاری`});return}
     const w=it.m[K];if(!w)return;const o=recs[i];
     const em=EQMOD[i];
