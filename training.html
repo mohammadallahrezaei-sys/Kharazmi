@@ -100,10 +100,13 @@ $('fSave').onclick=async()=>{
   const ty=$('fType').value;
   try{
     const body={training_type:ty,title,training_date:getDate(),duration_hours:+$('fHours').value||0,trainer:$('fTrainer').value.trim()||null,contractor_name:ty==='contractor'?($('fContr').value.trim()||null):null,incident_id:ty==='post_incident'?($('fInc').value||null):null,notes:$('fNotes').value.trim()||null};
-    let t;
-    if(EDIT){await api('trainings?id=eq.'+EDIT,{method:'PATCH',headers:{...JH,Prefer:'return=minimal'},body:JSON.stringify(body)});t={id:EDIT};await api('training_attendees?training_id=eq.'+EDIT,{method:'DELETE'})}
+    let t,old=[];
+    if(EDIT){t={id:EDIT};old=att.filter(x=>x.training_id===EDIT&&x.id!=null).map(x=>x.id);await api('trainings?id=eq.'+EDIT,{method:'PATCH',headers:{...JH,Prefer:'return=minimal'},body:JSON.stringify(body)})}
     else [t]=await api('trainings',{method:'POST',headers:{...JH,Prefer:'return=representation'},body:JSON.stringify(body)});
-    await api('training_attendees',{method:'POST',headers:{...JH,Prefer:'return=minimal'},body:JSON.stringify([...[...sel.keys()].map(id=>({training_id:t.id,employee_id:id})),...extra.map(n=>({training_id:t.id,person_name:n}))])});
+    /* ابتدا حاضرین جدید ثبت می‌شوند و بعد قدیمی‌ها حذف؛ اگر ثبت شکست بخورد هیچ اطلاعاتی از دست نمی‌رود */
+    try{await api('training_attendees',{method:'POST',headers:{...JH,Prefer:'return=minimal'},body:JSON.stringify([...[...sel.keys()].map(id=>({training_id:t.id,employee_id:id})),...extra.map(n=>({training_id:t.id,person_name:n}))])})}
+    catch(e){if(!EDIT)await api('trainings?id=eq.'+t.id,{method:'DELETE'}).catch(()=>{});throw e}
+    if(old.length)await api('training_attendees?id=in.('+old.map(i=>/^[\w-]+$/.test(String(i))?i:'0').join(',')+')',{method:'DELETE'});
     EDIT=null;$('fCancel').onclick();['fTitle','fTrainer','fContr','fExtra','fNotes'].forEach(i=>$(i).value='');load();
   }catch(e){alert('خطا در ثبت: '+e.message)}
 };

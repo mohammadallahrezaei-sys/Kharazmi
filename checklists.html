@@ -924,33 +924,35 @@ async function send() {
   if (un && !confirm(un + ' سوال بدون پاسخ باقی مانده است. ادامه می‌دهید؟')) { sb.disabled = false; sb.textContent = 'ثبت نهایی بازدید'; return; }
   const c = v => ids.filter(i => A[i] == v).length;
 
+  let r = null;
   try {
     const insBody = { module: m[0], location: loc, freq: m[2], total: ids.length, ok: c('ok'), nc: rd ? ncs.length : c('nc'), na: c('na'), inspector: mail, shift: D.shift || SHIFTS[0] };
-    let r;
-    if (EQCYC[m[0]] && D.eq && EQ_COL !== false) {
-      try { [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ ...insBody, equipment_code: D.eq.code, equipment_title: D.eq.title || null }) }); }
-      catch (e) { if (!/equipment_(code|title)/.test(e.message)) throw e; EQ_COL = false; }
-    }
-    if (!r) [r] = await api('inspections', { method: 'POST', body: JSON.stringify(insBody) });
-    DUE = null;
+    /* اول عکس‌ها آپلود و ردیف‌ها آماده می‌شود؛ اگر اینترنت قطع شود هنوز چیزی در دیتابیس ثبت نشده است (بازدید نیمه‌کاره و تکراری ساخته نمی‌شود) */
     const f = [];
     for (const i of ncs) {
       let extNote = N[i] || '';
       if (extras.length) extNote += ' | ' + extras.map(ex => `${ex.ph.replace('(الزامی)', '')}: ${D.extra[ex.key] || ''}`).join(' - ');
       f.push({
-        inspection_id: r.id, module: m[0], location: rd ? LC[i].trim() : loc, qid: baseId(i), question: qt(baseId(i)), note: extNote,
+        module: m[0], location: rd ? LC[i].trim() : loc, qid: baseId(i), question: qt(baseId(i)), note: extNote,
         severity: sv(i), category: cat(m[0], qt(baseId(i))), responsible: null, due_date: addDays(SLA[sv(i)]),
         photos_before: await Promise.all((PH[i] || []).map(p => up(p.b))),
         ...(EQ_OK && eqOf(i) ? { equipment_code: eqOf(i).code, equipment_title: eqOf(i).title || null } : {}),
         ...(EQ_OK && LNK[i] ? { notice_code: LNK[i].no, notice_at: LNK[i].created_on ? LNK[i].created_on + 'T08:00:00+03:30' : new Date().toISOString(), notice_status: LNK[i].status } : {})
       });
     }
-    if (f.length) await api('findings', { method: 'POST', body: JSON.stringify(f) });
+    if (EQCYC[m[0]] && D.eq && EQ_COL !== false) {
+      try { [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ ...insBody, equipment_code: D.eq.code, equipment_title: D.eq.title || null }) }); }
+      catch (e) { if (!/equipment_(code|title)/.test(e.message)) throw e; EQ_COL = false; }
+    }
+    if (!r) [r] = await api('inspections', { method: 'POST', body: JSON.stringify(insBody) });
+    DUE = null;
+    if (f.length) await api('findings', { method: 'POST', body: JSON.stringify(f.map(x => ({ inspection_id: r.id, ...x }))) });
     localStorage.removeItem('draft'); Object.keys(PH).forEach(k => delete PH[k]); SV = {}; RS = {}; LC = {}; EX = {}; EQP = {}; LNK = {}; D.eq = null;
     alert('بازدید با موفقیت ثبت شد.');
     home();
   } catch (e) {
-    alert('خطا در ثبت: ' + e.message); sb.disabled = false; sb.textContent = 'ثبت نهایی بازدید';
+    if (r && r.id) { try { await api('inspections?id=eq.' + r.id, { method: 'DELETE' }); } catch (_) { } } /* بازگرداندن: بازدیدِ بدون عدم‌انطباق‌هایش نماند */
+    alert('خطا در ثبت (اطلاعاتی که وارد کرده‌اید حفظ شده؛ دوباره «ثبت نهایی» را بزنید): ' + e.message); sb.disabled = false; sb.textContent = 'ثبت نهایی بازدید';
   }
 }
 
