@@ -1579,7 +1579,7 @@ async function techCompare(file) {
     const rep = ($('#tqrep') ? $('#tqrep').value : '').trim(), inc = $('#tqinc') && $('#tqinc').checked;
     const HK = /ایمنی|ایمن|حفاظ|محافظ|کپسول|اطفا|آتش|چشم ?شوی|دوش|اضطراری|ارت|سقوط|نرده|گارد|علائم|تابلو|حریق|نشت|گاز|هود|تهویه|کمک ?های اول|شیمیایی|اسید|حادثه|خطر|حفاظت/;
     const cv = r => ({ no: dig(r['شماره']), date: clean(r['تاریخ ایجاد']), st: clean(r['وضعیت']), eq: clean(r['عنوان تجهیز']), txt: clean(r['شرح']), by: clean(r['گزارش دهنده']), pr: clean(r['اولویت']) });
-    const all = raw.map(cv), base = all.filter(t => t.pr == 'HSE');
+    const all = raw.map(cv), allBy = {}; all.forEach(t => allBy[t.no] = t); const base = all.filter(t => t.pr == 'HSE');
     const cand = rep ? all.filter(t => t.pr != 'HSE' && t.by.includes(rep)) : [], candHse = cand.filter(t => HK.test(t.txt + ' ' + t.eq));
     const T = base.concat(inc ? candHse : []);
     if (!T.length) { out.innerHTML = '<div class="q bad">ردیفی با اولویت «HSE» در فایل پیدا نشد (ستون‌های «اولویت» و «شماره» لازم است).</div>'; return; }
@@ -1591,13 +1591,15 @@ async function techCompare(file) {
     const techBy = {}; T.forEach(t => techBy[t.no] = t);
     const cnt = k => T.filter(t => t.k == k).length;
     const noApp = T.filter(t => !appBy[t.no]);
+    const freeAll = rows.filter(x => !dig(x.notice_code) && x.status != 'cancelled');
     const free = rows.filter(x => !dig(x.notice_code) && x.status != 'cancelled');
     free.forEach(x => x._t = dtok((x.question || '') + ' ' + (x.note || '')));
     noApp.forEach(t => { const tt = dtok(t.txt + ' ' + t.eq); let b = null, bs = 0; free.forEach(x => { const v = dsim(tt, x._t); if (v > bs) { bs = v; b = x; } }); t._c = bs >= .5 ? b : null; t._s = Math.round(bs * 100); });
     const notInTech = rows.filter(x => dig(x.notice_code) && !techBy[dig(x.notice_code)]);
     const mism = []; T.forEach(t => (appBy[t.no] || []).forEach(x => { if (x.status != t.k) mism.push({ t, x }); }));
-    const dupNo = Object.entries(appBy).filter(([n, L]) => L.length > 1 && techBy[n]);
+    const dupNo = Object.entries(appBy).filter(([n, L]) => L.length > 1 && techBy[n]); dupNo.forEach(([n, L]) => L.sort((a, b) => a.id - b.id));
     const stA = { open: 'باز', closed: 'اصلاح‌شده', cancelled: 'لغو' }, stT = { open: 'در جریان', closed: 'بسته', cancelled: 'باطل' };
+    const DELB = x => window.HSEAuth && HSEAuth.role === 'manager' ? `<br><button class="l" data-a="fdel" data-id="${x.id}" style="margin-top:4px; color:var(--bad); min-height:32px;">🗑 حذف این مورد از برنامه</button>` : '';
     const lim = (a, f) => a.slice(0, 80).map(f).join('') + (a.length > 80 ? `<small>و ${fa(a.length - 80)} مورد دیگر...</small>` : '');
     const sec = (t, n, body) => `<details class="q" style="margin-top:8px;" ${n ? 'open' : ''}><summary style="cursor:pointer; font-weight:700;">${t} — ${fa(n)} مورد</summary>${body || '<small>موردی نیست ✅</small>'}</details>`;
     const li = h => `<div style="border-top:1px solid var(--bd); padding:6px 0; font-size:13px;">${h}</div>`;
@@ -1610,8 +1612,9 @@ async function techCompare(file) {
       <button class="l" data-a="ttcopy" style="margin-top:6px;">📋 کپی فهرست اعلان‌های فاقد مورد در برنامه</button>
       ${sec('۱) اعلان فنی که در برنامه نیست (یا کدش وارد نشده)', noApp.length, lim(noApp, t => li(`<b>#${esc(t.no)}</b> · ${esc(t.date)} · ${esc(t.st)} · ${esc(t.eq)}<br>${esc(t.txt)}${t._c ? `<br><small style="color:var(--wa)">🔗 احتمالاً همان مورد #${esc(t._c.id)} برنامه (${fa(t._s)}٪، بدون کد اعلان): ${esc(t._c.question || '')}</small>` : ''}`)))}
       ${sec('۲) وضعیت متفاوت بین فنی و برنامه', mism.length, lim(mism, m => li(`<b>#${esc(m.t.no)}</b> فنی: ${stT[m.t.k]} (${esc(m.t.st)}) ↔ برنامه: ${stA[m.x.status] || esc(m.x.status)} (مورد #${esc(m.x.id)})<br>${esc(m.t.txt)}`)))}
-      ${sec('۳) مورد برنامه که کد اعلانش در فایل فنی (HSE) نیست', notInTech.length, lim(notInTech, x => li(`مورد #${esc(x.id)} · کد «${esc(x.notice_code)}» · ${esc(x.question || '')}`)))}
-      ${sec('۴) یک اعلان فنی که چند بار در برنامه ثبت شده (تکراری)', dupNo.length, lim(dupNo, ([n, L]) => li(`<b>اعلان #${esc(n)}</b> در ${fa(L.length)} مورد برنامه: ${L.map(x => '#' + esc(x.id)).join('، ')}<br>${esc(techBy[n].txt)}`)))}`;
+      ${sec('۳) مورد برنامه که کد اعلانش در فایل فنی (HSE) نیست', notInTech.length, lim(notInTech, x => { const o = allBy[dig(x.notice_code)]; return `<div data-dr>${li(`مورد #${esc(x.id)} · کد «${esc(x.notice_code)}» · ${esc(x.question || '')}<br><small style="color:var(--wa)">${o ? 'این شماره در فایل فنی هست ولی اولویتش «' + esc(o.pr || 'بدون اولویت') + '» و گزارش‌دهنده «' + esc(o.by) + '» است — جزو ۶۳۴ نیست' : 'این شماره اصلاً در فایل فنی نیست (احتمالاً اشتباه تایپی)'}</small>` + DELB(x))}</div>`; }))}
+      ${sec('۵) موارد برنامه بدون کد اعلان (هنوز در فنی ثبت نشده، یا تکراری)', freeAll.length, lim(freeAll, x => `<div data-dr>${li(`مورد #${esc(x.id)} · ${esc(stA[x.status] || x.status)} · ${esc(x.location || '')}<br>${esc(x.question || '')}` + DELB(x))}</div>`))}
+      ${sec('۴) یک اعلان فنی که چند بار در برنامه ثبت شده (تکراری)', dupNo.length, lim(dupNo, ([n, L]) => li(`<b>اعلان #${esc(n)}</b> در ${fa(L.length)} مورد برنامه — یکی را نگه دارید و بقیه را حذف کنید<br><small>${esc(techBy[n].txt)}</small>` + L.map((x, i) => `<div data-dr style="margin-top:6px; padding:4px 0; border-top:1px dashed var(--bd);">${i == 0 ? '✅ نگه‌داشتن (قدیمی‌ترین) ' : '⚠️ تکراری '}#${esc(x.id)} · ${esc(stA[x.status] || x.status)} · ${esc(x.question || '')}${i ? DELB(x) : ''}</div>`).join(''))))}`;
   } catch (e) { out.innerHTML = '<div class="q bad">خطا: ' + esc(e.message) + '</div>'; }
 }
 document.addEventListener('change', e => { if (!e.target) return; if (e.target.id == 'techf' && e.target.files[0]) techCompare(e.target.files[0]); else if (e.target.id == 'tqinc' || e.target.id == 'tqrep') techCompare(null); });
