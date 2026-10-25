@@ -561,9 +561,12 @@ function exportCSV(filename, rows) {
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 
+/* دریافت کامل جدول (بدون سقف ۱۰۰۰ ردیفِ Supabase) با ترتیب پایدار */
+async function apiAll(path) { const r = window.HSEDB ? await HSEDB.getAll(path) : null; if (!r) throw new Error('خطا در دریافت ' + path.split('?')[0]); return r; }
+
 async function loadAll() {
     try {
-        employees = await api('employees?order=emp_id.asc&limit=2000');
+        employees = await apiAll('employees?order=emp_id.asc,id.asc');
         $('empList').innerHTML = activeEmps().map(e => `<option value="${esc(label(e))}"></option>`).join('');
         $('empInput').placeholder = employees.length ? 'نام، کد یا واحد را تایپ کنید...' : 'هیچ پرسنلی در دیتابیس یافت نشد!';
     } catch (e) {
@@ -579,7 +582,7 @@ async function loadAll() {
 
 async function loadVisits() {
     try {
-        visits = await api('clinic_visits?order=visit_date.desc&limit=5000');
+        visits = await apiAll('clinic_visits?order=visit_date.desc,id.asc');
         if (selEmp) renderSummary();
         if (TAB_TITLE[tab]) renderList();
         if (tab === 'stats') renderStats();
@@ -588,7 +591,7 @@ async function loadVisits() {
 
 async function loadIncidents() {
     try {
-        incidents = await api('clinic_incidents?order=incident_date.desc&limit=5000');
+        incidents = await apiAll('clinic_incidents?order=incident_date.desc,id.asc');
         if (selEmp) renderSummary();
         if (tab === 'incident') renderIncidents();
         if (tab === 'stats') renderStats();
@@ -597,7 +600,7 @@ async function loadIncidents() {
 
 async function loadFollowups() {
     try {
-        followups = await api('clinic_followups?order=due_date.asc.nullslast&limit=5000');
+        followups = await apiAll('clinic_followups?order=due_date.asc.nullslast,id.asc');
         updateBadge();
         if (selEmp) renderSummary();
         if (tab === 'follow') renderFollow();
@@ -1359,7 +1362,7 @@ $('exportEx').onclick = () => {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'occupational-exams.csv'; a.click();
 };
 async function loadExams() {
-    try { exams = await api('clinic_exams?order=exam_date.desc&limit=5000'); }
+    try { exams = await apiAll('clinic_exams?order=exam_date.desc,id.asc'); }
     catch (e) { exams = []; showDebug('معاینات طب کار: ' + e.message + ' (اگر جدول clinic_exams ساخته نشده، فایل clinic_exams.sql را اجرا کنید)'); }
     if (selEmp) { renderSummary(); renderMeds(); }
     if (tab === 'checkup') renderExams();

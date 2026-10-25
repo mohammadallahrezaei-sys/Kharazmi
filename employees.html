@@ -158,9 +158,8 @@ function apply() {
 
 async function loadEmployees() {
   try {
-    const res = await fetch(`${URL_}/rest/v1/employees?select=*&order=emp_id.asc&limit=1000`, { headers: H });
-    if (!res.ok) throw new Error(await res.text());
-    all = await res.json();
+    all = window.HSEDB ? await HSEDB.getAll('employees?select=*&order=emp_id.asc,id.asc') : null;
+    if (!all) throw new Error('خطا در دریافت پرسنل');
     all.sort((a, b) => String(a.emp_id).localeCompare(String(b.emp_id), undefined, { numeric: true }));
     all.forEach(x => x.__s = Object.entries(x).filter(([k]) => k !== '__s').map(([, v]) => v).join(' ').toLowerCase());
     apply();
