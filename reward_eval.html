@@ -58,7 +58,7 @@ function calc(keys){
   const byId={},byName={};B.emp.forEach(e=>{byId[String(e.id)]=e;byName[norm(nameOf(e))]=e});
   const R={};const endISO=HSE.monthRange(keys.slice().sort().pop()).b;B.emp.filter(e=>HSEP.isActive(e,endISO)).forEach(e=>R[e.id]={e,name:nameOf(e),hz:0,nm:0,sg:0,talks:new Set(),trn:new Set(),vb:0,wr:0,mi:0,mj:0,rw:0});
   if(ck)B.cards.filter(c=>c.status!=='rejected'&&inP(c.card_date)).forEach(c=>{const v=c[ck],e=byId[String(v)]||byName[norm(v)];if(!e)return;const r=R[e.id];
-    if(c.card_type==='hazard')r.hz++;else if(c.card_type==='near_miss')r.nm++;else if(c.card_type==='suggestion')r.sg++});
+    if(c.card_type==='hazard'||c.card_type==='health_hazard')r.hz++;else if(c.card_type==='near_miss')r.nm++;else if(c.card_type==='suggestion')r.sg++});
   const trs={};B.tr.filter(t=>inP(t.training_date)).forEach(t=>trs[t.id]=t);
   B.ta.forEach(a=>{const t=trs[a.training_id],r=R[a.employee_id];if(!t||!r)return;(t.training_type==='safety_talk'?r.talks:r.trn).add(a.training_id)});
   B.ek.filter(x=>inP(x.record_date)&&R[x.employee_id]).forEach(x=>{const r=R[x.employee_id];if(x.record_type==='تشویق')r.rw++;else if(x.record_type==='اخطار کتبی')r.wr++;else r.vb++});

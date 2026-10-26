@@ -120,7 +120,7 @@ async function load(){
   // ۵) کارت‌های بی‌پاسخ
   if(cards){
     const L=cards.filter(c=>['pending','in_review'].includes(c.status)).map(c=>({c,age:dd(TODAY,c.card_date)})).sort((a,b)=>b.age-a.age);
-    const TY={hazard:'خطر',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد'};
+    const TY={hazard:'خطر',health_hazard:'خطر بهداشتی',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد'};
     sec('cd','کارت‌های گزارش بدون نتیجه','cards.html',L.map(({c,age})=>({k:age>7?'r':'y',h:row(esc(String(c.description||'').slice(0,90)),`${TY[c.card_type]} · ${esc(c.unit||'بدون واحد')} · ${esc(c.reporter_name||'')}`,fa(age)+' روز پیش',age>7?'r':'y')})));
   } else sec('cd','کارت‌های گزارش بدون نتیجه','cards.html',null);
   // ۵.۵) داروی کمد کمک‌های اولیه (کمبود / انقضا)

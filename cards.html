@@ -95,14 +95,14 @@
     <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="p" id="bNew">+ ثبت کارت</button><button id="bPrint">🖨 چاپ کارت خالی</button><a class="btn" href="evaluation.html">ارزیابی واحدها</a><a class="btn" href="index.html">← بازگشت</a></div>
   </div>
   <div id="err" class="err"></div>
-  <div class="card"><div class="g3"><div><label class="l">ماه</label><select id="fM"></select></div><div><label class="l">نوع کارت</label><select id="fT"><option value="">همه</option><option value="hazard">خطر ایمنی</option><option value="near_miss">شبه‌حادثه</option><option value="suggestion">پیشنهاد</option></select></div><div><label class="l">وضعیت</label><select id="fS"><option value="">همه</option><option value="pending">ثبت‌شده</option><option value="in_review">در حال بررسی</option><option value="done">اقدام انجام شد</option><option value="rejected">رد شده</option></select></div></div>
+  <div class="card"><div class="g3"><div><label class="l">ماه</label><select id="fM"></select></div><div><label class="l">نوع کارت</label><select id="fT"><option value="">همه</option><option value="hazard">خطر ایمنی</option><option value="health_hazard">خطر بهداشتی</option><option value="near_miss">شبه‌حادثه</option><option value="suggestion">پیشنهاد</option></select></div><div><label class="l">وضعیت</label><select id="fS"><option value="">همه</option><option value="pending">ثبت‌شده</option><option value="in_review">در حال بررسی</option><option value="done">اقدام انجام شد</option><option value="rejected">رد شده</option></select></div></div>
   <div id="stats" class="mu" style="margin-top:8px"></div></div>
   <div id="list"><div class="card">در حال بارگذاری...</div></div>
 </div>
 
 <div class="modal" id="modal"><div>
-  <h2 style="margin:0 0 8px;font-size:15px">ثبت کارت جدید</h2>
-  <div class="g2"><div><label class="l">نوع گزارش</label><select id="cType"><option value="hazard">خطر ایمنی</option><option value="near_miss">شبه‌حادثه</option><option value="suggestion">پیشنهاد</option></select></div>
+  <h2 id="cTitle" style="margin:0 0 8px;font-size:15px">ثبت کارت جدید</h2>
+  <div class="g2"><div><label class="l">نوع گزارش</label><select id="cType"><option value="hazard">خطر ایمنی</option><option value="health_hazard">خطر بهداشتی</option><option value="near_miss">شبه‌حادثه</option><option value="suggestion">پیشنهاد</option></select></div>
   <div><label class="l">تاریخ</label><div id="cDateW"></div></div></div>
   <label class="l">گزارش‌دهنده (جستجو در بانک پرسنل)</label>
   <input type="text" id="cSearch" placeholder="نام یا شماره پرسنلی"><div id="cPick" style="max-height:120px;overflow-y:auto;background:var(--soft);border-radius:10px"></div>
@@ -139,7 +139,7 @@
 <script>
 const {esc,fa,jk,req,getAll,monthKeys,monthLabel,jdInit,jdGet,jdSet,jdHTML,unitMatcher}=HSE;
 const $=id=>document.getElementById(id);
-const TY={hazard:'خطر ایمنی',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد'},ST={pending:'ثبت‌شده',in_review:'در حال بررسی',done:'اقدام انجام شد',rejected:'رد شده'};
+const TY={hazard:'خطر ایمنی',health_hazard:'خطر بهداشتی',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد'},ST={pending:'ثبت‌شده',in_review:'در حال بررسی',done:'اقدام انجام شد',rejected:'رد شده'};
 const STC={pending:'',in_review:'wa',done:'ok',rejected:'bad'};
 let RK=[],cards=[],units=[],emps=[],match=()=>null,who=null;
 
@@ -267,9 +267,9 @@ function render(){
               .reduce((sum, c) => sum + (c.is_excellent ? 2 : 1), 0);
   };
   const nCount = type => inM.filter(c=>c.card_type===type).length;
-  const totalWeighted = ['hazard','near_miss','suggestion'].reduce((s,t)=>s+nWeighted(t),0);
+  const totalWeighted = ['hazard','health_hazard','near_miss','suggestion'].reduce((s,t)=>s+nWeighted(t),0);
   
-  $('stats').textContent=`در ${monthLabel(K)}: ${fa(inM.length)} کارت — امتیاز مشارکت واحد: ${fa(totalWeighted)} (خطر ${fa(nWeighted('hazard'))} · شبه‌حادثه ${fa(nWeighted('near_miss'))} · پیشنهاد ${fa(nWeighted('suggestion'))}) · در انتظار بررسی ${fa(inM.filter(c=>c.status==='pending').length)}`;
+  $('stats').textContent=`در ${monthLabel(K)}: ${fa(inM.length)} کارت — امتیاز مشارکت واحد: ${fa(totalWeighted)} (خطر ایمنی ${fa(nWeighted('hazard'))} · خطر بهداشتی ${fa(nWeighted('health_hazard'))} · شبه‌حادثه ${fa(nWeighted('near_miss'))} · پیشنهاد ${fa(nWeighted('suggestion'))}) · در انتظار بررسی ${fa(inM.filter(c=>c.status==='pending').length)}`;
   
   $('list').innerHTML=L.length?L.map(c=>{
     const isExc = c.is_excellent === true;
@@ -291,7 +291,7 @@ function render(){
    </div>
    <div><label class="l">شماره ثبت</label><input type="text" data-f="reg_no" data-id="${c.id}" value="${esc(c.reg_no||'')}"></div></div>
    <label class="l">اقدام انجام‌شده / دلیل رد</label><input type="text" data-f="hse_note" data-id="${c.id}" value="${esc(c.hse_note||'')}">${RK.length?`<label class="l">ریسک مرتبط</label><select data-f="risk_id" data-id="${c.id}"><option value="">— بدون ارتباط —</option>${RK.map(r=>`<option value="${r.id}" ${c.risk_id==r.id?'selected':''}>${esc(r.unit)} — ${esc(String(r.hazard).slice(0,50))} (${fa(r.score)})</option>`).join('')}</select>`:''}
-   <button class="d" data-del="${c.id}" style="margin-top:8px">حذف کارت</button></div></details>`;
+   <button data-edit="${c.id}" style="margin-top:8px">✏️ ویرایش کارت</button> <button class="d" data-del="${c.id}" style="margin-top:8px">حذف کارت</button></div></details>`;
   }).join(''):'<div class="card mu">کارتی برای این فیلتر ثبت نشده.</div>';
 }
 ['fM','fT','fS'].forEach(i=>$(i).onchange=render);
@@ -318,7 +318,9 @@ $('list').addEventListener('change',async ev=>{
 
 $('list').addEventListener('click',async ev=>{const id=ev.target.dataset.del;if(id&&confirm('این کارت حذف شود؟')){try{await req('hse_cards?id=eq.'+id,'DELETE',null,'return=minimal');load()}catch(e){alert(e.message)}}});
 
+let EDITID=null;
 $('bNew').onclick=()=>{
+  EDITID=null;$('cTitle').textContent='ثبت کارت جدید';$('cSave').textContent='ثبت';$('cType').value='hazard';
   who=null;
   ['cSearch','cEq','cLoc','cDesc','cSug'].forEach(i=>$(i).value='');
   $('cEq').dataset.code = '';
@@ -330,6 +332,15 @@ $('bNew').onclick=()=>{
   jdSet($('cDate'),new Date().toISOString().slice(0,10));
   $('modal').classList.add('on')
 };
+$('list').addEventListener('click',ev=>{const id=ev.target.dataset.edit;if(!id)return;const c=cards.find(x=>String(x.id)===String(id));if(!c)return;
+  EDITID=c.id;who=c.reporter_id?emps.find(e=>e.id===c.reporter_id)||null:null;
+  $('cTitle').textContent='ویرایش کارت'+(c.reg_no?' '+c.reg_no:'');$('cSave').textContent='ذخیره تغییرات';
+  $('cType').value=c.card_type;jdSet($('cDate'),c.card_date);
+  $('cSearch').value=who?'':(c.reporter_name||'');$('cPick').innerHTML='';$('cWho').textContent=who?'گزارش‌دهنده: '+nm(who)+' ('+who.emp_id+')':'';
+  const u=c.unit||'';if(u&&![...$('cUnit').options].some(o=>o.value===u||o.text===u))$('cUnit').insertAdjacentHTML('beforeend','<option>'+esc(u)+'</option>');$('cUnit').value=u;
+  $('cEq').value=c.equipment_code||'';$('cEq').dataset.code=c.equipment_code||'';$('cEqHistory').style.display='none';
+  $('cLoc').value=c.location_detail||'';$('cDesc').value=c.description||'';$('cSug').value=c.suggestion||'';$('cExcellent').checked=c.is_excellent===true;
+  $('modal').classList.add('on')});
 $('cCancel').onclick=()=>$('modal').classList.remove('on');
 $('cSearch').oninput=()=>{const q=$('cSearch').value.trim().toLowerCase();$('cPick').innerHTML=q?emps.filter(e=>HSEP.isActive(e)&&(nm(e)+' '+e.emp_id).toLowerCase().includes(q)).slice(0,8).map(e=>`<div data-p="${e.id}" style="padding:5px 10px;cursor:pointer">${esc(nm(e))} <span class="mu">(${esc(e.emp_id)} · ${esc(e.department||'')})</span></div>`).join(''):''};
 $('cPick').onclick=ev=>{const d=ev.target.closest('[data-p]');if(!d)return;who=emps.find(e=>e.id===d.dataset.p);$('cWho').textContent='گزارش‌دهنده: '+nm(who)+' ('+who.emp_id+')';$('cSearch').value='';$('cPick').innerHTML='';const u=match(who.department);if(u)$('cUnit').value=u.name};
@@ -344,7 +355,7 @@ $('cSave').onclick=async()=>{
   
   const K=jk(date),n=cards.filter(c=>jk(c.card_date)===K).length+1;
   try{
-    await req('hse_cards','POST',{
+    const body={
       card_type:$('cType').value,
       card_date:date,
       reporter_id:who?who.id:null,
@@ -355,9 +366,9 @@ $('cSave').onclick=async()=>{
       description:desc,
       suggestion:$('cSug').value.trim()||null,
       is_excellent: $('cExcellent').checked || false, // ✅ ارسال وضعیت گزارش عالی
-      reg_no:K+'-'+String(n).padStart(3,'0'),
-      received_date:new Date().toISOString().slice(0,10)
-    },'return=minimal');
+    };
+    if(EDITID){await req('hse_cards?id=eq.'+EDITID,'PATCH',body,'return=minimal')}
+    else{body.reg_no=K+'-'+String(n).padStart(3,'0');body.received_date=new Date().toISOString().slice(0,10);await req('hse_cards','POST',body,'return=minimal')}
     $('modal').classList.remove('on');
     load();
   }catch(e){
@@ -369,7 +380,7 @@ $('cSave').onclick=async()=>{
 $('bPrint').onclick=()=>{
   const one=`<div class="c"><div class="t">کارت گزارش خطر، شبه‌حادثه و پیشنهاد</div><div class="m">پس از تکمیل به واحد HSE تحویل دهید.</div>
    <div class="r"><span>شماره پرسنلی: ........</span><span>تاریخ: ........</span></div><div>نام و نام خانوادگی: ..............................</div><div>واحد / سوله: ............ کد دستگاه: ............</div><div>سایر مشخصات دقیق محل: ......................................</div>
-   <div>نوع گزارش: ☐ خطر ایمنی &nbsp; ☐ شبه‌حادثه &nbsp; ☐ پیشنهاد</div><div>شرح دقیق موضوع:..............................................................................................................................................</div><div>پیشنهاد/اقدام اصلاحی (اختیاری): .........................................</div><div>امضا: ........</div>
+   <div>نوع گزارش: ☐ خطر ایمنی &nbsp; ☐ خطر بهداشتی &nbsp; ☐ شبه‌حادثه &nbsp; ☐ پیشنهاد</div><div>شرح دقیق موضوع:..............................................................................................................................................</div><div>پیشنهاد/اقدام اصلاحی (اختیاری): .........................................</div><div>امضا: ........</div>
    <div class="m"><i>هر گزارش شما می‌تواند از وقوع یک حادثه پیشگیری کند. این گزارش در سیستم امتیازدهی مشارکت HSE هم به نام شما و هم به نام واحدتان ثبت می‌شود.</i></div>
    <div class="h"><b>بخش تکمیل توسط واحد HSE</b><div class="r"><span>شماره ثبت: ......</span><span>تاریخ دریافت: ......</span><span>امتیاز: ......</span></div><div>☐ در حال بررسی &nbsp; ☐ اقدام انجام شد &nbsp; ☐ رد شده</div><div>اقدام انجام‌شده / دلیل رد: ...............................</div><div>امضای HSE: ........</div></div></div>`;
   const w=window.open('','_blank');if(!w){alert('اجازه‌ی باز شدن پنجره را بدهید.');return}
