@@ -531,6 +531,7 @@ const SEVN = {1:'کم',2:'متوسط',3:'زیاد',4:'بحرانی'}, SEVC = {1:
 const SLA = {1:30,2:14,3:3,4:1};
 /* کارشناس ثبت‌کننده: نام نمایشی از auth.js */
 const INSPN = (() => { const o = { 'm.rezaei@gmail.com': 'اله‌رضایی' }; (window.HSEAuth && HSEAuth.MANAGERS || []).forEach(e => { o[e] = o[e] || e.split('@')[0]; }); Object.assign(o, (window.HSEAuth && HSEAuth.EXPERTS) || {}); return o; })();
+const ASGN = Object.entries((window.HSEAuth && HSEAuth.EXPERTS) || {}); /* کارشناسانی که می‌شود عدم‌انطباق را به آن‌ها ارجاع داد */
 const inspL = e => INSPN[e] || e || 'نامشخص';
 const RCS = ['آموزش/آگاهی نیروی انسانی','خرابی/فرسودگی تجهیزات','نبود یا ضعف رویه و دستورالعمل','نظارت و پیگیری ناکافی','بودجه/تأمین ناکافی','شرایط محیطی/طراحی'];
 let SV = {}, RS = {}, LC = {}, EX = {}; /* EX: محل‌های اضافه برای یک سؤال در گشت روزانه */
@@ -551,6 +552,12 @@ const cat = (mk, q) => (CATS.find(c => c[1].test(q)) || [['SAN','KIT','ENV'].inc
 const dsev = q => /اتوکلاو|دیگ|شیر اطمینان|مانومتر|قطع اضطراری|سیلندر|برق|ارت|LOTO|حریق|کپسول|ارتفاع|پرتگاه|گود|ترک|جرثقیل|بالابر|لیفتراک|اینترلاک|توقف اضطراری|خروج اضطراری|اسید|سمی|اکسیژن|استیلن|فلش‌بک/.test(q) ? 3 : 2;
 const addDays = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 
+/* نمایش سوال‌ها به‌صورت پرسشی («آیا … ؟»). متن ذخیره‌شده در عدم‌انطباق‌ها همان جمله‌ی اصلی می‌ماند تا تطبیق و گزارش‌ها به‌هم نخورد. */
+const asQ = s => {
+  s = String(s || '').trim(); if (!s || /^آیا\s/.test(s) || /[؟?]$/.test(s)) return s;
+  let note = ''; const m = /\s*(\([^()]*\))\s*$/.exec(s); if (m) { note = ' ' + m[1]; s = s.slice(0, m.index); }
+  return 'آیا ' + s.replace(/:\s+/, '، ').trim() + '؟' + note;
+};
 M.forEach(m => { m[6] = m[4].map((t, i) => ({ id: String(i + 1), t })); });
 
 const sevB = x => x.severity ? `<span class="bg" style="background:${SEVC[x.severity]}22;color:${SEVC[x.severity]}">شدت: ${SEVN[x.severity]}</span>` : '';
@@ -618,13 +625,16 @@ const EQCYC = SCHED_OK ? SCHED.EQC : {}; /* ماژول: [دسته‌های تج�
 /* دوره‌ی بازدید دوماهه برای برق، ماشین‌آلات، جرثقیل، بالابر، لیفتراک، مخزن تحت فشار و دیگ بخار (هماهنگ با برچسب «هر ۲ ماه») */
 ['E', 'EQ', 'CR', 'LF', 'FK', 'PV', 'BL'].forEach(k => { if (EQCYC[k]) EQCYC[k][1] = 2; });
 const EQ_START = SCHED_OK ? SCHED.EQ_START : new Date().toISOString().slice(0, 10); /* شروع دوره: دستگاه‌های بدون بازدید از این تاریخ در طول دوره‌شان پخش می‌شوند */
-let EQ_COL = null, DUE = null;
+let EQ_COL = null, DUE = null, INACT = [];
 const addM = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); };
 const dayDiff = (a, b) => Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 864e5);
 async function dueLoad() {
   if (!SCHED_OK) return DUE = {};
   const cats = [...new Set(Object.values(EQCYC).flatMap(v => v[0]))];
   const eq = await api('equipment?select=code,title,category,hall,location&active=eq.true&order=code.asc&limit=1000&category=' + encodeURIComponent('in.(' + cats.map(c => '"' + c + '"').join(',') + ')'));
+  const catQ = encodeURIComponent('in.(' + cats.map(c => '"' + c + '"').join(',') + ')');
+  try { INACT = await api('equipment?select=code,title,category,hall,inactive_reason,inactive_at&active=eq.false&order=code.asc&limit=500&category=' + catQ); }
+  catch (e) { try { INACT = await api('equipment?select=code,title,category,hall&active=eq.false&order=code.asc&limit=500&category=' + catQ); } catch (e2) { INACT = []; } }
   let last = {};
   try {
     const ins = await api('inspections?select=equipment_code,created_at&equipment_code=not.is.null&order=created_at.desc&limit=5000');
@@ -651,7 +661,7 @@ async function dueCard() {
   try {
     const d = await dueLoad(), [o, s] = dueSum(d), tot = Object.values(d).reduce((a, l) => a + l.length, 0);
     if (!$('#duecard')) return;
-    el.innerHTML = `📅 سررسید بازدید تجهیزات — ${o ? `<b style="color:var(--nc);">${fa(o)} عقب‌افتاده</b>` : 'عقب‌افتاده ندارد'} · ${fa(s)} مورد تا ۳۰ روز آینده <small style="display:block;">از مجموع ${fa(tot)} دستگاه</small>`;
+    el.innerHTML = `📅 سررسید بازدید تجهیزات — ${o ? `<b style="color:var(--nc);">${fa(o)} عقب‌افتاده</b>` : 'عقب‌افتاده ندارد'} · ${fa(s)} مورد تا ۳۰ روز آینده <small style="display:block;">از مجموع ${fa(tot)} دستگاه</small>${INACT.length ? `<small style="display:block; color:var(--wa);">⛔ ${fa(INACT.length)} تجهیز غیرفعال (خارج از برنامه) — برای فعال‌سازی مجدد وارد شوید</small>` : ''}`;
     el.disabled = false;
   } catch (e) { el.textContent = '📅 سررسید تجهیزات (خطا در بارگذاری: ' + e.message.slice(0, 60) + ')'; }
 }
@@ -673,7 +683,13 @@ function dueList() {
           <div><b dir="ltr">${esc(x.code)}</b> — ${esc(x.title || '')}<small style="display:block;">${esc(x.hall || '')} · آخرین بازدید: ${x.last ? fd(x.last) : 'ثبت نشده'} · سررسید: ${fd(x.due)}</small></div>
           <div style="text-align:left;">${badge(x)}<button class="ad" data-a="duego" data-k="${mk}" data-code="${esc(x.code)}" data-title="${esc(x.title || '')}" data-hall="${esc(x.hall || '')}" style="display:block; margin-top:4px;">شروع بازدید</button></div>
         </div></div>`).join('') || '<small>دستگاهی در فهرست تجهیزات نیست.</small>'}
-    `).join('')}`);
+    `).join('')}
+    ${INACT.length ? `<h3 style="margin:22px 0 6px;">⛔ تجهیزات غیرفعال <small style="display:inline;">(از برنامه حذف شده‌اند؛ اگر دوباره راه‌اندازی شدند، فعالشان کنید)</small></h3>
+      ${INACT.map(x => `<div class="q" style="padding:8px 10px; opacity:.85;">
+        <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+          <div><b dir="ltr">${esc(x.code)}</b> — ${esc(x.title || '')}<small style="display:block;">${esc(x.category || '')} · ${esc(x.hall || '')}${x.inactive_at ? ' · غیرفعال از ' + fd(x.inactive_at) : ''}</small><small style="display:block; color:var(--wa);">علت: ${esc(x.inactive_reason || 'ثبت نشده')}</small></div>
+          <button class="ad" data-a="eqon" data-code="${esc(x.code)}">✅ فعال‌سازی مجدد</button>
+        </div></div>`).join('')}` : ''}`);
 }
 
 async function home() {
@@ -694,7 +710,7 @@ async function home() {
 
     <div class="top-grid">
       <button class="p" data-a="history" style="background:var(--ok); border-color:var(--ok); color:#fff;">📋 تاریخچه بازدیدها</button>
-      <button class="p" data-a="finds">🛠️ پیگیری عدم‌انطباق‌ها</button>
+      <button class="p" data-a="finds">🛠️ پیگیری عدم‌انطباق‌ها <span id="asgcnt"></span></button>
       <button class="p" data-a="quick" style="grid-column:1/-1; background:var(--warn); border-color:var(--warn); color:#0f172a;">⚡ ثبت موردی عدم‌انطباق (بدون چک‌لیست)</button>
       <a class="p" href="calendar.html" style="grid-column:1/-1; text-align:center; text-decoration:none; display:block;">📅 تقویم بازرسی (برنامه‌ی هر روز و تیک انجام)</a>
       <button class="p" id="duecard" data-a="due" style="grid-column:1/-1;">📅 سررسید بازدید تجهیزات (در حال بارگذاری...)</button>
@@ -709,6 +725,7 @@ async function home() {
     `).join('')}</div>
   `);
   dueCard();
+  fFetch('findings?select=id&limit=1&status=eq.open&assigned_to=eq.' + encodeURIComponent(mail), true).then(r => { const el = $('#asgcnt'); if (el && r.total) el.innerHTML = `<span class="bg r">${fa(r.total)} ارجاع به شما</span>`; }).catch(() => { });
 }
 
 async function historyList() {
@@ -887,7 +904,7 @@ function form() {
       const id = m[0] + '-' + q.id, a = A[id], sv = SV[id] || dsev(q.t);
       return `
         <div class="q ${a == 'nc' ? 'bad' : ''}">
-          <p>${i + 1}. ${q.t} <span class="ct">${cat(m[0], q.t)}</span></p>
+          <p>${i + 1}. ${asQ(q.t)} <span class="ct">${cat(m[0], q.t)}</span></p>
           <div class="b">
             ${[['ok', 'مطابق'], ['nc', 'عدم‌انطباق'], ['na', 'نامربوط']].map(([v, t]) => `
               <button data-a="ans" data-id="${id}" data-v="${v}" class="${a == v ? 'on ' + v : ''}">${t}</button>
@@ -1272,7 +1289,7 @@ fi.onchange = async () => {
 
 /* ===== مدیریت و پیگیری عدم‌انطباق‌ها: جستجو، فیلتر، گروه‌بندی، صفحه‌بندی، ویرایش ===== */
 let FI = '', EDIT = null, FTM = null;
-const FQ = { q: '', mod: '', insp: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', jy: 0, jm: 0, grp: '', ord: 'new', page: 0, size: 20 };
+const FQ = { q: '', mod: '', insp: '', st: '', sev: '', cat: '', loc: '', ntc: '', asg: '', ph: '', per: 'all', jy: 0, jm: 0, grp: '', ord: 'new', page: 0, size: 20 };
 const CATN = [...CATS.map(c => c[0]), 'نظم و ایمنی عمومی'];
 const GCOL = { mod: 'module', cat: 'category', loc: 'location', st: 'status', sev: 'severity' };
 
@@ -1297,6 +1314,7 @@ function fQuery(skipSt) {
   q += '&module=neq.MED'; /* هشدارهای دارو عدم‌انطباق نیستند */
   const lc = FQ.loc.trim().replace(/[,()*%\\:"]/g, ' ').trim();
   if (lc) q += '&location=ilike.' + encodeURIComponent('*' + lc + '*');
+  if (FQ.asg == 'any') q += '&assigned_to=not.is.null'; else if (FQ.asg) q += '&assigned_to=eq.' + encodeURIComponent(FQ.asg == 'me' ? mail : FQ.asg);
   if (FQ.ntc == 'yes') q += '&and=(or(notice_at.not.is.null,notice_code.neq.))'; else if (FQ.ntc == 'no') q += '&and=(notice_at.is.null,or(notice_code.is.null,notice_code.eq.))';
   if (FQ.ph == 'noafter') q += '&photos_after=eq.%7B%7D';
   else if (FQ.ph == 'phafter') q += '&photos_after=cs.%7Bno-photo-after-placeholder.jpg%7D';
@@ -1352,6 +1370,11 @@ function fcard(x) {
       ${head}
       <div class="ph">${th(x.photos_before, x.id, 'before', ed)}${ed ? `<button class="ad" data-a="addbf" data-id="${x.id}">+ عکس قبل از اصلاح</button>` : ''}</div>
 
+      ${x.assigned_to ? `<div class="q" style="margin:8px 0; background:color-mix(in srgb,var(--ac) 10%,var(--card));">📌 ارجاع به <b>${esc(inspL(x.assigned_to))}</b>: ${esc(x.assign_note || '')}<small style="display:block;">${x.assigned_by ? 'توسط ' + esc(inspL(x.assigned_by)) : ''}${x.assigned_at ? ' · ' + fd(x.assigned_at) : ''}</small>${x.status == 'open' ? `<button class="l" data-a="funassign" data-id="${x.id}" style="margin-top:4px; min-height:32px;">برداشتن ارجاع</button>` : ''}</div>` : x.status == 'open' && !ed ? `<details class="cxbox"><summary>📌 ارجاع به کارشناس</summary>
+        <select data-asu><option value="">— کارشناس —</option>${ASGN.map(([e, n]) => `<option value="${esc(e)}">${esc(n)}</option>`).join('')}</select>
+        <textarea data-asn rows="2" maxlength="200" placeholder="متن کوتاه ارجاع (مثلاً: لطفاً تا پایان هفته پیگیری و اعلان ثبت شود)"></textarea>
+        <button class="p" data-a="fassign" data-id="${x.id}" style="margin-top:6px; min-height:40px;">ثبت ارجاع</button>
+      </details>` : ''}
       <div class="step">مرحله ۲: ثبت اعلان رسمی ${x.notice_at ? '<span class="bg g">انجام شد</span>' : '<span class="bg r">در انتظار ثبت</span>'}</div>
       ${x.notice_at ? `
         <label class="fx"><input type="checkbox" data-a="ntc" data-id="${x.id}" checked> کد اعلان: <b dir="ltr">${esc(x.notice_code)}</b> (${fd(x.notice_at)})</label>
@@ -1399,7 +1422,7 @@ async function loadFinds() {
     const no = cOpen.total ?? 0, na = cAll.total ?? 0, nx = cCan.total ?? 0;
     $('#fchips').innerHTML = [['', 'همه', na], ['open', 'باز', no], ['closed', 'اصلاح‌شده', na - no - nx], ['cancelled', 'لغو شده', nx]].map(([v, t, n]) =>
       `<button class="chip ${FQ.st == v ? 'on' : ''}" data-a="fst" data-v="${v}">${t} <b>${fa(n)}</b></button>`).join('') +
-      `<button class="chip ${FQ.ntc == 'no' ? 'on' : ''}" data-a="fntc" data-v="no">📭 بدون اعلان</button><button class="chip ${FQ.ntc == 'yes' ? 'on' : ''}" data-a="fntc" data-v="yes">📬 دارای اعلان</button>`;
+      `<button class="chip ${FQ.ntc == 'no' ? 'on' : ''}" data-a="fntc" data-v="no">📭 بدون اعلان</button><button class="chip ${FQ.ntc == 'yes' ? 'on' : ''}" data-a="fntc" data-v="yes">📬 دارای اعلان</button><button class="chip ${FQ.asg == 'me' ? 'on' : ''}" data-a="fasg">📌 ارجاع به من</button>`;
     let last = null, html = '';
     pg.rows.forEach(x => { if (FQ.grp) { const g = gLabel(x); if (g !== last) { html += `<div class="sec" style="margin-top:18px;">${esc(g)}</div>`; last = g; } } html += fcard(x); });
     box.innerHTML = html || '<p style="margin-top:20px;">هیچ عدم‌انطباقی با این فیلترها یافت نشد.</p>';
@@ -1642,6 +1665,7 @@ async function finds(iid) {
         <select data-ff="insp">${optH('', 'همه کارشناسان ثبت‌کننده', FQ.insp)}${Object.entries(INSPN).map(([e, n]) => optH(e, '👤 ' + n, FQ.insp)).join('')}</select>
         <select data-ff="cat">${optH('', 'همه دسته‌ها', FQ.cat)}${CATN.map(c => optH(c, c, FQ.cat)).join('')}</select>
         <select data-ff="sev">${optH('', 'همه شدت‌ها', FQ.sev)}${[4, 3, 2, 1].map(s => optH(s, 'شدت ' + SEVN[s], FQ.sev)).join('')}</select>
+        <select data-ff="asg">${optH('', 'ارجاع: همه', FQ.asg)}${optH('me', '📌 ارجاع‌شده به من', FQ.asg)}${optH('any', '📌 ارجاع‌شده (همه)', FQ.asg)}${ASGN.map(([e, n]) => optH(e, '📌 به ' + n, FQ.asg)).join('')}</select>
         <select data-ff="ntc">${optH('', 'اعلان: همه', FQ.ntc)}${optH('yes', 'اعلان ثبت شده', FQ.ntc)}${optH('no', 'بدون اعلان', FQ.ntc)}</select>
         <select data-ff="ph">${optH('', 'عکس: همه', FQ.ph)}${optH('noafter', 'بدون عکس پس از اصلاح', FQ.ph)}${optH('phafter', 'بسته‌شده با عکس جایگزین (برای تکمیل)', FQ.ph)}${optH('ph', 'بدون عکس قبل (جایگزین)', FQ.ph)}</select>
         <input data-ff="loc" list="locs" placeholder="محل..." value="${esc(FQ.loc)}">
@@ -2316,10 +2340,30 @@ document.onclick = async e => {
     if (!confirm('این مورد دوباره باز شود؟')) return;
     try { await api('findings?id=eq.' + t.dataset.id, { method: 'PATCH', body: JSON.stringify({ status: 'open', cancel_reason: null, cancelled_at: null, cancelled_by: null }) }); await loadFinds(); scrollTo(0, y); } catch (er) { alert(er.message); }
   }
+  else if (a == 'eqon') {
+    if (!confirm('این تجهیز دوباره فعال شود و وارد برنامهٔ چک‌لیست‌ها و تقویم بشود؟')) return;
+    try { await api('equipment?code=eq.' + encodeURIComponent(t.dataset.code), { method: 'PATCH', body: JSON.stringify({ active: true, inactive_reason: null, inactive_at: null }) }); }
+    catch (er) { try { await api('equipment?code=eq.' + encodeURIComponent(t.dataset.code), { method: 'PATCH', body: JSON.stringify({ active: true }) }); } catch (e2) { return alert(e2.message); } }
+    await dueLoad(); dueList(); scrollTo(0, y);
+  }
+  else if (a == 'fasg') { FQ.asg = FQ.asg == 'me' ? '' : 'me'; FQ.page = 0; const sl = document.querySelector('[data-ff=asg]'); if (sl) sl.value = FQ.asg; await loadFinds(); }
+  else if (a == 'fassign' || a == 'funassign') {
+    const box = t.closest('.q'), id = t.dataset.id;
+    let body;
+    if (a == 'funassign') { if (!confirm('ارجاع این مورد برداشته شود؟')) return; body = { assigned_to: null, assign_note: null, assigned_by: null, assigned_at: null }; }
+    else {
+      const to = box.querySelector('[data-asu]').value, note = box.querySelector('[data-asn]').value.trim();
+      if (!to) return alert('کارشناس را انتخاب کنید.');
+      if (note.length < 3) return alert('یک متن کوتاه برای ارجاع بنویسید (مثلاً: لطفاً تا پایان هفته پیگیری و اعلان ثبت شود).');
+      body = { assigned_to: to, assign_note: note, assigned_by: mail, assigned_at: new Date().toISOString() };
+    }
+    try { await api('findings?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(body) }); await loadFinds(); scrollTo(0, y); }
+    catch (er) { alert(/assign/i.test(er.message) ? 'ابتدا فایل hse_equipment_inactive.sql را یک‌بار در Supabase اجرا کنید.\n' + er.message.slice(0, 160) : er.message); }
+  }
   else if (a == 'fntc') { FQ.ntc = FQ.ntc == t.dataset.v ? '' : t.dataset.v; FQ.page = 0; const sl = document.querySelector('[data-ff=ntc]'); if (sl) sl.value = FQ.ntc; await loadFinds(); }
   else if (a == 'fst') { FQ.st = t.dataset.v; FQ.page = 0; await loadFinds(); }
   else if (a == 'fpage') { FQ.page = Math.max(0, FQ.page + +t.dataset.d); await loadFinds(); scrollTo(0, 0); }
-  else if (a == 'fclear') { Object.assign(FQ, { q: '', mod: '', insp: '', st: '', sev: '', cat: '', loc: '', ntc: '', ph: '', per: 'all', grp: '', ord: 'new', page: 0 }); finds(); }
+  else if (a == 'fclear') { Object.assign(FQ, { q: '', mod: '', insp: '', st: '', sev: '', cat: '', loc: '', ntc: '', asg: '', ph: '', per: 'all', grp: '', ord: 'new', page: 0 }); finds(); }
   else if (a == 'rprint') printFinds(a, t.dataset.k);
   else if (a == 'lpick') { try { await localPick(); renderLocalState(); } catch (er) { if (er.name != 'AbortError') alert(er.message); } }
   else if (a == 'lallow') { await localAllow(); renderLocalState(); await loadFinds(); }

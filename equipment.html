@@ -268,7 +268,7 @@ function render(){
   $('#count').textContent=`${list.length} تجهیز از ${S.eq.length}`;
   $('#tb').innerHTML=list.map(e=>{const i=e._i,l=i.last;
     return`<tr data-c="${esc(e.code)}" class="s-${i.state}"><td><input type="checkbox" class="sel" ${S.sel.has(e.code)?'checked':''} aria-label="انتخاب"></td>
-    <td class="code">${esc(e.code)}</td><td>${esc(e.title)}${e.location?`<small>${esc(e.location)}</small>`:''}${!e.active?'<small><span class="b na">از مدار خارج</span></small>':''}</td>
+    <td class="code">${esc(e.code)}</td><td>${esc(e.title)}${e.location?`<small>${esc(e.location)}</small>`:''}${!e.active?`<small><span class="b na">غیرفعال</span>${e.inactive_reason?' '+esc(e.inactive_reason):''}</small>`:''}</td>
     <td>${esc(e.category)}</td><td>${esc(e.hall)||'—'}</td><td>${l?esc(l.inspected_on):'—'}</td><td>${l?resBadge(l.result):'—'}</td><td>${dueCell(e)}</td>
     <td>${l&&l.defects?`<span class="b ${l.defects==='در حال رسیدگی'?'warn':'ok'}">${esc(l.defects)}</span>`:'—'}</td><td>${i.files?`📎 ${i.files}`:''}</td></tr>`}).join('')
     ||'<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--mut)">موردی پیدا نشد</td></tr>';
@@ -311,7 +311,7 @@ function openEquip(code,tab){const e=S.eq.find(x=>x.code===code);if(!e)return;cu
   if(tab==='insp')wireInspForm()}
 function inspTab(e){const l=(S.by.get(e.code)||[]).slice().reverse();const needCap=LIFT.has(e.category);
   const defInt=e.interval_months||CFG.DEFAULT_INTERVAL;
-  const form=e.requires_inspection===false&&!e.active?`<div class="hint">این تجهیز از مدار خارج است. از تب «مشخصات» می‌توانید فعالش کنید.</div>`:`
+  const form=e.requires_inspection===false&&!e.active?`<div class="hint">این تجهیز غیرفعال است. از تب «مشخصات» می‌توانید فعالش کنید.</div>`:`
   <div class="sheet"><b>ثبت بازرسی جدید</b>
    <div class="grid" style="margin-top:8px">
     <label class="f">تاریخ بازرسی (شمسی)<input type="text" id="fDate" value="${TODAY}" inputmode="numeric" dir="ltr" placeholder="1405/07/25"></label>
@@ -342,8 +342,10 @@ function specTab(e){const sp=Object.entries(e.specs||{});
    <label class="f">سالن / محل<input type="text" id="eHall" value="${esc(e.hall)}"></label>
    <label class="f">محل دقیق<input type="text" id="eLoc" value="${esc(e.location)}"></label>
    <label class="f">دوره بازرسی (ماه)<input type="number" id="eInt" min="1" max="120" value="${e.interval_months||CFG.DEFAULT_INTERVAL}"><span class="hint">روی سررسید همه بازرسی‌هایی که سررسید دستی ندارند اثر می‌کند</span></label>
-   <label class="f">وضعیت${sel('eAct',['فعال','از مدار خارج'],e.active?'فعال':'از مدار خارج')}</label>
+   <label class="f">وضعیت${sel('eAct',['فعال','غیرفعال'],e.active?'فعال':'غیرفعال')}</label>
    <label class="f">نیاز به بازرسی دوره‌ای${sel('eReq',['بله','خیر'],e.requires_inspection?'بله':'خیر')}</label></div>
+   <label class="f" id="eRsnW" style="margin-top:8px;${e.active?'display:none':''}">علت غیرفعال شدن (الزامی)<textarea id="eRsn" placeholder="مثلاً: در حال تعمیر / از رده خارج شد / فروخته شد">${esc(e.inactive_reason||'')}</textarea>
+     <span class="hint">تجهیز غیرفعال از برنامه و تقویم چک‌لیست‌ها حذف می‌شود، ولی در لیست چک‌لیست‌ها با علتش دیده می‌شود تا هنگام فعال‌شدن دوباره وارد برنامه شود.${e.inactive_at?` · غیرفعال از ${esc(e.inactive_at)}`:''}</span></label>
    <label class="f" style="margin-top:8px">یادداشت<textarea id="eNote">${esc(e.notes)}</textarea></label>
    <h3 style="font-size:14px;margin:12px 0 6px">مشخصات فنی</h3><div id="eSpecs">${sp.map(([k,v])=>`<div class="kv"><input type="text" value="${esc(k)}"><input type="text" value="${esc(v)}"><button data-rm>✕</button></div>`).join('')}</div>
    <button id="eAddSpec">+ مشخصه</button>
@@ -365,10 +367,15 @@ async function saveInsp(){const e=cur;const date=normJ($('#fDate').value);if(!da
       next_due:(nxn&&nxn!==addMonthsJ(date,e.interval_months||CFG.DEFAULT_INTERVAL))?nxn:'',inspector:$('#fBy').value.trim(),notes:$('#fNote').value.trim(),link,attachments:att,source:''};
     await DB.addInsp([row]);S.ins.push(row);DB.persist();index();render();toast('بازرسی ثبت شد');openEquip(e.code,'insp')}
   catch(err){console.error(err);if(up.length)DB.remove(up).catch(()=>{});toast('خطا در ثبت: '+(err.message||err));btn.disabled=false}}
-async function saveSpec(){const e=cur;const specs={};document.querySelectorAll('#eSpecs .kv').forEach(r=>{const[k,v]=r.querySelectorAll('input');if(k.value.trim())specs[k.value.trim()]=v.value.trim()});
+async function saveSpec(){const e=cur;const act=$('#eAct').value==='فعال',rsn=$('#eRsn').value.trim();
+  if(!act&&!rsn)return toast('علت غیرفعال شدن را بنویسید');const specs={};document.querySelectorAll('#eSpecs .kv').forEach(r=>{const[k,v]=r.querySelectorAll('input');if(k.value.trim())specs[k.value.trim()]=v.value.trim()});
   const row={...e,title:$('#eTitle').value.trim()||e.title,hall:$('#eHall').value.trim(),location:$('#eLoc').value.trim(),interval_months:Math.max(1,+$('#eInt').value||CFG.DEFAULT_INTERVAL),
-    active:$('#eAct').value==='فعال',requires_inspection:$('#eReq').value==='بله',notes:$('#eNote').value.trim(),specs};delete row._i;
-  try{await DB.saveEquip(row);Object.assign(e,row);DB.persist();index();fillFilters();render();toast('ذخیره شد');openEquip(e.code,'spec')}catch(err){toast('خطا: '+(err.message||err))}}
+    active:act,inactive_reason:act?null:rsn,inactive_at:act?null:(e.active?new Date().toISOString().slice(0,10):(e.inactive_at||new Date().toISOString().slice(0,10))),requires_inspection:$('#eReq').value==='بله',notes:$('#eNote').value.trim(),specs};delete row._i;
+  try{try{await DB.saveEquip(row)}catch(err){
+      if(!/inactive_/.test(String(err.message||err)))throw err;
+      if(!act)throw new Error('ستون‌های علت غیرفعال‌سازی ساخته نشده؛ فایل hse_equipment_inactive.sql را در Supabase اجرا کنید');
+      const r2={...row};delete r2.inactive_reason;delete r2.inactive_at;await DB.saveEquip(r2)}
+    Object.assign(e,row);DB.persist();index();fillFilters();render();toast('ذخیره شد');openEquip(e.code,'spec')}catch(err){toast('خطا: '+(err.message||err))}}
 
 /* =====================  عملیات گروهی و تجهیز جدید  ===================== */
 function openBulk(){const codes=[...S.sel];
@@ -413,6 +420,7 @@ $('#tb').addEventListener('click',e=>{const tr=e.target.closest('tr[data-c]');if
   openEquip(c)});
 $('#bAdd').onclick=openNew;$('#bBulk').onclick=openBulk;$('#bCsv').onclick=csv;$('#bClear').onclick=()=>{S.sel.clear();render()};$('#dx').onclick=()=>dlg.close();
 $('#store').addEventListener('click',e=>{if(e.target.id==='bClean')cleanOld()});
+dlg.addEventListener('change',e=>{if(e.target.id==='eAct'){const w=$('#eRsnW');if(w)w.style.display=e.target.value==='فعال'?'none':''}});
 dlg.addEventListener('click',async e=>{const t=e.target;
   if(t===dlg){dlg.close();return}
   if(t.dataset.tab){openEquip(cur.code,t.dataset.tab);return}
