@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>لیست تلفن داخلی - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.w{max-width:720px;margin:0 auto;padding:14px}
+.pbs{width:100%;padding:12px 14px;font-size:15px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);margin:10px 0 6px}
+.pbc{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;-webkit-overflow-scrolling:touch}
+.pbc button{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;font-size:12px;cursor:pointer;white-space:nowrap}
+.pbc button.on{background:var(--ac);border-color:var(--ac);color:var(--acx);font-weight:700}
+.pbu{margin-top:14px;border:1px solid var(--bd);border-radius:14px;background:var(--card);overflow:hidden}
+.pbu h2{margin:0;padding:10px 14px;font-size:14px;background:var(--soft);border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;gap:8px}
+.pbu h2 small{font-weight:400;color:var(--mu)}
+.pbr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--bd);font-size:14px}
+.pbr:first-of-type{border-top:0}
+.pbn{min-width:0;overflow-wrap:anywhere}
+.pbx{flex:none;display:flex;gap:6px;align-items:center}
+.pbx button{border:1px solid var(--ac);background:color-mix(in srgb,var(--ac) 10%,var(--card));color:var(--ac);border-radius:10px;padding:6px 12px;font-size:16px;font-weight:700;cursor:pointer;min-width:56px}
+.pbm{font-size:11px;color:var(--mu);border:1px solid var(--bd);border-radius:99px;padding:2px 8px}
+mark{background:#fde68a;color:#111;border-radius:3px;padding:0 2px}
+#pbt{position:fixed;inset:auto 12px 16px;z-index:9;background:#1f2937;color:#fff;border-radius:10px;padding:10px;text-align:center;display:none}
+</style>
+</head>
+<body>
+<div class="w">
+  <header class="hd">
+    <img src="logo-sm.png" alt="لوگو" onerror="this.style.display='none'">
+    <div class="min-w-0"><h1>📞 لیست تلفن داخلی</h1><div class="mu">گسترش فناوری خوارزمی · جستجو بر اساس واحد، نام یا شماره</div></div>
+    <a href="index.html" class="back">← بازگشت</a>
+  </header>
+  <input id="q" class="pbs" type="search" placeholder="🔍 جستجو: نام فرد، واحد، یا شمارهٔ داخلی..." autocomplete="off">
+  <div id="chips" class="pbc"></div>
+  <p id="cnt" class="mu" style="font-size:12px;margin:0"></p>
+  <div id="out"></div>
+  <p class="mu" style="font-size:11px;margin-top:16px">با لمس شمارهٔ داخلی، همان شماره کپی می‌شود. نشان «همراه» همان چیزی است که در ستون «همراه» فایل لیست تلفن ثبت شده بود.</p>
+</div>
+<div id="pbt"></div>
+<script src="phonebook_data.js"></script>
+<script>
+const $=id=>document.getElementById(id), P=window.PHONES||[];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* نرمال‌سازی جستجو: ی/ک عربی، نیم‌فاصله، ارقام فارسی/عربی به لاتین */
+const nz=s=>String(s||'').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[‌‏]/g,' ').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\s+/g,' ').trim().toLowerCase();
+const fa=s=>String(s).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+let U='';
+function hl(t,q){t=String(t);if(!q)return esc(t);const n=nz(t),i=n.indexOf(q);if(i<0||n.length!==t.length)return esc(t);return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length))}
+function chips(){
+  $('chips').innerHTML=`<button class="${U?'':'on'}" data-u="">همه واحدها</button>`+P.filter(u=>u.e.length).map((u,i)=>`<button class="${U===u.u?'on':''}" data-u="${esc(u.u)}">${esc(u.u.replace(/ـ+/g,''))}</button>`).join('');
+}
+function draw(){
+  const q=nz($('q').value);let shown=0,groups=0;
+  const html=P.filter(u=>u.e.length&&(!U||u.u===U)).map(u=>{
+    const un=nz(u.u),unitHit=q&&un.includes(q);
+    const list=u.e.filter(e=>!q||unitHit||nz(e.n).includes(q)||nz(e.x).includes(q)||nz(e.m).includes(q));
+    if(!list.length)return'';shown+=list.length;groups++;
+    return`<section class="pbu"><h2><span>${hl(u.u.replace(/ـ+/g,''),q)}</span><small>${fa(list.length)} شماره</small></h2>`+
+      list.map(e=>`<div class="pbr"><div class="pbn">${hl(e.n,q)}</div><div class="pbx">${e.m?`<span class="pbm" title="ستون همراه فایل لیست تلفن">${e.m==='**'?'📱 همراه':'همراه: '+esc(e.m)}</span>`:''}<button type="button" data-c="${esc(e.x)}" dir="ltr">${hl(e.x,q)}</button></div></div>`).join('')+`</section>`}).join('');
+  $('out').innerHTML=html||'<div class="pbu" style="padding:18px;text-align:center" >موردی پیدا نشد.</div>';
+  $('cnt').textContent=q||U?`${fa(shown)} شماره در ${fa(groups)} واحد`:`${fa(P.reduce((n,u)=>n+u.e.length,0))} شماره در ${fa(P.filter(u=>u.e.length).length)} واحد`;
+}
+function toast(m){const t=$('pbt');t.textContent=m;t.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',1400)}
+$('q').addEventListener('input',draw);
+$('chips').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;U=b.dataset.u;chips();draw()});
+$('out').addEventListener('click',async e=>{const b=e.target.closest('[data-c]');if(!b)return;const v=b.dataset.c;
+  try{await navigator.clipboard.writeText(v);toast('شمارهٔ '+fa(v)+' کپی شد')}catch(_){toast('شماره: '+fa(v))}});
+chips();draw();
+</script>
+</body>
+</html>
