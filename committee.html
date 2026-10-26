@@ -232,26 +232,29 @@ async function saveMeeting(){
 function printWin(html,title){
   const w=window.open('','_blank');if(!w)return toast('اجازهٔ باز شدن پنجره را بدهید');
   w.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><base href="${location.href}"><title>${esc(title)}</title><link rel="stylesheet" href="fonts.css"><style>
-  @page{size:A4;margin:10mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:12px;color:#000;margin:0}
-  .c{text-align:center}table{width:100%;border-collapse:collapse;margin-top:6px}td,th{border:1px solid #000;padding:5px 6px;vertical-align:top;font-size:11.5px}th{background:#eee}
-  .nb td{border:0}.k{background:#f5f5f5;font-weight:700;text-align:center;width:11%}.sg{height:46px}
+  @page{size:A4;margin:9mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:13px;color:#000;margin:0;line-height:1.7}
+  .c{text-align:center}table{width:100%;border-collapse:collapse}td,th{border:1px solid #000;padding:7px 8px;vertical-align:middle;font-size:13px}th{background:#f1f1f1;font-weight:700;text-align:center}
+  .k{background:#f7f7f7;font-weight:700;text-align:center}.ir td{height:62px}.ir .d{text-align:right;line-height:1.8}.b{font-weight:700}
+  .a .nm{height:120px;font-weight:700}.n td{padding:8px 10px}tr{page-break-inside:avoid}
   </style></head><body>${html}<script>setTimeout(()=>window.print(),400)<\/script></body></html>`);w.document.close()}
 function minutesHTML(m,items,workers){
-  const num=(k,i)=>fa(i+1)+'- ';
+  const L=s=>en(String(s==null?'':s));          /* فرم کاغذی اصلی با ارقام لاتین نوشته شده */
   const rowsFor=k=>{const l=items.filter(x=>x.kind===k);const t=KINDS.find(z=>z[0]===k)[1];
-    if(!l.length)return`<tr><td class="k">${t}</td><td colspan="5"></td></tr>`;
-    return l.map((x,i)=>`<tr>${i===0?`<td class="k" rowspan="${l.length}">${t}</td>`:''}<td>${num(k,i)}${esc(x.text)}</td><td class="c">${esc(x.actor||'')}</td><td class="c">${esc(x.follower||'')}</td><td class="c">${fa(x.deadline||'')}</td><td class="c">${esc(x.result==='مصوبه'?'':x.result||'')}</td></tr>`).join('')};
+    if(!l.length)return`<tr class="ir"><td class="k">${t}</td><td colspan="5"></td></tr>`;
+    return l.map((x,i)=>`<tr class="ir">${i===0?`<td class="k" rowspan="${l.length}">${t}</td>`:''}<td class="d">${i+1}- ${esc(x.text)}</td><td class="c">${esc(x.actor||'')}</td><td class="c">${esc(x.follower||'')}</td><td class="c b">${L(x.deadline||'')}</td><td class="c">${esc(x.result==='مصوبه'?'':x.result||'')}</td></tr>`).join('')};
   const att=m.att||{};
-  return`<div class="c"><b>بسمه تعالی</b><br><b style="font-size:15px">فرم صورتجلسه کمیته حفاظت فنی و بهداشت کار</b></div>
-  <table><tr><td>نام کارگاه: گسترش فناوری خوارزمی<br>کد تأمین اجتماعی: ۰۳۴۳۲۹۰۰۳۰</td><td>نوع فعالیت: صنعتی</td><td>تعداد کل کارگران: ${workers?fa(workers)+' نفر':'—'}</td></tr>
-  <tr><td colspan="3">نشانی: جاده مخصوص کرج - گرمدره - بلوار امیرکبیر - کوهک چهارم - پلاک ۴۶ &nbsp;|&nbsp; تلفن: ۳۶۱۰۸۱۲۲-۰۲۶ &nbsp; فکس: ۳۶۱۰۸۱۲۸-۰۲۶ &nbsp;|&nbsp; ایمیل: info@khwarizmico.com</td></tr>
-  <tr><td>شمارهٔ جلسه: ${fa(m.no_label||m.no)}</td><td>ساعت شروع: ${fa(m.t1||'')} &nbsp; ساعت پایان: ${fa(m.t2||'')}</td><td>تاریخ جلسه: ${fa(m.jdate)}</td></tr>
-  <tr><td colspan="3">مکان تشکیل جلسه: ${esc(m.place||'')}</td></tr></table>
-  <table><tr><th>موضوع</th><th>شرح</th><th>واحد / شخص اقدام‌کننده</th><th>واحد / شخص پیگیری‌کننده</th><th>مهلت اقدام</th><th>نتیجه</th></tr>${KINDS.map(([k])=>rowsFor(k)).join('')}</table>
-  <table><tr><th rowspan="3" style="width:11%">اعضای کمیته حفاظت فنی و بهداشت کار</th>${ROLES.map(r=>`<th>${r}</th>`).join('')}</tr>
-  <tr>${ROLES.map(r=>`<td class="c">${esc(att[r]||'')}</td>`).join('')}</tr><tr>${ROLES.map(()=>`<td class="sg"></td>`).join('')}</tr></table>
-  <table><tr><td>غایبین و دلایل غیبت: ${esc(m.absent||'')}</td></tr><tr><td>مدعوین: ${esc(m.guests||'')}</td></tr><tr><td>توضیحات: ${esc(m.notes||'')}</td></tr><tr><td>تاریخ جلسهٔ بعدی: ${fa(m.next_date||'')}</td></tr>
-  <tr><td style="height:60px">ارزیابی بازرس / بازرسان کار بررسی‌کننده:<br><br>نام و نام خانوادگی بازرس / بازرسان کار:</td></tr></table>`}
+  return`<div class="c" style="line-height:1.9"><b>بسمه تعالی</b><br><b style="font-size:15px">فرم صورتجلسه کمیته حفاظت فنی و بهداشت کار</b></div>
+  <table class="h"><tr><td style="width:37%">نام کارگاه: <b>گسترش فناوری خوارزمی</b><br>کد تأمین اجتماعی: <b>0343290030</b></td><td class="c" style="width:26%">نوع فعالیت: صنعتی</td><td style="width:37%">تعداد کل کارگران: <b>${workers?L(workers)+' نفر':'—'}</b></td></tr>
+  <tr><td colspan="3">نشانی: جاده مخصوص کرج - گرمدره - بلوار امیرکبیر - کوهک چهارم - پلاک 46</td></tr>
+  <tr><td>تلفن: <span dir="ltr">026-36108122</span></td><td>فکس: <span dir="ltr">026-36108128</span></td><td>آدرس ایمیل: <span dir="ltr">info@khwarizmico.com</span></td></tr>
+  <tr><td>شماره جلسه: <b>${L(m.no_label||m.no)}</b></td><td>ساعت شروع: <b>${L(m.t1||'')}</b></td><td>ساعت پایان: <b>${L(m.t2||'')}</b></td></tr>
+  <tr><td>تاریخ جلسه: <b>${L(m.jdate)}</b></td><td colspan="2">مکان تشکیل جلسه: ${esc(m.place||'')}</td></tr></table>
+  <table class="i" style="margin-top:12px"><tr><th style="width:12%">موضوع</th><th>شرح</th><th style="width:13%">واحد / شخص اقدام‌کننده</th><th style="width:13%">واحد / شخص پیگیری‌کننده</th><th style="width:11%">مهلت اقدام</th><th style="width:10%">نتیجه</th></tr>${KINDS.map(([k])=>rowsFor(k)).join('')}</table>
+  <table class="a" style="margin-top:12px"><tr><th rowspan="3" style="width:12%">اعضای کمیته حفاظت فنی و بهداشت کار</th><th rowspan="2" style="width:10%">حاضرین</th>${ROLES.map(r=>`<th>${r} :</th>`).join('')}</tr>
+  <tr>${ROLES.map(r=>`<td class="c nm">${esc(att[r]||'')}</td>`).join('')}</tr>
+  <tr><td class="c">غایبین و دلایل غیبت</td><td colspan="5" style="height:36px">${esc(m.absent||'')}</td></tr></table>
+  <table class="n" style="margin-top:12px"><tr><td>مدعوین : ${esc(m.guests||'')}</td></tr><tr><td>توضیحات : ${esc(m.notes||'')}</td></tr><tr><td>تاریخ جلسه بعدی : <b>${L(m.next_date||'')}</b></td></tr></table>
+  <table class="n" style="margin-top:12px"><tr><td style="height:170px">ارزیابی بازرس / بازرسان کار بررسی‌کننده :<br><br><br><div style="text-align:center">نام و نام خانوادگی بازرس / بازرسان کار :</div></td></tr></table>`}
 function letterHTML(m,t,s){
   const [y,mo]=[m.jdate.slice(0,4),+m.jdate.slice(5,7)];
   return`<div style="max-width:700px;margin:0 auto;line-height:2.1;font-size:14px;padding:10px 20px">
