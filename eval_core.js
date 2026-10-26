@@ -128,8 +128,9 @@
       
       // ✅ تابع جدید برای محاسبه‌ی امتیاز وزنی کارت‌ها
       // گزارش عادی = ۱ امتیاز، گزارش عالی = ۲ امتیاز
+      const isT = (c, type) => type === 'hazard' ? (c.card_type === 'hazard' || c.card_type === 'health_hazard') : c.card_type === type; /* خطر بهداشتی هم‌ارزِ خطر ایمنی در امتیاز مشارکت حساب می‌شود */
       const getWeightedScore = (type) => {
-        const typeCards = cards.filter(c => c.unit === u.name && c.card_type === type);
+        const typeCards = cards.filter(c => c.unit === u.name && isT(c, type));
         const standardCount = typeCards.filter(c => c.is_excellent !== true).length;
         const excellentCount = typeCards.filter(c => c.is_excellent === true).length;
         return standardCount + (excellentCount * 2);
@@ -158,7 +159,7 @@
     // ✅ محاسبه‌ی آمار کارت‌ها با در نظر گرفتن امتیاز وزنی
     const allCardsInMonth = inM(B.cards, 'card_date').filter(c => c.status !== 'rejected');
     const weightedTotal = allCardsInMonth.reduce((sum, c) => sum + (c.is_excellent ? 2 : 1), 0);
-    const weightedByType = (type) => allCardsInMonth.filter(c => c.card_type === type).reduce((sum, c) => sum + (c.is_excellent ? 2 : 1), 0);
+    const weightedByType = (type) => allCardsInMonth.filter(c => type === 'hazard' ? (c.card_type === 'hazard' || c.card_type === 'health_hazard') : c.card_type === type).reduce((sum, c) => sum + (c.is_excellent ? 2 : 1), 0);
     
     return { 
       K, rows, zones, 
@@ -167,7 +168,8 @@
       cardsTotal: allCardsInMonth.length,
       cardsWeightedTotal: weightedTotal, // ✅ مجموع امتیاز وزنی
       cardTypes: { 
-        hazard: allCardsInMonth.filter(c => c.card_type === 'hazard').length, 
+        hazard: allCardsInMonth.filter(c => c.card_type === 'hazard' || c.card_type === 'health_hazard').length, 
+        health: allCardsInMonth.filter(c => c.card_type === 'health_hazard').length, 
         near_miss: allCardsInMonth.filter(c => c.card_type === 'near_miss').length, 
         suggestion: allCardsInMonth.filter(c => c.card_type === 'suggestion').length 
       },
