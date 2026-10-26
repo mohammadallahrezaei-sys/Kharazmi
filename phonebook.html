@@ -23,6 +23,22 @@
 .pbm{font-size:11px;color:var(--mu);border:1px solid var(--bd);border-radius:99px;padding:2px 8px}
 mark{background:#fde68a;color:#111;border-radius:3px;padding:0 2px}
 #pbt{position:fixed;inset:auto 12px 16px;z-index:9;background:#1f2937;color:#fff;border-radius:10px;padding:10px;text-align:center;display:none}
+
+.pbx{flex-wrap:wrap;justify-content:flex-end}
+.pbx button.mob{border-color:#16a34a;color:#16a34a;background:color-mix(in srgb,#16a34a 10%,var(--card))}
+.pbx button.ed{min-width:0;padding:6px 8px;font-size:13px;border-color:var(--bd);color:var(--mu);background:var(--card)}
+[hidden]{display:none!important}
+.pbt2{display:flex;gap:8px;align-items:center;margin:4px 0}
+.pbt2 button{border:1px solid var(--ac);background:var(--ac);color:var(--acx);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.pbn2{font-size:12px;border:1px solid var(--bd);background:var(--soft);border-radius:10px;padding:8px 10px;margin:6px 0}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);width:min(92vw,420px);padding:16px}
+dialog::backdrop{background:rgba(15,23,42,.55)}
+dialog label{display:block;font-size:12px;color:var(--mu);margin-top:10px}
+dialog input{width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg,var(--card));color:var(--tx);font:inherit;margin-top:4px}
+dialog .row{display:flex;gap:8px;margin-top:14px}
+dialog .row button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer;font:inherit}
+dialog .row .pri{background:var(--ac);border-color:var(--ac);color:var(--acx);font-weight:700}
+dialog .row .del{color:#dc2626;border-color:#dc2626;flex:none}
 </style>
 </head>
 <body>
@@ -34,40 +50,86 @@ mark{background:#fde68a;color:#111;border-radius:3px;padding:0 2px}
   </header>
   <input id="q" class="pbs" type="search" placeholder="🔍 جستجو: نام فرد، واحد، یا شمارهٔ داخلی..." autocomplete="off">
   <div id="chips" class="pbc"></div>
-  <p id="cnt" class="mu" style="font-size:12px;margin:0"></p>
+  <div class="pbt2"><p id="cnt" class="mu" style="font-size:12px;margin:0;flex:1"></p><button id="bAdd" type="button" hidden>＋ افزودن شماره</button></div>
+  <div id="note"></div>
   <div id="out"></div>
-  <p class="mu" style="font-size:11px;margin-top:16px">با لمس شمارهٔ داخلی، همان شماره کپی می‌شود. نشان «همراه» همان چیزی است که در ستون «همراه» فایل لیست تلفن ثبت شده بود.</p>
+  <p class="mu" style="font-size:11px;margin-top:16px">با لمس شمارهٔ داخلی، همان شماره کپی می‌شود. دکمهٔ سبز 📱 کدِ رسیدن به موبایل همان فرد است: شمارهٔ داخلی را بگیرید و بعد دو ستاره (**).</p>
 </div>
+<dialog id="dlg"><form method="dialog" id="fm" onsubmit="return false">
+  <b id="dt">افزودن شماره</b>
+  <label>واحد<input id="fU" list="ul" autocomplete="off" placeholder="نام واحد (موجود یا جدید)"></label><datalist id="ul"></datalist>
+  <label>نام فرد / محل<input id="fN" autocomplete="off"></label>
+  <label>شمارهٔ داخلی (برای چند شماره با / جدا کنید)<input id="fX" dir="ltr" autocomplete="off" placeholder="مثلاً 115 یا 124/163"></label>
+  <label>موبایل (اختیاری): اگر با «داخلی + **» به موبایل وصل می‌شود فقط ** بنویسید، یا کد کامل را مثل 166**<input id="fM" dir="ltr" autocomplete="off" placeholder="**"></label>
+  <div id="fE" style="color:#dc2626;font-size:12px;margin-top:8px"></div>
+  <div class="row"><button type="button" class="del" id="fD" hidden>حذف</button><button type="button" id="fC">انصراف</button><button type="button" class="pri" id="fS">ذخیره</button></div>
+</form></dialog>
 <div id="pbt"></div>
 <script src="phonebook_data.js"></script>
 <script>
-const $=id=>document.getElementById(id), P=window.PHONES||[];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* نرمال‌سازی جستجو: ی/ک عربی، نیم‌فاصله، ارقام فارسی/عربی به لاتین */
 const nz=s=>String(s||'').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[‌‏]/g,' ').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\s+/g,' ').trim().toLowerCase();
 const fa=s=>String(s).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
-let U='';
+const API='https://priopguwfjawybffarhd.supabase.co/rest/v1/phonebook';
+let P=[],U='',DB=false,EMPTY=false,MSG='';
+async function rq(q,o){const r=await fetch(API+q,{...o,headers:{'Content-Type':'application/json',Prefer:'return=representation',...((o||{}).headers||{})}});if(!r.ok)throw new Error(await r.text());return r.status===204?null:r.json()}
+function group(rows){const m=new Map();rows.forEach(r=>{if(!m.has(r.unit))m.set(r.unit,{u:r.unit,o:r.ord,e:[]});const g=m.get(r.unit);g.o=Math.min(g.o,r.ord);g.e.push({id:r.id,n:r.name,x:r.ext,m:r.mobile||'',o:r.ord})});
+  return [...m.values()].sort((a,b)=>a.o-b.o).map(g=>({...g,e:g.e.sort((a,b)=>a.o-b.o)}))}
+async function load(){
+  try{const rows=await rq('?select=*&order=ord.asc&limit=2000');DB=true;EMPTY=!rows.length;P=EMPTY?window.PHONES||[]:group(rows)}
+  catch(e){DB=false;P=window.PHONES||[];MSG='جدول ویرایش ساخته نشده؛ فایل hse_phonebook.sql را یک‌بار در Supabase اجرا کنید تا افزودن و ویرایش فعال شود.'}
+  $('bAdd').hidden=!DB||EMPTY;chips();draw();note()}
+function note(){
+  $('note').innerHTML=!DB?`<div class="pbn2">⚠️ ${esc(MSG)} (فعلاً لیست فقط‌خواندنی است)</div>`:EMPTY?`<div class="pbn2">لیست فعلاً از فایل اولیه خوانده می‌شود. برای فعال شدن افزودن و ویرایش، یک‌بار آن را به پایگاه داده منتقل کنید. <button id="bImp" type="button" style="margin-top:6px;border:1px solid var(--ac);background:var(--ac);color:var(--acx);border-radius:10px;padding:6px 12px;cursor:pointer">انتقال لیست (${fa((window.PHONES||[]).reduce((n,u)=>n+u.e.length,0))} شماره)</button></div>`:''}
+/* کدهای رسیدن به موبایل: «**» یعنی داخلی + ** ؛ یا کد کامل مثل 166** */
+function mobs(e){const m=(e.m||'').trim();if(!m)return[];if(m==='**')return String(e.x).split('/').map(s=>s.trim()).filter(Boolean).map(s=>s+'**');
+  if(/^[\d]+\*+$/.test(m))return[m];return[]}
+const mobTxt=e=>{const m=(e.m||'').trim();return m&&m!=='**'&&!/^[\d]+\*+$/.test(m)?m:''};
 function hl(t,q){t=String(t);if(!q)return esc(t);const n=nz(t),i=n.indexOf(q);if(i<0||n.length!==t.length)return esc(t);return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length))}
 function chips(){
-  $('chips').innerHTML=`<button class="${U?'':'on'}" data-u="">همه واحدها</button>`+P.filter(u=>u.e.length).map((u,i)=>`<button class="${U===u.u?'on':''}" data-u="${esc(u.u)}">${esc(u.u.replace(/ـ+/g,''))}</button>`).join('');
-}
+  $('chips').innerHTML=`<button class="${U?'':'on'}" data-u="">همه واحدها</button>`+P.filter(u=>u.e.length).map(u=>`<button class="${U===u.u?'on':''}" data-u="${esc(u.u)}">${esc(u.u)}</button>`).join('');
+  $('ul').innerHTML=P.map(u=>`<option value="${esc(u.u)}">`).join('')}
 function draw(){
   const q=nz($('q').value);let shown=0,groups=0;
   const html=P.filter(u=>u.e.length&&(!U||u.u===U)).map(u=>{
     const un=nz(u.u),unitHit=q&&un.includes(q);
     const list=u.e.filter(e=>!q||unitHit||nz(e.n).includes(q)||nz(e.x).includes(q)||nz(e.m).includes(q));
     if(!list.length)return'';shown+=list.length;groups++;
-    return`<section class="pbu"><h2><span>${hl(u.u.replace(/ـ+/g,''),q)}</span><small>${fa(list.length)} شماره</small></h2>`+
-      list.map(e=>`<div class="pbr"><div class="pbn">${hl(e.n,q)}</div><div class="pbx">${e.m?`<span class="pbm" title="ستون همراه فایل لیست تلفن">${e.m==='**'?'📱 همراه':'همراه: '+esc(e.m)}</span>`:''}<button type="button" data-c="${esc(e.x)}" dir="ltr">${hl(e.x,q)}</button></div></div>`).join('')+`</section>`}).join('');
+    return`<section class="pbu"><h2><span>${hl(u.u,q)}</span><small>${fa(list.length)} شماره</small></h2>`+
+      list.map(e=>`<div class="pbr"><div class="pbn">${hl(e.n,q)}</div><div class="pbx">${mobTxt(e)?`<span class="pbm">همراه: ${esc(mobTxt(e))}</span>`:''}${mobs(e).map(c=>`<button type="button" class="mob" data-c="${esc(c)}" dir="ltr" title="کد رسیدن به موبایل: داخلی + **">📱 ${esc(c)}</button>`).join('')}${String(e.x).split('/').map(s=>s.trim()).filter(Boolean).map(s=>`<button type="button" data-c="${esc(s)}" dir="ltr">${hl(s,q)}</button>`).join('')}${DB&&e.id?`<button type="button" class="ed" data-ed="${esc(e.id)}" title="ویرایش">✏️</button>`:''}</div></div>`).join('')+`</section>`}).join('');
   $('out').innerHTML=html||'<div class="pbu" style="padding:18px;text-align:center" >موردی پیدا نشد.</div>';
   $('cnt').textContent=q||U?`${fa(shown)} شماره در ${fa(groups)} واحد`:`${fa(P.reduce((n,u)=>n+u.e.length,0))} شماره در ${fa(P.filter(u=>u.e.length).length)} واحد`;
 }
-function toast(m){const t=$('pbt');t.textContent=m;t.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',1400)}
+function toast(m){const t=$('pbt');t.textContent=m;t.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display='none',1600)}
 $('q').addEventListener('input',draw);
 $('chips').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;U=b.dataset.u;chips();draw()});
-$('out').addEventListener('click',async e=>{const b=e.target.closest('[data-c]');if(!b)return;const v=b.dataset.c;
-  try{await navigator.clipboard.writeText(v);toast('شمارهٔ '+fa(v)+' کپی شد')}catch(_){toast('شماره: '+fa(v))}});
-chips();draw();
+$('out').addEventListener('click',async e=>{
+  const ed=e.target.closest('[data-ed]');if(ed)return openEd(ed.dataset.ed);
+  const b=e.target.closest('[data-c]');if(!b)return;const v=b.dataset.c;
+  try{await navigator.clipboard.writeText(v);toast('کپی شد: '+fa(v))}catch(_){toast('شماره: '+fa(v))}});
+/* ===== افزودن / ویرایش / حذف ===== */
+let EID=null;
+function openEd(id){EID=id||null;let r={n:'',x:'',m:'',u:U||''};
+  if(id){for(const g of P){const f=g.e.find(x=>String(x.id)===String(id));if(f){r={...f,u:g.u};break}}}
+  $('dt').textContent=id?'ویرایش شماره':'افزودن شماره';$('fU').value=r.u;$('fN').value=r.n;$('fX').value=r.x;$('fM').value=r.m;$('fE').textContent='';$('fD').hidden=!id;$('dlg').showModal()}
+$('bAdd').onclick=()=>openEd(null);$('fC').onclick=()=>$('dlg').close();
+$('fS').onclick=async()=>{
+  const u=$('fU').value.trim(),n=$('fN').value.trim(),x=$('fX').value.trim(),m=$('fM').value.trim();
+  if(!u||!n||!x)return $('fE').textContent='واحد، نام و شمارهٔ داخلی را وارد کنید.';
+  try{
+    if(EID)await rq('?id=eq.'+encodeURIComponent(EID),{method:'PATCH',body:JSON.stringify({unit:u,name:n,ext:x,mobile:m})});
+    else{const g=P.find(z=>z.u===u),all=P.flatMap(z=>z.e.map(e=>e.o||0)),ord=g?Math.max(...g.e.map(e=>e.o||0))+1:(all.length?Math.max(...all):0)+1000;
+      await rq('',{method:'POST',body:JSON.stringify({unit:u,name:n,ext:x,mobile:m,ord})})}
+    $('dlg').close();toast('ذخیره شد');await load()}
+  catch(e){$('fE').textContent='خطا: '+String(e.message).slice(0,120)}};
+$('fD').onclick=async()=>{if(!EID||!confirm('این شماره حذف شود؟'))return;
+  try{await rq('?id=eq.'+encodeURIComponent(EID),{method:'DELETE'});$('dlg').close();toast('حذف شد');await load()}catch(e){$('fE').textContent='خطا: '+String(e.message).slice(0,120)}};
+$('note').addEventListener('click',async e=>{if(e.target.id!=='bImp')return;e.target.disabled=true;
+  const rows=[];(window.PHONES||[]).forEach((u,i)=>u.e.forEach((p,j)=>rows.push({unit:u.u,name:p.n,ext:p.x,mobile:p.m||'',ord:(i+1)*1000+j})));
+  try{for(let i=0;i<rows.length;i+=100)await rq('',{method:'POST',body:JSON.stringify(rows.slice(i,i+100))});toast('منتقل شد');await load()}
+  catch(er){toast('خطا: '+String(er.message).slice(0,100));e.target.disabled=false}});
+load();
 </script>
 </body>
 </html>
