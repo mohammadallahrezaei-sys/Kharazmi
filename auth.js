@@ -6,7 +6,7 @@
   /* ===== نقش‌ها (ایمیل‌ها را اینجا تنظیم کنید) ===== */
   const MANAGERS = ['m.rezaei@gmail.com'];
   const EXPERTS = { 'm.mohammadi@gmail.com': 'محمدی' };
-  const MANAGER_ONLY_LINKS = ['report.html', 'reward_eval.html']; // برای کارشناس از منوها پنهان می‌شود
+  const MANAGER_ONLY_LINKS = ['report.html', 'reward_eval.html', 'committee.html']; // برای کارشناس از منوها پنهان می‌شود
   /* ================================================= */
   const SCR = document.currentScript, PAGE_ROLES = SCR && SCR.dataset.roles ? SCR.dataset.roles.split(',') : null;
   /* اتصال زودهنگام به Supabase: چند صد میلی‌ثانیه از اولین درخواست داده کم می‌کند */
