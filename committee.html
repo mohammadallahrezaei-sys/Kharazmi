@@ -154,10 +154,18 @@ function renderDocs(){
 }
 
 /* ===================== ویرایش جلسه ===================== */
+const lastDay=(y,m)=>m<=6?31:m<=11?30:29;
+function defDate(last){   /* جلسهٔ بعدیِ گزارش‌نشده: ماهِ بعد از آخرین جلسه (اگر هنوز نرسیده، تاریخ امروز) */
+  const today=tj();if(!last)return today;
+  let y=+last.jdate.slice(0,4),m=+last.jdate.slice(5,7)+1;if(m>12){m=1;y++}
+  const pad=n=>String(n).padStart(2,'0');
+  if(last.next_date&&last.next_date.slice(0,7)===y+'/'+pad(m))return last.next_date;
+  const d=y+'/'+pad(m)+'/'+pad(lastDay(y,m));
+  return d<=today||today.slice(0,7)===d.slice(0,7)?d<=today?d:today:today}
 function newMeeting(){
   const last=MEET[0],y=+tj().slice(0,4),no=Math.max(0,...MEET.filter(m=>m.year===y).map(m=>m.no))+1;
   const carry=last?openItems(last).map((x,i)=>({id:uid(),kind:'ongoing',text:x.text,actor:x.actor||'',follower:x.follower||'',deadline:x.deadline||'',result:'در دست اقدام'})):[];
-  E={isNew:true,m:{id:uid(),year:y,no,no_label:'',jdate:last&&last.next_date&&last.next_date>=tj()?last.next_date:tj(),t1:last?last.t1||'':'',t2:last?last.t2||'':'',place:last?last.place||'':'اتاق کنفرانس مدیریت',workers:last?last.workers:null,next_date:'',att:{...(last?last.att:{})},absent:'',guests:'',notes:''},items:carry,sub:{labor:{},health:{}}};
+  E={isNew:true,m:{id:uid(),year:y,no,no_label:'',jdate:defDate(last),t1:last?last.t1||'':'',t2:last?last.t2||'':'',place:last?last.place||'':'اتاق کنفرانس مدیریت',workers:last?last.workers:null,next_date:'',att:{...(last?last.att:{})},absent:'',guests:'',notes:''},items:carry,sub:{labor:{},health:{}}};
   render();
 }
 function openEdit(id,toSub){
@@ -168,7 +176,7 @@ function openEdit(id,toSub){
 function renderEdit(){
   const m=E.m;
   const itemsHTML=KINDS.map(([k,t])=>{const rows=E.items.map((x,i)=>[x,i]).filter(([x])=>x.kind===k);
-    return`<div class="sec"><span>${t} (${fa(rows.length)})</span><button class="btn2" data-a="additem" data-k="${k}">＋ افزودن</button></div>`+rows.map(([x,i],n)=>`<div class="it"><div class="mu" style="font-size:11px">${fa(n+1)}</div>
+    return`<div class="sec"><span>${t} (${fa(rows.length)})</span><span style="display:flex;gap:6px">${k==='done'?'<button class="btn2 p" data-a="suggest">✨ پیشنهاد از کارهای ماه</button>':''}<button class="btn2" data-a="additem" data-k="${k}">＋ افزودن</button></span></div>`+rows.map(([x,i],n)=>`<div class="it"><div class="mu" style="font-size:11px">${fa(n+1)}</div>
       <textarea data-i="${i}" data-f="text" placeholder="شرح اقدام / مصوبه" style="width:100%;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;padding:8px">${esc(x.text)}</textarea>
       <div class="g5"><label class="f">اقدام‌کننده<input data-i="${i}" data-f="actor" value="${esc(x.actor)}" placeholder="مثلاً نت / HSE"></label><label class="f">پیگیری‌کننده<input data-i="${i}" data-f="follower" value="${esc(x.follower)}"></label>
       <label class="f">مهلت (۱۴۰۵/۰۷/۳۰)<input data-i="${i}" data-f="deadline" value="${esc(x.deadline)}" dir="ltr" inputmode="numeric"></label>
@@ -240,13 +248,76 @@ async function saveMeeting(){
     const wr=r=>E.isNew?rq('committee_meetings',{method:'POST',body:JSON.stringify(r),headers:{Prefer:'return=minimal'}}):rq('committee_meetings?id=eq.'+m.id,{method:'PATCH',body:JSON.stringify(r),headers:{Prefer:'return=minimal'}});
     try{await wr(row)}catch(e){if(!/files/.test(e.message)||(m.files||[]).length)throw e;const r2={...row};delete r2.files;await wr(r2)}
     await rq('committee_items?meeting_id=eq.'+m.id,{method:'DELETE',headers:{Prefer:'return=minimal'}});
-    const its=E.items.map((x,i)=>({id:x.id||uid(),meeting_id:m.id,seq:i,kind:x.kind,text:x.text.trim(),actor:x.actor||null,follower:x.follower||null,deadline:x.deadline?normD(x.deadline):null,result:x.result||null}));
-    for(let i=0;i<its.length;i+=100)await rq('committee_items',{method:'POST',body:JSON.stringify(its.slice(i,i+100)),headers:{Prefer:'return=minimal'}});
+    const its=E.items.map((x,i)=>({id:x.id||uid(),meeting_id:m.id,seq:i,kind:x.kind,text:x.text.trim(),actor:x.actor||null,follower:x.follower||null,deadline:x.deadline?normD(x.deadline):null,result:x.result||null,ref:x.ref||null}));
+    const putIts=async rows=>{for(let i=0;i<rows.length;i+=100)await rq('committee_items',{method:'POST',body:JSON.stringify(rows.slice(i,i+100)),headers:{Prefer:'return=minimal'}})};
+    try{await putIts(its)}catch(e){if(!/ref/.test(e.message))throw e;await putIts(its.map(({ref,...r})=>r))}
     const subs=['labor','health'].map(t=>{const s=E.sub[t]||{};return{meeting_id:m.id,target:t,letter_no:s.letter_no||null,letter_date:s.letter_date?normD(s.letter_date)||s.letter_date:null,receipt_no:s.receipt_no||null,receipt_date:s.receipt_date?normD(s.receipt_date)||s.receipt_date:null,files:s.files||[],note:s.note||null}}).filter(s=>s.letter_no||s.letter_date||s.receipt_no||s.receipt_date||s.files.length||s.note);
     if(subs.length)await rq('committee_submissions?on_conflict=meeting_id,target',{method:'POST',body:JSON.stringify(subs),headers:{Prefer:'resolution=merge-duplicates,return=minimal'}});
     toast('ذخیره شد');E=null;await load()}
   catch(e){toast(/duplicate|unique/i.test(e.message)?'شمارهٔ جلسه در این سال تکراری است':'خطا: '+e.message.slice(0,120))}
 }
+
+/* ===================== پیشنهاد اقدامات انجام‌شده از دادهٔ همان ماه ===================== */
+const PURP={'حریق':'به‌منظور افزایش آمادگی در برابر آتش‌سوزی و پیشگیری از وقوع حریق','برق':'به‌منظور پیشگیری از برق‌گرفتگی و حوادث ناشی از تجهیزات برقی','مواد شیمیایی و گاز':'به‌منظور پیشگیری از نشت، تماس و مواجهه با مواد شیمیایی و گازها','ماشین‌آلات و تجهیزات':'به‌منظور پیشگیری از حوادث ناشی از کار با ماشین‌آلات و تجهیزات','ارتفاع و سقوط':'به‌منظور جلوگیری از سقوط افراد','حفاظت فردی و آموزش':'به‌منظور ارتقای ایمنی و آمادگی پرسنل','بهداشت و محیط‌زیست':'به‌منظور ارتقای شرایط بهداشتی و محیط‌زیستی کارگاه'};
+let SG={K:'',list:[],loading:false,group:true};
+const nextISO=iso=>new Date(new Date(iso+'T12:00:00Z').getTime()+864e5).toISOString().slice(0,10);
+const clean=s=>String(s||'').replace(/\s+/g,' ').replace(/[.؛،:\s]+$/,'').trim();
+const usedRefs=()=>{const s=new Set();ITEMS.forEach(l=>l.forEach(x=>(x.ref||'').split(',').forEach(r=>r&&s.add(r))));(E?E.items:[]).forEach(x=>(x.ref||'').split(',').forEach(r=>r&&s.add(r)));return s};
+function monthOpts(){const ks=HSE.monthKeys(14);return ks.map(k=>`<option value="${k}" ${k===SG.K?'selected':''}>${HSE.monthLabel(k)}</option>`).join('')}
+async function buildSuggest(){
+  const K=SG.K,R=HSE.monthRange(K),A=R.a,B=nextISO(R.b),pre=K.replace('-','/')+'/',used=usedRefs(),g=HSE.getAll,out=[];
+  const [fin,tr,ta,eqi,eq,ins,cd]=await Promise.all([
+    g(`findings?select=id,question,note,location,module,category,responsible,notice_code&status=eq.closed&module=neq.MED&closed_at=gte.${A}T00:00:00%2B03:30&closed_at=lt.${B}T00:00:00%2B03:30&order=category.asc`).catch(()=>[]),
+    g(`trainings?select=id,title,training_date,duration_hours,training_type&training_date=gte.${A}&training_date=lte.${R.b}&order=training_date.asc`).catch(()=>[]),
+    g('training_attendees?select=training_id').catch(()=>[]),
+    g(`equipment_inspections?select=equipment_code,inspected_on,result&inspected_on=like.${encodeURIComponent(pre)}*`).catch(()=>[]),
+    g('equipment?select=code,category').catch(()=>[]),
+    g(`inspections?select=id,module,created_at&created_at=gte.${A}T00:00:00%2B03:30&created_at=lt.${B}T00:00:00%2B03:30`).catch(()=>[]),
+    g(`hse_cards?select=id,card_type,status&card_date=gte.${A}&card_date=lte.${R.b}&status=eq.done`).catch(()=>[])]);
+  /* عدم‌انطباق‌های رفع‌شده: ادغام بر اساس دسته و محل */
+  const place=f=>clean(String(f.location||'').split(' - ')[0])||'';
+  const groups=new Map();fin.filter(f=>!used.has('f:'+f.id)).forEach(f=>{const k=SG.group?(f.category||'عمومی')+'|'+place(f):'f'+f.id;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(f)});
+  groups.forEach(l=>{const f=l[0],cat=f.category||'نظم و ایمنی عمومی',loc=place(f),pu=PURP[cat]||'به‌منظور ارتقای سطح ایمنی کارگاه';
+    const iss=x=>clean((x.note&&x.note.length>5?x.note:x.question)).slice(0,140);
+    const text=l.length===1?`رفع عدم‌انطباق ${cat==='نظم و ایمنی عمومی'?'ایمنی':'حوزهٔ '+cat}${loc?' در '+loc:''}: ${iss(f)}، ${pu}.`
+      :`رفع ${fa(l.length)} مورد عدم‌انطباق حوزهٔ ${cat}${loc?' در '+loc:''} شامل ${l.map(iss).join('؛ ')}، ${pu}.`;
+    const resp=[...new Set(l.map(x=>x.responsible).filter(Boolean))].slice(0,2).join('/');
+    out.push({type:'عدم‌انطباق رفع‌شده',text,actor:resp||'فنی',ref:l.map(x=>'f:'+x.id).join(','),n:l.length})});
+  /* آموزش‌ها */
+  tr.filter(x=>!used.has('t:'+x.id)).forEach(x=>{const n=ta.filter(a=>a.training_id===x.id).length;
+    out.push({type:'آموزش',text:`برگزاری دورهٔ آموزشی «${clean(x.title)}»${x.duration_hours?' به‌مدت '+fa(x.duration_hours)+' ساعت':''}${n?' با شرکت '+fa(n)+' نفر از پرسنل':''}${x.training_type==='contractor'?' (پرسنل پیمانکار)':''}.`,actor:'منابع انسانی/HSE',ref:'t:'+x.id,n:1})});
+  /* تاییدیه‌های فنی تجهیزات */
+  const cat=new Map(eq.map(e=>[e.code,e.category])),byC=new Map();eqi.forEach(i=>{const c=cat.get(i.equipment_code)||'تجهیزات';if(!byC.has(c))byC.set(c,[]);byC.get(c).push(i)});
+  byC.forEach((l,c)=>{const ref='e:'+K+'|'+c;if(used.has(ref))return;const bad=l.filter(x=>x.result==='عدم تایید').length;
+    out.push({type:'تاییدیه فنی',text:`انجام بازرسی دوره‌ای و ثبت تاییدیهٔ فنی ${c} (${fa(l.length)} دستگاه${bad?'، '+fa(bad)+' مورد دارای عدم تایید و در حال پیگیری':''}) جهت اطمینان از ایمنی بهره‌برداری.`,actor:'HSE/فنی',ref,n:l.length})});
+  /* بازدیدها */
+  if(ins.length&&!used.has('i:'+K)){const d=ins.filter(x=>x.module==='D').length,o=ins.length-d;
+    out.push({type:'بازدیدهای ایمنی',text:`انجام ${[d?fa(d)+' بازدید روزانه':'',o?fa(o)+' بازدید تخصصی':''].filter(Boolean).join(' و ')} ایمنی با استفاده از چک‌لیست‌های استاندارد و ثبت و پیگیری عدم‌انطباق‌ها.`,actor:'HSE',ref:'i:'+K,n:ins.length})}
+  /* کارت‌ها */
+  if(cd.length&&!used.has('c:'+K))out.push({type:'کارت‌ها',text:`بررسی و اقدام بر روی ${fa(cd.length)} کارت گزارش خطر، شبه‌حادثه و پیشنهاد دریافتی از پرسنل.`,actor:'HSE',ref:'c:'+K,n:cd.length});
+  SG.list=out;
+}
+async function openSuggest(){
+  const d=normD(E.m.jdate)||tj();let y=+d.slice(0,4),m=+d.slice(5,7);if(+d.slice(8,10)<=10){m--;if(m<1){m=12;y--}}SG.K=y+'-'+String(m).padStart(2,'0');
+  $('#dlg').innerHTML='<div class="mu">در حال خواندن اطلاعات ماه…</div>';$('#dlg').showModal();await reloadSuggest()}
+async function reloadSuggest(){
+  $('#sgBody')&&($('#sgBody').style.opacity=.5);
+  try{await buildSuggest()}catch(e){$('#dlg').innerHTML=`<div class="warn">خطا در خواندن اطلاعات: ${esc(e.message.slice(0,100))}</div><button class="btn2" id="sgX">بستن</button>`;$('#sgX').onclick=()=>$('#dlg').close();return}
+  drawSuggest()}
+function drawSuggest(){
+  $('#dlg').innerHTML=`<b>✨ پیشنهاد اقدامات انجام‌شده</b>
+   <div class="g2"><label class="f">ماه گزارش<select id="sgK">${monthOpts()}</select></label><label class="f" style="display:flex;gap:6px;align-items:center;margin-top:26px"><input type="checkbox" id="sgG" ${SG.group?'checked':''} style="width:auto"> ادغام عدم‌انطباق‌ها بر اساس دسته و محل</label></div>
+   <div class="mu" style="font-size:12px;margin-top:6px">موارد انجام‌شدهٔ ثبت‌شده در نرم‌افزار برای این ماه. هر مورد را که می‌خواهید در صورتجلسه بیاید تیک بزنید؛ متن قابل ویرایش است. مواردی که قبلاً در صورتجلسه‌ها آمده نمایش داده نمی‌شود.</div>
+   <div id="sgBody" style="max-height:52vh;overflow:auto;margin-top:6px">${SG.list.length?SG.list.map((s,i)=>`<div class="it"><label style="display:flex;gap:8px;align-items:center;font-size:12px"><input type="checkbox" data-sg="${i}" style="width:auto"> <b>${s.type}</b>${s.n>1?` <span class="mu">(${fa(s.n)} مورد)</span>`:''}</label><textarea data-sgt="${i}" rows="3" style="width:100%;margin-top:4px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;padding:8px">${esc(s.text)}</textarea></div>`).join(''):'<div class="mc mu">موردی برای این ماه پیدا نشد (یا همه قبلاً در صورتجلسه‌ها آمده‌اند).</div>'}</div>
+   <div style="display:flex;gap:8px;margin-top:12px"><button class="btn2" id="sgAll">انتخاب همه</button><button class="btn2" id="sgX" style="margin-inline-start:auto">انصراف</button><button class="btn2 p" id="sgAdd">افزودن انتخاب‌شده‌ها به «اقدامات انجام‌شده»</button></div>`;
+  $('#sgK').onchange=async e=>{SG.K=e.target.value;await reloadSuggest()};
+  $('#sgG').onchange=async e=>{SG.group=e.target.checked;await reloadSuggest()};
+  $('#sgAll').onclick=()=>document.querySelectorAll('[data-sg]').forEach(c=>c.checked=true);
+  $('#sgX').onclick=()=>$('#dlg').close();
+  $('#sgAdd').onclick=()=>{let n=0;const dd=normD(E.m.jdate)||'';
+    document.querySelectorAll('[data-sg]').forEach(c=>{if(!c.checked)return;const s=SG.list[+c.dataset.sg],tx=document.querySelector('[data-sgt="'+c.dataset.sg+'"]').value.trim();if(!tx)return;
+      E.items.push({id:uid(),kind:'done',text:tx,actor:s.actor,follower:'HSE',deadline:dd,result:'اقدام شد',ref:s.ref});n++});
+    $('#dlg').close();renderEdit();toast(n?fa(n)+' مورد اضافه شد؛ برای ثبت نهایی ذخیره را بزنید':'موردی انتخاب نشده بود')}}
 
 /* ===================== چاپ ===================== */
 function printWin(html,title){
@@ -384,6 +455,7 @@ document.addEventListener('click',async ev=>{
   if(a==='print'){const m=MEET.find(x=>x.id===id);return printWin(minutesHTML(m,ITEMS.get(id)||[],m.workers),'صورتجلسه '+m.jdate)}
   if(a==='printE'){const m={...E.m,jdate:normD(E.m.jdate)||E.m.jdate};return printWin(minutesHTML(m,E.items,m.workers),'صورتجلسه '+m.jdate)}
   if(a==='letter'){const m=E.m;return printWin(letterHTML({...m,jdate:normD(m.jdate)||m.jdate},t.dataset.t,E.sub[t.dataset.t]||{}),'نامهٔ ارسال')}
+  if(a==='suggest')return openSuggest();
   if(a==='additem'){E.items.push({id:uid(),kind:t.dataset.k,text:'',actor:'',follower:'',deadline:'',result:t.dataset.k==='done'?'اقدام شد':t.dataset.k==='new'?'مصوبه':'در دست اقدام'});renderEdit();return}
   if(a==='delitem'){E.items.splice(+t.dataset.i,1);renderEdit();return}
   if(a==='save')return saveMeeting();
