@@ -132,10 +132,10 @@ function renderMeetings(){
      <div class="${od.length?'bad':''}">مهلت گذشته<b>${fa(od.length)}</b></div>
      <div class="${nd!=null&&nd<0?'bad':''}">جلسهٔ بعد<b>${last.next_date?fa(last.next_date):'—'}</b>${nd==null?'':nd<0?fa(-nd)+' روز گذشته':fa(nd)+' روز دیگر'}</div>
      <div class="${pend?'bad':''}">ارسال‌های ثبت‌نشده<b>${fa(pend)}</b></div></div>`}
-  $('#view').innerHTML=importBar()+`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><b>${fa(MEET.length)} جلسه</b><button class="btn2 p" data-a="newm">＋ جلسهٔ جدید</button></div>`+sum+
+  $('#view').innerHTML=importBar()+`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><b>${fa(MEET.length)} جلسه</b><span style="display:flex;gap:6px"><button class="btn2" data-a="xlsAll">📊 اکسل همهٔ جلسه‌ها</button><button class="btn2 p" data-a="newm">＋ جلسهٔ جدید</button></span></div>`+sum+
    MEET.map(m=>{const it=ITEMS.get(m.id)||[],n=k=>it.filter(x=>x.kind===k).length,op=openItems(m).length;
      return`<div class="mc"><div class="t"><div><b>جلسهٔ ${fa(m.no_label||m.no)} سال ${fa(m.year)}</b> · ${fa(m.jdate)} <span class="mu">${m.t1?fa(m.t1)+(m.t2?'–'+fa(m.t2):''):''}</span></div>
-      <div style="display:flex;gap:6px"><button class="btn2" data-a="edit" data-id="${m.id}">✏️ باز کردن / ویرایش</button><button class="btn2" data-a="print" data-id="${m.id}">🖨 چاپ</button></div></div>
+      <div style="display:flex;gap:6px"><button class="btn2" data-a="edit" data-id="${m.id}">✏️ باز کردن / ویرایش</button><button class="btn2" data-a="print" data-id="${m.id}">🖨 چاپ / PDF</button><button class="btn2" data-a="xls" data-id="${m.id}">📊 اکسل</button></div></div>
       <div class="mu" style="font-size:12px;margin-top:4px">${fa(n('done'))} اقدام انجام‌شده · ${fa(n('ongoing'))} در دست اقدام · ${fa(n('new'))} مصوبهٔ جدید${op?` · <b style="color:var(--wa)">${fa(op)} مورد باز</b>`:''}</div>
       <div>${subChip(m,'labor')}${subChip(m,'health')}</div>${(m.files||[]).length?`<div style="margin-top:4px">${m.files.map(f=>`<button class="btn2" style="font-size:11px;padding:2px 8px;margin:2px 2px 0 0" data-a="openf" data-p="${esc(f.path)}">📎 ${esc(f.name.length>30?f.name.slice(0,28)+'…':f.name)}</button>`).join('')}</div>`:''}</div>`}).join('')||'<div class="mc mu">جلسه‌ای ثبت نشده.</div>';
 }
@@ -200,7 +200,7 @@ function renderEdit(){
    <div class="mc"><div class="sec"><span>فایل‌های جلسه (اصل صورتجلسه، اسکن امضاشده)</span></div>${(m.files||[]).map((f,k)=>`<div class="fl">📎 <span>${esc(f.name)}</span><button class="btn2" data-a="openf" data-p="${esc(f.path)}">باز کردن</button><button class="btn2 d" data-a="delmf" data-k="${k}">✕</button></div>`).join('')}<label class="btn2" style="display:inline-block;margin-top:8px">📎 افزودن فایل<input type="file" hidden multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" data-up="m:x"></label></div>
    <div class="mc"><label class="f">توضیحات<textarea data-m="notes" rows="2">${esc(m.notes||'')}</textarea></label><label class="f">تاریخ جلسهٔ بعدی<input data-m="next_date" value="${esc(m.next_date||'')}" dir="ltr" placeholder="1405/08/30"></label></div>
    <div class="mc" id="subsec"><div class="sec"><span>ارسال به ادارات و رسیدها</span></div><div class="mu" style="font-size:12px">شمارهٔ نامه و تاریخ را بعد از ارسال، و شمارهٔ ثبت دبیرخانهٔ مقصد را بعد از دریافت رسید وارد کنید و عکس رسید را پیوست کنید.</div>${subHTML}</div>
-   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 30px"><button class="btn2 p" data-a="save">💾 ذخیره</button><button class="btn2" data-a="printE">🖨 چاپ صورتجلسه</button>${!E.isNew&&isMgr()?'<button class="btn2 d" data-a="delm">حذف جلسه</button>':''}</div>`;
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 30px"><button class="btn2 p" data-a="save">💾 ذخیره</button><button class="btn2" data-a="printE">🖨 چاپ / PDF</button><button class="btn2" data-a="xlsE">📊 خروجی اکسل</button>${!E.isNew&&isMgr()?'<button class="btn2 d" data-a="delm">حذف جلسه</button>':''}</div>`;
 }
 function readEdit(){}   /* ورودی‌ها هنگام تایپ در E ذخیره می‌شوند */
 document.addEventListener('input',ev=>{
@@ -318,6 +318,26 @@ function drawSuggest(){
     document.querySelectorAll('[data-sg]').forEach(c=>{if(!c.checked)return;const s=SG.list[+c.dataset.sg],tx=document.querySelector('[data-sgt="'+c.dataset.sg+'"]').value.trim();if(!tx)return;
       E.items.push({id:uid(),kind:'done',text:tx,actor:s.actor,follower:'HSE',deadline:dd,result:'اقدام شد',ref:s.ref});n++});
     $('#dlg').close();renderEdit();toast(n?fa(n)+' مورد اضافه شد؛ برای ثبت نهایی ذخیره را بزنید':'موردی انتخاب نشده بود')}}
+
+/* ===================== خروجی اکسل ===================== */
+function loadXLSX(){return window.XLSX?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=ok;s.onerror=()=>no(new Error('بارگذاری کتابخانهٔ اکسل ناموفق بود'));document.head.appendChild(s)})}
+async function exportXlsx(list,name){
+  try{await loadXLSX()}catch(e){return toast(e.message)}
+  const wb=XLSX.utils.book_new(),KN=Object.fromEntries(KINDS);
+  const sheet=(rows,widths,title)=>{const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=widths.map(w=>({wch:w}));ws['!views']=[{rightToLeft:true}];
+    let n=String(title).replace(/[\\\/?*\[\]:]/g,'-').slice(0,31),i=2;while(wb.SheetNames.includes(n))n=n.slice(0,28)+'-'+i++;XLSX.utils.book_append_sheet(wb,ws,n)};
+  list.forEach(({m,items})=>{
+    const att=m.att||{},rows=[['فرم صورتجلسه کمیته حفاظت فنی و بهداشت کار'],['شرکت گسترش فناوری خوارزمی'],[],
+      ['شماره جلسه',m.no_label||m.no,'تاریخ جلسه',m.jdate,'ساعت شروع',m.t1||'','ساعت پایان',m.t2||''],['مکان جلسه',m.place||''],[],
+      ['موضوع','شرح','اقدام‌کننده','پیگیری‌کننده','مهلت','نتیجه']];
+    KINDS.forEach(([k,tt])=>{const l=items.filter(x=>x.kind===k);if(!l.length)rows.push([tt,'','','','','']);l.forEach((x,i)=>rows.push([i?'':tt,(i+1)+'- '+x.text,x.actor||'',x.follower||'',x.deadline||'',x.result||'']))});
+    rows.push([],['اعضای کمیته']);ROLES.forEach(r=>rows.push([r,att[r]||'']));
+    rows.push([],['غایبین و دلایل',m.absent||''],['مدعوین',m.guests||''],['توضیحات',m.notes||''],['تاریخ جلسهٔ بعدی',m.next_date||'']);
+    sheet(rows,[22,70,20,20,14,14,14,14],'جلسه '+(m.no_label||m.no)+' '+String(m.jdate).slice(0,7).replace('/','-'))});
+  if(list.length>1){const all=[['شماره','تاریخ','موضوع','شرح','اقدام‌کننده','پیگیری‌کننده','مهلت','نتیجه']];
+    list.forEach(({m,items})=>items.forEach(x=>all.push([m.no_label||m.no,m.jdate,KN[x.kind]||x.kind,x.text,x.actor||'',x.follower||'',x.deadline||'',x.result||''])));
+    sheet(all,[8,12,18,80,18,18,12,12],'همه بندها');}
+  XLSX.writeFile(wb,name+'.xlsx')}
 
 /* ===================== چاپ ===================== */
 function printWin(html,title){
@@ -452,6 +472,9 @@ document.addEventListener('click',async ev=>{
   if(a==='newm')return newMeeting();
   if(a==='edit')return openEdit(id,!!t.dataset.sub);
   if(a==='back'){E=null;render();return}
+  if(a==='xls'){const m=MEET.find(x=>x.id===id);return exportXlsx([{m,items:ITEMS.get(id)||[]}],'صورتجلسه-'+m.jdate.replace(/\//g,'-'))}
+  if(a==='xlsE'){const m={...E.m,jdate:normD(E.m.jdate)||E.m.jdate};return exportXlsx([{m,items:E.items}],'صورتجلسه-'+String(m.jdate).replace(/\//g,'-'))}
+  if(a==='xlsAll')return exportXlsx(MEET.map(m=>({m,items:ITEMS.get(m.id)||[]})),'صورتجلسه-کمیته-همه');
   if(a==='print'){const m=MEET.find(x=>x.id===id);return printWin(minutesHTML(m,ITEMS.get(id)||[],m.workers),'صورتجلسه '+m.jdate)}
   if(a==='printE'){const m={...E.m,jdate:normD(E.m.jdate)||E.m.jdate};return printWin(minutesHTML(m,E.items,m.workers),'صورتجلسه '+m.jdate)}
   if(a==='letter'){const m=E.m;return printWin(letterHTML({...m,jdate:normD(m.jdate)||m.jdate},t.dataset.t,E.sub[t.dataset.t]||{}),'نامهٔ ارسال')}

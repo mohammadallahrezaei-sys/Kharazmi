@@ -34,13 +34,14 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 const URL_='https://priopguwfjawybffarhd.supabase.co',KEY='sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 const NAME_MAP=HSEAuth.EXPERTS; // از auth.js
 const CFG={
-  W:{sched:35,fq:20,verify:15,close:20,recog:10,train:10,fup:10}, // وزن شاخص‌ها (جمع ۱۰۰). سهمیه‌ی تعداد عدم‌انطباق و شمار تذکر/اخطار حذف شد (انگیزه‌ی ثبت صوری؛ ISO 45004 و فرهنگ عادلانه)
+  W:{sched:30,fq:20,verify:15,close:15,recog:10,warn:10,train:10,fup:10}, // وزن شاخص‌ها (جمع ۱۰۰). سهمیه‌ی تعداد عدم‌انطباق و شمار تذکر/اخطار حذف شد (انگیزه‌ی ثبت صوری؛ ISO 45004 و فرهنگ عادلانه)
   WORKDAYS:[6,0,1,2,3], HOLIDAYS:[],  // فقط برای چک‌لیست روزانه‌ی رستوران
   LATE_PEN:0.2,        // کسر امتیاز هر چک‌لیست به ازای هر روز تأخیر از مهلت جدول
   FQ_MIN_LEN:20,       // حداقل طول شرح مشخص عدم‌انطباق برای «کیفیت ثبت»
   MISS_PEN:0.34,       // کسر امتیاز اعتبارسنجی به ازای هر مورد از‌قلم‌افتاده (مورد شدت بالا دو برابر)
   DRILL_MIN:2,         // حداقل مانور اضطراری در ۱۲ ماه
   MIN_RW:3, // حداقل تشویق ثبت‌شده در ماه
+  MIN_WARN:3, // حداقل اخطار/تذکر ثبت‌شده توسط کارشناس در ماه (تا زمانی که رعایت ایمنی/PPE جا نیفتاده)
   MIN_TRAIN:4, COV_TARGET:0.8,         // حداقل جلسه‌ی آموزشی ماهانه و هدف پوشش ۱۲ ماهه‌ی پرسنل
   SHARED_IN_SCORE:false                // false: «آموزش» و «اقدام اصلاحی/طب کار» (مشترک واحد) از امتیاز شخصی بیرون‌اند و جدا نمایش داده می‌شوند؛ true: مثل قبل در امتیاز می‌آیند
 };
@@ -76,7 +77,8 @@ const getAll=t=>HSEDB.getAll(t);
 async function start(){
   document.getElementById('out').innerHTML='<div class="card">در حال دریافت اطلاعات...</div>';
   const since=encodeURIComponent(new Date(Date.now()-400*864e5).toISOString());
-  let ek=await getAll('ekhtars?select=record_type,record_date,registered_by');const ekAttr=ek!=null;
+  let ek=await getAll('ekhtars?select=record_type,record_date,registered_by,missed_expert');
+  if(!ek)ek=await getAll('ekhtars?select=record_type,record_date,registered_by');const ekAttr=ek!=null;
   if(!ek)ek=await getAll('ekhtars?select=record_type,record_date')||[];
   const INS='inspections?select=module,location,total,ok,nc,na,created_at,inspector';
   let [ins,fin]=await Promise.all([getAll(INS+',equipment_code&created_at=gte.'+since),
@@ -168,28 +170,29 @@ function calc_(email,K){
   const cl=F.filter(f=>f.closed_at&&inR(d10(f.closed_at))&&f.due_date),ot=cl.filter(f=>d10(f.closed_at)<=f.due_date).length;
   const over=F.filter(f=>d10(f.created_at)<=end&&(f.status==='open'||(f.closed_at&&d10(f.closed_at)>end))&&f.due_date&&f.due_date<end).length;
   const close=Math.max(0,(cl.length?ot/cl.length:1)-0.1*over);
-  const E=D.ek.filter(x=>ekIn(x.record_date,K)&&(!D.ekAttr||eqm(x.registered_by,email))),rw=E.filter(x=>x.record_type==='تشویق').length;
+  const E=D.ek.filter(x=>ekIn(x.record_date,K)&&(!D.ekAttr||eqm(x.registered_by,email))),rw=E.filter(x=>x.record_type==='تشویق').length,wn=E.filter(x=>x.record_type!=='تشویق').length,
+    ekMiss=D.ek.filter(x=>x.missed_expert&&eqm(x.missed_expert,email)&&ekIn(x.record_date,K));
   /* کیفیت ثبت عدم‌انطباق: سهم موارد دارای عکس قبل از اصلاح و شرح مشخص (نه تعداد) */
   const mineF=D.fin.filter(f=>eqm(f.inspector,email)&&d10(f.created_at)>=R.a&&d10(f.created_at)<=R.b),
     okTxt=f=>String(f.note||f.question||'').split('|')[0].trim().length>=CFG.FQ_MIN_LEN,okPh=f=>Array.isArray(f.photos_before)&&f.photos_before.length>0,
     fqOk=mineF.filter(f=>okPh(f)&&okTxt(f)).length;
   /* اعتبارسنجی: مواردی که مدیر در بازرسی تأییدی دید و در بازدید این کارشناس از قلم افتاده بود */
   const missed=D.fin.filter(f=>f.missed_by&&eqm(f.missed_by,email)&&d10(f.created_at)>=R.a&&d10(f.created_at)<=R.b),
-    missW=missed.reduce((a,f)=>a+((+f.severity||2)>=3?2:1),0);
+    missW=missed.reduce((a,f)=>a+((+f.severity||2)>=3?2:1),0)+ekMiss.reduce((a,x)=>a+(x.record_type==='اخطار کتبی'?2:1),0);
   /* شاخص‌های مشترک واحد HSE */
   const TR=D.tr.filter(t=>inR(d10(t.training_date))),cut=new Date(new Date(end).getTime()-365*864e5).toISOString().slice(0,10);
   const rec=new Set(D.tr.filter(t=>d10(t.training_date)>cut&&d10(t.training_date)<=end).map(t=>t.id));
   const eA=empOn(K),eS=new Set(eA.map(e=>e.id)),cov=eA.length?new Set(D.ta.filter(a=>rec.has(a.training_id)&&a.employee_id&&eS.has(a.employee_id)).map(a=>a.employee_id)).size/eA.length:0;
   const capaO=D.inc.filter(x=>x.corrective_action&&x.action_status!=='done'&&x.action_due_date&&x.action_due_date<end).length;
   const fuO=D.fu.filter(x=>x.status!=='done'&&x.status!=='cancelled'&&x.due_date&&x.due_date<end).length;
-  const s={sched,fq:mineF.length?fqOk/mineF.length:null,verify:missed.length?Math.max(0,1-CFG.MISS_PEN*missW):null,close,
-    recog:Math.min(1,rw/CFG.MIN_RW),
+  const s={sched,fq:mineF.length?fqOk/mineF.length:null,verify:missed.length||ekMiss.length?Math.max(0,1-CFG.MISS_PEN*missW):null,close,
+    recog:Math.min(1,rw/CFG.MIN_RW),warn:Math.min(1,wn/CFG.MIN_WARN),
     train:0.5*Math.min(1,TR.length/CFG.MIN_TRAIN)+0.5*Math.min(1,cov/CFG.COV_TARGET),
     fup:Math.max(0,1-0.1*(capaO+fuO))};
   const pts={};let raw=0,wsum=0;for(const k in s){if(s[k]==null){pts[k]=null;continue}pts[k]=Math.round(s[k]*CFG.W[k]);if(CFG.SHARED_IN_SCORE||!SHARED.includes(k)){raw+=s[k]*CFG.W[k];wsum+=CFG.W[k]}}
   const total=Math.round(raw/wsum*100);
   const unitScore=Math.round(SHARED.reduce((a,k)=>a+s[k]*CFG.W[k],0)/SHARED.reduce((a,k)=>a+CFG.W[k],0)*100);
-  return{unitScore,items,s,pts,total,un,cr,over,ot,otN:cl.length,ek:E.length,rw,fqN:mineF.length,fqOk,missed,trN:TR.length,cov,capaO,fuO,doneN,flags,na:!items.length}}
+  return{unitScore,items,s,pts,total,un,cr,over,ot,otN:cl.length,ek:E.length,rw,wn,ekMiss,fqN:mineF.length,fqOk,missed,trN:TR.length,cov,capaO,fuO,doneN,flags,na:!items.length}}
 
 /* تاریخ شمسی (YYYY/MM/DD) ← میلادی ISO و جمع ماه شمسی (برای سررسید بازرسی رسمی تجهیزات) */
 const jd=s=>String(s||'').replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c));
@@ -243,7 +246,7 @@ function mgrCard(K){
    <table style="margin-top:8px">${Object.keys(MW).map(k=>`<tr><td>${MNAMES[k]}<div class="mu">${c.det[k]}</div></td><td style="width:26%"><div class="bar"><i style="width:${(c.m[k]||0)*100}%;background:var(--${c.m[k]>=.85?'ok':c.m[k]>=.65?'wa':'bad'})"></i></div></td><td class="c ${c.m[k]==null?'mu':col(c.m[k]*100)}">${c.pts[k]==null?'—':fa(c.pts[k])+' از '+fa(MW[k])}</td></tr>`).join('')}</table>
    <div class="mu" style="margin-top:6px">این شاخص‌ها عملکرد مدیریتی واحد را می‌سنجند و جدا از امتیاز شخصی بازرسی شماست. شاخصی که داده‌اش در دسترس نیست از محاسبه حذف و امتیاز روی ۱۰۰ نرمال می‌شود.</div></div>`}
 const tv=(e,x)=>{const c=calc(e,x);return c.na?null:c.total};const fm=v=>v==null?'—':fa(v);const cc=v=>v==null?'mu':col(v);
-const NAMES={sched:'رعایت جدول زمان‌بندی چک‌لیست‌ها (با وزن ریسک)',fq:'کیفیت ثبت عدم‌انطباق (عکس و شرح مشخص)',verify:'اعتبارسنجی بازدید توسط مدیر (موارد از‌قلم‌افتاده)',close:'پیگیری و بستن به‌موقع',recog:'بازخورد مثبت (تشویق)',train:'آموزش (مشترک واحد)',fup:'اقدام اصلاحی و پیگیری طب کار (مشترک واحد)'};
+const NAMES={sched:'رعایت جدول زمان‌بندی چک‌لیست‌ها (با وزن ریسک)',fq:'کیفیت ثبت عدم‌انطباق (عکس و شرح مشخص)',verify:'اعتبارسنجی بازدید توسط مدیر (موارد از‌قلم‌افتاده)',close:'پیگیری و بستن به‌موقع',recog:'بازخورد مثبت (تشویق)',warn:'اخطار/تذکر ایمنی ثبت‌شده (حداقل ۳ در ماه)',train:'آموزش (مشترک واحد)',fup:'اقدام اصلاحی و پیگیری طب کار (مشترک واحد)'};
 
 function card(email,K){
   const c=calc(email,K),weak=[];
@@ -251,6 +254,8 @@ function card(email,K){
   c.items.filter(x=>x.sc>0&&x.st==='wa'&&!x.eqm).forEach(x=>weak.push(`«${x.t}» ${x.txt} (مهلت: ${wtxt(x.w,K)}).`));
   c.items.filter(x=>x.eqm&&x.sc!=null&&x.sc<1).forEach(x=>weak.push(`«${x.t}»: ${x.txt}.`));
   if(c.fqN&&c.fqOk<c.fqN)weak.push(`${fa(c.fqN-c.fqOk)} از ${fa(c.fqN)} عدم‌انطباق ثبت‌شده عکس قبل از اصلاح یا شرح مشخص (حداقل ${fa(CFG.FQ_MIN_LEN)} نویسه) ندارد.`);
+  if(c.ekMiss.length)weak.push(`${fa(c.ekMiss.length)} اخطار/تذکر را مدیر در بازدید میدانی صادر کرده که کارشناس ندیده بود (کسر از اعتبارسنجی).`);
+  if(c.wn<CFG.MIN_WARN)weak.push(`${fa(c.wn)} اخطار/تذکر ثبت شده؛ انتظار حداقل ${fa(CFG.MIN_WARN)} مورد در ماه برای عدم‌رعایت ایمنی و وسایل حفاظت فردی بود.`);
   if(c.missed.length)weak.push(`${fa(c.missed.length)} مورد در بازرسی تأییدی مدیر دیده شد که در بازدید شما از قلم افتاده بود.`);
   if(c.over)weak.push(`${fa(c.over)} عدم‌انطباق ثبت‌شده‌ی شما از مهلت گذشته و هنوز باز است.`);
   if(c.otN>c.ot)weak.push(`${fa(c.otN-c.ot)} مورد از ${fa(c.otN)} عدم‌انطباق بسته‌شده با تأخیر بسته شده است.`);

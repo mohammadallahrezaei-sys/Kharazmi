@@ -129,6 +129,10 @@
                     <label class="block text-xs text-slate-300 mb-1">توضیحات تکمیلی (اختیاری):</label>
                     <input type="text" id="ektDesc" class="fld" placeholder="توضیحات...">
                 </div>
+                <div id="ektMissW" class="p-2 rounded border border-amber-800 bg-amber-950/30">
+                    <label class="flex items-center gap-2 text-xs text-amber-300"><input type="checkbox" id="ektMiss"> کارشناس HSE این مورد را در بازدید ندیده بود (از امتیاز کارشناس کسر شود)</label>
+                    <select id="ektMissWho" class="fld mt-2" style="display:none"></select>
+                </div>
                 <div class="pt-2">
                     <button type="submit" id="ektSubmit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg">ثبت در پایگاه داده</button>
                 </div>
@@ -543,6 +547,17 @@ function renderTable() {
     }).join('');
 }
 $('ektSearchBox').addEventListener('input', renderTable);
+/* کسر امتیاز کارشناس: فقط برای اخطار/تذکر و فقط وقتی مدیر ثبت می‌کند */
+(function () {
+    const EXP = Object.entries(REG_NAMES).filter(([m]) => m !== 'm.rezaei@gmail.com');
+    $('ektMissWho').innerHTML = EXP.map(([m, n]) => `<option value="${m}">${n}</option>`).join('');
+    const sync = () => {
+        const w = $('ektType').value !== 'تشویق' && sessionEmail() === 'm.rezaei@gmail.com';
+        $('ektMissW').style.display = w ? '' : 'none'; if (!w) $('ektMiss').checked = false;
+        $('ektMissWho').style.display = $('ektMiss').checked && EXP.length > 1 ? '' : 'none';
+    };
+    $('ektType').addEventListener('change', sync); $('ektMiss').addEventListener('change', sync); sync();
+})();
 
 /* ---------- ثبت و حذف ---------- */
 $('ekhtarForm').addEventListener('submit', async e => {
@@ -559,12 +574,13 @@ $('ekhtarForm').addEventListener('submit', async e => {
         description: $('ektDesc').value.trim() || null
     };
     const me = sessionEmail(); if (me) body.registered_by = me;
+    if ($('ektMiss').checked && body.record_type !== 'تشویق') body.missed_expert = $('ektMissWho').value;
     const btn = $('ektSubmit');
     btn.disabled = true; btn.textContent = 'در حال ثبت...';
     try {
         const post = b => api('ekhtars', { method: 'POST', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(b) });
         try { await post(body); }
-        catch (er) { if (body.registered_by && /registered_by/.test(er.message)) { delete body.registered_by; await post(body); alert('توجه: ستون registered_by هنوز در دیتابیس ساخته نشده؛ ثبت‌کننده ذخیره نشد.'); } else throw er; }
+        catch (er) { if (body.missed_expert && /missed_expert/.test(er.message)) { delete body.missed_expert; alert('ستون missed_expert در دیتابیس نیست؛ فایل hse_ekhtar_missed.sql را اجرا کنید. سابقه بدون کسر امتیاز ثبت شد.'); await post(body); } else if (body.registered_by && /registered_by/.test(er.message)) { delete body.registered_by; await post(body); alert('توجه: ستون registered_by هنوز در دیتابیس ساخته نشده؛ ثبت‌کننده ذخیره نشد.'); } else throw er; }
         alert('سابقه انضباطی با موفقیت ثبت شد.');
         $('ekhtarForm').reset();
         $('ektEmpInput').value = label;

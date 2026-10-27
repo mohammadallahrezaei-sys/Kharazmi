@@ -177,6 +177,8 @@ document.addEventListener('click',e=>{
   if(OPEN)$('secs').scrollIntoView({behavior:'smooth',block:'start'});
 });
 load();
+let _lt=Date.now();const refresh=()=>{if(Date.now()-_lt<1500)return;_lt=Date.now();load()};
+addEventListener('pageshow',e=>{if(e.persisted){_lt=0;refresh()}});document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 </script>
 </body>
 </html>
