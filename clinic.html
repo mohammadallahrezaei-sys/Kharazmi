@@ -1521,6 +1521,7 @@ function renderIncidents() {
                     </div>
                     <p class="text-[11px] text-slate-400">مسئول: ${esc(i.action_owner || 'تعیین‌نشده')} · سررسید: ${i.action_due_date ? fday(i.action_due_date) : '-'}</p>
                 </div>` : ''}
+            ${reviewHTML(i)}
         </div>`;
     }).join('');
 }
@@ -1861,6 +1862,8 @@ document.addEventListener('click', e => {
     else if (d.capadone !== undefined) closeCapa(d.capadone);
     else if (d.editvisit !== undefined) editVisit(d.editvisit);
     else if (d.delvisit !== undefined) deleteRow('clinic_visits', d.delvisit, 'این مراجعه حذف شود؟ این کار قابل بازگشت نیست. (داروی کسرشده از موجودی کمد برمی‌گردد.)', async () => { await loadVisits(); await loadFollowups(); }, () => restoreMeds(d.delvisit));
+    else if (d.revex !== undefined) saveReview(d.revex, 'ex');
+    else if (d.revmg !== undefined) saveReview(d.revmg, 'mg');
     else if (d.editinc !== undefined) editIncident(d.editinc);
     else if (d.fixinc !== undefined) fixIncidents();
     else if (d.delinc !== undefined) deleteRow('clinic_incidents', d.delinc, 'این حادثه حذف شود؟ این کار قابل بازگشت نیست. (مواد مصرفی کسرشده به موجودی کمد برمی‌گردد.)', loadIncidents, () => restoreMeds(d.delinc, 'incident'));
@@ -1902,6 +1905,27 @@ function editVisit(id) {
     };
 }
 
+/* ---------- بررسی حادثه: اول نظر کارشناس، بعد نظر مدیر ---------- */
+const RV_NAMES = { 'm.rezaei@gmail.com': 'مدیر HSE', 'm.mohammadi@gmail.com': 'محمدی' };
+function reviewHTML(i) {
+    const ta = (k, ph) => `<textarea id="rv_${k}_${esc(i.id)}" rows="3" class="w-full mt-1 p-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" placeholder="${ph}"></textarea>`;
+    const by = (m, at) => `<span class="text-slate-500">${esc(RV_NAMES[String(m || '').toLowerCase()] || m || '')}${at ? ' · ' + fdate(at) : ''}</span>`;
+    let h = '';
+    if (i.expert_opinion) h += `<div class="bg-sky-950/20 border border-sky-500/30 p-2.5 rounded-lg text-xs"><p class="font-bold text-sky-300">نظر کارشناس HSE ${by(i.expert_opinion_by, i.expert_opinion_at)}</p><p class="whitespace-pre-line text-slate-200 mt-1">${esc(i.expert_opinion)}</p></div>`;
+    else if (!IS_MGR()) h += `<div class="bg-slate-900/40 border border-slate-700 p-2.5 rounded-lg text-xs"><p class="font-bold text-sky-300">نظر کارشناس HSE (قبل از نظر مدیر)</p>${ta('ex', 'علت‌ها، عمل/شرایط ناامن، اقدام پیشنهادی برای جلوگیری از تکرار...')}<button data-revex="${esc(i.id)}" class="mt-1 px-3 py-1 bg-sky-600 hover:bg-sky-500 text-slate-950 font-bold rounded-lg text-[11px]">ثبت نظر کارشناس</button></div>`;
+    else h += `<div class="text-[11px] text-amber-400">⏳ منتظر ثبت نظر کارشناس؛ پس از آن نظر مدیر ثبت می‌شود.</div>`;
+    if (i.manager_opinion) h += `<div class="bg-emerald-950/20 border border-emerald-500/30 p-2.5 rounded-lg text-xs"><p class="font-bold text-emerald-300">نظر مدیر ${by('m.rezaei@gmail.com', i.manager_opinion_at)}</p><p class="whitespace-pre-line text-slate-200 mt-1">${esc(i.manager_opinion)}</p></div>`;
+    else if (i.expert_opinion && IS_MGR()) h += `<div class="bg-slate-900/40 border border-slate-700 p-2.5 rounded-lg text-xs"><p class="font-bold text-emerald-300">نظر مدیر</p>${ta('mg', 'تایید یا اصلاح نظر کارشناس و تصمیم نهایی...')}<button data-revmg="${esc(i.id)}" class="mt-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-lg text-[11px]">ثبت نظر مدیر</button></div>`;
+    return h ? `<div class="space-y-2">${h}</div>` : '';
+}
+async function saveReview(id, who) {
+    const el = document.getElementById('rv_' + who + '_' + id), tx = el && el.value.trim();
+    if (!tx) { alert('متن نظر را بنویسید.'); return; }
+    const now = new Date().toISOString();
+    const body = who === 'ex' ? { expert_opinion: tx, expert_opinion_by: sessionEmail() || null, expert_opinion_at: now } : { manager_opinion: tx, manager_opinion_at: now };
+    try { await api('clinic_incidents?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(body) }); await loadIncidents(); }
+    catch (er) { showDebug(er.message); alert('ذخیره نشد: ' + er.message + (/opinion/.test(er.message) ? '\nفایل hse_incident_review.sql را در Supabase اجرا کنید.' : '')); }
+}
 /* ---------- ویرایش حادثه (فقط مدیر) و اصلاح گروهی داده‌های واردشده ---------- */
 const IS_MGR = () => { try { return sessionEmail() === 'm.rezaei@gmail.com' || (window.HSEAuth && HSEAuth.role === 'manager'); } catch (_) { return false; } };
 async function patchInc(id, body) {
