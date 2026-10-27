@@ -228,7 +228,7 @@ async function loadStatus() {
   if (cd) {
     const old = cd.filter(x => x.card_date && x.card_date < ago7).length;
     A.push({ id: 'cd', i: '🗂️', n: old, s: 'wa', t: 'کارت بدون پاسخ بیش از ۷ روز', d: `${fa(cd.length)} کارت بی‌پاسخ در مجموع` });
-    if (cd.length) meta('mCard', fa(cd.length) + ' بی‌پاسخ');
+    meta('mCard', cd.length ? fa(cd.length) + ' بی‌پاسخ' : '');
   }
   renderAlerts(A);
   const bad = A.filter(x => x.s === 'bad').reduce((t, x) => t + x.n, 0);
@@ -384,6 +384,11 @@ try { localStorage.removeItem('hse_use'); } catch (_) {}
 
 loadStatus().catch(() => { const g = document.getElementById('wg'); if (g) g.innerHTML = '<a class="wi" href="desk.html"><i>🧭</i><div><b>میز کار HSE</b><span>برای دیدن موارد نیازمند اقدام باز کنید.</span></div></a>'; });
 loadEkhtar();
+/* برگشت از صفحه‌های دیگر (کش مرورگر): وضعیت‌ها دوباره خوانده شود */
+let _lt = Date.now();
+const refreshStatus = () => { if (Date.now() - _lt < 1500) return; _lt = Date.now(); loadStatus().catch(() => {}); loadEkhtar(); };
+addEventListener('pageshow', e => { if (e.persisted) { _lt = 0; refreshStatus(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshStatus(); });
 [300, 1200, 3000].forEach(t => setTimeout(syncMgr, t));
 </script>
 </body>

@@ -328,6 +328,7 @@ details > summary { cursor:pointer; }
         <div class="flex gap-2">
             <input id="incSearch" class="fld" placeholder="جستجو در نام، کد، محل حادثه، شرح، علت...">
             <button id="exportInc" class="px-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs shrink-0">⬇ اکسل</button>
+            <button data-fixinc="1" id="fixIncBtn" class="px-4 bg-amber-700 hover:bg-amber-600 rounded-xl text-xs shrink-0" style="display:none">🧹 اصلاح گروهی داده‌ها</button>
         </div>
         <div id="incBody" class="space-y-3 pb-6"></div>
     </div>
@@ -1481,6 +1482,7 @@ function filteredIncidents() {
 }
 
 function renderIncidents() {
+    { const b = document.getElementById('fixIncBtn'); if (b) { const n = IS_MGR() ? incFixPlan().length : 0; b.style.display = n ? '' : 'none'; b.textContent = '🧹 اصلاح گروهی داده‌ها (' + n + ')'; } }
     const shown = filteredIncidents();
     if (!shown.length) { $('incBody').innerHTML = '<p class="text-center py-8 text-slate-500 text-sm">هیچ حادثه‌ای ثبت نشده است.</p>'; return; }
 
@@ -1496,9 +1498,12 @@ function renderIncidents() {
                     <p class="text-[11px] text-slate-400 mt-0.5">📅 ${fdate(i.incident_date)} · 📍 محل: ${esc(i.location)} ${i.body_part ? '· عضو آسیب‌دیده: ' + esc(i.body_part) : ''}</p>
                 </div>
                 <div class="flex gap-1.5 flex-wrap items-center">
-                    <span class="text-[11px] border px-2 py-0.5 rounded-full ${sevColor}">شدت: ${SEV_TXT[i.severity] || esc(i.severity)}</span>
+                    <span class="text-[11px] border px-2 py-0.5 rounded-full ${SEV_TXT[i.severity] ? sevColor : 'bg-slate-500/10 text-slate-400 border-slate-500/30'}">شدت: ${SEV_TXT[i.severity] || 'تعیین‌نشده'}</span>
+                    ${(i.accident_cause || (!SEV_TXT[i.severity] && i.severity)) ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border-violet-500/30">علت: ${esc(i.accident_cause || i.severity)}</span>` : ''}
+                    ${i.referral_place ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border-sky-500/30">اعزام: ${esc(i.referral_place)}</span>` : ''}
                     ${i.social_security_reported ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border-blue-500/30">گزارش تامین اجتماعی (شعبه ${esc(i.ss_branch || '-')})</span>` : ''}
                     <button data-profile="${esc(i.employee_id)}" class="text-[11px] text-blue-400 px-1">پرونده</button>
+                    ${IS_MGR() ? `<button data-editinc="${esc(i.id)}" class="text-[11px] text-emerald-400 px-1">✏️ ویرایش</button>` : ''}
                     <button data-delinc="${esc(i.id)}" class="text-[11px] text-rose-400 px-1">حذف</button>
                 </div>
             </div>
@@ -1856,6 +1861,8 @@ document.addEventListener('click', e => {
     else if (d.capadone !== undefined) closeCapa(d.capadone);
     else if (d.editvisit !== undefined) editVisit(d.editvisit);
     else if (d.delvisit !== undefined) deleteRow('clinic_visits', d.delvisit, 'این مراجعه حذف شود؟ این کار قابل بازگشت نیست. (داروی کسرشده از موجودی کمد برمی‌گردد.)', async () => { await loadVisits(); await loadFollowups(); }, () => restoreMeds(d.delvisit));
+    else if (d.editinc !== undefined) editIncident(d.editinc);
+    else if (d.fixinc !== undefined) fixIncidents();
     else if (d.delinc !== undefined) deleteRow('clinic_incidents', d.delinc, 'این حادثه حذف شود؟ این کار قابل بازگشت نیست. (مواد مصرفی کسرشده به موجودی کمد برمی‌گردد.)', loadIncidents, () => restoreMeds(d.delinc, 'incident'));
 });
 
@@ -1893,6 +1900,78 @@ function editVisit(id) {
         try { await api('clinic_visits?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(body) }); o.remove(); await loadVisits(); }
         catch (er) { showDebug(er.message); alert('ذخیره نشد: ' + er.message); g('save').disabled = false; g('save').textContent = 'ذخیره'; }
     };
+}
+
+/* ---------- ویرایش حادثه (فقط مدیر) و اصلاح گروهی داده‌های واردشده ---------- */
+const IS_MGR = () => { try { return sessionEmail() === 'm.rezaei@gmail.com' || (window.HSEAuth && HSEAuth.role === 'manager'); } catch (_) { return false; } };
+async function patchInc(id, body) {
+    const b = Object.assign({}, body);
+    for (let k = 0; k < 3; k++) {
+        try { await api('clinic_incidents?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(b) }); return; }
+        catch (er) {
+            const m = /(referral_place|accident_cause)/.exec(er.message); if (!m || !(m[1] in b)) throw er;
+            delete b[m[1]]; window._incColMissing = true;
+        }
+    }
+}
+function editIncident(id) {
+    const i = incidents.find(x => String(x.id) === String(id)); if (!i || !IS_MGR()) return;
+    const e = empById(i.employee_id) || {};
+    const f = (k, l, val) => `<label class="block text-xs text-slate-300">${l}<input id="ei_${k}" value="${esc(val == null ? '' : val)}" class="w-full mt-1 p-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm"></label>`;
+    const ta = (k, l, val) => `<label class="block text-xs text-slate-300">${l}<textarea id="ei_${k}" rows="3" class="w-full mt-1 p-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm">${esc(val || '')}</textarea></label>`;
+    const sev = SEV_TXT[i.severity] ? i.severity : '';
+    const o = document.createElement('div');
+    o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);overflow:auto;padding:12px';
+    o.innerHTML = `<div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 max-w-lg mx-auto space-y-2" dir="rtl">
+      <h3 class="font-bold text-white text-sm">✏️ ویرایش حادثه: ${esc((e.first_name || '') + ' ' + (e.last_name || ''))} <span class="text-slate-400 font-normal">(${fdate(i.incident_date)})</span></h3>
+      ${f('loc', 'محل حادثه', i.location)}
+      <label class="block text-xs text-slate-300">شدت حادثه<select id="ei_sev" class="w-full mt-1 p-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm"><option value="">— انتخاب کنید —</option>${Object.entries(SEV_TXT).map(([k, v]) => `<option value="${k}" ${sev === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+      ${f('cause', 'علت حادثه', i.accident_cause || (!sev && i.severity) || '')}
+      ${f('body', 'عضو آسیب‌دیده', i.body_part)}${ta('desc', 'شرح واقعه', i.description)}
+      ${f('act', 'عمل ناامن', i.unsafe_act)}${f('cond', 'شرایط ناامن', i.unsafe_condition)}
+      ${f('ref', 'محل اعزام (بیمارستان / درمانگاه)', i.referral_place)}
+      <label class="text-xs text-slate-300 flex gap-2 items-center"><input id="ei_ss" type="checkbox" ${i.social_security_reported ? 'checked' : ''}> گزارش شده به تامین اجتماعی</label>
+      ${f('ssb', 'شعبه تامین اجتماعی', i.ss_branch)}${f('ssd', 'تاریخ ارسال گزارش', i.ss_report_date)}
+      <div class="flex gap-2 pt-1"><button id="ei_save" class="flex-1 bg-emerald-600 text-white rounded-lg py-2 text-sm font-bold">ذخیره (تایید مدیر)</button><button id="ei_cancel" class="flex-1 bg-slate-700 text-white rounded-lg py-2 text-sm">انصراف</button></div></div>`;
+    document.body.appendChild(o);
+    const g = k => o.querySelector('#ei_' + k);
+    g('cancel').onclick = () => o.remove();
+    g('save').onclick = async () => {
+        if (!g('sev').value) { alert('شدت حادثه را انتخاب کنید.'); return; }
+        if (!confirm('تغییرات این حادثه ثبت شود؟')) return;
+        const body = { location: g('loc').value.trim(), severity: g('sev').value, accident_cause: g('cause').value.trim() || null, body_part: g('body').value.trim() || null, description: g('desc').value.trim(),
+            unsafe_act: g('act').value.trim() || null, unsafe_condition: g('cond').value.trim() || null, referral_place: g('ref').value.trim() || null,
+            social_security_reported: g('ss').checked, ss_branch: g('ss').checked ? (g('ssb').value.trim() || null) : null, ss_report_date: g('ss').checked ? (g('ssd').value.trim() || null) : null };
+        g('save').disabled = true; g('save').textContent = 'در حال ذخیره...';
+        try { await patchInc(id, body); o.remove(); if (window._incColMissing) alert('ستون‌های محل اعزام/علت هنوز ساخته نشده‌اند؛ فایل hse_incident_edit.sql را اجرا کنید. بقیهٔ تغییرات ذخیره شد.'); await loadIncidents(); }
+        catch (er) { showDebug(er.message); alert('ذخیره نشد: ' + er.message); g('save').disabled = false; g('save').textContent = 'ذخیره (تایید مدیر)'; }
+    };
+}
+/* داده‌های واردشدهٔ قبلی: «کرج (بیمارستان …)» ← شعبه = کرج و محل اعزام = داخل پرانتز؛ علتِ ثبت‌شده در ستون شدت ← ستون علت */
+function incFixPlan() {
+    const plan = [];
+    incidents.forEach(i => {
+        const b = {}, br = String(i.ss_branch || '');
+        const m = /[(（]\s*([^)）]+?)\s*[)）]/.exec(br);
+        if (m) { b.referral_place = i.referral_place || m[1]; b.ss_branch = 'کرج'; }
+        else if (br && i.social_security_reported && br.trim() !== 'کرج') { b.referral_place = i.referral_place || br.trim(); b.ss_branch = 'کرج'; }
+        if (i.severity && !SEV_TXT[i.severity]) { b.accident_cause = i.accident_cause || i.severity; b.severity = null; }
+        if (Object.keys(b).length) plan.push([i, b]);
+    });
+    return plan;
+}
+async function fixIncidents() {
+    const plan = incFixPlan();
+    if (!plan.length) { alert('موردی برای اصلاح پیدا نشد.'); return; }
+    const sample = plan.slice(0, 4).map(([i, b]) => '• ' + (empById(i.employee_id) || {}).last_name + ': ' + Object.entries(b).map(([k, v]) => k + '=' + v).join('، ')).join('\n');
+    if (!confirm(plan.length + ' حادثه اصلاح می‌شود (شعبهٔ تامین اجتماعی ← کرج، محل اعزام جدا، علت از ستون شدت جدا).\n\n' + sample + '\n\nادامه؟')) return;
+    let n = 0, fail = 0;
+    for (const [i, b] of plan) {
+        try { try { await patchInc(i.id, b); } catch (er) { if (/severity/.test(er.message) && 'severity' in b) { const c = Object.assign({}, b); delete c.severity; await patchInc(i.id, c); } else throw er; } n++; }
+        catch (er) { fail++; showDebug(er.message); }
+    }
+    alert(n + ' مورد اصلاح شد' + (fail ? '، ' + fail + ' مورد ناموفق.' : '.') + (window._incColMissing ? '\nفایل hse_incident_edit.sql را اجرا کنید و دوباره اصلاح گروهی را بزنید.' : '') + '\nشدت حادثهٔ مواردی که ثبت اشتباه داشتند را با دکمهٔ ویرایش مشخص کنید.');
+    await loadIncidents();
 }
 
 // بارگذاری اولیه کل داده‌ها
