@@ -2423,7 +2423,7 @@ document.oninput = async e => {
 
 home().then(() => {
   if (location.hash == '#rep') renderManagementReport();
-  else if (/^#visit=/.test(location.hash)) { const q = new URLSearchParams(location.hash.slice(1)), k = q.get('visit'); if (k == 'MED') medHome(); else startVisit(k, q.get('code'), q.get('title'), q.get('hall')); }
+  else if (/^#visit=/.test(location.hash)) { const q = new URLSearchParams(location.hash.slice(1)), k = q.get('visit'); if (k == 'MED') medHome(); else startVisit(k, q.get('code'), q.get('title'), q.get('hall')).then(() => { if (k == 'CT' && q.get('ctr')) { D.extra.contractor_name = q.get('ctr'); D.extra.contract_no = q.get('cno') || 'ندارد'; D.loc = D.loc || q.get('ctr'); form(); } }); }
 });
 </script>
 </body>

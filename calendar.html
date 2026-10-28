@@ -79,7 +79,7 @@ const prevK=K=>{let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}return y+'-
 const nextK=K=>{let y=+K.slice(0,4),m=+K.slice(5)+1;if(m>12){m=1;y++}return y+'-'+String(m).padStart(2,'0')};
 
 const MODT={CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخزن تحت فشار',AC:'اتوکلاو',BL:'دیگ بخار',PJ:'جک پالت'};
-let INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],X={ek:[],tk:[],inc:[],fin:[],on:false};
+let CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],X={ek:[],tk:[],inc:[],fin:[],on:false};
 if(/[?&]embed=1/.test(location.search)){document.documentElement.classList.add('emb')}
 
 async function hd(){let t=KEY;try{t=(await HSEAuth.token())||KEY}catch(e){}return{apikey:KEY,Authorization:'Bearer '+t}}
@@ -89,7 +89,8 @@ async function load(){
   const since=new Date(Date.now()-500*864e5).toISOString().slice(0,10),base='inspections?select=module,location,created_at&order=created_at.desc&created_at=gte.'+since;
   let ins=await getAll(base.replace('location,','location,equipment_code,'));
   if(!ins){EQ_COL=false;ins=await getAll(base)||[]}
-  INS=ins.map(x=>({m:x.module,code:x.equipment_code||null,d:new Date(x.created_at).toLocaleDateString('en-CA')}));
+  INS=ins.map(x=>({m:x.module,loc:x.location||'',code:x.equipment_code||null,d:new Date(x.created_at).toLocaleDateString('en-CA')}));
+  CTR=(await getAll('contractors?select=id,name,contract_no,scope,start_date,end_date,status').catch(()=>null)||[]).filter(c=>c.start_date);
   const cats=[...new Set(Object.values(EQC).flatMap(v=>v[0]))];
   EQ=await getAll('equipment?select=code,title,category,hall&active=eq.true&category=in.('+cats.map(c=>'"'+c+'"').join(',')+')&order=code.asc')||[];
   /* کارهای دیگری که در امتیاز کارشناس حساب می‌شوند (فقط برای ورود کارشناس) */
@@ -134,6 +135,9 @@ function build(K){
       if(due>b)return;
       T.push({id:'E'+mk+e.code,date:adjust(due<a?a:due,days),due,t:`بازدید ${MODT[mk]} — ${e.code}`,sub:(e.title||'')+' · سررسید: '+lbl(due),mk,code:e.code,title:e.title,hall:e.hall,done:false,kind:'equip'})});
   }
+  /* ۳-ب) چک‌لیست روزانهٔ پیمانکاران حاضر در کارخانه (از روز ورود تا ثبت پایان کار) */
+  CTR.forEach(c=>{const s=c.start_date,e=c.end_date||(c.status==='finished'?s:b);
+    days.filter(d=>isWork(d.iso)&&d.iso>=s&&d.iso<=e).forEach(d=>T.push({id:'CT'+c.id+d.iso,date:d.iso,due:d.iso,t:'چک‌لیست ایمنی پیمانکار — '+c.name,sub:'روزانه · '+(c.scope||'').slice(0,50),mk:'CT',done:INS.some(x=>x.m==='CT'&&x.d===d.iso&&x.loc.includes(c.name)),kind:'daily',go:'checklists.html#visit=CT&ctr='+encodeURIComponent(c.name)+'&cno='+encodeURIComponent(c.contract_no||'')}))});
   /* ۴) کارهای مؤثر بر امتیاز: آموزش کوتاه هفتگی، اخطار/تشویق، نظر حادثه، عدم‌انطباق و ارجاع‌ها */
   if(X.on){
     const wk=iso=>addDays(iso,-((dowOf(iso)+1)%7)),pre=K.replace('-','/')+'/',nz=s=>String(s||'').replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c));

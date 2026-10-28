@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>پیمانکاران - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.w{max-width:860px;margin:0 auto;padding:14px}
+.top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.card2{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin:10px 0}
+.t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.mu{color:var(--mu);font-size:12px}
+.b2{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.b2.p{background:var(--ac);color:var(--acx);border-color:var(--ac)}.b2.bad{border-color:var(--bad);color:var(--bad)}.b2.ok{border-color:var(--ok);color:var(--ok)}
+.bg{display:inline-block;border-radius:99px;padding:1px 10px;font-size:11px;border:1px solid var(--bd)}.bg.ok{color:var(--ok);border-color:var(--ok)}.bg.bad{color:var(--bad);border-color:var(--bad)}.bg.wa{color:var(--wa);border-color:var(--wa)}
+.tabs{display:flex;gap:6px;margin:10px 0}.tabs button{flex:1}.tabs .on{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:700}
+input,select,textarea{font:inherit;font-size:13px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:7px 9px;width:100%}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);width:min(94vw,520px);padding:14px}
+dialog::backdrop{background:rgba(15,23,42,.55)}
+label.f{display:block;font-size:12px;color:var(--mu);margin-top:8px}
+.jd{display:flex;gap:4px}.jd select{width:auto;flex:1}
+.wr{border:1px solid var(--bd);border-radius:10px;padding:6px 10px;margin-top:6px;font-size:13px}.wr.k{border-color:var(--bad)}
+.rep{background:var(--badbg,#fee2e2);border:1px solid var(--bad);color:var(--tx);border-radius:10px;padding:8px 10px;margin:8px 0;font-size:13px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="w">
+ <div class="top"><div><h1 style="margin:0">🏗️ پیمانکاران</h1><div class="mu">ثبت ورود و پایان کار، چک‌لیست روزانهٔ ایمنی در تقویم و سابقهٔ اخطارها</div></div><div><a href="index.html">← صفحه اصلی</a></div></div>
+ <div class="tabs"><button class="b2 on" data-tab="active">در حال کار</button><button class="b2" data-tab="finished">پایان‌یافته</button><button class="b2 p" id="bAdd" style="flex:none">＋ پیمانکار جدید</button></div>
+ <input id="q" placeholder="🔍 جستجو نام شرکت، قرارداد، مسئول…">
+ <div id="warn"></div><div id="list"></div>
+</div>
+<dialog id="dlg"></dialog>
+<div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:99px;font-size:13px;z-index:99999"></div>
+<script src="eval_core.js"></script>
+<script>
+const {fa,esc}=HSE,$=s=>document.querySelector(s),SB='https://priopguwfjawybffarhd.supabase.co/rest/v1/';
+let C=[],W=[],TAB='active',ME='';
+/* سابقهٔ اخطار بر اساس نام شرکت جمع می‌شود تا ورود دوبارهٔ همان پیمانکار هم سابقه را ببیند */
+const nk=s=>String(s||'').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[\u200c\s]+/g,' ').trim().toLowerCase();
+const warnsOf=c=>{const ids=new Set(C.filter(x=>nk(x.name)===nk(c.name)).map(x=>x.id));return W.filter(x=>ids.has(x.contractor_id))};
+const todayISO=()=>new Date().toLocaleDateString('en-CA');
+const jl=iso=>iso?new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'}):'—';
+const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',2600)};
+async function rq(p,o={}){const r=await fetch(SB+p,{...o,headers:{'Content-Type':'application/json','Prefer':'return=representation',...(o.headers||{})}});if(!r.ok)throw new Error((await r.text()).slice(0,250));const t=await r.text();return t?JSON.parse(t):null}
+async function load(){
+  try{C=await HSE.getAll('contractors?select=*&order=start_date.desc')||[];W=await HSE.getAll('contractor_warnings?select=*&order=warn_date.desc')||[];$('#warn').innerHTML=''}
+  catch(e){C=[];W=[]}
+  if(!Array.isArray(C)){C=[]}
+  draw()}
+function draw(){
+  const q=$('#q').value.trim().toLowerCase(),L=C.filter(c=>(c.status||'active')===TAB&&(!q||[c.name,c.contract_no,c.contact_name,c.scope].join(' ').toLowerCase().includes(q)));
+  $('#list').innerHTML=L.map(c=>{const w=warnsOf(c),k=w.filter(x=>x.record_type==='اخطار کتبی').length;
+    return`<div class="card2"><div class="t"><div><b>${esc(c.name)}</b> ${w.length?`<span class="bg ${k?'bad':'wa'}">${fa(w.length)} سابقهٔ انضباطی${k?` (${fa(k)} اخطار کتبی)`:''}</span>`:''}
+      <div class="mu">قرارداد: ${esc(c.contract_no||'—')} · مسئول: ${esc(c.contact_name||'—')} ${c.phone?'· <span dir="ltr">'+esc(c.phone)+'</span>':''} · ${c.workers?fa(c.workers)+' نفر · ':''}ورود: ${jl(c.start_date)}${c.end_date?' · پایان: '+jl(c.end_date):''}</div>
+      ${c.scope?`<div class="mu">شرح کار: ${esc(c.scope)}</div>`:''}</div>
+     <div style="display:flex;gap:6px;flex-wrap:wrap">${c.status==='active'?`<a class="b2 p" href="checklists.html#visit=CT&ctr=${encodeURIComponent(c.name)}&cno=${encodeURIComponent(c.contract_no||'')}">✔ چک‌لیست امروز</a>`:''}
+      <button class="b2" data-a="warn" data-id="${c.id}">⚠ اخطار</button><button class="b2" data-a="edit" data-id="${c.id}">✏️</button>
+      ${c.status==='active'?`<button class="b2 ok" data-a="fin" data-id="${c.id}">🏁 پایان کار</button>`:`<button class="b2" data-a="reopen" data-id="${c.id}">↩ بازگشایی</button>`}</div></div>
+     ${w.length?`<details style="margin-top:6px"><summary class="mu" style="cursor:pointer">سابقهٔ اخطارها</summary>${w.map(x=>`<div class="wr ${x.record_type==='اخطار کتبی'?'k':''}"><b>${esc(x.record_type)}</b> · ${jl(x.warn_date)} — ${esc(x.reason)}${x.description?' <span class="mu">'+esc(x.description)+'</span>':''}</div>`).join('')}</details>`:''}</div>`}).join('')||'<div class="card2 mu">موردی نیست.</div>'}
+function dateField(id,iso){return`<div id="${id}" class="jd"><select></select><select></select><select></select></div>`}
+function openForm(id){
+  const c=id?C.find(x=>x.id===id):{start_date:todayISO(),status:'active'};
+  $('#dlg').innerHTML=`<b>${id?'ویرایش پیمانکار':'ثبت ورود پیمانکار'}</b>
+   <label class="f">نام شرکت پیمانکار *<input id="fN" value="${esc(c.name||'')}" list="cn"></label><datalist id="cn">${[...new Set(C.map(x=>x.name))].map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+   <label class="f">شمارهٔ قرارداد<input id="fC" value="${esc(c.contract_no||'')}"></label>
+   <label class="f">نام مسئول / سرپرست گروه<input id="fP" value="${esc(c.contact_name||'')}"></label>
+   <label class="f">تلفن<input id="fT" dir="ltr" value="${esc(c.phone||'')}"></label>
+   <label class="f">شرح کار / محل کار<textarea id="fS" rows="2">${esc(c.scope||'')}</textarea></label>
+   <label class="f">تعداد نفرات<input id="fW" type="number" min="0" value="${c.workers||''}"></label>
+   <label class="f">تاریخ ورود به کارخانه</label>${dateField('fD')}
+   <div id="fE" class="mu" style="color:var(--bad)"></div>
+   <div style="display:flex;gap:8px;margin-top:12px"><button class="b2" id="fX">انصراف</button><button class="b2 p" id="fS2" style="margin-inline-start:auto">ذخیره</button></div>`;
+  HSE.jdInit($('#fD'));HSE.jdSet($('#fD'),c.start_date||todayISO());$('#dlg').showModal();
+  $('#fX').onclick=()=>$('#dlg').close();
+  $('#fS2').onclick=async()=>{const name=$('#fN').value.trim();if(!name)return $('#fE').textContent='نام شرکت را بنویسید';
+    const b={name,contract_no:$('#fC').value.trim()||null,contact_name:$('#fP').value.trim()||null,phone:$('#fT').value.trim()||null,scope:$('#fS').value.trim()||null,workers:+$('#fW').value||null,start_date:HSE.jdGet($('#fD'))||todayISO()};
+    try{if(id)await rq('contractors?id=eq.'+id,{method:'PATCH',body:JSON.stringify(b),headers:{Prefer:'return=minimal'}});else await rq('contractors',{method:'POST',body:JSON.stringify({...b,created_by:ME||null}),headers:{Prefer:'return=minimal'}});
+      $('#dlg').close();toast('ثبت شد');await load()}catch(e){$('#fE').textContent=/relation|does not exist|contractors/.test(e.message)?'جدول ساخته نشده؛ فایل hse_contractors.sql را یک‌بار در Supabase اجرا کنید.':e.message}}}
+function openWarn(id){
+  const c=C.find(x=>x.id===id),prev=warnsOf(c),k=prev.filter(x=>x.record_type==='اخطار کتبی').length;
+  $('#dlg').innerHTML=`<b>ثبت اخطار برای «${esc(c.name)}»</b>
+   ${prev.length?`<div class="rep">⚠ این پیمانکار قبلاً ${fa(prev.length)} بار تذکر/اخطار گرفته است${k?` (${fa(k)} اخطار کتبی)`:''}؛ این مورد <b>تکرار</b> است.${prev.slice(0,4).map(x=>`<div>• ${jl(x.warn_date)} — ${esc(x.record_type)}: ${esc(x.reason)}</div>`).join('')}</div>`:'<div class="mu" style="margin-top:6px">سابقهٔ قبلی ندارد.</div>'}
+   <label class="f">نوع<select id="wT"><option>اخطار کتبی</option><option>تذکر شفاهی</option></select></label>
+   <label class="f">علت / موضوع *<input id="wR"></label>
+   <label class="f">توضیح<input id="wD"></label>
+   <label class="f">تاریخ اخطار</label>${dateField('wDt')}
+   <div id="wE" class="mu" style="color:var(--bad)"></div>
+   <div style="display:flex;gap:8px;margin-top:12px"><button class="b2" id="wX">انصراف</button><button class="b2 bad" id="wS" style="margin-inline-start:auto">ثبت اخطار</button></div>`;
+  HSE.jdInit($('#wDt'));HSE.jdSet($('#wDt'),todayISO());$('#dlg').showModal();
+  $('#wX').onclick=()=>$('#dlg').close();
+  $('#wS').onclick=async()=>{const r=$('#wR').value.trim();if(!r)return $('#wE').textContent='علت را بنویسید';
+    try{await rq('contractor_warnings',{method:'POST',body:JSON.stringify({contractor_id:id,record_type:$('#wT').value,reason:r,description:$('#wD').value.trim()||null,warn_date:HSE.jdGet($('#wDt'))||todayISO(),registered_by:ME||null}),headers:{Prefer:'return=minimal'}});
+      $('#dlg').close();toast('اخطار ثبت شد');await load()}catch(e){$('#wE').textContent=e.message}}}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-tab],[data-a],#bAdd');if(!t)return;
+  try{
+    if(t.id==='bAdd')return openForm(null);
+    if(t.dataset.tab){TAB=t.dataset.tab;document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('on',b===t));return draw()}
+    const id=t.dataset.id,a=t.dataset.a;
+    if(a==='edit')openForm(id);else if(a==='warn')openWarn(id);
+    else if(a==='fin'){if(!confirm('کار این پیمانکار تمام شد؟ از تقویم چک‌لیست روزانه حذف می‌شود.'))return;await rq('contractors?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'finished',end_date:todayISO()}),headers:{Prefer:'return=minimal'}});toast('پایان کار ثبت شد');await load()}
+    else if(a==='reopen'){await rq('contractors?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'active',end_date:null}),headers:{Prefer:'return=minimal'}});await load()}
+  }catch(er){toast('خطا: '+er.message.slice(0,120))}
+});
+$('#q').oninput=draw;
+HSEAuth.ready.then(()=>{ME=HSEAuth.email||'';load().catch(()=>{$('#warn').innerHTML='<div class="card2"><span class="bg bad">جدول ساخته نشده</span> فایل hse_contractors.sql را یک‌بار در Supabase SQL Editor اجرا کنید.</div>'})});
+</script>
+</body>
+</html>
