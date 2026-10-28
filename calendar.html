@@ -141,8 +141,10 @@ function build(K){
     Object.entries(weeks).forEach(([ws,l])=>{const last=l[l.length-1],we=addDays(ws,6);
       T.push({id:'TK'+ws,date:last,due:last,t:'آموزش کوتاه ایمنی در محل (جلسهٔ هفتگی)',sub:'شاخص «آموزش کوتاه در محل»',done:X.tk.some(x=>x.training_date>=ws&&x.training_date<=we),kind:'score',go:'training.html'})});
     const mEk=X.ek.filter(x=>nz(x.record_date).startsWith(pre)),wn=mEk.filter(x=>x.record_type!=='تشویق').length,rw=mEk.length-wn;
-    [[9,17,25],[11,19,27]].forEach((ds,j)=>ds.forEach((d,i)=>{const day=days[Math.min(d,days.length)-1].iso;
-      T.push({id:'EK'+j+i,date:adjust(day,days),due:day,t:j?`ثبت تشویق پرسنل (${fa(i+1)} از ۳)`:`ثبت اخطار/تذکر ایمنی (${fa(i+1)} از ۳)`,sub:j?'شاخص «بازخورد مثبت»':'شاخص «اخطار/تذکر ایمنی»',done:(j?rw:wn)>=i+1,kind:'score',go:'ekhtar.html'})}));
+    /* مهلت فقط آخرین روز کاری ماه است؛ هر زمان زودتر ثبت شود همان مورد تیک می‌خورد */
+    const lastW=wd[wd.length-1].iso;
+    [0,1].forEach(j=>[0,1,2].forEach(i=>{const day=lastW;
+      T.push({id:'EK'+j+i,date:day,due:day,t:j?`ثبت تشویق پرسنل (${fa(i+1)} از ۳)`:`ثبت اخطار/تذکر ایمنی (${fa(i+1)} از ۳)`,sub:(j?'شاخص «بازخورد مثبت»':'شاخص «اخطار/تذکر ایمنی»')+' · مهلت: '+lbl(day),done:(j?rw:wn)>=i+1,kind:'score',go:'ekhtar.html'})}));
     X.inc.forEach(x=>{const d=String(x.incident_date||'').slice(0,10),due=addDays(d,2);if(!d||!inM(due))return;
       T.push({id:'IN'+x.id,date:adjust(due,days),due,t:'نظر کارشناسی دربارهٔ حادثه: '+String(x.description||'').slice(0,50),sub:'شاخص «مشارکت در بررسی حوادث» · مهلت: '+lbl(due),done:!!x.expert_opinion,kind:'score',go:'clinic.html'})});
     X.fin.forEach(x=>{const due=x.due_date&&String(x.due_date).slice(0,10),asg=x.assigned_to&&x.status==='open'&&x.assigned_to.toLowerCase()===(HSEAuth.email||'').toLowerCase(),txt=String(x.note||x.question||'').split('|')[0].trim().slice(0,60);
