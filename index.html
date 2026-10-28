@@ -112,7 +112,10 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
   <div class="srch"><input id="q" type="search" placeholder="جستجوی ماژول…" autocomplete="off" aria-label="جستجوی ماژول"></div>
 </header>
 
-<button id="viewAsBtn" type="button" style="display:none;width:100%;margin:0 0 10px;min-height:42px;border:1px dashed var(--wa);background:var(--card);color:var(--tx);border-radius:12px;font:inherit;cursor:pointer"></button>
+<div id="viewAsBtn" role="group" aria-label="نوع نمایش" style="display:none;margin:0 0 10px;gap:0;border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:var(--card)">
+  <button type="button" data-v="mgr" style="flex:1;min-height:42px;border:0;font:inherit;cursor:pointer;color:var(--tx);background:transparent">👤 نمای مدیر</button>
+  <button type="button" data-v="exp" style="flex:1;min-height:42px;border:0;font:inherit;cursor:pointer;color:var(--tx);background:transparent">👁 نمای کارشناس</button>
+</div>
 <a class="desk" href="desk.html">
   <div>
     <b>میز کار HSE</b>
@@ -397,9 +400,10 @@ loadEkhtar();
 const esc_ = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 async function loadMyTodo() {
   const A = window.HSEAuth; if (!A) return; try { await A.ready; } catch (_) {}
-  const asMgr = A.role === 'manager', ex = Object.keys(A.EXPERTS || {})[0];
-  if (!(A.role === 'expert' && A.email) && !(asMgr && ex)) return;
-  const me = asMgr ? ex : A.email, enc = encodeURIComponent(me), box = document.getElementById('myTodo'); if (!box) return;
+  const asMgr = A.role === 'manager' && !A.viewAs, ex = Object.keys(A.EXPERTS || {})[0];
+  const ex2 = A.role === 'manager' ? ex : null;
+  if (!(A.role === 'expert' && A.email) && !ex2) return;
+  const me = ex2 || A.email, enc = encodeURIComponent(me), box = document.getElementById('myTodo'); if (!box) return;
   const PF = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC' });
   const J = d => { const p = PF.formatToParts(d), g = k => +p.find(x => x.type === k).value; return [g('year'), g('month'), g('day')]; };
   const now = new Date(), [jy, jm, jd] = J(now), pre = jy + '/' + String(jm).padStart(2, '0') + '/';
@@ -437,8 +441,9 @@ loadMyTodo();
 (async () => {
   const A = window.HSEAuth; if (!A) return; try { await A.ready; } catch (_) {}
   const b = document.getElementById('viewAsBtn'); if (!b || A.role !== 'manager') return;
-  b.style.display = ''; b.textContent = A.viewAs ? '↩ در حال دیدن نمای کارشناس — بازگشت به نمای مدیر' : '👁 مشاهدهٔ صفحه به‌صورت کارشناس';
-  b.onclick = () => { try { A.viewAs ? localStorage.removeItem('hse_view_as') : localStorage.setItem('hse_view_as', 'expert'); } catch (_) {} location.reload(); };
+  b.style.display = 'flex';
+  b.querySelectorAll('button').forEach(x => { const on = (x.dataset.v === 'exp') === !!A.viewAs; x.style.background = on ? 'var(--ac)' : 'transparent'; x.style.color = on ? 'var(--acx,#fff)' : 'var(--tx)'; x.style.fontWeight = on ? '700' : '400';
+    x.onclick = () => { if (on) return; try { A.viewAs ? localStorage.removeItem('hse_view_as') : localStorage.setItem('hse_view_as', 'expert'); } catch (_) {} location.reload(); }; });
 })();
 /* برگشت از صفحه‌های دیگر (کش مرورگر): وضعیت‌ها دوباره خوانده شود */
 let _lt = Date.now();
