@@ -112,6 +112,7 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
   <div class="srch"><input id="q" type="search" placeholder="جستجوی ماژول…" autocomplete="off" aria-label="جستجوی ماژول"></div>
 </header>
 
+<button id="viewAsBtn" type="button" style="display:none;width:100%;margin:0 0 10px;min-height:42px;border:1px dashed var(--wa);background:var(--card);color:var(--tx);border-radius:12px;font:inherit;cursor:pointer"></button>
 <a class="desk" href="desk.html">
   <div>
     <b>میز کار HSE</b>
@@ -423,6 +424,13 @@ async function loadMyTodo() {
     <a href="expert_eval.html" style="display:block;margin-top:6px;font-size:12px">دیدن امتیاز ماه و همهٔ موارد کسر شده (چک‌لیست‌های موعددار، تاییدیه‌ها و …) ←</a></div>`;
 }
 loadMyTodo();
+/* دکمهٔ نمایان «نمای کارشناس» برای مدیر */
+(async () => {
+  const A = window.HSEAuth; if (!A) return; try { await A.ready; } catch (_) {}
+  const b = document.getElementById('viewAsBtn'); if (!b || A.role !== 'manager') return;
+  b.style.display = ''; b.textContent = A.viewAs ? '↩ در حال دیدن نمای کارشناس — بازگشت به نمای مدیر' : '👁 مشاهدهٔ صفحه به‌صورت کارشناس';
+  b.onclick = () => { try { A.viewAs ? localStorage.removeItem('hse_view_as') : localStorage.setItem('hse_view_as', 'expert'); } catch (_) {} location.reload(); };
+})();
 /* برگشت از صفحه‌های دیگر (کش مرورگر): وضعیت‌ها دوباره خوانده شود */
 let _lt = Date.now();
 const refreshStatus = () => { if (Date.now() - _lt < 1500) return; _lt = Date.now(); loadStatus().catch(() => {}); loadEkhtar(); loadMyTodo(); };
