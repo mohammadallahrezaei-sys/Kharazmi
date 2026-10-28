@@ -105,6 +105,18 @@ async function load(){
     getAll('training_attendees?select=training_id,employee_id'),
     getAll('employees?select=id,termination_date').then(r=>r||getAll('employees?select=id'))])]);
   D={ins:ins&&ins.filter(r=>r.module!=='Q'),fin:fin&&fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),inc,fu,ek,tr,ta,emp,ev:evB,cu:cuL}; /* لغوشده‌ها و هشدارهای دارو عدم‌انطباق حساب نمی‌شوند */
+  /* منابع تکمیلی «کارنامهٔ فعالیت‌ها» (هرکدام که نبود، فقط همان بخش حذف می‌شود) */
+  const opt=q=>getAll(q).catch(()=>null);
+  const [aF,aT,aE,aC,aV,aM,aS,aD]=await Promise.all([
+    opt('findings?select=question,note,location,category,status,closed_at,module&status=eq.closed'),
+    opt('trainings?select=id,title,training_type,training_date,duration_hours'),
+    opt('equipment_inspections?select=equipment_code,inspected_on,result'),
+    opt('hse_cards?select=card_type,card_date,status'),
+    opt('verify_rounds?select=week_start,result'),
+    opt('committee_meetings?select=no,no_label,jdate'),
+    opt('committee_submissions?select=target,letter_date'),
+    opt('committee_docs?select=title,category,created_at')]);
+  D.x={F:aF&&aF.filter(f=>f.module!=='MED'),T:aT,E:aE,C:aC,V:aV,M:aM,S:aS,D:aD};
   const sel=document.getElementById('msel');
   sel.innerHTML=buildOptions();
   sel.value='m:'+nowK.slice(0,4)+':'+(+nowK.slice(5));
@@ -194,6 +206,34 @@ function metricsRange(fromDate,toDate){
 }
 function metrics(K){const R=monthRange(K);return metricsRange(R.a,R.b);}
 
+/* کارنامهٔ فعالیت‌ها: همهٔ کارهایی که در دوره انجام شده، به زبان قابل‌فهم برای کارفرما */
+function achievements(R,c,pw){
+  const X=D.x||{},d10=v=>String(v||'').slice(0,10),inR=v=>{v=d10(v);return v>=R.a&&v<=R.b};
+  const jISO=s=>{const m=/^(\d{4})\D(\d{1,2})\D(\d{1,2})/.exec(String(s||'').replace(/[۰-۹]/g,x=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(x)));return m?HSE.jalToISO(+m[1],+m[2],+m[3]):null};
+  const inJ=s=>{const i=jISO(s);return i&&i>=R.a&&i<=R.b};
+  const fx=(X.F||[]).filter(f=>f.closed_at&&inR(f.closed_at)),byCat={};fx.forEach(f=>{const k=f.category||'نظم و ایمنی عمومی';(byCat[k]=byCat[k]||[]).push(f)});
+  const tr=(X.T||[]).filter(x=>inR(x.training_date)),talk=tr.filter(x=>x.training_type==='safety_talk'),cls=tr.filter(x=>x.training_type!=='safety_talk');
+  const hrs=cls.reduce((s,x)=>s+(+x.duration_hours||0),0);
+  const eq=(X.E||[]).filter(x=>inJ(x.inspected_on)||inR(x.inspected_on)),eqBad=eq.filter(x=>x.result==='عدم تایید').length;
+  const cd=(X.C||[]).filter(x=>inR(x.card_date)),cdDone=cd.filter(x=>x.status==='done').length;
+  const vr=(X.V||[]).filter(x=>x.result!=='planned'&&inR(x.week_start));
+  const mt=(X.M||[]).filter(x=>inJ(x.jdate)),sb=(X.S||[]).filter(x=>inJ(x.letter_date)),dc=(X.D||[]).filter(x=>inR(x.created_at));
+  const tile=(n,l,cl)=>n==null?'':`<div class="k"><b class="${cl||''}">${fa(n)}</b><span>${l}</span></div>`;
+  const L=[];
+  Object.entries(byCat).sort((a,b)=>b[1].length-a[1].length).forEach(([k,l])=>L.push(`رفع <b>${fa(l.length)}</b> مورد عدم‌انطباق حوزهٔ «${k}» (نمونه: ${esc(String(l[0].note&&l[0].note.length>5?l[0].note:l[0].question).split('|')[0].trim().slice(0,90))})`));
+  if(cls.length)L.push(`برگزاری ${fa(cls.length)} دورهٔ آموزشی (${fa(Math.round(hrs*10)/10)} ساعت): ${[...new Set(cls.map(x=>esc(x.title)))].slice(0,5).join('، ')}`);
+  if(talk.length)L.push(`برگزاری ${fa(talk.length)} جلسهٔ کوتاه ایمنی در محل کار`);
+  if(eq.length)L.push(`انجام و ثبت تاییدیهٔ فنی ${fa(eq.length)} تجهیز${eqBad?` (${fa(eqBad)} مورد عدم تایید و در حال پیگیری)`:''}`);
+  if(mt.length)L.push(`تدوین و ثبت ${fa(mt.length)} صورتجلسهٔ کمیتهٔ حفاظت فنی و بهداشت کار (جلسهٔ ${mt.map(m=>fa(m.no_label||m.no)).join('، ')})`);
+  if(sb.length)L.push(`ارسال ${fa(sb.length)} نامهٔ رسمی صورتجلسه به اداره کار و مرکز بهداشت`);
+  if(dc.length)L.push(`تدوین و بایگانی ${fa(dc.length)} مستند HSE: ${dc.slice(0,5).map(x=>esc(x.title)).join('، ')}${dc.length>5?' و …':''}`);
+  if(cd.length)L.push(`بررسی ${fa(cd.length)} کارت گزارش خطر/پیشنهاد دریافتی از پرسنل (${fa(cdDone)} مورد منجر به اقدام)`);
+  if(vr.length)L.push(`انجام ${fa(vr.length)} بازدید تاییدی مدیریت برای صحه‌گذاری بازرسی‌ها`);
+  if(c.rounds)L.push(`انجام ${fa(c.rounds)} گشت بازرسی و تکمیل ${fa(c.checks)} چک‌لیست با نرخ انطباق ${P(c.comp)}`);
+  if(c.fuDone)L.push(`انجام ${fa(c.fuDone)} پیگیری طب کار و معاینات پرسنل`);
+  return `<div class="card" style="border-color:var(--ac)"><h2>🏆 کارنامهٔ فعالیت‌های HSE در این ${pw}</h2><div class="g">
+   ${tile(fx.length,'عدم‌انطباق رفع‌شده','ok')}${tile(c.rounds,'گشت بازرسی')}${tile(cls.length+talk.length,'جلسهٔ آموزشی')}${tile(eq.length,'تاییدیهٔ فنی تجهیزات')}${tile(mt.length,'صورتجلسهٔ کمیته')}${tile(sb.length,'نامهٔ ارسالی به ادارات')}${tile(dc.length,'مستند تدوین‌شده')}${tile(cd.length,'کارت پرسنل بررسی‌شده')}</div>
+   ${L.length?`<ul style="margin-top:10px">${L.map(x=>`<li>${x}</li>`).join('')}</ul>`:'<div class="mu" style="margin-top:8px">فعالیتی برای این دوره ثبت نشده است.</div>'}</div>`}
 function render(selVal){
   const {type,y,n}=parseSel(selVal);
   const pw=pwOf(type);
@@ -298,6 +338,7 @@ function render(selVal){
   const bad=['inspections','findings','clinic_incidents','clinic_followups','ekhtars'].filter((t,i)=>[D.ins,D.fin,D.inc,D.fu,D.ek][i]==null);
   document.getElementById('out').outerHTML=`<div id="out">
   ${attnCard}
+  ${achievements(R,c,pw)}
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
   <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="g">
    ${k(P(c.comp),'نرخ انطباق چک‌لیست‌ها',col(c.comp),comparable?P(p.comp):null)}${k(fa(c.fOpen),'عدم‌انطباق باز (پایان دوره)',c.fOpen?'wa':'ok',fa(p.fOpen))}${k(fa(c.fOver),'عدم‌انطباق معوق (پایان دوره)',c.fOver?'bad':'ok',fa(p.fOver))}
