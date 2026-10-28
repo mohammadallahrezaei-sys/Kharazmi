@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js" data-roles="manager"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>بازدید تاییدی هفتگی مدیر - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.w{max-width:900px;margin:0 auto;padding:14px}
+.card2{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:10px}
+.t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.mu{color:var(--mu);font-size:12px}
+.b2{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.b2.p{background:var(--ac);color:var(--acx);border-color:var(--ac)}.b2.ok{background:var(--ok);color:#fff;border-color:var(--ok)}.b2.bad{background:var(--bad);color:#fff;border-color:var(--bad)}
+.bg{display:inline-block;border-radius:99px;padding:1px 10px;font-size:11px;border:1px solid var(--bd)}.bg.ok{color:var(--ok);border-color:var(--ok)}.bg.bad{color:var(--bad);border-color:var(--bad)}.bg.wa{color:var(--wa);border-color:var(--wa)}
+input,select,textarea{font:inherit;font-size:13px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:6px 8px}
+textarea{width:100%}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{border-bottom:1px solid var(--bd);padding:5px 6px;text-align:right}
+</style>
+</head>
+<body>
+<div class="w">
+ <div class="t"><div><h1 style="margin:0">بازدید تاییدی هفتگی مدیر</h1><div class="mu">هر هفته چند بازدید کارشناس را خودتان میدانی بررسی و صحه‌گذاری کنید؛ نتیجه در «اعتبارسنجی» امتیاز کارشناس می‌آید.</div></div>
+  <div><a href="index.html">← صفحه اصلی</a> · <a href="expert_eval.html">ارزیابی کارشناسان</a></div></div>
+ <div class="card2" style="margin-top:10px"><div class="t"><b id="wk"></b><span><button class="b2" id="prev">‹ هفتهٔ قبل</button> <button class="b2" id="next">هفتهٔ بعد ›</button></span></div><div id="sum" class="mu" style="margin-top:4px"></div></div>
+ <div id="plan"></div>
+ <div class="card2"><b>پیشنهاد سامانه برای بازدید تاییدی این هفته</b><div class="mu">از بازدیدهای کارشناس در هفتهٔ منتهی به این هفته انتخاب شده‌اند؛ به برنامهٔ خود اضافه کنید و محل را بازدید کنید.</div><div id="sug"></div></div>
+ <div class="card2"><b>افزودن دستی</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><select id="mx"></select><input id="ml" placeholder="محل / مورد بازدید (مثلاً سوله ۴ - دستگاه آسیاب)" style="flex:1;min-width:200px"><button class="b2 p" id="madd">افزودن به برنامه</button></div></div>
+ <div class="card2"><b>سابقهٔ هفته‌های اخیر</b><div id="hist"></div></div>
+</div>
+<div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:99px;font-size:13px"></div>
+<script src="eval_core.js"></script>
+<script>
+const SB='https://priopguwfjawybffarhd.supabase.co',RR=SB+'/rest/v1/',{fa,esc}=HSE,$=s=>document.querySelector(s);
+const EXP=(window.HSEAuth&&HSEAuth.EXPERTS)||{'m.mohammadi@gmail.com':'محمدی'},MGR='m.rezaei@gmail.com';
+const MOD={D:'چک‌لیست روزانه',S:'ایمنی عمومی',CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخازن تحت فشار',AC:'کمپرسور',BL:'دیگ بخار',PJ:'پمپ/پروژه',CT:'پیمانکار',CH:'مواد شیمیایی'};
+async function rq(p,o={}){const r=await fetch(RR+p,{...o,headers:{'Content-Type':'application/json',...(o.headers||{})}});if(!r.ok)throw new Error((await r.text()).slice(0,300));const t=await r.text();return t?JSON.parse(t):null}
+const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',2600)};
+const iso=d=>d.toLocaleDateString('en-CA');
+function satOf(d){const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-((x.getDay()+1)%7));return x}   /* شنبه = شروع هفته */
+let WS=satOf(new Date()),ROUNDS=[],SUG=[];
+const PFD=new Intl.DateTimeFormat('fa-IR-u-ca-persian',{day:'numeric',month:'long'});
+const jd=d=>PFD.format(new Date(d));
+async function load(){
+  const A=iso(WS),e=new Date(WS);e.setDate(e.getDate()+6);
+  $('#wk').textContent='هفتهٔ '+jd(WS)+' تا '+jd(e);$('#next').disabled=iso(WS)>=iso(satOf(new Date()));
+  try{ROUNDS=await HSE.getAll('verify_rounds?select=*&order=created_at.asc')||[]}catch(_){ROUNDS=null}
+  if(ROUNDS==null){$('#plan').innerHTML='<div class="card2"><span class="bg bad">جدول ساخته نشده</span> فایل hse_weekly_verify.sql را یک‌بار در Supabase SQL Editor اجرا کنید.</div>';ROUNDS=[]}
+  /* پیشنهاد: بازدیدهای کارشناس در هفتهٔ قبل از این هفته تا پایان این هفته */
+  const from=new Date(WS);from.setDate(from.getDate()-7);
+  let ins=[];try{ins=await HSE.getAll(`inspections?select=id,module,location,total,ok,nc,created_at,inspector&created_at=gte.${iso(from)}T00:00:00%2B03:30&created_at=lt.${iso(new Date(e.getTime()+864e5))}T00:00:00%2B03:30`)||[]}catch(_){}
+  const used=new Set(ROUNDS.map(r=>r.inspection_id).filter(Boolean));
+  const h=s=>{let x=0;for(const c of s+iso(WS))x=(x*31+c.charCodeAt(0))>>>0;return x};
+  SUG=ins.filter(i=>i.inspector&&i.inspector.toLowerCase()!==MGR&&!String(i.location||'').startsWith('ورود دسته‌ای')&&i.module!=='Q'&&!used.has(String(i.id)))
+    .sort((a,b)=>h(String(a.id))-h(String(b.id))).slice(0,4);
+  draw()}
+function draw(){
+  const A=iso(WS),mine=ROUNDS.filter(r=>r.week_start===A),done=mine.filter(r=>r.result!=='planned');
+  $('#sum').textContent=mine.length?`${fa(mine.length)} بازدید در برنامه · ${fa(done.length)} انجام‌شده · ${fa(mine.filter(r=>r.result==='gap').length)} مغایرت`:'هنوز بازدیدی برای این هفته برنامه‌ریزی نشده است.';
+  $('#plan').innerHTML=mine.map(r=>`<div class="card2"><div class="t"><div><b>${esc(r.location||'')}</b> <span class="mu">${esc(MOD[r.module]||r.module||'')} · کارشناس: ${esc(EXP[r.expert]||r.expert||'')}${r.insp_at?' · بازدید '+jd(r.insp_at):''}</span></div>
+    ${r.result==='planned'?'<span class="bg wa">در انتظار بازدید</span>':r.result==='ok'?'<span class="bg ok">تایید شد</span>':'<span class="bg bad">مغایرت</span>'}</div>
+    ${r.result==='planned'?`<textarea rows="2" id="n_${r.id}" placeholder="یادداشت (برای مغایرت الزامی: چه چیزی دیده نشده یا فرق داشت)"></textarea><div style="margin-top:6px;display:flex;gap:6px"><button class="b2 ok" data-r="${r.id}" data-v="ok">✔ مطابق گزارش کارشناس بود</button><button class="b2 bad" data-r="${r.id}" data-v="gap">✖ مغایرت / مورد از‌قلم‌افتاده</button><button class="b2" data-del="${r.id}" style="margin-inline-start:auto">حذف</button></div>`:(r.note?`<div style="margin-top:4px;font-size:13px">${esc(r.note)}</div>`:'')}</div>`).join('');
+  $('#sug').innerHTML=SUG.length?SUG.map(i=>`<div class="t" style="padding:6px 0;border-bottom:1px solid var(--bd)"><div><b>${esc(i.location||'—')}</b> <span class="mu">${esc(MOD[i.module]||i.module)} · ${esc(EXP[i.inspector]||i.inspector)} · ${jd(i.created_at)}${i.total?` · ${fa(i.ok||0)} مورد مطابق از ${fa(i.total)}`:''}</span></div><button class="b2 p" data-sg="${i.id}">＋ به برنامه</button></div>`).join(''):'<div class="mu" style="padding:6px 0">بازدیدی برای پیشنهاد نیست (یا همه افزوده شده‌اند).</div>';
+  /* سابقه */
+  const by={};ROUNDS.forEach(r=>{(by[r.week_start]=by[r.week_start]||[]).push(r)});
+  const ws=Object.keys(by).sort().reverse().slice(0,10);
+  $('#hist').innerHTML=ws.length?`<table><tr><th>هفته</th><th>برنامه</th><th>انجام‌شده</th><th>مغایرت</th></tr>${ws.map(w=>{const l=by[w];return`<tr><td>${jd(w)}</td><td>${fa(l.length)}</td><td>${fa(l.filter(x=>x.result!=='planned').length)}</td><td>${fa(l.filter(x=>x.result==='gap').length)}</td></tr>`}).join('')}</table>`:'<div class="mu">—</div>'}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('button');if(!t)return;
+  try{
+    if(t.dataset.sg){const i=SUG.find(x=>String(x.id)===t.dataset.sg);await rq('verify_rounds',{method:'POST',body:JSON.stringify({week_start:iso(WS),expert:i.inspector,module:i.module,location:i.location,inspection_id:String(i.id),insp_at:i.created_at,result:'planned'}),headers:{Prefer:'return=minimal'}});await load()}
+    else if(t.dataset.r){const n=(document.getElementById('n_'+t.dataset.r).value||'').trim();if(t.dataset.v==='gap'&&!n)return toast('برای مغایرت، یادداشت بنویسید');
+      await rq('verify_rounds?id=eq.'+t.dataset.r,{method:'PATCH',body:JSON.stringify({result:t.dataset.v,note:n||null,done_at:new Date().toISOString()}),headers:{Prefer:'return=minimal'}});toast(t.dataset.v==='gap'?'مغایرت ثبت شد؛ مورد از‌قلم‌افتاده را در بازرسی سریع با نام کارشناس هم ثبت کنید.':'ثبت شد');await load()}
+    else if(t.dataset.del){if(!confirm('از برنامه حذف شود؟'))return;await rq('verify_rounds?id=eq.'+t.dataset.del,{method:'DELETE',headers:{Prefer:'return=minimal'}});await load()}
+    else if(t.id==='madd'){const l=$('#ml').value.trim();if(!l)return toast('محل را بنویسید');await rq('verify_rounds',{method:'POST',body:JSON.stringify({week_start:iso(WS),expert:$('#mx').value,location:l,result:'planned'}),headers:{Prefer:'return=minimal'}});$('#ml').value='';await load()}
+    else if(t.id==='prev'){WS.setDate(WS.getDate()-7);await load()}
+    else if(t.id==='next'){WS.setDate(WS.getDate()+7);await load()}
+  }catch(er){toast('خطا: '+er.message.slice(0,120))}
+});
+$('#mx').innerHTML=Object.entries(EXP).map(([m,n])=>`<option value="${m}">${n}</option>`).join('');
+load();
+</script>
+</body>
+</html>
