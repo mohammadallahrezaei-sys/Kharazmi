@@ -127,8 +127,13 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
   <a href="clinic.html">＋ مراجعه بهداری</a>
 </div>
 
-<div id="myTodo" style="display:none"></div>
-<details id="myCal" open style="display:none;margin-bottom:12px"><summary style="cursor:pointer;font-weight:700;padding:6px 0">📅 تقویم کارهای من (بازرسی‌ها و کارهای مؤثر بر امتیاز)</summary><iframe src="calendar.html?embed=1" title="تقویم" loading="lazy" style="width:100%;height:760px;border:1px solid var(--bd);border-radius:14px;background:var(--card)"></iframe></details>
+<button id="myBtn" type="button" style="display:none;width:100%;margin:0 0 10px;min-height:48px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;font:inherit;font-weight:700;cursor:pointer"></button>
+<dialog id="myDlg" style="width:min(980px,96vw);max-height:92vh;border:1px solid var(--bd);border-radius:16px;background:var(--bg,var(--card));color:var(--tx);padding:12px;direction:rtl">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b id="myTtl">کارهای من</b><button type="button" id="myX" style="border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:4px 12px;font:inherit;cursor:pointer">بستن ✕</button></div>
+  <div id="myTodo"></div>
+  <iframe id="myFr" title="تقویم" style="width:100%;height:700px;border:1px solid var(--bd);border-radius:14px;background:var(--card)"></iframe>
+</dialog>
+<style>@keyframes myPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}50%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}#myBtn.bad{border-color:var(--bad,#dc2626);animation:myPulse 1.6s infinite}#myBtn.wa{border-color:var(--wa,#d97706)}#myBtn .n{display:inline-block;min-width:24px;padding:0 8px;border-radius:99px;background:var(--bad,#dc2626);color:#fff;margin-inline-start:6px}#myBtn.wa .n{background:var(--wa,#d97706)}#myBtn.ok .n{background:var(--ok,#059669)}</style>
 <div class="wg" id="wg" aria-label="نیازمند اقدام"><div class="wi"><i>⏳</i><div><b>در حال بررسی...</b><span>موارد نیازمند اقدام</span></div></div></div>
 
 <section class="mg grp" id="gRisk">
@@ -418,7 +423,11 @@ async function loadMyTodo() {
     add(wn < 3, `${fa(wn)} اخطار/تذکر در این ماه ثبت شده؛ حداقل ۳ مورد انتظار است`, 'ekhtar.html', 'wa', 'شاخص «اخطار/تذکر ایمنی»');
     add(rw < 3, `${fa(rw)} تشویق در این ماه ثبت شده؛ حداقل ۳ مورد انتظار است`, 'ekhtar.html', 'wa', 'شاخص «بازخورد مثبت»'); }
   add(vr && vr.length, `${fa((vr || []).length)} مغایرت در بازدید تاییدی مدیر ثبت شده؛ دلیل را در ارزیابی ببینید`, 'expert_eval.html', 'bad', 'کسر از «اعتبارسنجی»');
-  box.style.display = ''; const mc = document.getElementById('myCal'); if (mc) mc.style.display = '';
+  const btn = document.getElementById('myBtn'), dlg = document.getElementById('myDlg'), nb = T.filter(x => x.sev === 'bad').length;
+  btn.style.display = ''; btn.className = nb ? 'bad' : T.length ? 'wa' : 'ok';
+  btn.innerHTML = (asMgr ? '👁 کارهای باز کارشناس ' + esc_(A.EXPERTS[ex]) : '📝 کارهای باز و تقویم من') + `<span class="n">${T.length ? fa(T.length) : '✓'}</span>` + (nb ? ` <small style="font-weight:400">· ${fa(nb)} مورد فوری</small>` : '');
+  btn.onclick = () => { const f = document.getElementById('myFr'); if (!f.getAttribute('src')) f.src = 'calendar.html?embed=1'; dlg.showModal(); };
+  document.getElementById('myX').onclick = () => dlg.close();
   box.innerHTML = `<div class="wi ${T.length ? 'wa' : 'ok'}" style="display:block;margin-bottom:10px"><b>${asMgr ? '👁 کارشناس ' + esc_(A.EXPERTS[ex]) + ': ' + (T.length ? 'کارهای باز و امتیازِ در خطر' : 'کار بازِ کم‌کنندهٔ امتیاز ندارد') : T.length ? '📝 کارهای باز شما و امتیازِ در خطر' : '✓ کار بازِ کم‌کنندهٔ امتیاز ندارید'}</b>
     ${T.map(x => `<a href="${x.href}" style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--bd);color:inherit;text-decoration:none"><span>${x.sev === 'bad' ? '🔴' : '🟠'} ${x.txt}</span><small style="color:var(--mu)">${x.cost} ←</small></a>`).join('')}
     <a href="expert_eval.html" style="display:block;margin-top:6px;font-size:12px">دیدن امتیاز ماه و همهٔ موارد کسر شده (چک‌لیست‌های موعددار، تاییدیه‌ها و …) ←</a></div>`;
