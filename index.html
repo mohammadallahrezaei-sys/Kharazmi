@@ -126,6 +126,7 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
   <a href="clinic.html">＋ مراجعه بهداری</a>
 </div>
 
+<div id="myTodo" style="display:none"></div>
 <div class="wg" id="wg" aria-label="نیازمند اقدام"><div class="wi"><i>⏳</i><div><b>در حال بررسی...</b><span>موارد نیازمند اقدام</span></div></div></div>
 
 <section class="mg grp" id="gRisk">
@@ -385,9 +386,43 @@ try { localStorage.removeItem('hse_use'); } catch (_) {}
 
 loadStatus().catch(() => { const g = document.getElementById('wg'); if (g) g.innerHTML = '<a class="wi" href="desk.html"><i>🧭</i><div><b>میز کار HSE</b><span>برای دیدن موارد نیازمند اقدام باز کنید.</span></div></a>'; });
 loadEkhtar();
+/* ===== کارهای باز کارشناس و موارد کسر امتیاز (فقط برای نقش کارشناس) ===== */
+async function loadMyTodo() {
+  const A = window.HSEAuth; if (!A) return; try { await A.ready; } catch (_) {}
+  if (A.role !== 'expert' || !A.email) return;
+  const me = A.email, enc = encodeURIComponent(me), box = document.getElementById('myTodo'); if (!box) return;
+  const PF = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC' });
+  const J = d => { const p = PF.formatToParts(d), g = k => +p.find(x => x.type === k).value; return [g('year'), g('month'), g('day')]; };
+  const now = new Date(), [jy, jm, jd] = J(now), pre = jy + '/' + String(jm).padStart(2, '0') + '/';
+  const mStart = new Date(now.getTime() - (jd - 1) * 864e5).toISOString().slice(0, 10);
+  const wStart = new Date(now.getTime() - ((now.getDay() + 1) % 7) * 864e5).toISOString().slice(0, 10), today = now.toISOString().slice(0, 10);
+  const safe = p => get(p).catch(() => null);
+  const [asg, over, inc, talk, ek, vr] = await Promise.all([
+    safe('findings?select=id&status=eq.open&assigned_to=eq.' + enc),
+    safe('findings?select=id&status=eq.open&module=neq.MED&inspector=eq.' + enc + '&due_date=lt.' + today),
+    safe('clinic_incidents?select=id&expert_opinion=is.null&incident_date=gte.' + mStart),
+    safe('trainings?select=id,trainer&training_type=eq.safety_talk&training_date=gte.' + wStart),
+    safe('ekhtars?select=record_type,record_date&registered_by=eq.' + enc + '&record_date=like.' + encodeURIComponent(pre + '*')),
+    safe('verify_rounds?select=id&result=eq.gap&week_start=gte.' + mStart + '&expert=eq.' + enc)]);
+  const T = [];
+  const add = (n, txt, href, sev, cost) => { if (n) T.push({ txt, href, sev, cost }); };
+  add(asg && asg.length, `${fa((asg || []).length)} مورد ارجاع‌شده از طرف مدیر باز است`, 'checklists.html', 'bad', 'در «پیگیری و بستن» امتیاز می‌گیرد');
+  add(over && over.length, `${fa((over || []).length)} عدم‌انطباق ثبت‌شدهٔ شما از مهلت گذشته و هنوز باز است`, 'checklists.html', 'bad', 'کسر از «پیگیری و بستن به‌موقع»');
+  add(inc && inc.length, `برای ${fa((inc || []).length)} حادثهٔ این ماه نظر کارشناسی ثبت نشده`, 'clinic.html', 'wa', 'شاخص «مشارکت در بررسی حوادث»');
+  if (talk && !talk.some(x => !/رضایی/.test(x.trainer || ''))) add(1, 'در این هفته آموزش کوتاه در محل ثبت نشده', 'training.html', 'wa', 'شاخص «آموزش کوتاه در محل»');
+  if (ek) { const wn = ek.filter(x => x.record_type !== 'تشویق').length, rw = ek.length - wn;
+    add(wn < 3, `${fa(wn)} اخطار/تذکر در این ماه ثبت کرده‌اید؛ حداقل ۳ مورد انتظار است`, 'ekhtar.html', 'wa', 'شاخص «اخطار/تذکر ایمنی»');
+    add(rw < 3, `${fa(rw)} تشویق در این ماه ثبت کرده‌اید؛ حداقل ۳ مورد انتظار است`, 'ekhtar.html', 'wa', 'شاخص «بازخورد مثبت»'); }
+  add(vr && vr.length, `${fa((vr || []).length)} مغایرت در بازدید تاییدی مدیر ثبت شده؛ دلیل را در ارزیابی ببینید`, 'expert_eval.html', 'bad', 'کسر از «اعتبارسنجی»');
+  box.style.display = '';
+  box.innerHTML = `<div class="wi ${T.length ? 'wa' : 'ok'}" style="display:block;margin-bottom:10px"><b>${T.length ? '📝 کارهای باز شما و امتیازِ در خطر' : '✓ کار بازِ کم‌کنندهٔ امتیاز ندارید'}</b>
+    ${T.map(x => `<a href="${x.href}" style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--bd);color:inherit;text-decoration:none"><span>${x.sev === 'bad' ? '🔴' : '🟠'} ${x.txt}</span><small style="color:var(--mu)">${x.cost} ←</small></a>`).join('')}
+    <a href="expert_eval.html" style="display:block;margin-top:6px;font-size:12px">دیدن امتیاز ماه و همهٔ موارد کسر شده (چک‌لیست‌های موعددار، تاییدیه‌ها و …) ←</a></div>`;
+}
+loadMyTodo();
 /* برگشت از صفحه‌های دیگر (کش مرورگر): وضعیت‌ها دوباره خوانده شود */
 let _lt = Date.now();
-const refreshStatus = () => { if (Date.now() - _lt < 1500) return; _lt = Date.now(); loadStatus().catch(() => {}); loadEkhtar(); };
+const refreshStatus = () => { if (Date.now() - _lt < 1500) return; _lt = Date.now(); loadStatus().catch(() => {}); loadEkhtar(); loadMyTodo(); };
 addEventListener('pageshow', e => { if (e.persisted) { _lt = 0; refreshStatus(); } });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshStatus(); });
 [300, 1200, 3000].forEach(t => setTimeout(syncMgr, t));
