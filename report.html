@@ -107,7 +107,7 @@ async function load(){
   D={ins:ins&&ins.filter(r=>r.module!=='Q'),fin:fin&&fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),inc,fu,ek,tr,ta,emp,ev:evB,cu:cuL}; /* لغوشده‌ها و هشدارهای دارو عدم‌انطباق حساب نمی‌شوند */
   /* منابع تکمیلی «کارنامهٔ فعالیت‌ها» (هرکدام که نبود، فقط همان بخش حذف می‌شود) */
   const opt=q=>getAll(q).catch(()=>null);
-  const [aF,aT,aE,aC,aV,aM,aS,aD]=await Promise.all([
+  const [aF,aT,aE,aC,aV,aM,aS,aD,aW,aK]=await Promise.all([
     opt('findings?select=question,note,location,category,status,closed_at,module&status=eq.closed'),
     opt('trainings?select=id,title,training_type,training_date,duration_hours'),
     opt('equipment_inspections?select=equipment_code,inspected_on,result'),
@@ -115,8 +115,10 @@ async function load(){
     opt('verify_rounds?select=week_start,result'),
     opt('committee_meetings?select=no,no_label,jdate'),
     opt('committee_submissions?select=target,letter_date'),
-    opt('committee_docs?select=title,category,created_at')]);
-  D.x={F:aF&&aF.filter(f=>f.module!=='MED'),T:aT,E:aE,C:aC,V:aV,M:aM,S:aS,D:aD};
+    opt('committee_docs?select=title,category,created_at'),
+    opt('work_log?select=title,category,work_date,photos,status'),
+    opt('daily_ticks?select=tick_date&key=eq.chlorination')]);
+  D.x={F:aF&&aF.filter(f=>f.module!=='MED'),T:aT,E:aE,C:aC,V:aV,M:aM,S:aS,D:aD,W:aW,K:aK};
   const sel=document.getElementById('msel');
   sel.innerHTML=buildOptions();
   sel.value='m:'+nowK.slice(0,4)+':'+(+nowK.slice(5));
@@ -219,7 +221,12 @@ function achievements(R,c,pw){
   const vr=(X.V||[]).filter(x=>x.result!=='planned'&&inR(x.week_start));
   const mt=(X.M||[]).filter(x=>inJ(x.jdate)),sb=(X.S||[]).filter(x=>inJ(x.letter_date)),dc=(X.D||[]).filter(x=>inR(x.created_at));
   const tile=(n,l,cl)=>n==null?'':`<div class="k"><b class="${cl||''}">${fa(n)}</b><span>${l}</span></div>`;
+  const wl=(X.W||[]).filter(x=>inR(x.work_date)),wlPh=wl.filter(x=>(x.photos||[]).length).length;
+  const kd=(X.K||[]).filter(x=>inR(x.tick_date)).length;
   const L=[];
+  if(kd)L.push(`راه‌اندازی روزانهٔ سیستم کلرزنی تصفیه‌خانه در <b>${fa(kd)}</b> روز`);
+  if(wl.length){const bc={};wl.forEach(x=>{const k=x.category||'سایر';bc[k]=(bc[k]||0)+1});L.push(`ثبت <b>${fa(wl.length)}</b> کار روزانهٔ HSE${wlPh?` (${fa(wlPh)} مورد با مستندات عکس)`:''}: ${Object.entries(bc).map(([k,n])=>esc(k)+' ('+fa(n)+')').join('، ')}`);
+    wl.slice(0,12).forEach(x=>L.push('&nbsp;&nbsp;• '+esc(x.title)))}
   Object.entries(byCat).sort((a,b)=>b[1].length-a[1].length).forEach(([k,l])=>L.push(`رفع <b>${fa(l.length)}</b> مورد عدم‌انطباق حوزهٔ «${k}» (نمونه: ${esc(String(l[0].note&&l[0].note.length>5?l[0].note:l[0].question).split('|')[0].trim().slice(0,90))})`));
   if(cls.length)L.push(`برگزاری ${fa(cls.length)} دورهٔ آموزشی (${fa(Math.round(hrs*10)/10)} ساعت): ${[...new Set(cls.map(x=>esc(x.title)))].slice(0,5).join('، ')}`);
   if(talk.length)L.push(`برگزاری ${fa(talk.length)} جلسهٔ کوتاه ایمنی در محل کار`);
@@ -232,7 +239,7 @@ function achievements(R,c,pw){
   if(c.rounds)L.push(`انجام ${fa(c.rounds)} گشت بازرسی و تکمیل ${fa(c.checks)} چک‌لیست با نرخ انطباق ${P(c.comp)}`);
   if(c.fuDone)L.push(`انجام ${fa(c.fuDone)} پیگیری طب کار و معاینات پرسنل`);
   return `<div class="card" style="border-color:var(--ac)"><h2>🏆 کارنامهٔ فعالیت‌های HSE در این ${pw}</h2><div class="g">
-   ${tile(fx.length,'عدم‌انطباق رفع‌شده','ok')}${tile(c.rounds,'گشت بازرسی')}${tile(cls.length+talk.length,'جلسهٔ آموزشی')}${tile(eq.length,'تاییدیهٔ فنی تجهیزات')}${tile(mt.length,'صورتجلسهٔ کمیته')}${tile(sb.length,'نامهٔ ارسالی به ادارات')}${tile(dc.length,'مستند تدوین‌شده')}${tile(cd.length,'کارت پرسنل بررسی‌شده')}</div>
+   ${tile(fx.length,'عدم‌انطباق رفع‌شده','ok')}${tile(c.rounds,'گشت بازرسی')}${tile(cls.length+talk.length,'جلسهٔ آموزشی')}${tile(eq.length,'تاییدیهٔ فنی تجهیزات')}${tile(mt.length,'صورتجلسهٔ کمیته')}${tile(sb.length,'نامهٔ ارسالی به ادارات')}${tile(dc.length,'مستند تدوین‌شده')}${tile(cd.length,'کارت پرسنل بررسی‌شده')}${tile(wl.length,'کار روزانهٔ ثبت‌شده')}${tile(kd,'روز کلرزنی تصفیه‌خانه')}</div>
    ${L.length?`<ul style="margin-top:10px">${L.map(x=>`<li>${x}</li>`).join('')}</ul>`:'<div class="mu" style="margin-top:8px">فعالیتی برای این دوره ثبت نشده است.</div>'}</div>`}
 function render(selVal){
   const {type,y,n}=parseSel(selVal);

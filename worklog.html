@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>گزارش کارهای روزانه - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.w{max-width:860px;margin:0 auto;padding:14px}
+.top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.card2{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin:10px 0}
+.t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.mu{color:var(--mu);font-size:12px}
+.b2{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.b2.p{background:var(--ac);color:var(--acx);border-color:var(--ac)}.b2.bad{border-color:var(--bad);color:var(--bad)}
+.bg{display:inline-block;border-radius:99px;padding:1px 10px;font-size:11px;border:1px solid var(--bd)}.bg.ok{color:var(--ok);border-color:var(--ok)}.bg.wa{color:var(--wa);border-color:var(--wa)}
+input,select,textarea{font:inherit;font-size:13px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:7px 9px;width:100%}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);width:min(94vw,520px);padding:14px;max-height:92vh}
+dialog::backdrop{background:rgba(15,23,42,.55)}
+label.f{display:block;font-size:12px;color:var(--mu);margin-top:8px}
+.jd{display:flex;gap:4px}.jd select{width:auto;flex:1}
+.ph{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.ph img,.ph .ld{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--bd);cursor:pointer;background:var(--soft)}
+.bar{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.bar select,.bar input{width:auto;flex:1;min-width:120px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="w">
+ <div class="top"><div><h1 style="margin:0">📝 گزارش کارهای روزانه</h1><div class="mu">هر کاری که در طول روز انجام می‌شود (با عکس) برای گزارش به مدیریت ثبت شود</div></div><div><a href="index.html">← صفحه اصلی</a></div></div>
+ <div class="bar"><select id="fm"></select><select id="fc"></select><input id="q" placeholder="🔍 جستجو"><button class="b2 p" id="bAdd">＋ ثبت کار</button></div>
+ <div id="sum" class="mu"></div><div id="warn"></div><div id="list"></div>
+</div>
+<dialog id="dlg"></dialog>
+<div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:99px;font-size:13px;z-index:99999"></div>
+<script src="eval_core.js"></script>
+<script>
+const {fa,esc}=HSE,$=s=>document.querySelector(s),SB='https://priopguwfjawybffarhd.supabase.co';
+const CATS=['پیگیری اداره / سازمان (محیط‌زیست، کار، بهداشت)','خوداظهاری و مستندات','شارژ / تعمیر / تحویل تجهیزات ایمنی','هماهنگی و نظارت بر پیمانکار','تصفیه‌خانه و محیط‌زیست','آموزش و جلسه','بازدید و رسیدگی خارج از چک‌لیست','سایر'];
+let L=[],ME='',EDIT=null,PH=[];
+const todayISO=()=>new Date().toLocaleDateString('en-CA');
+const jl=iso=>iso?new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',timeZone:'UTC'}):'—';
+const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',2600)};
+async function rq(p,o={}){const r=await fetch(SB+'/rest/v1/'+p,{...o,headers:{'Content-Type':'application/json','Prefer':'return=representation',...(o.headers||{})}});if(!r.ok)throw new Error((await r.text()).slice(0,250));const t=await r.text();return t?JSON.parse(t):null}
+const PF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',timeZone:'UTC'});
+const mk=iso=>{const p=PF.formatToParts(new Date(iso+'T12:00:00Z'));return p.find(x=>x.type==='year').value+'-'+String(+p.find(x=>x.type==='month').value).padStart(2,'0')};
+async function compress(file){
+  if(!/^image\//.test(file.type))return file;
+  return new Promise(res=>{const im=new Image,u=URL.createObjectURL(file);im.onload=()=>{const s=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(b=>{URL.revokeObjectURL(u);res(b?new File([b],file.name.replace(/\.\w+$/,'')+'.jpg',{type:'image/jpeg'}):file)},'image/jpeg',.82)};im.onerror=()=>res(file);im.src=u})}
+async function upload(files){const out=[];
+  for(const f0 of files){if(f0.size>15e6){toast('حجم عکس زیاد است: '+f0.name);continue}
+    const f=await compress(f0),ext=(f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,''),path='worklog/'+crypto.randomUUID()+'.'+ext;
+    const r=await fetch(SB+'/storage/v1/object/photos/'+path,{method:'POST',headers:{'Content-Type':f.type||'image/jpeg'},body:f});
+    if(!r.ok){toast('آپلود نشد: '+(await r.text()).slice(0,80));continue}out.push(path)}
+  return out}
+const BLOB={};
+async function blobUrl(path){if(BLOB[path])return BLOB[path];const r=await fetch(SB+'/storage/v1/object/authenticated/photos/'+path);if(!r.ok)throw new Error(r.status);return BLOB[path]=URL.createObjectURL(await r.blob())}
+function hydrate(root){root.querySelectorAll('[data-p]').forEach(async el=>{if(el.dataset.done)return;el.dataset.done=1;try{el.src=await blobUrl(el.dataset.p)}catch(_){}})}
+async function load(){
+  try{L=await HSE.getAll('work_log?select=*&order=work_date.desc,created_at.desc')||[];$('#warn').innerHTML=''}
+  catch(e){L=[]}
+  if(!Array.isArray(L)){L=[]}
+  const ks=[...new Set(L.map(x=>mk(x.work_date)).concat(HSE.nowK?[HSE.nowK()]:[]))].sort().reverse();
+  const cur=$('#fm').value;$('#fm').innerHTML='<option value="">همهٔ ماه‌ها</option>'+ks.map(k=>`<option value="${k}">${HSE.monthLabel(k)}</option>`).join('');$('#fm').value=cur||(ks.includes(HSE.nowK())?HSE.nowK():'');
+  $('#fc').innerHTML='<option value="">همهٔ دسته‌ها</option>'+CATS.map(c=>`<option>${esc(c)}</option>`).join('');
+  draw()}
+function draw(){
+  const m=$('#fm').value,c=$('#fc').value,q=$('#q').value.trim().toLowerCase();
+  const R=L.filter(x=>(!m||mk(x.work_date)===m)&&(!c||x.category===c)&&(!q||[x.title,x.description,x.category].join(' ').toLowerCase().includes(q)));
+  $('#sum').textContent=`${fa(R.length)} کار ثبت شده${R.filter(x=>(x.photos||[]).length).length?` · ${fa(R.filter(x=>(x.photos||[]).length).length)} مورد دارای عکس`:''}`;
+  $('#list').innerHTML=R.map(x=>`<div class="card2"><div class="t"><div><b>${esc(x.title)}</b> <span class="bg ${x.status==='done'?'ok':'wa'}">${x.status==='done'?'انجام شد':'در جریان'}</span>
+    <div class="mu">${jl(x.work_date)} · ${esc(x.category||'')}</div></div><div style="display:flex;gap:6px"><button class="b2" data-a="edit" data-id="${x.id}">✏️</button><button class="b2 bad" data-a="del" data-id="${x.id}">🗑</button></div></div>
+    ${x.description?`<div style="margin-top:6px;white-space:pre-line">${esc(x.description)}</div>`:''}
+    ${(x.photos||[]).length?`<div class="ph">${x.photos.map(p=>`<img data-p="${esc(p)}" alt="" loading="lazy">`).join('')}</div>`:''}</div>`).join('')||'<div class="card2 mu">موردی ثبت نشده است.</div>';
+  hydrate($('#list'))}
+function drawPh(){$('#ph').innerHTML=PH.map((p,i)=>`<span style="position:relative"><img data-p="${esc(p)}" alt=""><button type="button" class="b2 bad" data-rm="${i}" style="position:absolute;top:2px;left:2px;padding:0 6px">✕</button></span>`).join('');hydrate($('#ph'))}
+function openForm(id){
+  EDIT=id?L.find(x=>x.id===id):null;const x=EDIT||{work_date:todayISO(),status:'done'};PH=[...(x.photos||[])];
+  $('#dlg').innerHTML=`<b>${id?'ویرایش':'ثبت کار انجام‌شده'}</b>
+   <label class="f">تاریخ</label><div id="fD" class="jd"><select></select><select></select><select></select></div>
+   <label class="f">دسته<select id="fC">${CATS.map(c=>`<option ${x.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label>
+   <label class="f">عنوان کار * (مثلاً «همراهی پیمانکار برای ثبت خوداظهاری زیست‌محیطی»)<input id="fT" value="${esc(x.title||'')}"></label>
+   <label class="f">شرح (اقدام انجام‌شده، نتیجه، همراهان)<textarea id="fS" rows="4">${esc(x.description||'')}</textarea></label>
+   <label class="f">وضعیت<select id="fSt"><option value="done" ${x.status!=='progress'?'selected':''}>انجام شد</option><option value="progress" ${x.status==='progress'?'selected':''}>در جریان</option></select></label>
+   <div class="ph" id="ph"></div><label class="b2" style="display:inline-block;margin-top:8px">📷 افزودن عکس<input id="fF" type="file" accept="image/*" multiple hidden></label>
+   <div id="fE" class="mu" style="color:var(--bad)"></div>
+   <div style="display:flex;gap:8px;margin-top:12px"><button class="b2" id="fX">انصراف</button><button class="b2 p" id="fOK" style="margin-inline-start:auto">ذخیره</button></div>`;
+  HSE.jdInit($('#fD'));HSE.jdSet($('#fD'),x.work_date||todayISO());drawPh();$('#dlg').showModal();
+  $('#fX').onclick=()=>$('#dlg').close();
+  $('#fF').onchange=async e=>{$('#fE').textContent='در حال بارگذاری عکس…';PH.push(...await upload([...e.target.files]));$('#fE').textContent='';e.target.value='';drawPh()};
+  $('#fOK').onclick=async()=>{const title=$('#fT').value.trim();if(!title)return $('#fE').textContent='عنوان را بنویسید';
+    const b={work_date:HSE.jdGet($('#fD'))||todayISO(),category:$('#fC').value,title,description:$('#fS').value.trim()||null,status:$('#fSt').value,photos:PH};
+    try{if(id)await rq('work_log?id=eq.'+id,{method:'PATCH',body:JSON.stringify(b),headers:{Prefer:'return=minimal'}});else await rq('work_log',{method:'POST',body:JSON.stringify({...b,created_by:ME}),headers:{Prefer:'return=minimal'}});
+      $('#dlg').close();toast('ثبت شد');await load()}catch(e){$('#fE').textContent=/relation|does not exist|work_log/.test(e.message)?'جدول ساخته نشده؛ فایل hse_worklog.sql را یک‌بار در Supabase اجرا کنید.':e.message}}}
+document.addEventListener('click',async e=>{
+  const rm=e.target.closest('[data-rm]');if(rm){PH.splice(+rm.dataset.rm,1);return drawPh()}
+  const im=e.target.closest('.ph img');if(im&&im.src){window.open(im.src,'_blank');return}
+  const t=e.target.closest('[data-a],#bAdd');if(!t)return;
+  try{if(t.id==='bAdd')return openForm(null);const id=t.dataset.id;
+    if(t.dataset.a==='edit')openForm(id);
+    else if(t.dataset.a==='del'){if(!confirm('این مورد حذف شود؟'))return;await rq('work_log?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=minimal'}});await load()}
+  }catch(er){toast('خطا: '+er.message.slice(0,120))}});
+['fm','fc'].forEach(i=>$('#'+i).onchange=draw);$('#q').oninput=draw;
+HSEAuth.ready.then(()=>{ME=HSEAuth.email||'';load().catch(()=>{$('#warn').innerHTML='<div class="card2"><span class="bg wa">جدول ساخته نشده</span> فایل hse_worklog.sql را یک‌بار در Supabase اجرا کنید.</div>'})});
+</script>
+</body>
+</html>
