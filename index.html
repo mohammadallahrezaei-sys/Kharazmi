@@ -127,6 +127,7 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
 </div>
 
 <div id="myTodo" style="display:none"></div>
+<details id="myCal" open style="display:none;margin-bottom:12px"><summary style="cursor:pointer;font-weight:700;padding:6px 0">📅 تقویم کارهای من (بازرسی‌ها و کارهای مؤثر بر امتیاز)</summary><iframe src="calendar.html?embed=1" title="تقویم" loading="lazy" style="width:100%;height:760px;border:1px solid var(--bd);border-radius:14px;background:var(--card)"></iframe></details>
 <div class="wg" id="wg" aria-label="نیازمند اقدام"><div class="wi"><i>⏳</i><div><b>در حال بررسی...</b><span>موارد نیازمند اقدام</span></div></div></div>
 
 <section class="mg grp" id="gRisk">
@@ -414,7 +415,7 @@ async function loadMyTodo() {
     add(wn < 3, `${fa(wn)} اخطار/تذکر در این ماه ثبت کرده‌اید؛ حداقل ۳ مورد انتظار است`, 'ekhtar.html', 'wa', 'شاخص «اخطار/تذکر ایمنی»');
     add(rw < 3, `${fa(rw)} تشویق در این ماه ثبت کرده‌اید؛ حداقل ۳ مورد انتظار است`, 'ekhtar.html', 'wa', 'شاخص «بازخورد مثبت»'); }
   add(vr && vr.length, `${fa((vr || []).length)} مغایرت در بازدید تاییدی مدیر ثبت شده؛ دلیل را در ارزیابی ببینید`, 'expert_eval.html', 'bad', 'کسر از «اعتبارسنجی»');
-  box.style.display = '';
+  box.style.display = ''; const mc = document.getElementById('myCal'); if (mc) mc.style.display = '';
   box.innerHTML = `<div class="wi ${T.length ? 'wa' : 'ok'}" style="display:block;margin-bottom:10px"><b>${T.length ? '📝 کارهای باز شما و امتیازِ در خطر' : '✓ کار بازِ کم‌کنندهٔ امتیاز ندارید'}</b>
     ${T.map(x => `<a href="${x.href}" style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--bd);color:inherit;text-decoration:none"><span>${x.sev === 'bad' ? '🔴' : '🟠'} ${x.txt}</span><small style="color:var(--mu)">${x.cost} ←</small></a>`).join('')}
     <a href="expert_eval.html" style="display:block;margin-top:6px;font-size:12px">دیدن امتیاز ماه و همهٔ موارد کسر شده (چک‌لیست‌های موعددار، تاییدیه‌ها و …) ←</a></div>`;
