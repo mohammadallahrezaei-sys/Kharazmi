@@ -6,7 +6,7 @@
   /* ===== نقش‌ها (ایمیل‌ها را اینجا تنظیم کنید) ===== */
   const MANAGERS = ['m.rezaei@gmail.com'];
   const EXPERTS = { 'm.mohammadi@gmail.com': 'محمدی' };
-  const MANAGER_ONLY_LINKS = ['report.html', 'reward_eval.html', 'committee.html', 'weekly_verify.html']; // برای کارشناس از منوها پنهان می‌شود
+  const MANAGER_ONLY_LINKS = ['report.html', 'reward_eval.html', 'committee.html', 'weekly_verify.html', 'unit_report.html', 'evaluation.html', 'culture.html']; // برای کارشناس از منوها پنهان می‌شود
   /* ================================================= */
   const SCR = document.currentScript, PAGE_ROLES = SCR && SCR.dataset.roles ? SCR.dataset.roles.split(',') : null;
   /* اتصال زودهنگام به Supabase: چند صد میلی‌ثانیه از اولین درخواست داده کم می‌کند */
@@ -93,9 +93,15 @@
     b.style.cssText = 'position:fixed;top:6px;left:6px;z-index:99999;font:12px Vazirmatn,Tahoma,sans-serif;background:rgba(15,23,42,.85);color:#e2e8f0;border-radius:10px;padding:2px 10px;direction:rtl';
     b.className = 'np'; b.innerHTML = `${esc(EXPERTS[A.email] || A.email.split('@')[0])} · <a href="#" style="color:#2dd4bf">خروج</a>`;
     b.querySelector('a').onclick = e => { e.preventDefault(); A.logout(); };
+    if (A.role === 'manager') { /* مدیر می‌تواند نمای کارشناس را (فقط نمایش) ببیند */
+      const sw = document.createElement('a'); sw.href = '#'; sw.style.cssText = 'color:#fbbf24;margin-inline-start:8px';
+      sw.textContent = A.viewAs ? '↩ بازگشت به نمای مدیر' : '👁 نمای کارشناس';
+      sw.onclick = e => { e.preventDefault(); try { A.viewAs ? localStorage.removeItem('hse_view_as') : localStorage.setItem('hse_view_as', 'expert'); } catch (_) {} location.reload(); };
+      b.insertBefore(sw, b.querySelector('a'));
+    }
     const st = document.createElement('style'); st.textContent = '@media print{.np{display:none!important}}'; document.head.appendChild(st);
     document.body.appendChild(b);
-    if (A.role !== 'manager') {
+    if (A.role !== 'manager' || A.viewAs) {
       const hide = () => document.querySelectorAll(MANAGER_ONLY_LINKS.map(h => `a[href*="${h}"]`).join(',')).forEach(a => a.style.display = 'none');
       hide(); new MutationObserver(hide).observe(document.body, { childList: true, subtree: true });
     }
@@ -106,7 +112,7 @@
     const email = (load().user.email || '').toLowerCase(), role = roleOf(email);
     if (!role) return deny(email, 'این ایمیل برای نرم‌افزار تعریف نشده است');
     if (PAGE_ROLES && !PAGE_ROLES.includes(role)) return deny(email, 'دسترسی به این صفحه برای شما مجاز نیست');
-    A.email = email; A.role = role; done(); chrome();
+    A.email = email; A.role = role; try { A.viewAs = role === 'manager' && localStorage.getItem('hse_view_as') === 'expert'; } catch (_) { A.viewAs = false; } done(); chrome();
   }
 
   /* ===== دریافت‌کنندهٔ مشترک داده (HSEDB): موازی، مرتب (بدون جاافتادگی/تکرار) و بدون سقف ۱۰۰۰ ردیف =====
