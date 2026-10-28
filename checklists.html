@@ -572,6 +572,43 @@ const bl = (rows, col, suf = '') => { const mx = Math.max(1, ...rows.map(r => r[
 
 const $ = s => document.querySelector(s), view = h => $('#app').innerHTML = h, esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fd = d => new Date(d).toLocaleDateString('fa-IR');
+/* ===== پیگیری با واحد فنی: نتیجهٔ هر پیگیری + موعد بعدی (حداکثر ۱۰ روز) ===== */
+let FUMAP = {}, FU_OK = true;
+const isoAdd = (iso, n) => new Date(new Date(iso + 'T12:00:00Z').getTime() + n * 864e5).toISOString().slice(0, 10);
+const todayIso = () => new Date().toLocaleDateString('en-CA');
+const fuNext = x => { const l = (FUMAP[x.id] || [])[0]; return l && l.next_due ? String(l.next_due).slice(0, 10) : isoAdd(new Date(x.created_at).toLocaleDateString('en-CA'), 10); };
+function fuBlock(x) {
+  if (!FU_OK) return '';
+  const l = FUMAP[x.id] || [], open = x.status == 'open', nx = fuNext(x), d = Math.round((new Date(nx + 'T12:00:00Z') - new Date(todayIso() + 'T12:00:00Z')) / 864e5);
+  const bdg = !open ? '' : d < 0 ? `<span class="bg r">پیگیری ${fa(-d)} روز معوق</span>` : d <= 2 ? `<span class="bg" style="border-color:var(--wa);color:var(--wa)">پیگیری بعدی: ${d ? fa(d) + ' روز دیگر' : 'امروز'}</span>` : `<span class="bg g">پیگیری بعدی: ${fd(nx + 'T12:00:00')}</span>`;
+  if (!open && !l.length) return '';
+  return `<div class="q" style="margin:8px 0;"><b>📞 پیگیری با واحد فنی</b> ${bdg}${!l.length && open ? '<small style="display:block;">هنوز پیگیری ثبت نشده است.</small>' : ''}
+    ${l.slice(0, 2).map(f => `<small style="display:block;margin-top:4px;">${fd(f.followed_at + 'T12:00:00')} · ${esc(inspL(f.followed_by))}: ${esc(f.result)}${f.next_due ? ' ← بعدی: ' + fd(f.next_due + 'T12:00:00') : ''}</small>`).join('')}
+    ${l.length > 2 ? `<details><summary style="font-size:12px;">سوابق قبلی (${fa(l.length - 2)})</summary>${l.slice(2).map(f => `<small style="display:block;">${fd(f.followed_at + 'T12:00:00')} · ${esc(inspL(f.followed_by))}: ${esc(f.result)}</small>`).join('')}</details>` : ''}
+    ${open ? `<button class="p" data-a="fufu" data-id="${x.id}" style="margin-top:6px; min-height:38px;">＋ ثبت پیگیری</button>` : ''}</div>`;
+}
+function fuDialog(id) {
+  const o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);overflow:auto;padding:12px';
+  const x = { id }, L = FUMAP[id] || [];
+  o.innerHTML = `<div class="q" style="max-width:480px;margin:40px auto;background:var(--card);" dir="rtl"><b>📞 ثبت نتیجهٔ پیگیری</b>
+    ${L[0] ? `<small style="display:block;">آخرین پیگیری: ${esc(L[0].result)}</small>` : ''}
+    <select id="fuQ"><option value="">— نتیجهٔ سریع —</option><option>واحد فنی اعلام کرد در حال انجام است</option><option>قطعه/خدمات در حال تأمین است</option><option>واحد فنی قول انجام داد</option><option>اقدامی انجام نشده؛ مجدداً تأکید شد</option><option>انجام شده؛ نیاز به بازدید و تایید است</option></select>
+    <textarea id="fuR" rows="3" placeholder="نتیجهٔ پیگیری (الزامی): با چه کسی صحبت شد، چه وعده یا مانعی اعلام شد"></textarea>
+    <label style="font-size:12px;color:var(--mu);">پیگیری بعدی تا چند روز دیگر؟ (حداکثر ۱۰ روز)</label>
+    <select id="fuD">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option value="${n}" ${n == 7 ? 'selected' : ''}>${fa(n)} روز دیگر</option>`).join('')}</select>
+    <div id="fuE" style="color:var(--bad);font-size:12px;"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;"><button id="fuX" style="min-height:42px;">انصراف</button><button class="p" id="fuS" style="margin-inline-start:auto;min-height:42px;">ثبت پیگیری</button></div></div>`;
+  document.body.appendChild(o);
+  const g = s => o.querySelector(s);
+  g('#fuX').onclick = () => o.remove();
+  g('#fuQ').onchange = e => { if (e.target.value && !g('#fuR').value.trim()) g('#fuR').value = e.target.value; };
+  g('#fuS').onclick = async () => {
+    const r = g('#fuR').value.trim(); if (r.length < 5) return g('#fuE').textContent = 'نتیجهٔ پیگیری را بنویسید.';
+    const d = Math.min(10, Math.max(1, +g('#fuD').value || 7)), t0 = todayIso();
+    try { await api('finding_followups', { method: 'POST', body: JSON.stringify({ finding_id: String(id), followed_at: t0, followed_by: mail, result: r, next_due: isoAdd(t0, d) }) }); o.remove(); await loadFinds(); }
+    catch (er) { g('#fuE').textContent = /relation|does not exist|finding_followups/.test(er.message) ? 'جدول ساخته نشده؛ فایل hse_finding_followups.sql را در Supabase اجرا کنید.' : er.message.slice(0, 120); }
+  };
+}
 const ft = d => new Date(d).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
 const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 
@@ -1368,6 +1405,7 @@ function fcard(x) {
     <div class="q ${x.status == 'open' ? 'bad' : x.status == 'cancelled' ? 'cx' : 'good'}" data-fid="${x.id}">
       ${ed ? '' : `<button class="l" data-a="fedit" data-id="${x.id}" style="float:left; margin:0;">✏️ ویرایش</button>`}
       ${head}
+      ${fuBlock(x)}
       <div class="ph">${th(x.photos_before, x.id, 'before', ed)}${ed ? `<button class="ad" data-a="addbf" data-id="${x.id}">+ عکس قبل از اصلاح</button>` : ''}</div>
 
       ${x.assigned_to ? `<div class="q" style="margin:8px 0; background:color-mix(in srgb,var(--ac) 10%,var(--card));">📌 ارجاع به <b>${esc(inspL(x.assigned_to))}</b>: ${esc(x.assign_note || '')}<small style="display:block;">${x.assigned_by ? 'توسط ' + esc(inspL(x.assigned_by)) : ''}${x.assigned_at ? ' · ' + fd(x.assigned_at) : ''}</small>${x.status == 'open' ? `<button class="l" data-a="funassign" data-id="${x.id}" style="margin-top:4px; min-height:32px;">برداشتن ارجاع</button>` : ''}</div>` : x.status == 'open' && !ed ? `<details class="cxbox"><summary>📌 ارجاع به کارشناس</summary>
@@ -1417,6 +1455,8 @@ async function loadFinds() {
       fFetch('findings?select=id&limit=1' + fQuery(true), true),
       fFetch('findings?select=id&limit=1&status=eq.cancelled' + fQuery(true), true).catch(() => ({ total: 0 }))
     ]);
+    FUMAP = {}; FU_OK = true;
+    try { const ids = pg.rows.map(r => r.id); if (ids.length) (await api('finding_followups?select=*&order=followed_at.desc,created_at.desc&finding_id=in.(' + ids.join(',') + ')')).forEach(f => (FUMAP[f.finding_id] = FUMAP[f.finding_id] || []).push(f)); } catch (e) { FU_OK = false; }
     const total = pg.total ?? pg.rows.length, pages = Math.max(1, Math.ceil(total / FQ.size));
     if (FQ.page >= pages) { FQ.page = pages - 1; return loadFinds(); }
     const no = cOpen.total ?? 0, na = cAll.total ?? 0, nx = cCan.total ?? 0;
@@ -2347,6 +2387,7 @@ document.onclick = async e => {
     await dueLoad(); dueList(); scrollTo(0, y);
   }
   else if (a == 'fasg') { FQ.asg = FQ.asg == 'me' ? '' : 'me'; FQ.page = 0; const sl = document.querySelector('[data-ff=asg]'); if (sl) sl.value = FQ.asg; await loadFinds(); }
+  else if (a == 'fufu') fuDialog(t.dataset.id);
   else if (a == 'fassign' || a == 'funassign') {
     const box = t.closest('.q'), id = t.dataset.id;
     let body;
