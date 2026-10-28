@@ -36,6 +36,7 @@
 .ctag{font-size:11px;border-radius:99px;padding:0 7px;margin-inline-start:6px;background:var(--nabg);color:var(--mu)}
 .ctag.bad{background:var(--badbg);color:var(--bad)}
 .cerr{background:var(--warnbg);border:1px solid var(--wa);border-radius:10px;padding:8px 10px;margin:8px 0;color:var(--tx)}
+html.emb .w>div:first-child,html.emb footer{display:none}html.emb .w{padding:4px}html.emb body{background:transparent}
 @media(max-width:560px){.cd{min-height:52px}.cd .cc{font-size:10px;padding:0 4px}}
 </style>
 </head>
@@ -78,7 +79,8 @@ const prevK=K=>{let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}return y+'-
 const nextK=K=>{let y=+K.slice(0,4),m=+K.slice(5)+1;if(m>12){m=1;y++}return y+'-'+String(m).padStart(2,'0')};
 
 const MODT={CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخزن تحت فشار',AC:'اتوکلاو',BL:'دیگ بخار',PJ:'جک پالت'};
-let INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[];
+let INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],X={ek:[],tk:[],inc:[],fin:[],on:false};
+if(/[?&]embed=1/.test(location.search)){document.documentElement.classList.add('emb')}
 
 async function hd(){let t=KEY;try{t=(await HSEAuth.token())||KEY}catch(e){}return{apikey:KEY,Authorization:'Bearer '+t}}
 const getAll=t=>HSEDB.getAll(t);
@@ -90,6 +92,13 @@ async function load(){
   INS=ins.map(x=>({m:x.module,code:x.equipment_code||null,d:new Date(x.created_at).toLocaleDateString('en-CA')}));
   const cats=[...new Set(Object.values(EQC).flatMap(v=>v[0]))];
   EQ=await getAll('equipment?select=code,title,category,hall&active=eq.true&category=in.('+cats.map(c=>'"'+c+'"').join(',')+')&order=code.asc')||[];
+  /* کارهای دیگری که در امتیاز کارشناس حساب می‌شوند (فقط برای ورود کارشناس) */
+  if(HSEAuth.role==='expert'&&HSEAuth.email){const me=encodeURIComponent(HSEAuth.email),g=q=>getAll(q).catch(()=>null);
+    const [ek,tk,inc,fin]=await Promise.all([g('ekhtars?select=record_type,record_date&registered_by=eq.'+me),
+      g('trainings?select=training_date,trainer&training_type=eq.safety_talk&training_date=gte.'+since),
+      g('clinic_incidents?select=id,incident_date,expert_opinion,description&incident_date=gte.'+since).then(r=>r||g('clinic_incidents?select=id,incident_date,description&incident_date=gte.'+since)),
+      g('findings?select=id,question,note,status,due_date,assigned_to,assigned_at&module=neq.MED&status=neq.cancelled&or=(inspector.eq.'+me+',assigned_to.eq.'+me+')')]);
+    X={ek:ek||[],tk:(tk||[]).filter(x=>!/رضایی/.test(x.trainer||'')),inc:inc||[],fin:fin||[],on:true}}
   $('warn').innerHTML=EQ_COL?'':'<div class="cerr">ستون کد تجهیز در جدول بازدیدها نیست؛ فایل <b>hse_inspections_equipment.sql</b> را در Supabase اجرا کنید تا بازدید هر دستگاه تیک بخورد. فعلاً فقط کارهای روزانه و ماهانه‌ی جدول تیک می‌خورند.</div>';
 }
 /* روز کاری نزدیک به تاریخ هدف داخل ماه (اول عقب‌تر، بعد جلوتر) */
@@ -124,10 +133,26 @@ function build(K){
       if(due>b)return;
       T.push({id:'E'+mk+e.code,date:adjust(due<a?a:due,days),due,t:`بازدید ${MODT[mk]} — ${e.code}`,sub:(e.title||'')+' · سررسید: '+lbl(due),mk,code:e.code,title:e.title,hall:e.hall,done:false,kind:'equip'})});
   }
+  /* ۴) کارهای مؤثر بر امتیاز: آموزش کوتاه هفتگی، اخطار/تشویق، نظر حادثه، عدم‌انطباق و ارجاع‌ها */
+  if(X.on){
+    const wk=iso=>addDays(iso,-((dowOf(iso)+1)%7)),pre=K.replace('-','/')+'/',nz=s=>String(s||'').replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c));
+    const inM=iso=>iso>=a&&iso<=b,wd=days.filter(d=>isWork(d.iso));
+    const weeks={};wd.forEach(d=>{(weeks[wk(d.iso)]=weeks[wk(d.iso)]||[]).push(d.iso)});
+    Object.entries(weeks).forEach(([ws,l])=>{const last=l[l.length-1],we=addDays(ws,6);
+      T.push({id:'TK'+ws,date:last,due:last,t:'آموزش کوتاه ایمنی در محل (جلسهٔ هفتگی)',sub:'شاخص «آموزش کوتاه در محل»',done:X.tk.some(x=>x.training_date>=ws&&x.training_date<=we),kind:'score',go:'training.html'})});
+    const mEk=X.ek.filter(x=>nz(x.record_date).startsWith(pre)),wn=mEk.filter(x=>x.record_type!=='تشویق').length,rw=mEk.length-wn;
+    [[9,17,25],[11,19,27]].forEach((ds,j)=>ds.forEach((d,i)=>{const day=days[Math.min(d,days.length)-1].iso;
+      T.push({id:'EK'+j+i,date:adjust(day,days),due:day,t:j?`ثبت تشویق پرسنل (${fa(i+1)} از ۳)`:`ثبت اخطار/تذکر ایمنی (${fa(i+1)} از ۳)`,sub:j?'شاخص «بازخورد مثبت»':'شاخص «اخطار/تذکر ایمنی»',done:(j?rw:wn)>=i+1,kind:'score',go:'ekhtar.html'})}));
+    X.inc.forEach(x=>{const d=String(x.incident_date||'').slice(0,10),due=addDays(d,2);if(!d||!inM(due))return;
+      T.push({id:'IN'+x.id,date:adjust(due,days),due,t:'نظر کارشناسی دربارهٔ حادثه: '+String(x.description||'').slice(0,50),sub:'شاخص «مشارکت در بررسی حوادث» · مهلت: '+lbl(due),done:!!x.expert_opinion,kind:'score',go:'clinic.html'})});
+    X.fin.forEach(x=>{const due=x.due_date&&String(x.due_date).slice(0,10),asg=x.assigned_to&&x.status==='open'&&x.assigned_to.toLowerCase()===(HSEAuth.email||'').toLowerCase(),txt=String(x.note||x.question||'').split('|')[0].trim().slice(0,60);
+      if(asg)T.push({id:'AS'+x.id,date:adjust(due&&inM(due)?due:today<a?a:today>b?b:today,days),due:due||today,t:'ارجاع مدیر: '+txt,sub:'شاخص «پیگیری و بستن»',done:false,kind:'score',go:'checklists.html'});
+      else if(due&&inM(due))T.push({id:'FN'+x.id,date:adjust(due,days),due,t:'بستن عدم‌انطباق: '+txt,sub:'مهلت: '+lbl(due),done:x.status==='closed',kind:'score',go:'checklists.html'})});
+  }
   T.forEach(x=>{x.late=!x.done&&x.date<today});
   return T;
 }
-function href(x){return 'checklists.html#visit='+encodeURIComponent(x.mk)+(x.code?'&code='+encodeURIComponent(x.code)+'&title='+encodeURIComponent(x.title||'')+'&hall='+encodeURIComponent(x.hall||''):'')}
+function href(x){if(x.go)return x.go;return 'checklists.html#visit='+encodeURIComponent(x.mk)+(x.code?'&code='+encodeURIComponent(x.code)+'&title='+encodeURIComponent(x.title||'')+'&hall='+encodeURIComponent(x.hall||''):'')}
 function taskHTML(x){
   return `<div class="ct ${x.done?'done':''} ${x.late?'late':''}"><div class="ctk">${x.done?'✓':''}</div>
    <div class="cx"><b>${esc(x.t)}</b>${x.late?'<span class="ctag bad">عقب‌افتاده</span>':''}<small>${esc(x.sub||'')}${x.done&&x.doneAt?' · انجام شد '+lbl(x.doneAt):''}</small></div>
