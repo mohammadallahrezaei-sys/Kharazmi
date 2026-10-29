@@ -3,6 +3,7 @@
 <head>
 <script src="auth.js"></script>
 <script src="sched.js"></script>
+<script src="cycle.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>تقویم بازرسی - نرم‌افزار جامع HSE</title>
@@ -104,7 +105,7 @@ async function load(){
       g('findings?select=id,question,note,status,due_date,assigned_to,assigned_at&module=neq.MED&status=neq.cancelled&or=(inspector.eq.'+me+',assigned_to.eq.'+me+')')]);
     const ofin=await g('findings?select=id,question,note,created_at&status=eq.open&module=neq.MED')||[],ffu=ofin.length?await g('finding_followups?select=finding_id,next_due,followed_at&order=followed_at.desc'):[];
     const lastFu={};(ffu||[]).forEach(f=>{if(!lastFu[f.finding_id])lastFu[f.finding_id]=f});
-    X.fu=ofin.map(f=>{const l=lastFu[String(f.id)];return{id:f.id,txt:String(f.note||f.question||'').split('|')[0].trim().slice(0,60),due:l&&l.next_due?String(l.next_due).slice(0,10):addDays(new Date(f.created_at).toLocaleDateString('en-CA'),10),n:l?1:0}});
+    X.fu=ofin.map(f=>{const l=lastFu[String(f.id)];return{id:f.id,txt:String(f.note||f.question||'').split('|')[0].trim().slice(0,60),due:l&&l.next_due?String(l.next_due).slice(0,10):HSEC.defDue(new Date(f.created_at).toLocaleDateString('en-CA')),n:l?1:0}});
     X={fu:X.fu,ek:ek||[],tk:(tk||[]).filter(x=>!/رضایی/.test(x.trainer||'')),inc:inc||[],fin:fin||[],on:true}}
   $('warn').innerHTML=EQ_COL?'':'<div class="cerr">ستون کد تجهیز در جدول بازدیدها نیست؛ فایل <b>hse_inspections_equipment.sql</b> را در Supabase اجرا کنید تا بازدید هر دستگاه تیک بخورد. فعلاً فقط کارهای روزانه و ماهانه‌ی جدول تیک می‌خورند.</div>';
 }
@@ -159,8 +160,10 @@ function build(K){
       T.push({id:'EK'+j+i,date:day,due:day,t:j?`ثبت تشویق پرسنل (${fa(i+1)} از ۳)`:`ثبت اخطار/تذکر ایمنی (${fa(i+1)} از ۳)`,sub:(j?'شاخص «بازخورد مثبت»':'شاخص «اخطار/تذکر ایمنی»')+' · مهلت: '+lbl(day),done:(j?rw:wn)>=i+1,kind:'score',go:'ekhtar.html'})}));
     X.inc.forEach(x=>{const d=String(x.incident_date||'').slice(0,10);if(!/^\d{4}-\d\d-\d\d$/.test(d))return;const due=addDays(d,2);if(!inM(due))return;
       T.push({id:'IN'+x.id,date:adjust(due,days),due,t:'نظر کارشناسی دربارهٔ حادثه: '+String(x.description||'').slice(0,50),sub:'شاخص «مشارکت در بررسی حوادث» · مهلت: '+lbl(due),done:!!x.expert_opinion,kind:'score',go:'clinic.html'})});
-    X.fu.forEach(f=>{if(!inM(f.due)&&!(f.due<a&&K===nowK))return;const dt=f.due<a?today:f.due;
-      T.push({id:'FU'+f.id,date:adjust(dt<a?a:dt,days),due:f.due,t:'پیگیری با واحد فنی: '+f.txt,sub:'ثبت نتیجه و موعد بعدی (حداکثر ۱۰ روز) · مهلت: '+lbl(f.due),done:false,kind:'score',go:'checklists.html#fu='+f.id})});
+    /* چرخهٔ پیگیری: همهٔ عدم‌انطباق‌های باز با موعد یکسان (۱ و ۱۵ شمسی) یک کار تجمیعی می‌شوند */
+    const fuBy={};X.fu.forEach(f=>{if(!inM(f.due)&&!(f.due<a&&K===nowK))return;const k=f.due<a?'overdue':f.due;(fuBy[k]=fuBy[k]||[]).push(f)});
+    Object.entries(fuBy).forEach(([k,l])=>{const due=k==='overdue'?l.map(f=>f.due).sort()[0]:k,dt=k==='overdue'?today:k;
+      T.push({id:'FU'+k,date:adjust(dt<a?a:dt,days),due,t:'پیگیری '+fa(l.length)+' عدم‌انطباق باز با واحد فنی',sub:'اکسل + نامه به فنی، ثبت برنامه/مهلت فنی، بازدید موارد «انجام‌شده» · مهلت: '+lbl(due),done:false,kind:'score',go:'checklists.html#cycle'})});
     X.fin.forEach(x=>{const due=x.due_date&&String(x.due_date).slice(0,10),asg=x.assigned_to&&x.status==='open'&&x.assigned_to.toLowerCase()===String(HSEAuth.role==='expert'?HSEAuth.email:Object.keys(HSEAuth.EXPERTS||{})[0]||'').toLowerCase(),txt=String(x.note||x.question||'').split('|')[0].trim().slice(0,60);
       if(asg)T.push({id:'AS'+x.id,date:adjust(due&&inM(due)?due:today<a?a:today>b?b:today,days),due:due||today,t:'ارجاع مدیر: '+txt,sub:'شاخص «پیگیری و بستن»',done:false,kind:'score',go:'checklists.html'});
       else if(due&&inM(due))T.push({id:'FN'+x.id,date:adjust(due,days),due,t:'بستن عدم‌انطباق: '+txt,sub:'مهلت: '+lbl(due),done:x.status==='closed',kind:'score',go:'checklists.html'})});

@@ -2,6 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
 <script src="auth.js"></script>
+<script src="cycle.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نرم‌افزار جامع HSE - گسترش فناوری خوارزمی</title>
@@ -430,8 +431,8 @@ async function loadMyTodo() {
     add(wn < 3, `${fa(wn)} اخطار/تذکر در این ماه ثبت شده؛ حداقل ۳ مورد انتظار است`, 'ekhtar.html', 'wa', 'شاخص «اخطار/تذکر ایمنی»');
     add(rw < 3, `${fa(rw)} تشویق در این ماه ثبت شده؛ حداقل ۳ مورد انتظار است`, 'ekhtar.html', 'wa', 'شاخص «بازخورد مثبت»'); }
   if (ofin) { const lf = {}; (ffu || []).forEach(f => { if (!lf[f.finding_id]) lf[f.finding_id] = f; });
-    const od = ofin.filter(f => { const l = lf[String(f.id)], d = l && l.next_due ? String(l.next_due).slice(0, 10) : new Date(new Date(f.created_at).getTime() + 10 * 864e5).toLocaleDateString('en-CA'); return d < today; }).length;
-    add(od, `${fa(od)} عدم‌انطباق باز پیگیری معوق با واحد فنی دارد (نتیجه و موعد بعدی ثبت نشده)`, 'checklists.html', 'bad', 'پیگیری با واحد فنی'); }
+    const od = ofin.filter(f => { const l = lf[String(f.id)], d = l && l.next_due ? String(l.next_due).slice(0, 10) : HSEC.defDue(new Date(f.created_at).toLocaleDateString('en-CA')); return d < today; }).length;
+    add(od, `${fa(od)} عدم‌انطباق باز پیگیری معوق با واحد فنی دارد (چرخهٔ ۱ و ۱۵ هر ماه)`, 'checklists.html#cycle', 'bad', 'پیگیری با واحد فنی'); }
   add(vr && vr.length, `${fa((vr || []).length)} مغایرت در بازدید تاییدی مدیر ثبت شده؛ دلیل را در ارزیابی ببینید`, 'expert_eval.html', 'bad', 'کسر از «اعتبارسنجی»');
   const btn = document.getElementById('myBtn'), dlg = document.getElementById('myDlg'), nb = T.filter(x => x.sev === 'bad').length;
   btn.style.display = ''; btn.className = nb ? 'bad' : T.length ? 'wa' : 'ok';

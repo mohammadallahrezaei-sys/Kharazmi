@@ -3,6 +3,7 @@
 <head>
     <script src="auth.js"></script>
     <script src="sched.js"></script>
+    <script src="cycle.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ارزیابی و خودکنترلی کارشناس HSE</title>
@@ -141,10 +142,10 @@ function fuStats(email,K){
   const R=monthRange(K),end=R.b<today?R.b:today;if(end<FU_START)return{na:true,logged:0,onTime:0,overdue:0,late:[],over:[],s:null};
   const by={};(D.ffl||[]).forEach(f=>(by[f.finding_id]=by[f.finding_id]||[]).push(f));
   let logged=0,onTime=0;const late=[];
-  D.fin.forEach(f=>{const l=by[String(f.id)]||[];let due=addIso(d10(f.created_at),10);
+  D.fin.forEach(f=>{const l=by[String(f.id)]||[];let due=HSEC.defDue(d10(f.created_at));
     l.forEach(x=>{const d=d10(x.followed_at);if(d>=R.a&&d<=end&&(!email||eqm(x.followed_by,email))){logged++;if(d<=due)onTime++;else late.push(f)}due=x.next_due?d10(x.next_due):due})});
   const over=D.fin.filter(f=>d10(f.created_at)<=end&&(f.status==='open'||(f.closed_at&&d10(f.closed_at)>end))).filter(f=>{
-    let due=addIso(d10(f.created_at),10);(by[String(f.id)]||[]).filter(x=>d10(x.followed_at)<=end).forEach(x=>{if(x.next_due)due=d10(x.next_due)});return due<end});
+    let due=HSEC.defDue(d10(f.created_at));(by[String(f.id)]||[]).filter(x=>d10(x.followed_at)<=end).forEach(x=>{if(x.next_due)due=d10(x.next_due)});return due<end});
   const open=D.fin.some(f=>d10(f.created_at)<=end&&(f.status==='open'||(f.closed_at&&d10(f.closed_at)>end)));
   const s=(!logged&&!over.length&&!open)?null:Math.max(0,(logged?onTime/logged:1)-0.1*over.length);
   return{na:false,logged,onTime,overdue:over.length,late,over,s}}
