@@ -176,7 +176,7 @@ function openEdit(id,toSub){
 function renderEdit(){
   const m=E.m;
   const itemsHTML=KINDS.map(([k,t])=>{const rows=E.items.map((x,i)=>[x,i]).filter(([x])=>x.kind===k);
-    return`<div class="sec"><span>${t} (${fa(rows.length)})</span><span style="display:flex;gap:6px">${k==='done'?'<button class="btn2 p" data-a="suggest">✨ پیشنهاد از کارهای ماه</button>':''}<button class="btn2" data-a="additem" data-k="${k}">＋ افزودن</button></span></div>`+rows.map(([x,i],n)=>`<div class="it"><div class="mu" style="font-size:11px">${fa(n+1)}</div>
+    return`<div class="sec"><span>${t} (${fa(rows.length)})</span><span style="display:flex;gap:6px">${k==='done'?'<button class="btn2 p" data-a="suggest">✨ پیش‌نویس از کارهای ماه</button>':''}<button class="btn2" data-a="additem" data-k="${k}">＋ افزودن</button></span></div>`+rows.map(([x,i],n)=>`<div class="it"><div class="mu" style="font-size:11px">${fa(n+1)}</div>
       <textarea data-i="${i}" data-f="text" placeholder="شرح اقدام / مصوبه" style="width:100%;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;padding:8px">${esc(x.text)}</textarea>
       <div class="g5"><label class="f">اقدام‌کننده<input data-i="${i}" data-f="actor" value="${esc(x.actor)}" placeholder="مثلاً نت / HSE"></label><label class="f">پیگیری‌کننده<input data-i="${i}" data-f="follower" value="${esc(x.follower)}"></label>
       <label class="f">مهلت (۱۴۰۵/۰۷/۳۰)<input data-i="${i}" data-f="deadline" value="${esc(x.deadline)}" dir="ltr" inputmode="numeric"></label>
@@ -257,46 +257,83 @@ async function saveMeeting(){
   catch(e){toast(/duplicate|unique/i.test(e.message)?'شمارهٔ جلسه در این سال تکراری است':'خطا: '+e.message.slice(0,120))}
 }
 
-/* ===================== پیشنهاد اقدامات انجام‌شده از دادهٔ همان ماه ===================== */
-const PURP={'حریق':'به‌منظور افزایش آمادگی در برابر آتش‌سوزی و پیشگیری از وقوع حریق','برق':'به‌منظور پیشگیری از برق‌گرفتگی و حوادث ناشی از تجهیزات برقی','مواد شیمیایی و گاز':'به‌منظور پیشگیری از نشت، تماس و مواجهه با مواد شیمیایی و گازها','ماشین‌آلات و تجهیزات':'به‌منظور پیشگیری از حوادث ناشی از کار با ماشین‌آلات و تجهیزات','ارتفاع و سقوط':'به‌منظور جلوگیری از سقوط افراد','حفاظت فردی و آموزش':'به‌منظور ارتقای ایمنی و آمادگی پرسنل','بهداشت و محیط‌زیست':'به‌منظور ارتقای شرایط بهداشتی و محیط‌زیستی کارگاه'};
+/* ===================== پیش‌نویس صورتجلسه از دادهٔ همان ماه ===================== */
+/* قواعد ارسال مستندات به مرکز بهداشت (دانشگاه علوم پزشکی البرز) — دوره‌ها از روی سوابق ارسال‌های قبلی‌اند و قابل ویرایش:
+   months = ماه‌هایی که موعد ارسال دارند (1 = فروردین …) */
+const DOC_RULES=[
+ {key:/برنامه عملیاتی/,title:'برنامهٔ عملیاتی HSE',months:[1,2]},
+ {key:/تقویم آموزشی|لیست دوره/,title:'تقویم آموزشی (لیست دوره‌های آموزشی) HSE',months:[1,2]},
+ {key:/آمار.*حوادث|نرم‌افزار حوادث|گزارش حوادث/,title:'گزارش آماری حوادث',months:[6,12],label:m=>m<=6?'شش‌ماههٔ اول':'شش‌ماههٔ دوم'},
+ {key:/پسماند/,title:'فرم پسماند',months:[3,6,9,12]},
+ {key:/قبل و بعد حادثه/,title:'چک‌لیست قبل و بعد حادثهٔ شیمیایی',months:[3,6,9,12]},
+ {key:/نیمه.?کمی/,title:'ارزیابی نیمه‌کمی ریسک مواجهه با آلاینده‌های شیمیایی',months:[5]},
+ {key:/شناسنامه کارگاه|TPQ/,title:'شناسنامهٔ کارگاه / فرم TPQ',months:[6]}];
 let SG={K:'',list:[],loading:false,group:false};
 const nextISO=iso=>new Date(new Date(iso+'T12:00:00Z').getTime()+864e5).toISOString().slice(0,10);
 const clean=s=>String(s||'').replace(/\s+/g,' ').replace(/[.؛،:\s]+$/,'').trim();
 const usedRefs=()=>{const s=new Set();ITEMS.forEach(l=>l.forEach(x=>(x.ref||'').split(',').forEach(r=>r&&s.add(r))));(E?E.items:[]).forEach(x=>(x.ref||'').split(',').forEach(r=>r&&s.add(r)));return s};
 function monthOpts(){const ks=HSE.monthKeys(14);return ks.map(k=>`<option value="${k}" ${k===SG.K?'selected':''}>${HSE.monthLabel(k)}</option>`).join('')}
+const pad2=n=>String(n).padStart(2,'0');
+const docMonth=d=>{const m=/^(\d{4})\/(\d{1,2})/.exec(en(d.letter_date||''));if(m)return +m[2];const i=HSE.MN.findIndex(n=>(d.period||'').includes(n));return i<0?0:i+1};
+const SGK={done:'اقدام شد',ongoing:'در دست اقدام',new:'مصوبه'};
 async function buildSuggest(){
   const K=SG.K,R=HSE.monthRange(K),A=R.a,B=nextISO(R.b),pre=K.replace('-','/')+'/',used=usedRefs(),g=HSE.getAll,out=[];
-  const [fin,tr,ta,eqi,eq,ins,cd]=await Promise.all([
+  const jy=+K.slice(0,4),jm=+K.slice(5,7),nm=jm===12?1:jm+1,ny=jm===12?jy+1:jy,nEnd=ny+'/'+pad2(nm)+'/'+pad2(lastDay(ny,nm));
+  const [fin,tr,ta,eqi,eq,ins,cd,wl,opn]=await Promise.all([
     g(`findings?select=id,question,note,location,module,category,responsible,notice_code&status=eq.closed&module=neq.MED&closed_at=gte.${A}T00:00:00%2B03:30&closed_at=lt.${B}T00:00:00%2B03:30&order=category.asc`).catch(()=>[]),
     g(`trainings?select=id,title,training_date,duration_hours,training_type&training_date=gte.${A}&training_date=lte.${R.b}&order=training_date.asc`).catch(()=>[]),
     g('training_attendees?select=training_id').catch(()=>[]),
     g(`equipment_inspections?select=equipment_code,inspected_on,result&inspected_on=like.${encodeURIComponent(pre)}*`).catch(()=>[]),
     g('equipment?select=code,category').catch(()=>[]),
     g(`inspections?select=id,module,created_at&created_at=gte.${A}T00:00:00%2B03:30&created_at=lt.${B}T00:00:00%2B03:30`).catch(()=>[]),
-    g(`hse_cards?select=id,card_type,status,unit,description,hse_note&card_date=gte.${A}&card_date=lte.${R.b}&status=eq.done`).catch(()=>[])]);
-  /* عدم‌انطباق‌های رفع‌شده: ادغام بر اساس دسته و محل */
+    g(`hse_cards?select=id,card_type,status,unit,description,hse_note&card_date=gte.${A}&card_date=lte.${R.b}&status=eq.done`).catch(()=>[]),
+    g(`work_log?select=id,title,description,status,category,work_date&work_date=gte.${A}&work_date=lte.${R.b}&order=work_date.asc`).catch(()=>[]),
+    g(`findings?select=id,question,note,location,category,responsible,due_date,created_at&status=eq.open&module=neq.MED&order=created_at.asc&limit=300`).catch(()=>[])]);
   const place=f=>clean(String(f.location||'').split(' - ')[0])||'';
+  const iss=x=>clean(String((x.note&&x.note.length>5?x.note:x.question)||'').split('|')[0]).slice(0,150);
+  /* ۱) ارسال مستندات دوره‌ای به مرکز بهداشت */
+  const sentDocs=DOCS.filter(d=>d.status==='sent'&&d.jyear===jy);
+  DOC_RULES.forEach(r=>{
+    const past=r.months.filter(m=>m<=jm).pop(),lab=r.label&&past?r.label(past)+' ':'';
+    const doneTx=(l,y)=>`${r.title} ${l}${fa(y)} تهیه و به مرکز بهداشت ارسال شد (فایل ارسالی پیوست است).`;
+    if(past){const ref='d:'+r.title+'|'+jy+'|'+past;
+      if(!used.has(ref)){const sent=sentDocs.find(d=>r.key.test(d.title)&&docMonth(d)>=past-1&&docMonth(d)<=jm);
+        if(sent&&docMonth(sent)===jm)out.push({type:'ارسال مستندات',kind:'done',pick:true,t:{done:doneTx(lab,jy)},actor:'HSE',ref,n:1});
+        else if(!sent)out.push({type:'ارسال مستندات',kind:past===jm?'new':'ongoing',pick:true,t:{new:`تهیه و ارسال ${r.title} ${lab}${fa(jy)} به مرکز بهداشت.`,ongoing:`ارسال ${r.title} ${lab}${fa(jy)} به مرکز بهداشت (موعد ارسال گذشته است).`,done:doneTx(lab,jy)},actor:'HSE',ref,n:1,dl:nEnd})}}
+    if(nm!==jm&&r.months.includes(nm)&&past!==nm){const ref='d:'+r.title+'|'+ny+'|'+nm;
+      if(!used.has(ref))out.push({type:'ارسال مستندات',kind:'new',pick:true,t:{new:`تهیه و ارسال ${r.title} ${r.label?r.label(nm)+' ':''}${fa(ny)} به مرکز بهداشت.`},actor:'HSE',ref,n:1,dl:nEnd})}});
+  /* ۲) عدم‌انطباق‌های رفع‌شده */
   const groups=new Map();fin.filter(f=>!used.has('f:'+f.id)).forEach(f=>{const k=SG.group?(f.category||'عمومی')+'|'+place(f):'f'+f.id;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(f)});
-  groups.forEach(l=>{const f=l[0],cat=f.category||'',loc=place(f);
-    const iss=x=>clean((x.note&&x.note.length>5?x.note:x.question).split('|')[0]).slice(0,160);
-    const text=l.length===1?`عدم‌انطباق «${iss(f)}»${loc?' در '+loc:''} برطرف شد.`
-      :`${fa(l.length)} مورد عدم‌انطباق${loc?' در '+loc:''}${cat?' ('+cat+')':''} برطرف شد: ${l.map(x=>'«'+iss(x)+'»').join('؛ ')}.`;
-    const resp=[...new Set(l.map(x=>x.responsible).filter(Boolean))].slice(0,2).join('/');
-    out.push({type:'عدم‌انطباق رفع‌شده',text,actor:resp||'فنی',ref:l.map(x=>'f:'+x.id).join(','),n:l.length})});
-  /* آموزش‌ها */
+  groups.forEach(l=>{const f=l[0],loc=place(f),cat=f.category||'';
+    const text=l.length===1?`عدم‌انطباق «${iss(f)}»${loc?' در '+loc:''} برطرف شد.`:`${fa(l.length)} مورد عدم‌انطباق${loc?' در '+loc:''}${cat?' ('+cat+')':''} برطرف شد: ${l.map(x=>'«'+iss(x)+'»').join('؛ ')}.`;
+    out.push({type:'عدم‌انطباق رفع‌شده',kind:'done',t:{done:text},actor:[...new Set(l.map(x=>x.responsible).filter(Boolean))].slice(0,2).join('/')||'فنی',ref:l.map(x=>'f:'+x.id).join(','),n:l.length})});
+  /* ۳) گزارش کارهای روزانه */
+  wl.filter(w=>!used.has('w:'+w.id)).forEach(w=>{const tt=clean(w.title),ds=clean(w.description).slice(0,150),body=tt+(ds?' — '+ds:'');
+    out.push({type:'گزارش کار روزانه',kind:w.status==='done'?'done':'ongoing',t:{done:body+(w.status==='done'?'.':' (انجام شد).'),ongoing:`${body} (در دست اقدام).`},actor:'HSE',ref:'w:'+w.id,n:1})});
+  /* ۴) عدم‌انطباق‌های باز → در دست اقدام / مصوبهٔ جدید (مهلت‌گذشته‌ها و قدیمی‌ترین‌ها اول) */
+  const iso=new Date().toISOString().slice(0,10),od=x=>x.due_date&&x.due_date<iso?0:1;
+  opn.filter(f=>!used.has('o:'+f.id)).sort((a,b)=>od(a)-od(b)||String(a.created_at).localeCompare(b.created_at)).slice(0,12).forEach((f,i)=>{const loc=place(f),dsc=`«${iss(f)}»${loc?' در '+loc:''}`;
+    out.push({type:'عدم‌انطباق باز',kind:i<3?'ongoing':'new',t:{ongoing:`رفع عدم‌انطباق ${dsc} توسط واحد فنی در دست پیگیری است.`,new:`رفع عدم‌انطباق ${dsc} تا مهلت مقرر.`,done:`عدم‌انطباق ${dsc} برطرف شد.`},actor:f.responsible||'فنی',ref:'o:'+f.id,n:1,dl:nEnd})});
+  /* ۵) آموزش‌ها */
   tr.filter(x=>!used.has('t:'+x.id)).forEach(x=>{const n=ta.filter(a=>a.training_id===x.id).length;
-    out.push({type:'آموزش',text:`برگزاری دورهٔ آموزشی «${clean(x.title)}»${x.duration_hours?' به‌مدت '+fa(x.duration_hours)+' ساعت':''}${n?' با شرکت '+fa(n)+' نفر از پرسنل':''}${x.training_type==='contractor'?' (پرسنل پیمانکار)':''}.`,actor:'منابع انسانی/HSE',ref:'t:'+x.id,n:1})});
-  /* تاییدیه‌های فنی تجهیزات */
+    out.push({type:'آموزش',kind:'done',t:{done:`برگزاری دورهٔ آموزشی «${clean(x.title)}»${x.duration_hours?' به‌مدت '+fa(x.duration_hours)+' ساعت':''}${n?' با شرکت '+fa(n)+' نفر از پرسنل':''}${x.training_type==='contractor'?' (پرسنل پیمانکار)':''}.`},actor:'منابع انسانی/HSE',ref:'t:'+x.id,n:1})});
+  /* ۶) تاییدیه‌های فنی تجهیزات */
   const cat=new Map(eq.map(e=>[e.code,e.category])),byC=new Map();eqi.forEach(i=>{const c=cat.get(i.equipment_code)||'تجهیزات';if(!byC.has(c))byC.set(c,[]);byC.get(c).push(i)});
   byC.forEach((l,c)=>{const ref='e:'+K+'|'+c;if(used.has(ref))return;const bad=l.filter(x=>x.result==='عدم تایید').length;
-    out.push({type:'تاییدیه فنی',text:`انجام بازرسی دوره‌ای و ثبت تاییدیهٔ فنی ${c} (${fa(l.length)} دستگاه${bad?'، '+fa(bad)+' مورد دارای عدم تایید و در حال پیگیری':''}) جهت اطمینان از ایمنی بهره‌برداری.`,actor:'HSE/فنی',ref,n:l.length})});
-  /* بازدیدها */
+    out.push({type:'تاییدیه فنی',kind:'done',t:{done:`بازرسی دوره‌ای و تاییدیهٔ فنی ${c} (${fa(l.length)} دستگاه${bad?'، '+fa(bad)+' مورد دارای عدم تایید و در حال پیگیری':''}) انجام شد.`},actor:'HSE/فنی',ref,n:l.length})});
+  /* ۷) بازدیدها */
   if(ins.length&&!used.has('i:'+K)){const d=ins.filter(x=>x.module==='D').length,o=ins.length-d;
-    out.push({type:'بازدیدهای ایمنی',text:`انجام ${[d?fa(d)+' بازدید روزانه':'',o?fa(o)+' بازدید تخصصی':''].filter(Boolean).join(' و ')} ایمنی از واحدهای کارخانه با چک‌لیست و ثبت عدم‌انطباق‌های مشاهده‌شده.`,actor:'HSE',ref:'i:'+K,n:ins.length})}
-  /* کارت‌ها */
+    out.push({type:'بازدیدهای ایمنی',kind:'done',t:{done:`انجام ${[d?fa(d)+' بازدید روزانه':'',o?fa(o)+' بازدید تخصصی':''].filter(Boolean).join(' و ')} ایمنی از واحدهای کارخانه با چک‌لیست و ثبت عدم‌انطباق‌های مشاهده‌شده.`},actor:'HSE',ref:'i:'+K,n:ins.length})}
+  /* ۸) کارت‌ها */
   const CT={hazard:'گزارش خطر ایمنی',health_hazard:'گزارش خطر بهداشتی',near_miss:'گزارش شبه‌حادثه',suggestion:'پیشنهاد ایمنی'};
   cd.filter(c=>!used.has('k:'+c.id)).forEach(c=>{const d=clean(c.description).slice(0,160);
-    out.push({type:'کارت‌ها',text:`${CT[c.card_type]||'کارت'} پرسنل${c.unit?' واحد '+clean(c.unit):''}${d?' دربارهٔ «'+d+'»':''} بررسی و اقدام لازم انجام شد${c.hse_note?': '+clean(c.hse_note):''}.`,actor:'HSE',ref:'k:'+c.id,n:1})});
+    out.push({type:'کارت‌ها',kind:'done',t:{done:`${CT[c.card_type]||'کارت'} پرسنل${c.unit?' واحد '+clean(c.unit):''}${d?' دربارهٔ «'+d+'»':''} بررسی و اقدام لازم انجام شد${c.hse_note?': '+clean(c.hse_note):''}.`},actor:'HSE',ref:'k:'+c.id,n:1})});
+  /* مرتب‌سازی و انتخاب پیش‌فرض: ارسال مستندات همه تیک؛ از بقیه حدود ۸ انجام‌شده، ۳ در دست اقدام، ۳ مصوبه */
+  const ord={'ارسال مستندات':0,'عدم‌انطباق رفع‌شده':1,'گزارش کار روزانه':2,'آموزش':3,'تاییدیه فنی':4,'بازدیدهای ایمنی':5,'کارت‌ها':6,'عدم‌انطباق باز':7},ko={done:0,ongoing:1,new:2};
+  out.sort((a,b)=>ko[a.kind]-ko[b.kind]||(ord[a.type]||9)-(ord[b.type]||9));
+  const cap={done:8,ongoing:3,new:3},cnt={done:0,ongoing:0,new:0};
+  out.forEach(s=>{if(s.type==='ارسال مستندات'){s.pick=true;return}s.pick=cnt[s.kind]<cap[s.kind];if(s.pick)cnt[s.kind]++;s.text=''});
+  out.forEach(s=>{s.text=s.t[s.kind]||s.t.done});
   SG.list=out;
 }
 async function openSuggest(){
@@ -307,18 +344,20 @@ async function reloadSuggest(){
   try{await buildSuggest()}catch(e){$('#dlg').innerHTML=`<div class="warn">خطا در خواندن اطلاعات: ${esc(e.message.slice(0,100))}</div><button class="btn2" id="sgX">بستن</button>`;$('#sgX').onclick=()=>$('#dlg').close();return}
   drawSuggest()}
 function drawSuggest(){
-  $('#dlg').innerHTML=`<b>✨ پیشنهاد اقدامات انجام‌شده</b>
+  const kopt=k=>KINDS.map(([kk,tt])=>`<option value="${kk}" ${k===kk?'selected':''}>${tt}</option>`).join('');
+  $('#dlg').innerHTML=`<b>✨ پیش‌نویس صورتجلسه از کارهای ثبت‌شدهٔ ماه</b>
    <div class="g2"><label class="f">ماه گزارش<select id="sgK">${monthOpts()}</select></label><label class="f" style="display:flex;gap:6px;align-items:center;margin-top:26px"><input type="checkbox" id="sgG" ${SG.group?'checked':''} style="width:auto"> ادغام عدم‌انطباق‌ها بر اساس دسته و محل</label></div>
-   <div class="mu" style="font-size:12px;margin-top:6px">موارد انجام‌شدهٔ ثبت‌شده در نرم‌افزار برای این ماه. هر مورد را که می‌خواهید در صورتجلسه بیاید تیک بزنید؛ متن قابل ویرایش است. مواردی که قبلاً در صورتجلسه‌ها آمده نمایش داده نمی‌شود.</div>
-   <div id="sgBody" style="max-height:52vh;overflow:auto;margin-top:6px">${SG.list.length?SG.list.map((s,i)=>`<div class="it"><label style="display:flex;gap:8px;align-items:center;font-size:12px"><input type="checkbox" data-sg="${i}" style="width:auto"> <b>${s.type}</b>${s.n>1?` <span class="mu">(${fa(s.n)} مورد)</span>`:''}</label><textarea data-sgt="${i}" rows="3" style="width:100%;margin-top:4px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;padding:8px">${esc(s.text)}</textarea></div>`).join(''):'<div class="mc mu">موردی برای این ماه پیدا نشد (یا همه قبلاً در صورتجلسه‌ها آمده‌اند).</div>'}</div>
-   <div style="display:flex;gap:8px;margin-top:12px"><button class="btn2" id="sgAll">انتخاب همه</button><button class="btn2" id="sgX" style="margin-inline-start:auto">انصراف</button><button class="btn2 p" id="sgAdd">افزودن انتخاب‌شده‌ها به «اقدامات انجام‌شده»</button></div>`;
+   <div class="mu" style="font-size:12px;margin-top:6px">موارد از عدم‌انطباق‌ها، گزارش کارهای روزانه، آموزش‌ها، تاییدیه‌ها و قواعد ارسال مستندات به مرکز بهداشت ساخته شده و بین سه بخش صورتجلسه تقسیم شده‌اند (تیک پیش‌فرض: حدود ۸ انجام‌شده، ۳ در دست اقدام، ۳ مصوبه). بخش هر مورد قابل تغییر و متن قابل ویرایش است. آمار حوادث و مدارک مشابه فقط با یک جمله («ارسال شد») می‌آیند و فایلشان پیوست نامه می‌شود.</div>
+   <div id="sgBody" style="max-height:54vh;overflow:auto;margin-top:6px">${SG.list.length?SG.list.map((s,i)=>`<div class="it"><label style="display:flex;gap:8px;align-items:center;font-size:12px;flex-wrap:wrap"><input type="checkbox" data-sg="${i}" ${s.pick?'checked':''} style="width:auto"> <b>${s.type}</b>${s.n>1?` <span class="mu">(${fa(s.n)} مورد)</span>`:''}<select data-sgk="${i}" style="margin-inline-start:auto;width:auto;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit;font-size:12px;padding:3px 6px">${kopt(s.kind)}</select></label><textarea data-sgt="${i}" rows="3" style="width:100%;margin-top:4px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;padding:8px">${esc(s.text)}</textarea></div>`).join(''):'<div class="mc mu">موردی برای این ماه پیدا نشد (یا همه قبلاً در صورتجلسه‌ها آمده‌اند).</div>'}</div>
+   <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn2" id="sgAll">انتخاب همه</button><button class="btn2" id="sgX" style="margin-inline-start:auto">انصراف</button><button class="btn2 p" id="sgAdd">افزودن انتخاب‌شده‌ها به صورتجلسه</button></div>`;
   $('#sgK').onchange=async e=>{SG.K=e.target.value;await reloadSuggest()};
   $('#sgG').onchange=async e=>{SG.group=e.target.checked;await reloadSuggest()};
+  document.querySelectorAll('[data-sgk]').forEach(sel=>sel.onchange=()=>{const s=SG.list[+sel.dataset.sgk],ta=document.querySelector('[data-sgt="'+sel.dataset.sgk+'"]');s.kind=sel.value;if(s.t[sel.value])ta.value=s.t[sel.value]});
   $('#sgAll').onclick=()=>document.querySelectorAll('[data-sg]').forEach(c=>c.checked=true);
   $('#sgX').onclick=()=>$('#dlg').close();
   $('#sgAdd').onclick=()=>{let n=0;const dd=normD(E.m.jdate)||'';
-    document.querySelectorAll('[data-sg]').forEach(c=>{if(!c.checked)return;const s=SG.list[+c.dataset.sg],tx=document.querySelector('[data-sgt="'+c.dataset.sg+'"]').value.trim();if(!tx)return;
-      E.items.push({id:uid(),kind:'done',text:tx,actor:s.actor,follower:'HSE',deadline:dd,result:'اقدام شد',ref:s.ref});n++});
+    document.querySelectorAll('[data-sg]').forEach(c=>{if(!c.checked)return;const i=c.dataset.sg,s=SG.list[+i],tx=document.querySelector('[data-sgt="'+i+'"]').value.trim(),kd=document.querySelector('[data-sgk="'+i+'"]').value;if(!tx)return;
+      E.items.push({id:uid(),kind:kd,text:tx,actor:s.actor,follower:'HSE',deadline:kd==='done'?dd:(s.dl||dd),result:SGK[kd],ref:s.ref});n++});
     $('#dlg').close();renderEdit();toast(n?fa(n)+' مورد اضافه شد؛ برای ثبت نهایی ذخیره را بزنید':'موردی انتخاب نشده بود')}}
 
 /* ===================== خروجی اکسل ===================== */
