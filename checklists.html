@@ -587,6 +587,27 @@ function fuBlock(x) {
     ${l.length > 2 ? `<details><summary style="font-size:12px;">سوابق قبلی (${fa(l.length - 2)})</summary>${l.slice(2).map(f => `<small style="display:block;">${fd(f.followed_at + 'T12:00:00')} · ${esc(inspL(f.followed_by))}: ${esc(f.result)}</small>`).join('')}</details>` : ''}
     ${open ? `<button class="p" data-a="fufu" data-id="${x.id}" style="margin-top:6px; min-height:38px;">＋ ثبت پیگیری</button>` : ''}</div>`;
 }
+async function exportOpen(kind, btn) {
+  const old = btn.textContent; btn.textContent = '… در حال آماده‌سازی'; btn.disabled = true;
+  try {
+    let rows = []; for (let o = 0; o < 20000; o += 1000) { const r = await api('findings?select=id,question,note,location,module,category,severity,responsible,due_date,created_at,notice_code,inspector&status=eq.open' + fQuery(true) + '&order=created_at.asc&limit=1000&offset=' + o); rows = rows.concat(r || []); if ((r || []).length < 1000) break; }
+    const fm = {}; try { const ids = rows.map(r => r.id); for (let i = 0; i < ids.length; i += 150) (await api('finding_followups?select=*&order=followed_at.desc&finding_id=in.(' + ids.slice(i, i + 150).join(',') + ')')).forEach(f => (fm[f.finding_id] = fm[f.finding_id] || []).push(f)); } catch (e) {}
+    const data = rows.map((x, i) => { const l = (fm[x.id] || [])[0], nx = l && l.next_due ? String(l.next_due).slice(0, 10) : isoAdd(new Date(x.created_at).toLocaleDateString('en-CA'), 10);
+      return { n: i + 1, no: x.notice_code || '', d: fd(x.created_at), loc: x.location || '', q: String(x.note || x.question || '').split('|')[0].trim(), cat: x.category || '', sev: SEVN[x.severity] || '', resp: x.responsible || '', due: x.due_date ? fd(x.due_date + 'T12:00:00') : '', lf: l ? fd(l.followed_at + 'T12:00:00') + ': ' + l.result : '', nx: fd(nx + 'T12:00:00') }; });
+    if (!data.length) { alert('عدم‌انطباق بازی با این فیلترها نیست.'); return; }
+    const H = ['ردیف', 'شمارهٔ اعلان', 'تاریخ ثبت', 'محل', 'شرح عدم‌انطباق', 'دسته', 'شدت', 'مسئول', 'مهلت', 'آخرین پیگیری و نتیجه', 'پیگیری بعدی'];
+    if (kind == 'xls') {
+      if (!window.XLSX) await new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = () => no(new Error('بارگذاری کتابخانهٔ اکسل ناموفق بود')); document.head.appendChild(s); });
+      const ws = XLSX.utils.aoa_to_sheet([H, ...data.map(r => [r.n, r.no, r.d, r.loc, r.q, r.cat, r.sev, r.resp, r.due, r.lf, r.nx])]); ws['!cols'] = [6, 12, 12, 22, 60, 18, 8, 16, 12, 40, 12].map(w => ({ wch: w })); ws['!views'] = [{ rightToLeft: true }];
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'عدم‌انطباق‌های باز'); XLSX.writeFile(wb, 'open-findings-' + todayIso() + '.xlsx');
+    } else {
+      const w = window.open('', '_blank'); if (!w) { alert('اجازهٔ باز شدن پنجره را بدهید.'); return; }
+      w.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>فهرست عدم‌انطباق‌های باز</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:12px}h2{text-align:center;margin:4px 0}table{width:100%;border-collapse:collapse}td,th{border:1px solid #000;padding:4px 6px;vertical-align:top}th{background:#eee}tr{page-break-inside:avoid}</style></head><body>
+        <h2>فهرست عدم‌انطباق‌های HSE در انتظار اقدام — شرکت گسترش فناوری خوارزمی</h2><div style="text-align:center">تاریخ: ${fd(new Date())} · تعداد: ${fa(data.length)} مورد</div>
+        <table><tr>${['ردیف', 'اعلان', 'تاریخ ثبت', 'محل', 'شرح', 'مسئول', 'مهلت', 'آخرین پیگیری'].map(h => `<th>${h}</th>`).join('')}</tr>${data.map(r => `<tr><td>${fa(r.n)}</td><td>${esc(r.no)}</td><td>${r.d}</td><td>${esc(r.loc)}</td><td>${esc(r.q)}</td><td>${esc(r.resp)}</td><td>${r.due}</td><td>${esc(r.lf)}</td></tr>`).join('')}</table><script>setTimeout(()=>print(),500)<\/script></body></html>`); w.document.close();
+    }
+  } catch (e) { alert(e.message); } finally { btn.textContent = old; btn.disabled = false; }
+}
 function fuDialog(id) {
   const o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);overflow:auto;padding:12px';
   const x = { id }, L = FUMAP[id] || [];
@@ -970,6 +991,8 @@ async function send() {
   ids.filter(i => A[i] == 'nc').forEach(i => { ncs.push(i); if (rd) (EX[i] || []).forEach(k => ncs.push(k)); });
   const bad = ncs.filter(i => !(N[i] || '').trim() || !(PH[i] || []).length);
   if (bad.length) return alert('ثبت توضیحات و عکس برای موارد عدم‌انطباق الزامی است.\nناقص: سوال ' + bad.map(pos).join('، '));
+  const short = ncs.filter(i => (N[i] || '').split('|')[0].trim().length < 20);
+  if (short.length) return alert('شرح هر عدم‌انطباق باید حداقل ۲۰ نویسه و مشخص باشد (چه چیزی، کجا، چه مشکلی).\nکوتاه: سوال ' + short.map(pos).join('، '));
   if (rd) { const nloc = ncs.filter(i => !(LC[i] || '').trim()); if (nloc.length) return alert('محل هر عدم‌انطباق را بنویسید.\nسوال: ' + nloc.map(pos).join('، ')); }
 
   if (EQ_OK && !(await eqCheckDup(ncs, qt))) return;
@@ -1048,7 +1071,7 @@ function quickForm() {
 async function quickSend() {
   const loc = QD.loc.trim(), desc = QD.desc.trim(), ph = PH['Q-quick'] || [];
   if (!loc) return alert('محل را بنویسید.');
-  if (!desc) return alert('شرح عدم‌انطباق را بنویسید.');
+  if (desc.length < 20) return alert('شرح عدم‌انطباق باید حداقل ۲۰ نویسه و مشخص باشد (چه چیزی، کجا، چه مشکلی). الان ' + desc.length + ' نویسه است.');
   if (!ph.length) return alert('حداقل یک عکس قبل از اصلاح الزامی است.');
   const sb = $('[data-a=qsend]'); sb.disabled = true; sb.textContent = 'در حال ذخیره‌سازی...';
   let r = null;
@@ -1326,7 +1349,7 @@ fi.onchange = async () => {
 
 /* ===== مدیریت و پیگیری عدم‌انطباق‌ها: جستجو، فیلتر، گروه‌بندی، صفحه‌بندی، ویرایش ===== */
 let FI = '', EDIT = null, FTM = null;
-const FQ = { q: '', mod: '', insp: '', st: '', sev: '', cat: '', loc: '', ntc: '', asg: '', ph: '', per: 'all', jy: 0, jm: 0, grp: '', ord: 'new', page: 0, size: 20 };
+const FQ = { one: '', q: '', mod: '', insp: '', st: '', sev: '', cat: '', loc: '', ntc: '', asg: '', ph: '', per: 'all', jy: 0, jm: 0, grp: '', ord: 'new', page: 0, size: 20 };
 const CATN = [...CATS.map(c => c[0]), 'نظم و ایمنی عمومی'];
 const GCOL = { mod: 'module', cat: 'category', loc: 'location', st: 'status', sev: 'severity' };
 
@@ -1343,6 +1366,7 @@ function fRange() {
 function fQuery(skipSt) {
   let q = '';
   if (FI) q += '&inspection_id=eq.' + FI;
+  if (FQ.one) q += '&id=eq.' + encodeURIComponent(FQ.one);
   if (FQ.mod) q += '&module=eq.' + encodeURIComponent(FQ.mod);
   if (FQ.st && !skipSt) q += '&status=eq.' + FQ.st;
   if (FQ.sev) q += '&severity=eq.' + FQ.sev;
@@ -1460,7 +1484,7 @@ async function loadFinds() {
     const total = pg.total ?? pg.rows.length, pages = Math.max(1, Math.ceil(total / FQ.size));
     if (FQ.page >= pages) { FQ.page = pages - 1; return loadFinds(); }
     const no = cOpen.total ?? 0, na = cAll.total ?? 0, nx = cCan.total ?? 0;
-    $('#fchips').innerHTML = [['', 'همه', na], ['open', 'باز', no], ['closed', 'اصلاح‌شده', na - no - nx], ['cancelled', 'لغو شده', nx]].map(([v, t, n]) =>
+    $('#fchips').innerHTML = `<button class="chip" data-a="fexp" data-k="xls">⬇ اکسل موارد باز</button><button class="chip" data-a="fexp" data-k="print">🖨 لیست باز (نامه / PDF)</button>` + [['', 'همه', na], ['open', 'باز', no], ['closed', 'اصلاح‌شده', na - no - nx], ['cancelled', 'لغو شده', nx]].map(([v, t, n]) =>
       `<button class="chip ${FQ.st == v ? 'on' : ''}" data-a="fst" data-v="${v}">${t} <b>${fa(n)}</b></button>`).join('') +
       `<button class="chip ${FQ.ntc == 'no' ? 'on' : ''}" data-a="fntc" data-v="no">📭 بدون اعلان</button><button class="chip ${FQ.ntc == 'yes' ? 'on' : ''}" data-a="fntc" data-v="yes">📬 دارای اعلان</button><button class="chip ${FQ.asg == 'me' ? 'on' : ''}" data-a="fasg">📌 ارجاع به من</button>`;
     let last = null, html = '';
@@ -1695,6 +1719,7 @@ async function finds(iid) {
       <a href="index.html" class="back">← داشبورد اصلی</a>
     </div>
     <h2>${FI ? 'ثبت اعلان عدم‌انطباق' : 'مدیریت و پیگیری عدم‌انطباق‌ها'}</h2>
+    ${FQ.one ? '<div class="q" style="background:color-mix(in srgb,var(--ac) 10%,var(--card));">🎯 فقط همین عدم‌انطباق نمایش داده می‌شود. <button class="l" data-a="fone0" style="margin:0;min-height:32px;">نمایش همهٔ موارد</button></div>' : ''}
     <div id="sbanner" class="q bad" hidden>⚠️ حجم تصاویر در سوپابیس از آستانه (${fa(thrMB())} مگابایت) گذشته است. از بخش «فضای تصاویر» پایین، آن‌ها را به کامپیوتر منتقل کنید.</div>
     <datalist id="locs">${LOCS.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
 
@@ -2388,6 +2413,8 @@ document.onclick = async e => {
   }
   else if (a == 'fasg') { FQ.asg = FQ.asg == 'me' ? '' : 'me'; FQ.page = 0; const sl = document.querySelector('[data-ff=asg]'); if (sl) sl.value = FQ.asg; await loadFinds(); }
   else if (a == 'fufu') fuDialog(t.dataset.id);
+  else if (a == 'fone0') { FQ.one = ''; finds(); }
+  else if (a == 'fexp') exportOpen(t.dataset.k, t);
   else if (a == 'fassign' || a == 'funassign') {
     const box = t.closest('.q'), id = t.dataset.id;
     let body;
@@ -2464,6 +2491,7 @@ document.oninput = async e => {
 
 home().then(() => {
   if (location.hash == '#rep') renderManagementReport();
+  else if (/^#fu=/.test(location.hash)) { const id = decodeURIComponent(location.hash.slice(4)); FQ.one = id; FQ.st = ''; FQ.per = 'all'; finds().then(() => setTimeout(() => { if (document.querySelector('[data-a=fufu][data-id="' + id + '"]')) fuDialog(id); }, 400)); }
   else if (/^#visit=/.test(location.hash)) { const q = new URLSearchParams(location.hash.slice(1)), k = q.get('visit'); if (k == 'MED') medHome(); else startVisit(k, q.get('code'), q.get('title'), q.get('hall')).then(() => { if (k == 'CT' && q.get('ctr')) { D.extra.contractor_name = q.get('ctr'); D.extra.contract_no = q.get('cno') || 'ندارد'; D.loc = D.loc || q.get('ctr'); form(); } }); }
 });
 </script>
