@@ -259,7 +259,7 @@ async function saveMeeting(){
 
 /* ===================== پیشنهاد اقدامات انجام‌شده از دادهٔ همان ماه ===================== */
 const PURP={'حریق':'به‌منظور افزایش آمادگی در برابر آتش‌سوزی و پیشگیری از وقوع حریق','برق':'به‌منظور پیشگیری از برق‌گرفتگی و حوادث ناشی از تجهیزات برقی','مواد شیمیایی و گاز':'به‌منظور پیشگیری از نشت، تماس و مواجهه با مواد شیمیایی و گازها','ماشین‌آلات و تجهیزات':'به‌منظور پیشگیری از حوادث ناشی از کار با ماشین‌آلات و تجهیزات','ارتفاع و سقوط':'به‌منظور جلوگیری از سقوط افراد','حفاظت فردی و آموزش':'به‌منظور ارتقای ایمنی و آمادگی پرسنل','بهداشت و محیط‌زیست':'به‌منظور ارتقای شرایط بهداشتی و محیط‌زیستی کارگاه'};
-let SG={K:'',list:[],loading:false,group:true};
+let SG={K:'',list:[],loading:false,group:false};
 const nextISO=iso=>new Date(new Date(iso+'T12:00:00Z').getTime()+864e5).toISOString().slice(0,10);
 const clean=s=>String(s||'').replace(/\s+/g,' ').replace(/[.؛،:\s]+$/,'').trim();
 const usedRefs=()=>{const s=new Set();ITEMS.forEach(l=>l.forEach(x=>(x.ref||'').split(',').forEach(r=>r&&s.add(r))));(E?E.items:[]).forEach(x=>(x.ref||'').split(',').forEach(r=>r&&s.add(r)));return s};
@@ -273,14 +273,14 @@ async function buildSuggest(){
     g(`equipment_inspections?select=equipment_code,inspected_on,result&inspected_on=like.${encodeURIComponent(pre)}*`).catch(()=>[]),
     g('equipment?select=code,category').catch(()=>[]),
     g(`inspections?select=id,module,created_at&created_at=gte.${A}T00:00:00%2B03:30&created_at=lt.${B}T00:00:00%2B03:30`).catch(()=>[]),
-    g(`hse_cards?select=id,card_type,status&card_date=gte.${A}&card_date=lte.${R.b}&status=eq.done`).catch(()=>[])]);
+    g(`hse_cards?select=id,card_type,status,unit,description,hse_note&card_date=gte.${A}&card_date=lte.${R.b}&status=eq.done`).catch(()=>[])]);
   /* عدم‌انطباق‌های رفع‌شده: ادغام بر اساس دسته و محل */
   const place=f=>clean(String(f.location||'').split(' - ')[0])||'';
   const groups=new Map();fin.filter(f=>!used.has('f:'+f.id)).forEach(f=>{const k=SG.group?(f.category||'عمومی')+'|'+place(f):'f'+f.id;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(f)});
-  groups.forEach(l=>{const f=l[0],cat=f.category||'نظم و ایمنی عمومی',loc=place(f),pu=PURP[cat]||'به‌منظور ارتقای سطح ایمنی کارگاه';
-    const iss=x=>clean((x.note&&x.note.length>5?x.note:x.question)).slice(0,140);
-    const text=l.length===1?`رفع عدم‌انطباق ${cat==='نظم و ایمنی عمومی'?'ایمنی':'حوزهٔ '+cat}${loc?' در '+loc:''}: ${iss(f)}، ${pu}.`
-      :`رفع ${fa(l.length)} مورد عدم‌انطباق حوزهٔ ${cat}${loc?' در '+loc:''} شامل ${l.map(iss).join('؛ ')}، ${pu}.`;
+  groups.forEach(l=>{const f=l[0],cat=f.category||'',loc=place(f);
+    const iss=x=>clean((x.note&&x.note.length>5?x.note:x.question).split('|')[0]).slice(0,160);
+    const text=l.length===1?`عدم‌انطباق «${iss(f)}»${loc?' در '+loc:''} برطرف شد.`
+      :`${fa(l.length)} مورد عدم‌انطباق${loc?' در '+loc:''}${cat?' ('+cat+')':''} برطرف شد: ${l.map(x=>'«'+iss(x)+'»').join('؛ ')}.`;
     const resp=[...new Set(l.map(x=>x.responsible).filter(Boolean))].slice(0,2).join('/');
     out.push({type:'عدم‌انطباق رفع‌شده',text,actor:resp||'فنی',ref:l.map(x=>'f:'+x.id).join(','),n:l.length})});
   /* آموزش‌ها */
@@ -292,9 +292,11 @@ async function buildSuggest(){
     out.push({type:'تاییدیه فنی',text:`انجام بازرسی دوره‌ای و ثبت تاییدیهٔ فنی ${c} (${fa(l.length)} دستگاه${bad?'، '+fa(bad)+' مورد دارای عدم تایید و در حال پیگیری':''}) جهت اطمینان از ایمنی بهره‌برداری.`,actor:'HSE/فنی',ref,n:l.length})});
   /* بازدیدها */
   if(ins.length&&!used.has('i:'+K)){const d=ins.filter(x=>x.module==='D').length,o=ins.length-d;
-    out.push({type:'بازدیدهای ایمنی',text:`انجام ${[d?fa(d)+' بازدید روزانه':'',o?fa(o)+' بازدید تخصصی':''].filter(Boolean).join(' و ')} ایمنی با استفاده از چک‌لیست‌های استاندارد و ثبت و پیگیری عدم‌انطباق‌ها.`,actor:'HSE',ref:'i:'+K,n:ins.length})}
+    out.push({type:'بازدیدهای ایمنی',text:`انجام ${[d?fa(d)+' بازدید روزانه':'',o?fa(o)+' بازدید تخصصی':''].filter(Boolean).join(' و ')} ایمنی از واحدهای کارخانه با چک‌لیست و ثبت عدم‌انطباق‌های مشاهده‌شده.`,actor:'HSE',ref:'i:'+K,n:ins.length})}
   /* کارت‌ها */
-  if(cd.length&&!used.has('c:'+K))out.push({type:'کارت‌ها',text:`بررسی و اقدام بر روی ${fa(cd.length)} کارت گزارش خطر، شبه‌حادثه و پیشنهاد دریافتی از پرسنل.`,actor:'HSE',ref:'c:'+K,n:cd.length});
+  const CT={hazard:'گزارش خطر ایمنی',health_hazard:'گزارش خطر بهداشتی',near_miss:'گزارش شبه‌حادثه',suggestion:'پیشنهاد ایمنی'};
+  cd.filter(c=>!used.has('k:'+c.id)).forEach(c=>{const d=clean(c.description).slice(0,160);
+    out.push({type:'کارت‌ها',text:`${CT[c.card_type]||'کارت'} پرسنل${c.unit?' واحد '+clean(c.unit):''}${d?' دربارهٔ «'+d+'»':''} بررسی و اقدام لازم انجام شد${c.hse_note?': '+clean(c.hse_note):''}.`,actor:'HSE',ref:'k:'+c.id,n:1})});
   SG.list=out;
 }
 async function openSuggest(){
