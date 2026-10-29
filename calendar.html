@@ -160,7 +160,7 @@ function build(K){
     X.inc.forEach(x=>{const d=String(x.incident_date||'').slice(0,10);if(!/^\d{4}-\d\d-\d\d$/.test(d))return;const due=addDays(d,2);if(!inM(due))return;
       T.push({id:'IN'+x.id,date:adjust(due,days),due,t:'نظر کارشناسی دربارهٔ حادثه: '+String(x.description||'').slice(0,50),sub:'شاخص «مشارکت در بررسی حوادث» · مهلت: '+lbl(due),done:!!x.expert_opinion,kind:'score',go:'clinic.html'})});
     X.fu.forEach(f=>{if(!inM(f.due)&&!(f.due<a&&K===nowK))return;const dt=f.due<a?today:f.due;
-      T.push({id:'FU'+f.id,date:adjust(dt<a?a:dt,days),due:f.due,t:'پیگیری با واحد فنی: '+f.txt,sub:'ثبت نتیجه و موعد بعدی (حداکثر ۱۰ روز) · مهلت: '+lbl(f.due),done:false,kind:'score',go:'checklists.html'})});
+      T.push({id:'FU'+f.id,date:adjust(dt<a?a:dt,days),due:f.due,t:'پیگیری با واحد فنی: '+f.txt,sub:'ثبت نتیجه و موعد بعدی (حداکثر ۱۰ روز) · مهلت: '+lbl(f.due),done:false,kind:'score',go:'checklists.html#fu='+f.id})});
     X.fin.forEach(x=>{const due=x.due_date&&String(x.due_date).slice(0,10),asg=x.assigned_to&&x.status==='open'&&x.assigned_to.toLowerCase()===String(HSEAuth.role==='expert'?HSEAuth.email:Object.keys(HSEAuth.EXPERTS||{})[0]||'').toLowerCase(),txt=String(x.note||x.question||'').split('|')[0].trim().slice(0,60);
       if(asg)T.push({id:'AS'+x.id,date:adjust(due&&inM(due)?due:today<a?a:today>b?b:today,days),due:due||today,t:'ارجاع مدیر: '+txt,sub:'شاخص «پیگیری و بستن»',done:false,kind:'score',go:'checklists.html'});
       else if(due&&inM(due))T.push({id:'FN'+x.id,date:adjust(due,days),due,t:'بستن عدم‌انطباق: '+txt,sub:'مهلت: '+lbl(due),done:x.status==='closed',kind:'score',go:'checklists.html'})});
