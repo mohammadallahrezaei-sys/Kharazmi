@@ -97,7 +97,7 @@ async function load(){
   /* همه‌ی منابع هم‌زمان؛ بازرسی‌ها فقط ۶۰۰ روز اخیر (برای گزارش ماهانه کافی است) و در انتخاب فصل/سال کامل دریافت می‌شود */
   const [[evB,cuL],[ins,fin,inc,fu,ek,tr,ta,emp]]=await Promise.all([Promise.all([HSE.loadEval().catch(()=>null),HSE.loadCulture().catch(()=>null)]),Promise.all([
     getAll('inspections?select=module,location,ok,nc,na,created_at,inspector&created_at=gte.'+since),
-    getAll('findings?select=status,module,created_at,closed_at,notice_at,severity,due_date,inspector'),
+    getAll('findings?select=status,module,created_at,closed_at,notice_at,severity,due_date,inspector,location,category'),
     getAll('clinic_incidents?select=incident_date,severity,description,body_part,corrective_action,action_status,action_due_date,social_security_reported'),
     getAll('clinic_followups?select=kind,status,due_date,completed_at,created_at'),
     getAll('ekhtars?select=record_type,record_date,reason,employee_id'),
@@ -241,6 +241,118 @@ function achievements(R,c,pw){
   return `<div class="card" style="border-color:var(--ac)"><h2>🏆 کارنامهٔ فعالیت‌های HSE در این ${pw}</h2><div class="g">
    ${tile(fx.length,'عدم‌انطباق رفع‌شده','ok')}${tile(c.rounds,'گشت بازرسی')}${tile(cls.length+talk.length,'جلسهٔ آموزشی')}${tile(eq.length,'تاییدیهٔ فنی تجهیزات')}${tile(mt.length,'صورتجلسهٔ کمیته')}${tile(sb.length,'نامهٔ ارسالی به ادارات')}${tile(dc.length,'مستند تدوین‌شده')}${tile(cd.length,'کارت پرسنل بررسی‌شده')}${tile(wl.length,'کار روزانهٔ ثبت‌شده')}${tile(kd,'روز کلرزنی تصفیه‌خانه')}</div>
    ${L.length?`<ul style="margin-top:10px">${L.map(x=>`<li>${x}</li>`).join('')}</ul>`:'<div class="mu" style="margin-top:8px">فعالیتی برای این دوره ثبت نشده است.</div>'}</div>`}
+/* ===================== مسیر ارتقا تا HSE نمونه: امتیاز عناصر، روند، نقاط ضعف، اقدام پیشنهادی ===================== */
+const TGT=85;                                   /* هدف هر عنصر: سطح «نمونه» */
+const LEVELS=[['در حال شکل‌گیری',0,'var(--bad)'],['مدیریت‌شده',50,'var(--wa)'],['پیشرو',70,'var(--ac)'],['نمونه کشوری (هدف)',85,'var(--ok)']];
+const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
+const levelOfScore=s=>{let L=LEVELS[0];LEVELS.forEach(l=>{if(s>=l[1])L=l});return L};
+const monthsIn=R=>Math.max(1,Math.round((new Date(R.b)-new Date(R.a))/864e5/30));
+function scoreCard(c,R){
+  const X=D.x||{},mo=monthsIn(R),end=c.end,d10=v=>String(v||'').slice(0,10),S=[];
+  const add=(id,name,w,score,detail,link,acts)=>S.push({id,name,w,score:score==null||isNaN(score)?null:Math.round(clamp(score)),detail,link,acts:acts||(()=>[])});
+  /* بازرسی و پایش */
+  if(c.has)add('insp','بازرسی و پایش',15,0.6*(c.comp==null?0:c.comp)+0.4*clamp(c.rounds/(4*mo)*100),`انطباق ${P(c.comp)} · ${fa(c.rounds)} گشت از هدف ${fa(4*mo)} (هفته‌ای ۱)`,'checklists.html',()=>{const a=[];
+    if(c.rounds<4*mo)a.push(`گشت کل کارخانه را هفتگی کنید (${fa(4*mo-c.rounds)} گشت کمتر از هدف)`);if(c.comp!=null&&c.comp<90)a.push('بازدید تخصصی را روی چک‌لیست‌ها و محل‌هایی با بیشترین عدم‌انطباق (جدول «نقاط ضعف») متمرکز کنید');return a});
+  else add('insp','بازرسی و پایش',15,null,'در این دوره بازرسی ثبت نشده','checklists.html');
+  /* رفع عدم‌انطباق */
+  const old=(D.fin||[]).filter(x=>d10(x.created_at)<=end&&(x.status==='open'||(x.closed_at&&d10(x.closed_at)>end))&&(new Date(end)-new Date(d10(x.created_at)))/864e5>60).length;
+  const part=[];if(c.onTime!=null)part.push(c.onTime);part.push(c.fOpen?100-100*c.fOver/c.fOpen:100);
+  add('find','رفع عدم‌انطباق‌ها',20,(c.fNew||c.fOpen||c.fClosed)?part.reduce((a,b)=>a+b,0)/part.length-Math.min(20,old*2):null,`${fa(c.fOpen)} باز · ${fa(c.fOver)} معوق · ${fa(old)} باز بیش از ۶۰ روز · بستن به‌موقع ${P(c.onTime)}`,'checklists.html#cycle',()=>{const a=[];
+    if(c.fOver)a.push(`${fa(c.fOver)} عدم‌انطباق معوق را در چرخهٔ ۱ و ۱۵ با اکسل و نامهٔ رسمی به واحد فنی ارجاع دهید و مهلت فنی را ثبت کنید`);if(old)a.push(`${fa(old)} مورد بیش از ۶۰ روز باز مانده؛ برای هرکدام تصمیم مدیریتی بگیرید (تأمین بودجه/قطعه، تغییر روش یا پذیرش ریسک)`);return a});
+  /* حوادث و یادگیری */
+  const sv=c.sev.severe+c.sev.fatal;
+  add('inc','حوادث و یادگیری',15,100-25*sv-10*Math.min(3,c.capaOver)-4*Math.min(6,c.inc)-(c.inc&&c.trOk&&c.trPost<c.inc?5:0),`${fa(c.inc)} حادثه (${fa(sv)} شدید/فوتی) · اقدام اصلاحی: ${fa(c.capaDone)} از ${fa(c.capaN)} بسته · ${fa(c.capaOver)} معوق`,'clinic.html',()=>{const a=[];
+    if(c.capaOver)a.push(`${fa(c.capaOver)} اقدام اصلاحی معوق حوادث را ببندید؛ هر حادثه بدون اقدام اصلاحی بسته‌شده تکرار می‌شود`);if(c.inc)a.push('برای هر حادثه تحلیل علت ریشه‌ای ثبت کنید (نه فقط شرح ماجرا)');if(c.trOk&&c.trPost<c.inc)a.push(`برای ${fa(c.inc-c.trPost)} حادثه آموزش پس از حادثه برگزار کنید`);return a});
+  /* آموزش و صلاحیت */
+  add('train','آموزش و صلاحیت',15,c.trOk&&c.covP!=null?c.covP:null,c.trOk?`پوشش آموزش ۱۲ ماه اخیر ${P(c.covP)} (${fa(c.cov)} از ${fa(c.empN)} نفر) · ${fa(c.trN)} جلسه`:'اطلاعات آموزش در دسترس نیست','training.html',()=>{const a=[];
+    if(c.covP!=null&&c.covP<90)a.push(`${fa(c.empN-c.cov)} نفر در ۱۲ ماه اخیر هیچ آموزشی ندیده‌اند؛ فهرست‌شان را از «بانک پرسنل» بگیرید و در سه ماه آینده پوشش دهید`);a.push('آموزش را به ریسک‌ها وصل کنید: هر آموزش برای یک عدم‌انطباق/حادثهٔ تکرارشونده');return a});
+  /* فرهنگ و رفتار */
+  add('cult','فرهنگ و رفتار ایمن',10,c.eN?0.6*clamp(c.rwShare/50*100)+0.4*clamp(100-25*c.repeat):null,c.eN?`${fa(c.rw)} تشویق در برابر ${fa(c.wr)} تذکر/اخطار · ${fa(c.repeat)} نفر تکرارشونده`:'اخطار/تشویقی ثبت نشده','ekhtar.html',()=>{const a=[];
+    if(c.rwShare!=null&&c.rwShare<50)a.push('سهم تشویق را به حداقل ۵۰٪ برسانید؛ رفتار ایمن را در جلسهٔ هفتگی علناً تشویق کنید');if(c.repeat)a.push(`برای ${fa(c.repeat)} نفر تکرارشونده برنامهٔ اصلاح رفتار (مربی‌گری، آموزش فردی) تعریف کنید، نه اخطار مکرر`);return a});
+  /* طب کار */
+  add('occ','طب کار و سلامت',5,D.fu?(c.fuOpen?100-100*c.fuOver/c.fuOpen:100):null,`${fa(c.fuOpen)} پیگیری باز · ${fa(c.fuOver)} معوق`,'clinic.html',()=>c.fuOver?[`${fa(c.fuOver)} پیگیری معوق طب کار را ببندید (ارجاع پزشک، معاینهٔ مجدد)`]:[]);
+  /* ارتباط و مستندات (کمیته) */
+  if(X.M){const ek=end.slice(0,7);let cntM=0;const keys=new Set((X.M||[]).map(m=>jk(String(m.jdate||'').replace(/[۰-۹]/g,x=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(x)))));
+    let [yy,mm]=[+ (jk(end)||nowK).slice(0,4),+(jk(end)||nowK).slice(5)];for(let i=0;i<6;i++){if(keys.has(yy+'-'+String(mm).padStart(2,'0')))cntM++;if(--mm<1){mm=12;yy--}}
+    add('com','کمیته حفاظت فنی و ارتباط',5,cntM/6*100,`${fa(cntM)} ماه از ۶ ماه اخیر صورتجلسه دارد`,'committee.html',()=>cntM<6?['جلسهٔ کمیته را هر ماه و صورتجلسه/مدارک را به‌موقع به اداره کار و مرکز بهداشت ارسال کنید']:[])}
+  else add('com','کمیته حفاظت فنی و ارتباط',5,null,'اطلاعات کمیته در دسترس نیست','committee.html');
+  /* تجهیزات */
+  if(X.E&&X.E.length){const lastBy={};X.E.forEach(x=>{const p=lastBy[x.equipment_code];if(!p||String(x.inspected_on)>String(p.inspected_on))lastBy[x.equipment_code]=x});const L=Object.values(lastBy),ok=L.filter(x=>x.result==='تایید').length;
+    add('eq','تجهیزات و تأییدیه فنی',10,pct(ok,L.length),`${fa(ok)} از ${fa(L.length)} تجهیز بازرسی‌شده، آخرین نتیجه «تایید» دارند`,'equipment.html',()=>L.length-ok?[`${fa(L.length-ok)} تجهیز با نتیجهٔ «عدم تایید» را با اولویت (باربرداری، تحت فشار) رفع و دوباره تایید کنید`]:[])}
+  else add('eq','تجهیزات و تأییدیه فنی',10,null,'بازرسی تجهیزات ثبت نشده','equipment.html');
+  /* مشارکت پرسنل (کارت‌ها) */
+  const cs=(X.C||[]).filter(x=>{const d=d10(x.card_date);return d>=R.a&&d<=R.b});
+  add('cards','مشارکت پرسنل (کارت‌ها)',5,cs.length?pct(cs.filter(x=>x.status==='done'||x.status==='rejected').length,cs.length):null,cs.length?`${fa(cs.length)} کارت دریافتی · ${fa(cs.filter(x=>x.status==='pending'||x.status==='in_review').length)} در انتظار نتیجه`:'کارتی ثبت نشده','cards.html',()=>{const a=[];const pend=cs.filter(x=>x.status==='pending'||x.status==='in_review').length;if(pend)a.push(`${fa(pend)} کارت را تا ۷ روز به نتیجه برسانید و پاسخ را به گزارش‌دهنده برگردانید؛ بازخورد، مشارکت را زنده نگه می‌دارد`);if(cs.length<5*mo)a.push('تعداد کارت‌ها کم است؛ با تشویق گزارش‌دهنده‌ها و معرفی کارت در آموزش، مشارکت را بالا ببرید');return a});
+  const ok=S.filter(s=>s.score!=null),W=ok.reduce((a,s)=>a+s.w,0),overall=W?Math.round(ok.reduce((a,s)=>a+s.w*s.score,0)/W):null;
+  return{items:S,overall,cover:W};
+}
+/* ---- نمودارهای SVG سبک (بدون کتابخانه) ---- */
+function svgChart(labels,series,o={}){
+  const Wd=340,Ht=150,pl=30,pr=8,pt=10,pb=26,n=labels.length,max=o.max!=null?o.max:Math.max(1,...series.flatMap(s=>s.v.filter(v=>v!=null))),min=o.min||0,iw=Wd-pl-pr,ih=Ht-pt-pb;
+  const X=i=>Wd-pr-(n>1?i*iw/(n-1):iw/2),Y=v=>pt+ih-(v-min)/((max-min)||1)*ih;   /* راست به چپ: قدیمی‌ترین سمت راست */
+  const bw=Math.max(4,iw/n*0.6/(series.filter(s=>s.bar).length||1));
+  let g='';
+  [0,0.5,1].forEach(f=>{const v=min+(max-min)*f;g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--bd)" stroke-width="1"/><text x="${pl-4}" y="${Y(v)+3}" font-size="9" text-anchor="end" fill="var(--mu)">${fa(Math.round(v))}</text>`});
+  (o.lines||[]).forEach(l=>{g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${Y(l.y)}" y2="${Y(l.y)}" stroke="${l.c||'var(--ok)'}" stroke-dasharray="4 3" stroke-width="1"/><text x="${pl+2}" y="${Y(l.y)-2}" font-size="8" fill="${l.c||'var(--ok)'}">${l.t||''}</text>`});
+  labels.forEach((l,i)=>{if(n<=7||i%2===(n%2?0:1))g+=`<text x="${X(i)}" y="${Ht-10}" font-size="8" text-anchor="middle" fill="var(--mu)">${l}</text>`});
+  let bi=0;series.forEach(s=>{
+    if(s.bar){const off=(bi-(series.filter(z=>z.bar).length-1)/2)*bw;bi++;s.v.forEach((v,i)=>{if(v==null)return;const y=Y(v);g+=`<rect x="${X(i)-bw/2+off}" y="${y}" width="${bw}" height="${Math.max(0,Y(min)-y)}" fill="${s.c}" rx="1.5"><title>${s.name}: ${fa(v)}</title></rect>`})}
+    else{let d='',pen=false;s.v.forEach((v,i)=>{if(v==null){pen=false;return}d+=(pen?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)+' ';pen=true});
+      g+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round"/>`;s.v.forEach((v,i)=>{if(v!=null)g+=`<circle cx="${X(i)}" cy="${Y(v)}" r="2.5" fill="${s.c}"><title>${labels[i]} · ${s.name}: ${fa(v)}</title></circle>`})}});
+  return`<svg viewBox="0 0 ${Wd} ${Ht}" width="100%" style="direction:ltr;max-height:180px" role="img">${g}</svg><div class="mu" style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px">${series.map(s=>`<span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${s.c};margin-inline-end:3px"></i>${s.name}</span>`).join('')}</div>`}
+function monthSeries(type,y,n){
+  const ek=endMonthOf(type,y,n),out=[];let yy=+ek.slice(0,4),mm=+ek.slice(5);
+  for(let i=0;i<12;i++){const K=yy+'-'+String(mm).padStart(2,'0'),R=monthRange(K);if(R.a){const c=metricsRange(R.a,R.b);out.unshift({K,label:MN[mm-1].slice(0,4),c,sc:scoreCard(c,R)})}if(--mm<1){mm=12;yy--}}
+  return out;
+}
+function excellenceHtml(c,R,type,y,n){
+  const sc=scoreCard(c,R),lv=sc.overall==null?null:levelOfScore(sc.overall),items=sc.items,ok=items.filter(s=>s.score!=null);
+  if(sc.overall==null)return`<div class="card"><h2>🎯 مسیر ارتقا تا HSE نمونه</h2><div class="mu">برای محاسبهٔ امتیاز داده‌ای ثبت نشده است.</div></div>`;
+  const next=LEVELS.find(l=>l[1]>sc.overall),weak=ok.filter(s=>s.score<(next?next[1]:TGT)).sort((a,b)=>b.w*((next?next[1]:TGT)-b.score)-a.w*((next?next[1]:TGT)-a.score));
+  const top=ok.filter(s=>s.score<TGT).sort((a,b)=>b.w*(TGT-b.score)-a.w*(TGT-a.score)).slice(0,3);
+  const miss=items.filter(s=>s.score==null);
+  const bar=s=>`<div style="position:relative"><div class="bar"><i style="width:${s.score}%;background:${s.score>=TGT?'var(--ok)':s.score>=65?'var(--wa)':'var(--bad)'}"></i></div><i style="position:absolute;inset-inline-start:${TGT}%;top:-2px;height:12px;border-inline-start:2px dashed var(--mu)"></i></div>`;
+  return`<div class="card" style="border-color:var(--ac)"><h2>🎯 مسیر ارتقا تا HSE نمونه کشوری</h2>
+   <div class="score"><div><div class="big" style="color:${lv[2]}">${fa(sc.overall)}</div><div class="mu">از ۱۰۰</div></div>
+   <div style="flex:1;min-width:220px"><b>سطح «${lv[0]}»</b>
+    <div style="display:flex;margin-top:6px;height:10px;border-radius:6px;overflow:hidden">${LEVELS.map((l,i)=>`<div style="flex:${(LEVELS[i+1]?LEVELS[i+1][1]:100)-l[1]};background:${l[2]};opacity:${sc.overall>=l[1]?1:.25}"></div>`).join('')}</div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mu)">${LEVELS.map(l=>`<span>${l[0].split(' ')[0]} ${fa(l[1])}+</span>`).join('')}</div>
+    <div class="mu" style="margin-top:6px">${next?`تا سطح «${next[0]}» ${fa(next[1]-sc.overall)} امتیاز مانده؛ سریع‌ترین راه: ${weak.slice(0,2).map(s=>`<b>${s.name}</b>`).join(' و ')||'—'}`:'به سطح نمونه رسیده‌اید؛ هدف: حفظ و ثبات ۶ ماهه'}.</div></div></div>
+   <table style="margin-top:10px"><tr><th style="width:26%">عنصر HSE</th><th>امتیاز (خط‌چین = هدف ${fa(TGT)})</th><th style="width:8%">وزن</th></tr>
+   ${items.map(s=>`<tr><td><a href="${s.link}" style="color:inherit"><b>${s.name}</b></a></td><td>${s.score==null?`<span class="mu">${s.detail}</span>`:`<div style="display:flex;gap:8px;align-items:center"><div style="flex:1">${bar(s)}</div><b class="${col(s.score)}">${fa(s.score)}</b></div><div class="mu" style="font-size:11px">${s.detail}</div>`}</td><td class="mu">${fa(s.w)}٪</td></tr>`).join('')}</table>
+   ${miss.length?`<div class="mu" style="margin-top:6px">عناصر بدون داده (در امتیاز کل نیامده‌اند): ${miss.map(s=>s.name).join('، ')}. ثبت منظم این‌ها خودش بخشی از ارتقاست.</div>`:''}
+  </div>
+  <div class="card" style="border-color:var(--wa)"><h2>🔧 سه اولویت ارتقا (بیشترین اثر روی امتیاز)</h2>
+   ${top.length?top.map((s,i)=>`<div style="margin-top:${i?10:0}px"><b>${fa(i+1)}. ${s.name}</b> <span class="${col(s.score)}">(${fa(s.score)} از ${fa(TGT)})</span><ul>${s.acts().map(a=>`<li>${a}</li>`).join('')||'<li>وضعیت نسبتاً خوب است؛ ثبات را حفظ کنید.</li>'}</ul><a class="b" href="${s.link}">رفتن به ماژول ←</a></div>`).join(''):'<div class="ok">همهٔ عناصر به هدف رسیده‌اند.</div>'}
+  </div>`;
+}
+function chartsHtml(type,y,n){
+  const M=monthSeries(type,y,n);if(M.length<2)return'';const L=M.map(m=>m.label),V=f=>M.map(m=>f(m));
+  const card=(t,h,note)=>`<div class="card" style="margin:0"><b style="font-size:13px">${t}</b>${h}${note?`<div class="mu" style="font-size:11px">${note}</div>`:''}</div>`;
+  return`<div class="card"><h2>📈 روند ۱۲ ماه اخیر</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px">
+   ${card('امتیاز کلی HSE',svgChart(L,[{name:'امتیاز',c:'var(--ac)',v:V(m=>m.sc.overall)}],{max:100,lines:[{y:85,t:'نمونه'},{y:70,t:'پیشرو',c:'var(--wa)'}]}),'خط سبز: سطح نمونه کشوری')}
+   ${card('نرخ انطباق چک‌لیست‌ها (٪)',svgChart(L,[{name:'انطباق',c:'var(--ok)',v:V(m=>m.c.comp)}],{max:100,min:50,lines:[{y:90,t:'هدف ۹۰'}]}))}
+   ${card('عدم‌انطباق‌ها',svgChart(L,[{name:'جدید',c:'var(--wa)',v:V(m=>m.c.fNew),bar:1},{name:'بسته‌شده',c:'var(--ok)',v:V(m=>m.c.fClosed),bar:1},{name:'باز (پشتوانه)',c:'var(--bad)',v:V(m=>m.c.fOpen)}]),'اگر «بسته‌شده» همیشه زیر «جدید» باشد، پشتوانه رشد می‌کند')}
+   ${card('حوادث',svgChart(L,[{name:'حادثه',c:'var(--bad)',v:V(m=>m.c.inc),bar:1},{name:'روز کاری از دست‌رفته',c:'var(--wa)',v:V(m=>m.c.lost)}]))}
+   ${card('فرهنگ: تشویق در برابر اخطار/تذکر',svgChart(L,[{name:'تشویق',c:'var(--ok)',v:V(m=>m.c.rw),bar:1},{name:'تذکر/اخطار',c:'var(--bad)',v:V(m=>m.c.wr),bar:1}]),'هدف: تشویق ≥ اخطار')}
+   ${card('پوشش آموزش پرسنل (٪)',svgChart(L,[{name:'پوشش ۱۲ ماه',c:'var(--ac)',v:V(m=>m.c.covP)}],{max:100,lines:[{y:90,t:'هدف ۹۰'}]}))}
+  </div></div>`;
+}
+function weakAreasHtml(R,c){
+  const d10=v=>String(v||'').slice(0,10),end=c.end,pl=l=>String(l||'نامشخص').split(' - ')[0].trim()||'نامشخص';
+  const open=(D.fin||[]).filter(x=>d10(x.created_at)<=end&&(x.status==='open'||(x.closed_at&&d10(x.closed_at)>end)));
+  if(!open.length&&!(D.ins||[]).length)return'';
+  const cnt=(f,list)=>{const m={};list.forEach(x=>{const k=f(x);(m[k]=m[k]||{n:0,over:0,old:0});m[k].n++;if(x.due_date&&x.due_date<end)m[k].over++;if((new Date(end)-new Date(d10(x.created_at)))/864e5>60)m[k].old++});return Object.entries(m).sort((a,b)=>b[1].n-a[1].n).slice(0,6)};
+  const byLoc=cnt(x=>pl(x.location),open),byCat=cnt(x=>x.category||'بدون دسته',open);
+  const L={};(D.ins||[]).filter(r=>{const d=d10(r.created_at);return d>=R.a&&d<=R.b&&r.location!==ROUND_LOC}).forEach(r=>{const k=pl(r.location);(L[k]=L[k]||{ok:0,nc:0,n:0});L[k].ok+=r.ok||0;L[k].nc+=r.nc||0;L[k].n++});
+  const lowC=Object.entries(L).filter(([k,v])=>v.ok+v.nc>=15).map(([k,v])=>[k,pct(v.ok,v.ok+v.nc),v.nc]).sort((a,b)=>a[1]-b[1]).slice(0,5);
+  const row=([k,v])=>`<tr><td>${esc(k)}</td><td style="text-align:center">${fa(v.n)}</td><td style="text-align:center" class="${v.over?'bad':''}">${fa(v.over)}</td><td style="text-align:center" class="${v.old?'wa':''}">${fa(v.old)}</td></tr>`;
+  const tb=(t,rows)=>`<div><b style="font-size:13px">${t}</b><table><tr><th></th><th style="text-align:center">باز</th><th style="text-align:center">معوق</th><th style="text-align:center">&gt;۶۰ روز</th></tr>${rows.map(row).join('')||'<tr><td colspan="4" class="mu">—</td></tr>'}</table></div>`;
+  return`<div class="card"><h2>🔍 کجا ضعیف‌ایم؟ (نقاط ضعف به‌تفکیک محل و موضوع)</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+   ${tb('محل‌هایی با بیشترین عدم‌انطباق باز',byLoc)}${tb('موضوعات (دسته) با بیشترین عدم‌انطباق باز',byCat)}
+   <div><b style="font-size:13px">پایین‌ترین انطباق چک‌لیست در این دوره</b><table><tr><th></th><th style="text-align:center">انطباق</th><th style="text-align:center">عدم‌انطباق</th></tr>${lowC.map(r=>`<tr><td>${esc(r[0])}</td><td style="text-align:center" class="${col(r[1])}">${P(r[1])}</td><td style="text-align:center">${fa(r[2])}</td></tr>`).join('')||'<tr><td colspan="3" class="mu">داده کافی نیست (حداقل ۱۵ بند بررسی‌شده)</td></tr>'}</table></div></div>
+   <div class="mu" style="margin-top:6px">راهبرد: ابتدا محل‌های بالای جدول را هدفمند بازدید و با فنی چرخهٔ ۱ و ۱۵ پیگیری کنید؛ سپس برای موضوع‌های تکراری (دسته) یک راه‌حل ریشه‌ای یا آموزش تعریف کنید.</div></div>`;
+}
 function render(selVal){
   const {type,y,n}=parseSel(selVal);
   const pw=pwOf(type);
@@ -345,6 +457,7 @@ function render(selVal){
   const bad=['inspections','findings','clinic_incidents','clinic_followups','ekhtars'].filter((t,i)=>[D.ins,D.fin,D.inc,D.fu,D.ek][i]==null);
   document.getElementById('out').outerHTML=`<div id="out">
   ${attnCard}
+  ${excellenceHtml(c,R,type,y,n)}${chartsHtml(type,y,n)}${weakAreasHtml(R,c)}
   ${achievements(R,c,pw)}
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
   <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="g">
