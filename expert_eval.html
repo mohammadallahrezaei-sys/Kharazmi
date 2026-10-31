@@ -274,6 +274,22 @@ function mgrCard(K){
 const tv=(e,x)=>{const c=calc(e,x);return c.na?null:c.total};const fm=v=>v==null?'—':fa(v);const cc=v=>v==null?'mu':col(v);
 const NAMES={ctr:'چک‌لیست روزانهٔ پیمانکاران حاضر در کارخانه',sched:'رعایت جدول زمان‌بندی چک‌لیست‌ها (با وزن ریسک)',fq:'کیفیت ثبت عدم‌انطباق (عکس و شرح مشخص)',verify:'اعتبارسنجی بازدید توسط مدیر (موارد از‌قلم‌افتاده)',ffu:'پیگیری عدم‌انطباق‌ها با واحد فنی (ثبت نتیجه و موعد بعدی حداکثر ۱۰ روز)',recog:'بازخورد مثبت (تشویق)',warn:'اخطار/تذکر ایمنی ثبت‌شده (حداقل ۳ در ماه)',talk:'آموزش کوتاه در محل (هفته‌ای یک جلسه)',inc:'مشارکت در بررسی حوادث (نظر کارشناس پیش از مدیر)',train:'آموزش (مشترک واحد)',fup:'اقدام اصلاحی و پیگیری طب کار (مشترک واحد)'};
 
+/* روند و ضعیف‌ترین شاخص‌ها: نمودار خطی ۶ ماه + نقشهٔ گرمایی شاخص×ماه + سه شاخص ضعیف‌تر (میانگین ۶ ماه) */
+function trendBlock(email,K){
+  const kk=[];let k=K;for(let i=0;i<6;i++){kk.unshift(k);k=prevK(k)}
+  const tot=kk.map(x=>tv(email,x)),pts=tot.map((v,i)=>v==null?null:[i,v]).filter(Boolean);
+  const W=420,H=140,L=28,R=10,T=10,B=24,X=i=>W-R-(i/(kk.length-1))*(W-L-R),Y=v=>T+(100-v)/100*(H-T-B); /* راست‌به‌چپ: قدیمی‌ترین سمت راست */
+  const path=pts.map((p,j)=>(j?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' ');
+  const svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:520px" role="img" aria-label="روند امتیاز">${[0,50,85,100].map(g=>`<line x1="${L}" x2="${W-R}" y1="${Y(g)}" y2="${Y(g)}" stroke="currentColor" opacity="${g===85?.5:.15}" ${g===85?'stroke-dasharray="4 3"':''}/><text x="${L-4}" y="${Y(g)+3}" font-size="9" text-anchor="end" fill="currentColor" opacity=".6">${fa(g)}</text>`).join('')}
+    ${path?`<path d="${path}" fill="none" stroke="var(--ac)" stroke-width="2.5"/>`:''}${pts.map(p=>`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="var(--ac)"/><text x="${X(p[0])}" y="${Y(p[1])-8}" font-size="10" text-anchor="middle" fill="currentColor">${fa(p[1])}</text>`).join('')}
+    ${kk.map((x,i)=>`<text x="${X(i)}" y="${H-6}" font-size="10" text-anchor="middle" fill="currentColor" opacity=".7">${MN[+x.slice(5)-1]}</text>`).join('')}</svg>`;
+  const keys=Object.keys(NAMES).filter(q=>CFG.SHARED_IN_SCORE||!SHARED.includes(q)),rows=keys.map(q=>{const v=kk.map(x=>{try{const c=calc(email,x);return c.na?null:c.s[q]}catch(e){return null}}),f=v.filter(a=>a!=null);return{q,v,avg:f.length?f.reduce((a,b)=>a+b,0)/f.length:null}}).filter(r=>r.avg!=null);
+  const weak=[...rows].sort((a,b)=>a.avg-b.avg).slice(0,3).filter(r=>r.avg<.85);
+  const cell=v=>v==null?'<td class="c mu">—</td>':`<td class="c ${cc(Math.round(v*100))}">${fa(Math.round(v*100))}</td>`;
+  return `<div class="card"><h2>روند امتیاز و ضعیف‌ترین شاخص‌ها (۶ ماه تا ${lab(K)})</h2>${pts.length>1?svg+'<div class="mu">خط چین = هدف ۸۵. قدیمی‌ترین ماه سمت راست.</div>':'<div class="mu">برای رسم روند حداقل دو ماه داده لازم است.</div>'}
+   ${weak.length?`<div style="margin:8px 0"><b>اولویت بهبود:</b> ${weak.map(r=>`${esc(NAMES[r.q])} (میانگین ${fa(Math.round(r.avg*100))}٪)`).join(' · ')}</div>`:'<div class="ok" style="margin:8px 0">همهٔ شاخص‌ها در میانگین ۶ ماه بالای ۸۵٪ است.</div>'}
+   ${rows.length?`<table><tr><th></th>${kk.map(x=>`<th class="c">${MN[+x.slice(5)-1]}</th>`).join('')}<th class="c">میانگین</th></tr>${rows.map(r=>`<tr><td>${esc(NAMES[r.q])}</td>${r.v.map(cell).join('')}${cell(r.avg)}</tr>`).join('')}</table>`:''}</div>`;
+}
 function card(email,K){
   const c=calc(email,K),weak=[];
   c.items.filter(x=>x.miss).forEach(x=>weak.push(`«${x.t}» تا ${wtxt(x.w,K)} انجام نشده است.`));
@@ -302,6 +318,7 @@ function card(email,K){
    <div class="mu" style="margin-top:6px">هر روز تأخیر ${fa(Math.round(CFG.LATE_PEN*100))}٪ از امتیاز آن چک‌لیست کم می‌کند. انجام زودتر از مهلت جریمه ندارد.</div>`:'<div class="mu">برای این ماه در جدول ۱۴۰۵ برنامه‌ای نیست.</div>'}
    ${isMgr()&&c.un.size?`<div class="wa" style="margin-top:6px">⚠ ثبت‌هایی که با هیچ چک‌لیست جدول تطبیق نخوردند: ${[...c.un].map(esc).join('، ')} — اگر چک‌لیست جدول هستند، کلمه‌ی کلیدی‌شان را در KW اضافه کنید.</div>`:''}</div>
   ${c.flags.length?`<div class="card"><h2>الگوهای نیازمند بررسی (بدون کسر امتیاز)</h2><ul>${c.flags.map(f=>`<li class="wa">${f}</li>`).join('')}</ul><div class="mu">زمان ثبت = زمان ورود به سامانه است، نه لزوماً زمان بازدید. پیش از هر اقدام انضباطی با خود کارشناس و فرم‌های کاغذی تطبیق دهید.</div></div>`:''}
+  ${trendBlock(email,K)}
   <div class="card"><h2>روند ۶ ماه اخیر (خودکنترلی)</h2><table><tr>${trend.map(t=>`<th class="c">${MN[+t[0].slice(5)-1]}${t[0]===nowK?'<span class="mu">جاری</span>':''}</th>`).join('')}</tr>
    <tr>${trend.map((t,i)=>`<td class="c ${cc(t[1])}">${fm(t[1])} ${i&&t[1]!=null&&trend[i-1][1]!=null?(t[1]>trend[i-1][1]?'↗':t[1]<trend[i-1][1]?'↘':''):''}</td>`).join('')}</tr></table></div>`;
 }
