@@ -253,25 +253,25 @@ function scoreCard(c,R){
   const add=(id,name,w,score,detail,link,acts)=>S.push({id,name,w,score:score==null||isNaN(score)?null:Math.round(clamp(score)),detail,link,acts:acts||(()=>[])});
   /* بازرسی و پایش */
   if(c.has)add('insp','بازرسی و پایش',15,0.6*(c.comp==null?0:c.comp)+0.4*clamp(c.rounds/(4*mo)*100),`انطباق ${P(c.comp)} · ${fa(c.rounds)} گشت از هدف ${fa(4*mo)} (هفته‌ای ۱)`,'checklists.html',()=>{const a=[];
-    if(c.rounds<4*mo)a.push(`گشت کل کارخانه را هفتگی کنید (${fa(4*mo-c.rounds)} گشت کمتر از هدف)`);if(c.comp!=null&&c.comp<90)a.push('بازدید تخصصی را روی چک‌لیست‌ها و محل‌هایی با بیشترین عدم‌انطباق (جدول «نقاط ضعف») متمرکز کنید');return a});
+    if(c.rounds<4*mo)a.push(`از کارشناس بخواهید گشت هفتگی کل کارخانه را منظم انجام دهد (${fa(4*mo-c.rounds)} گشت کمتر از هدف) و گزارش هفتگی را مرور کنید`);if(c.comp!=null&&c.comp<90)a.push('در جلسهٔ ماهانه با کارشناس، علت تکرار عدم‌انطباق در ضعیف‌ترین محل‌ها (جدول «نقاط ضعف») را بررسی و اصلاح ریشه‌ای را با مدیر همان واحد هماهنگ کنید');return a});
   else add('insp','بازرسی و پایش',15,null,'در این دوره بازرسی ثبت نشده','checklists.html');
   /* رفع عدم‌انطباق */
   const old=(D.fin||[]).filter(x=>d10(x.created_at)<=end&&(x.status==='open'||(x.closed_at&&d10(x.closed_at)>end))&&(new Date(end)-new Date(d10(x.created_at)))/864e5>60).length;
   const part=[];if(c.onTime!=null)part.push(c.onTime);part.push(c.fOpen?100-100*c.fOver/c.fOpen:100);
   add('find','رفع عدم‌انطباق‌ها',20,(c.fNew||c.fOpen||c.fClosed)?part.reduce((a,b)=>a+b,0)/part.length-Math.min(20,old*2):null,`${fa(c.fOpen)} باز · ${fa(c.fOver)} معوق · ${fa(old)} باز بیش از ۶۰ روز · بستن به‌موقع ${P(c.onTime)}`,'checklists.html#cycle',()=>{const a=[];
-    if(c.fOver)a.push(`${fa(c.fOver)} عدم‌انطباق معوق را در چرخهٔ ۱ و ۱۵ با اکسل و نامهٔ رسمی به واحد فنی ارجاع دهید و مهلت فنی را ثبت کنید`);if(old)a.push(`${fa(old)} مورد بیش از ۶۰ روز باز مانده؛ برای هرکدام تصمیم مدیریتی بگیرید (تأمین بودجه/قطعه، تغییر روش یا پذیرش ریسک)`);return a});
+    if(c.fOver)a.push(`پیگیری ${fa(c.fOver)} عدم‌انطباق معوق با کارشناس است (چرخهٔ ۱ و ۱۵)؛ نقش شما: بررسی علت تأخیر و رفع مانع (اولویت، بودجه، قطعه) با مدیریت فنی`);if(old)a.push(`${fa(old)} مورد بیش از ۶۰ روز باز مانده؛ برای هرکدام تصمیم مدیریتی بگیرید (تأمین بودجه/قطعه، تغییر روش یا پذیرش ریسک)`);return a});
   /* حوادث و یادگیری */
   const sv=c.sev.severe+c.sev.fatal;
   add('inc','حوادث و یادگیری',15,100-25*sv-10*Math.min(3,c.capaOver)-4*Math.min(6,c.inc)-(c.inc&&c.trOk&&c.trPost<c.inc?5:0),`${fa(c.inc)} حادثه (${fa(sv)} شدید/فوتی) · اقدام اصلاحی: ${fa(c.capaDone)} از ${fa(c.capaN)} بسته · ${fa(c.capaOver)} معوق`,'clinic.html',()=>{const a=[];
-    if(c.capaOver)a.push(`${fa(c.capaOver)} اقدام اصلاحی معوق حوادث را ببندید؛ هر حادثه بدون اقدام اصلاحی بسته‌شده تکرار می‌شود`);if(c.inc)a.push('برای هر حادثه تحلیل علت ریشه‌ای ثبت کنید (نه فقط شرح ماجرا)');if(c.trOk&&c.trPost<c.inc)a.push(`برای ${fa(c.inc-c.trPost)} حادثه آموزش پس از حادثه برگزار کنید`);return a});
+    if(c.capaOver)a.push(`${fa(c.capaOver)} اقدام اصلاحی معوق حوادث را در جلسهٔ ماهانه با کارشناس مرور کنید و مانع (منابع، مسئول، بودجه) را رفع کنید`);if(c.inc)a.push('ثبت تحلیل علت ریشه‌ای برای هر حادثه را الزامی کنید و کیفیت آن را نمونه‌وار بازبینی کنید');if(c.trOk&&c.trPost<c.inc)a.push(`آموزش پس از حادثه (${fa(c.inc-c.trPost)} مورد) را به‌عنوان قاعدهٔ ثابت تعریف کنید و اجرای آن را از کارشناس پیگیری کنید`);return a});
   /* آموزش و صلاحیت */
   add('train','آموزش و صلاحیت',15,c.trOk&&c.covP!=null?c.covP:null,c.trOk?`پوشش آموزش ۱۲ ماه اخیر ${P(c.covP)} (${fa(c.cov)} از ${fa(c.empN)} نفر) · ${fa(c.trN)} جلسه`:'اطلاعات آموزش در دسترس نیست','training.html',()=>{const a=[];
-    if(c.covP!=null&&c.covP<90)a.push(`${fa(c.empN-c.cov)} نفر در ۱۲ ماه اخیر هیچ آموزشی ندیده‌اند؛ فهرست‌شان را از «بانک پرسنل» بگیرید و در سه ماه آینده پوشش دهید`);a.push('آموزش را به ریسک‌ها وصل کنید: هر آموزش برای یک عدم‌انطباق/حادثهٔ تکرارشونده');return a});
+    if(c.covP!=null&&c.covP<90)a.push(`${fa(c.empN-c.cov)} نفر در ۱۲ ماه اخیر آموزشی ندیده‌اند؛ برنامهٔ آموزشی سه‌ماههٔ کارشناس را تصویب و زمان آموزش را با مدیران واحدها هماهنگ کنید`);a.push('برنامهٔ آموزش را بر اساس ریسک‌های بالا و حوادث تکرارشونده اولویت‌بندی کنید');return a});
   /* فرهنگ و رفتار */
   add('cult','فرهنگ و رفتار ایمن',10,c.eN?0.6*clamp(c.rwShare/50*100)+0.4*clamp(100-25*c.repeat):null,c.eN?`${fa(c.rw)} تشویق در برابر ${fa(c.wr)} تذکر/اخطار · ${fa(c.repeat)} نفر تکرارشونده`:'اخطار/تشویقی ثبت نشده','ekhtar.html',()=>{const a=[];
-    if(c.rwShare!=null&&c.rwShare<50)a.push('سهم تشویق را به حداقل ۵۰٪ برسانید؛ رفتار ایمن را در جلسهٔ هفتگی علناً تشویق کنید');if(c.repeat)a.push(`برای ${fa(c.repeat)} نفر تکرارشونده برنامهٔ اصلاح رفتار (مربی‌گری، آموزش فردی) تعریف کنید، نه اخطار مکرر`);return a});
+    if(c.rwShare!=null&&c.rwShare<50)a.push('سیاست تشویق رفتار ایمن را در مدیریت تثبیت کنید (اعلام رسمی، پاداش) تا سهم تشویق به ۵۰٪ برسد');if(c.repeat)a.push(`برای ${fa(c.repeat)} نفر تکرارشونده، با سرپرستان مستقیم برنامهٔ اصلاح رفتار (مربی‌گری، آموزش فردی) هماهنگ کنید، نه اخطار مکرر`);return a});
   /* طب کار */
-  add('occ','طب کار و سلامت',5,D.fu?(c.fuOpen?100-100*c.fuOver/c.fuOpen:100):null,`${fa(c.fuOpen)} پیگیری باز · ${fa(c.fuOver)} معوق`,'clinic.html',()=>c.fuOver?[`${fa(c.fuOver)} پیگیری معوق طب کار را ببندید (ارجاع پزشک، معاینهٔ مجدد)`]:[]);
+  add('occ','طب کار و سلامت',5,D.fu?(c.fuOpen?100-100*c.fuOver/c.fuOpen:100):null,`${fa(c.fuOpen)} پیگیری باز · ${fa(c.fuOver)} معوق`,'clinic.html',()=>c.fuOver?[`${fa(c.fuOver)} پیگیری معوق طب کار با کارشناس است؛ موانع (مرخصی کارکنان، هماهنگی با پزشک/مرکز) را رفع کنید`]:[]);
   /* ارتباط و مستندات (کمیته) */
   if(X.M){const ek=end.slice(0,7);let cntM=0;const keys=new Set((X.M||[]).map(m=>jk(String(m.jdate||'').replace(/[۰-۹]/g,x=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(x)))));
     let [yy,mm]=[+ (jk(end)||nowK).slice(0,4),+(jk(end)||nowK).slice(5)];for(let i=0;i<6;i++){if(keys.has(yy+'-'+String(mm).padStart(2,'0')))cntM++;if(--mm<1){mm=12;yy--}}
@@ -279,11 +279,11 @@ function scoreCard(c,R){
   else add('com','کمیته حفاظت فنی و ارتباط',5,null,'اطلاعات کمیته در دسترس نیست','committee.html');
   /* تجهیزات */
   if(X.E&&X.E.length){const lastBy={};X.E.forEach(x=>{const p=lastBy[x.equipment_code];if(!p||String(x.inspected_on)>String(p.inspected_on))lastBy[x.equipment_code]=x});const L=Object.values(lastBy),ok=L.filter(x=>x.result==='تایید').length;
-    add('eq','تجهیزات و تأییدیه فنی',10,pct(ok,L.length),`${fa(ok)} از ${fa(L.length)} تجهیز بازرسی‌شده، آخرین نتیجه «تایید» دارند`,'equipment.html',()=>L.length-ok?[`${fa(L.length-ok)} تجهیز با نتیجهٔ «عدم تایید» را با اولویت (باربرداری، تحت فشار) رفع و دوباره تایید کنید`]:[])}
+    add('eq','تجهیزات و تأییدیه فنی',10,pct(ok,L.length),`${fa(ok)} از ${fa(L.length)} تجهیز بازرسی‌شده، آخرین نتیجه «تایید» دارند`,'equipment.html',()=>L.length-ok?[`برای ${fa(L.length-ok)} تجهیز «عدم تایید» از مدیریت فنی برنامهٔ زمان‌دار رفع بخواهید (اولویت: باربرداری و تحت فشار)`]:[])}
   else add('eq','تجهیزات و تأییدیه فنی',10,null,'بازرسی تجهیزات ثبت نشده','equipment.html');
   /* مشارکت پرسنل (کارت‌ها) */
   const cs=(X.C||[]).filter(x=>{const d=d10(x.card_date);return d>=R.a&&d<=R.b});
-  add('cards','مشارکت پرسنل (کارت‌ها)',5,cs.length?pct(cs.filter(x=>x.status==='done'||x.status==='rejected').length,cs.length):null,cs.length?`${fa(cs.length)} کارت دریافتی · ${fa(cs.filter(x=>x.status==='pending'||x.status==='in_review').length)} در انتظار نتیجه`:'کارتی ثبت نشده','cards.html',()=>{const a=[];const pend=cs.filter(x=>x.status==='pending'||x.status==='in_review').length;if(pend)a.push(`${fa(pend)} کارت را تا ۷ روز به نتیجه برسانید و پاسخ را به گزارش‌دهنده برگردانید؛ بازخورد، مشارکت را زنده نگه می‌دارد`);if(cs.length<5*mo)a.push('تعداد کارت‌ها کم است؛ با تشویق گزارش‌دهنده‌ها و معرفی کارت در آموزش، مشارکت را بالا ببرید');return a});
+  add('cards','مشارکت پرسنل (کارت‌ها)',5,cs.length?pct(cs.filter(x=>x.status==='done'||x.status==='rejected').length,cs.length):null,cs.length?`${fa(cs.length)} کارت دریافتی · ${fa(cs.filter(x=>x.status==='pending'||x.status==='in_review').length)} در انتظار نتیجه`:'کارتی ثبت نشده','cards.html',()=>{const a=[];const pend=cs.filter(x=>x.status==='pending'||x.status==='in_review').length;if(pend)a.push(`${fa(pend)} کارت در انتظار نتیجه است؛ از کارشناس بخواهید ظرف ۷ روز پاسخ دهد (پاسخ‌دهی، مشارکت را زنده نگه می‌دارد)`);if(cs.length<5*mo)a.push('تعداد کارت‌ها کم است؛ حمایت مدیریت از ارائهٔ کارت و معرفی آن در جلسات مدیران واحد، مشارکت را بالا می‌برد');return a});
   const ok=S.filter(s=>s.score!=null),W=ok.reduce((a,s)=>a+s.w,0),overall=W?Math.round(ok.reduce((a,s)=>a+s.w*s.score,0)/W):null;
   return{items:S,overall,cover:W};
 }
@@ -323,7 +323,7 @@ function excellenceHtml(c,R,type,y,n){
    ${items.map(s=>`<tr><td><a href="${s.link}" style="color:inherit"><b>${s.name}</b></a></td><td>${s.score==null?`<span class="mu">${s.detail}</span>`:`<div style="display:flex;gap:8px;align-items:center"><div style="flex:1">${bar(s)}</div><b class="${col(s.score)}">${fa(s.score)}</b></div><div class="mu" style="font-size:11px">${s.detail}</div>`}</td><td class="mu">${fa(s.w)}٪</td></tr>`).join('')}</table>
    ${miss.length?`<div class="mu" style="margin-top:6px">عناصر بدون داده (در امتیاز کل نیامده‌اند): ${miss.map(s=>s.name).join('، ')}. ثبت منظم این‌ها خودش بخشی از ارتقاست.</div>`:''}
   </div>
-  <div class="card" style="border-color:var(--wa)"><h2>🔧 سه اولویت ارتقا (بیشترین اثر روی امتیاز)</h2>
+  <div class="card" style="border-color:var(--wa)"><h2>🔧 سه اولویت ارتقا (بیشترین اثر روی امتیاز)</h2><div class="mu" style="margin-bottom:6px">اقدام‌ها از دید مدیر واحد: نظارت، تصمیم، تأمین منابع و رفع مانع. پیگیری عملیاتی عدم‌انطباق‌ها و حوادث با کارشناس است.</div>
    ${top.length?top.map((s,i)=>`<div style="margin-top:${i?10:0}px"><b>${fa(i+1)}. ${s.name}</b> <span class="${col(s.score)}">(${fa(s.score)} از ${fa(TGT)})</span><ul>${s.acts().map(a=>`<li>${a}</li>`).join('')||'<li>وضعیت نسبتاً خوب است؛ ثبات را حفظ کنید.</li>'}</ul><a class="b" href="${s.link}">رفتن به ماژول ←</a></div>`).join(''):'<div class="ok">همهٔ عناصر به هدف رسیده‌اند.</div>'}
   </div>`;
 }
@@ -458,9 +458,9 @@ function render(selVal){
   /* ---- کارت «نیازمند توجه»: فقط مواردی که اقدام می‌خواهند ---- */
   const AT=[];
   if(c.sev.severe+c.sev.fatal)AT.push(`<b class="bad">${fa(c.sev.severe+c.sev.fatal)}</b> حادثه شدید یا فوتی در این ${pw}`);
-  if(c.fOver)AT.push(`<b class="bad">${fa(c.fOver)}</b> عدم‌انطباق معوق در پایان ${pw}`);
-  if(c.capaOver)AT.push(`<b class="bad">${fa(c.capaOver)}</b> اقدام اصلاحی حوادث از مهلت گذشته`);
-  if(c.fuOver)AT.push(`<b class="bad">${fa(c.fuOver)}</b> پیگیری طب کار معوق`);
+  if(c.fOver)AT.push(`<b class="bad">${fa(c.fOver)}</b> عدم‌انطباق معوق در پایان ${pw} (پیگیری با کارشناس)`);
+  if(c.capaOver)AT.push(`<b class="bad">${fa(c.capaOver)}</b> اقدام اصلاحی حوادث از مهلت گذشته (پیگیری با کارشناس)`);
+  if(c.fuOver)AT.push(`<b class="bad">${fa(c.fuOver)}</b> پیگیری طب کار معوق (پیگیری با کارشناس)`);
   if(hasPrev&&c.inc>p.inc)AT.push(`افزایش حوادث نسبت به ${pw} قبل (${fa(p.inc)} ← ${fa(c.inc)})`);
   if(c.trOk&&c.inc&&c.trPost<c.inc)AT.push(`برای ${fa(c.inc-c.trPost)} حادثه آموزش پس از حادثه ثبت نشده است`);
   const attnCard=`<div class="card" style="border-color:${AT.length?'var(--wa)':'var(--bd)'}"><h2>نیازمند توجه</h2>${AT.length?`<ul>${AT.map(a=>`<li>${a}</li>`).join('')}</ul>`:`<div class="ok">مورد معوق یا هشداری برای این ${pw} ثبت نشده است.</div>`}</div>`;
