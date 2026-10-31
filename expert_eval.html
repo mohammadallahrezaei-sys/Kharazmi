@@ -83,7 +83,8 @@ async function start(){
   if(!ek)ek=await getAll('ekhtars?select=record_type,record_date,registered_by');const ekAttr=ek!=null;
   if(!ek)ek=await getAll('ekhtars?select=record_type,record_date')||[];
   const INS='inspections?select=module,location,total,ok,nc,na,created_at,inspector';
-  let [ins,fin]=await Promise.all([getAll(INS+',equipment_code&created_at=gte.'+since),
+  const insD=await getAll(INS+',equipment_code,duration_sec&created_at=gte.'+since);
+  let [ins,fin]=await Promise.all([insD||getAll(INS+',equipment_code&created_at=gte.'+since),
     getAll('findings?select=id,status,module,created_at,closed_at,due_date,inspector,severity,photos_before,note,question,missed_by').then(x=>x||getAll('findings?select=id,status,module,created_at,closed_at,due_date,inspector,severity,photos_before,note,question'))]);
   const eqCol=ins!=null; if(!eqCol)ins=await getAll(INS+'&created_at=gte.'+since);
   const eqRows=await getAll('equipment?select=code,category,interval_months,requires_inspection&active=eq.true')||[];
@@ -152,7 +153,7 @@ function fuStats(email,K){
 function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
   D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
-    mine.push({t:new Date(r.created_at).getTime(),m:r.module,k:[r.total,r.ok,r.nc,r.na].join(' - ')});
+    mine.push({t:new Date(r.created_at).getTime(),m:r.module,k:[r.total,r.ok,r.nc,r.na].join(' - '),d,loc:nz(r.location||''),tot:r.total||0,nc:r.nc||0,na:r.na||0,dur:r.duration_sec==null?null:+r.duration_sec});
     const ii=itemsOf(r).slice();if(r.module==='S'&&/فنی/.test(nz(r.location)))ii.push(6); /* ردیف «واحد فنی»: بازرسی ایمنی عمومی که محلش فنی و مهندسی است */
     if(!ii.length){if(!NOSCHED.has(r.module))un.add((r.module||'')+' | '+(r.location||''));return}
     ii.forEach(i=>{const o=recs[i]||(recs[i]={days:new Set(),nc:0});o.days.add(d);o.nc+=(r.nc||0);if(r.equipment_code)(o.eq=o.eq||new Set()).add(r.equipment_code);else(o.leg=o.leg||new Set()).add(d)})});
@@ -161,6 +162,17 @@ function core(email,K){
     if(n/a.length>=0.8)flags.push(`${fa(n)} از ${fa(a.length)} ثبت ماژول ${m} دقیقاً نتیجه‌ی یکسان دارد (کل - تأیید - عدم‌انطباق - ن.م.: ${k})`)});
   const ts=mine.map(x=>x.t).sort((a,b)=>a-b);let mx=0;for(let i=0,j=0;i<ts.length;i++){while(ts[i]-ts[j]>30*6e4)j++;mx=Math.max(mx,i-j+1)}
   if(mx>=15)flags.push(`${fa(mx)} ثبت در یک بازه‌ی ۳۰ دقیقه‌ای (ممکن است ثبت دسته‌ای بعد از بازدید باشد)`);
+  /* چک‌لیست بی‌خروجی: سریع‌پرشده، تکراری در یک روز/هفته، یا بیشترِ سؤال‌ها «نامربوط» (بدون کسر امتیاز؛ برای گفت‌وگوی مدیر با کارشناس) */
+  const fast=mine.filter(x=>x.dur!=null&&x.tot>=5&&x.dur/x.tot<4);
+  if(fast.length)flags.push(`${fa(fast.length)} چک‌لیست با سرعت کمتر از ۴ ثانیه به‌ازای هر سؤال تکمیل شده (کوتاه‌ترین: ${fa(Math.min(...fast.map(x=>x.dur)))} ثانیه برای ${fa(fast.find(x=>x.dur===Math.min(...fast.map(y=>y.dur))).tot)} سؤال)؛ احتمال تیک‌زدن بدون بازدید واقعی`);
+  const sameDay={};mine.forEach(x=>{const k=x.m+'|'+x.loc+'|'+x.d;sameDay[k]=(sameDay[k]||0)+1});
+  const dup=Object.values(sameDay).filter(n=>n>1).reduce((a,n)=>a+n-1,0);
+  if(dup)flags.push(`${fa(dup)} چک‌لیست تکراری برای همان محل و همان روز ثبت شده است (بازدید دوم در یک روز خروجی تازه‌ای ندارد)`);
+  const wk={};mine.filter(x=>x.nc===0&&x.m!=='D').forEach(x=>{const w=Math.floor(x.t/6048e5),k=x.m+'|'+x.loc+'|'+w;wk[k]=(wk[k]||0)+1});
+  const rep=Object.values(wk).filter(n=>n>=3).length;
+  if(rep)flags.push(`${fa(rep)} مورد: یک چک‌لیست برای یک محل در یک هفته ۳ بار یا بیشتر و هر بار بدون عدم‌انطباق ثبت شده`);
+  const nae=mine.filter(x=>x.tot>=5&&x.na/x.tot>=0.5);
+  if(nae.length)flags.push(`${fa(nae.length)} چک‌لیست بیش از نیمی از سؤال‌هایش «نامربوط» ثبت شده است`);
   return{R,recs,un,flags}}
 const created=(e,R)=>D.fin.filter(f=>eqm(f.inspector,e)&&d10(f.created_at)>=R.a&&d10(f.created_at)<=R.b).length;
 const _CC={};
