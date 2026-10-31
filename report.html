@@ -107,6 +107,7 @@ async function load(){
   D={ins:ins&&ins.filter(r=>r.module!=='Q'),fin:fin&&fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),inc,fu,ek,tr,ta,emp,ev:evB,cu:cuL}; /* لغوشده‌ها و هشدارهای دارو عدم‌انطباق حساب نمی‌شوند */
   /* منابع تکمیلی «کارنامهٔ فعالیت‌ها» (هرکدام که نبود، فقط همان بخش حذف می‌شود) */
   const opt=q=>getAll(q).catch(()=>null);
+  D.ob=await opt('hse_obligations?select=id,title,category,period_months,next_due,last_done,active'); D.obl=D.ob?await opt('hse_obligation_log?select=obligation_id,done_at'):null;
   const [aF,aT,aE,aC,aV,aM,aS,aD,aW,aK]=await Promise.all([
     opt('findings?select=question,note,location,category,status,closed_at,module&status=eq.closed'),
     opt('trainings?select=id,title,training_type,training_date,duration_hours'),
@@ -338,6 +339,15 @@ function chartsHtml(type,y,n){
    ${card('پوشش آموزش پرسنل (٪)',svgChart(L,[{name:'پوشش ۱۲ ماه',c:'var(--ac)',v:V(m=>m.c.covP)}],{max:100,lines:[{y:90,t:'هدف ۹۰'}]}))}
   </div></div>`;
 }
+function obligationsHtml(R){
+  const ob=(D.ob||[]).filter(o=>o.active!==false);if(!ob.length)return'';
+  const d10=v=>String(v||'').slice(0,10),end=R.b<HSEToday()?R.b:HSEToday(),done=(D.obl||[]).filter(x=>d10(x.done_at)>=R.a&&d10(x.done_at)<=R.b),title=id=>(ob.find(o=>o.id===id)||{}).title||'—';
+  const late=ob.filter(o=>o.next_due&&d10(o.next_due)<end),nod=ob.filter(o=>!o.next_due);
+  return `<div class="card" style="border-color:${late.length?'var(--bad)':'var(--bd)'}"><h2>تعهدات دوره‌ای HSE (سنجش، مانور، آزمون، ممیزی)</h2>
+   <div class="mu">${fa(ob.length)} تعهد تعریف‌شده · ${fa(done.length)} مورد در این دوره انجام شد · ${fa(late.length)} معوق${nod.length?' · '+fa(nod.length)+' بدون موعد':''}</div>
+   ${done.length?`<div><b>انجام‌شده در دوره:</b> ${done.map(x=>esc(title(x.obligation_id))).join('، ')}</div>`:''}
+   ${late.length?`<div class="bad"><b>معوق:</b> ${late.map(o=>esc(o.title)+' (موعد '+new Date(d10(o.next_due)+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{timeZone:'UTC'})+')').join('؛ ')}</div>`:'<div class="ok">موردی معوق نیست.</div>'}</div>`;
+}
 function weakAreasHtml(R,c){
   const d10=v=>String(v||'').slice(0,10),end=c.end,pl=l=>String(l||'نامشخص').split(' - ')[0].trim()||'نامشخص';
   const open=(D.fin||[]).filter(x=>d10(x.created_at)<=end&&(x.status==='open'||(x.closed_at&&d10(x.closed_at)>end)));
@@ -457,7 +467,7 @@ function render(selVal){
   const bad=['inspections','findings','clinic_incidents','clinic_followups','ekhtars'].filter((t,i)=>[D.ins,D.fin,D.inc,D.fu,D.ek][i]==null);
   document.getElementById('out').outerHTML=`<div id="out">
   ${attnCard}
-  ${excellenceHtml(c,R,type,y,n)}${chartsHtml(type,y,n)}${weakAreasHtml(R,c)}
+  ${excellenceHtml(c,R,type,y,n)}${chartsHtml(type,y,n)}${weakAreasHtml(R,c)}${obligationsHtml(R)}
   ${achievements(R,c,pw)}
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
   <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="g">
