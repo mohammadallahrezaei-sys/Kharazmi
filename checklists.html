@@ -634,7 +634,7 @@ async function cycleData() {
   const t0 = todayIso();
   return rows.map((x, i) => { const L = fm[x.id] || [], l = L[0], age = Math.round((new Date(t0 + 'T12:00:00Z') - new Date(new Date(x.created_at).toLocaleDateString('en-CA') + 'T12:00:00Z')) / 864e5);
     return { id: x.id, n: i + 1, no: x.notice_code || '', d: fd(x.created_at), age, loc: x.location || '', ...descFull(x), cat: x.category || '', sev: SEVN[x.severity] || '', resp: x.responsible || '', due: x.due_date ? fd(x.due_date + 'T12:00:00') : '', l, L,
-      lf: l ? fd(l.followed_at + 'T12:00:00') + ' — ' + (KL[l.kind] || 'پیگیری') + ': ' + l.result : '', st: l && l.kind == 'claim' ? 'فنی اعلام انجام داده؛ منتظر بازدید' : l && l.kind == 'rejected' ? 'عدم تایید شده' : '' }; });
+      fdue: l && l.next_due ? String(l.next_due).slice(0, 10) : HSEC.defDue(new Date(x.created_at).toLocaleDateString('en-CA')), lf: l ? fd(l.followed_at + 'T12:00:00') + ' — ' + (KL[l.kind] || 'پیگیری') + ': ' + l.result : '', st: l && l.kind == 'claim' ? 'فنی اعلام انجام داده؛ منتظر بازدید' : l && l.kind == 'rejected' ? 'عدم تایید شده' : '' }; });
 }
 function letterDoc(title, subject, intro, head, body, closing) {
   const w = window.open('', '_blank'); if (!w) { alert('اجازهٔ باز شدن پنجره را بدهید.'); return; }
@@ -647,7 +647,7 @@ function letterDoc(title, subject, intro, head, body, closing) {
 async function exportOpen(kind, btn) {
   const old = btn.textContent; btn.textContent = '… در حال آماده‌سازی'; btn.disabled = true;
   try {
-    const data = await cycleData();
+    let data = await cycleData();
     if (kind == 'rej') {
       const R = data.filter(r => r.l && r.l.kind == 'rejected');
       if (!R.length) { alert('مورد عدم‌تاییدشده‌ای (باز و دارای کد اعلان) ثبت نشده است.'); return; }
@@ -657,7 +657,9 @@ async function exportOpen(kind, btn) {
         R.map((r, i) => [fa(i + 1), r.no, eqLine(r), r.loc, r.q, fd(r.l.followed_at + 'T12:00:00'), r.l.result]),
         'پس از انجام اصلاح، مراتب را به واحد HSE اعلام فرمایید تا بازدید مجدد انجام شود.'); return;
     }
-    if (!data.length) { alert('عدم‌انطباق بازی که کد اعلان آن ثبت شده باشد وجود ندارد.'); return; }
+    /* فقط معوقه‌ها: مواردی که موعد پیگیری‌شان (۱ یا ۱۵ شمسی) رسیده یا گذشته؛ ثبت‌های تازه (تا ۲ روز قبل از موعد) وارد گزارش نمی‌شوند */
+    const t0 = todayIso(), allN = data.length; data = data.filter(r => r.fdue <= t0);
+    if (!data.length) { alert(allN ? 'هیچ موردی موعد پیگیری‌اش نرسیده است (' + fa(allN) + ' عدم‌انطباق باز دارای اعلان، همه تازه‌اند یا موعد بعدی دارند).' : 'عدم‌انطباق بازی که کد اعلان آن ثبت شده باشد وجود ندارد.'); return; }
     if (kind == 'letter') {
       letterDoc('نامه پیگیری عدم‌انطباق‌ها', 'پیگیری عدم‌انطباق‌های باز ایمنی و اعلام برنامهٔ اقدام',
         `${fa(byNotice(data).length)} مورد عدم‌انطباق ایمنی که برای آن‌ها اعلان ثبت شده، تا تاریخ ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))} همچنان باز است و در جدول زیر آمده است. خواهشمند است برای هر مورد، <b>برنامهٔ اقدام و مهلت انجام</b> را در فایل اکسل پیوست تکمیل کرده و ظرف ۳ روز کاری به واحد HSE ارسال فرمایید. پس از انجام هر مورد نیز اعلام شود تا بازدید و تایید گردد.`,
