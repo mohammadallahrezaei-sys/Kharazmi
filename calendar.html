@@ -104,7 +104,7 @@ async function load(){
       g('trainings?select=training_date,trainer&training_type=eq.safety_talk&training_date=gte.'+since),
       g('clinic_incidents?select=id,incident_date,expert_opinion,description&incident_date=gte.'+since).then(r=>r||g('clinic_incidents?select=id,incident_date,description&incident_date=gte.'+since)),
       g('findings?select=id,question,note,status,due_date,assigned_to,assigned_at&module=neq.MED&status=neq.cancelled&or=(inspector.eq.'+me+',assigned_to.eq.'+me+')')]);
-    const ofin=await g('findings?select=id,question,note,created_at&status=eq.open&module=neq.MED')||[],ffu=ofin.length?await g('finding_followups?select=finding_id,next_due,followed_at&order=followed_at.desc'):[];
+    const ofin=(await g('findings?select=id,question,note,created_at,notice_code&status=eq.open&module=neq.MED')||[]).filter(f=>{const n=String(f.notice_code||'').trim();return n&&n.toUpperCase()!=='NOTICED'}),ffu=ofin.length?await g('finding_followups?select=finding_id,next_due,followed_at&order=followed_at.desc'):[];
     const lastFu={};(ffu||[]).forEach(f=>{if(!lastFu[f.finding_id])lastFu[f.finding_id]=f});
     X.fu=ofin.map(f=>{const l=lastFu[String(f.id)];return{id:f.id,txt:String(f.note||f.question||'').split('|')[0].trim().slice(0,60),due:l&&l.next_due?String(l.next_due).slice(0,10):HSEC.defDue(new Date(f.created_at).toLocaleDateString('en-CA')),n:l?1:0}});
     X={fu:X.fu,ek:ek||[],tk:(tk||[]).filter(x=>!/رضایی/.test(x.trainer||'')),inc:inc||[],fin:fin||[],on:true}}

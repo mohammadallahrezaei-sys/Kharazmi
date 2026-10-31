@@ -423,7 +423,7 @@ async function loadMyTodo() {
     safe('trainings?select=id,trainer&training_type=eq.safety_talk&training_date=gte.' + wStart),
     safe('ekhtars?select=record_type,record_date&registered_by=eq.' + enc + '&record_date=like.' + encodeURIComponent(pre + '*')),
     safe('verify_rounds?select=id&result=eq.gap&week_start=gte.' + mStart + '&expert=eq.' + enc),
-    safe('findings?select=id,created_at&status=eq.open&module=neq.MED'), safe('finding_followups?select=finding_id,next_due&order=followed_at.desc')]);
+    safe('findings?select=id,created_at,notice_code&status=eq.open&module=neq.MED').then(r => r && r.filter(f => { const n = String(f.notice_code || '').trim(); return n && n.toUpperCase() !== 'NOTICED'; })), safe('finding_followups?select=finding_id,next_due&order=followed_at.desc')]);
   const T = [];
   const add = (n, txt, href, sev, cost) => { if (n) T.push({ txt, href, sev, cost }); };
   add(asg && asg.length, `${fa((asg || []).length)} مورد ارجاع‌شدهٔ مدیر باز است`, 'checklists.html', 'bad', 'در «پیگیری و بستن» امتیاز می‌گیرد');

@@ -613,6 +613,7 @@ function descOf(x) {
 const eqLine = r => [r.eqc, r.eqt].filter(Boolean).join(' — ') || '—';
 async function cycleData() {
   let rows = []; for (let o = 0; o < 20000; o += 1000) { const r = await api('findings?select=id,question,note,location,module,category,severity,responsible,due_date,created_at,notice_code,inspector,equipment_code,equipment_title&status=eq.open&module=neq.MED&order=created_at.asc&limit=1000&offset=' + o); rows = rows.concat(r || []); if ((r || []).length < 1000) break; }
+  rows = rows.filter(x => { const c = String(x.notice_code || '').trim(); return c && c.toUpperCase() != 'NOTICED'; }); /* فقط مواردی که کد اعلان واقعی دارند */
   const fm = {}; try { const ids = rows.map(r => r.id); for (let i = 0; i < ids.length; i += 150) (await api('finding_followups?select=*&order=followed_at.desc,created_at.desc&finding_id=in.(' + ids.slice(i, i + 150).join(',') + ')')).forEach(f => (fm[f.finding_id] = fm[f.finding_id] || []).push(f)); } catch (e) {}
   const t0 = todayIso();
   return rows.map((x, i) => { const L = fm[x.id] || [], l = L[0], age = Math.round((new Date(t0 + 'T12:00:00Z') - new Date(new Date(x.created_at).toLocaleDateString('en-CA') + 'T12:00:00Z')) / 864e5);
@@ -633,17 +634,17 @@ async function exportOpen(kind, btn) {
     const data = await cycleData();
     if (kind == 'rej') {
       const R = data.filter(r => r.l && r.l.kind == 'rejected');
-      if (!R.length) { alert('مورد عدم‌تاییدشده‌ای (باز) ثبت نشده است.'); return; }
+      if (!R.length) { alert('مورد عدم‌تاییدشده‌ای (باز و دارای کد اعلان) ثبت نشده است.'); return; }
       letterDoc('گزارش عدم تایید', 'گزارش عدم‌تایید اقدامات اعلام‌شده برای رفع عدم‌انطباق‌های ایمنی',
         `بر اساس پیگیری‌های انجام‌شده، واحد فنی انجام اقدام اصلاحی ${fa(R.length)} مورد از عدم‌انطباق‌ها را اعلام کرده بود. پس از بازدید میدانی HSE، اقدام انجام‌شده در موارد زیر <b>تایید نشد</b>. خواهشمند است نسبت به رفع نواقص اعلام‌شده اقدام و نتیجه را اعلام فرمایید.`,
         ['ردیف', 'اعلان', 'کد و نام تجهیز', 'محل دقیق', 'شرح عدم‌انطباق', 'تاریخ عدم تایید', 'دلیل عدم تایید'],
         R.map((r, i) => [fa(i + 1), r.no, eqLine(r), r.loc, r.q, fd(r.l.followed_at + 'T12:00:00'), r.l.result]),
         'پس از انجام اصلاح، مراتب را به واحد HSE اعلام فرمایید تا بازدید مجدد انجام شود.'); return;
     }
-    if (!data.length) { alert('عدم‌انطباق بازی وجود ندارد.'); return; }
+    if (!data.length) { alert('عدم‌انطباق بازی که کد اعلان آن ثبت شده باشد وجود ندارد.'); return; }
     if (kind == 'letter') {
       letterDoc('نامه پیگیری عدم‌انطباق‌ها', 'پیگیری عدم‌انطباق‌های باز ایمنی و اعلام برنامهٔ اقدام',
-        `فهرست ${fa(data.length)} مورد عدم‌انطباق ایمنی که تا تاریخ ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))} همچنان باز است، به‌شرح جدول زیر و فایل اکسل پیوست ارسال می‌شود. خواهشمند است برای هر مورد <b>برنامه و زمان‌بندی اقدام</b> را در ستون‌های مربوط فایل اکسل پیوست تکمیل و حداکثر ظرف ۳ روز کاری به واحد HSE عودت فرمایید. در صورت انجام هر مورد، همان را در فایل اعلام کنید تا بازدید و تایید شود.`,
+        `${fa(data.length)} مورد عدم‌انطباق ایمنی که برای آن‌ها اعلان ثبت شده، تا تاریخ ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))} همچنان باز است و در جدول زیر آمده است. خواهشمند است برای هر مورد، <b>برنامهٔ اقدام و مهلت انجام</b> را در فایل اکسل پیوست تکمیل کرده و ظرف ۳ روز کاری به واحد HSE ارسال فرمایید. پس از انجام هر مورد نیز اعلام شود تا بازدید و تایید گردد.`,
         ['ردیف', 'اعلان', 'تاریخ ثبت', 'کد و نام تجهیز', 'محل', 'شرح عدم‌انطباق', 'آخرین وضعیت'],
         data.map((r, i) => [fa(i + 1), r.no, r.d, eqLine(r), r.loc, r.q, r.st || r.lf]),
         'پیگیری مجدد این موارد در روزهای ۱ و ۱۵ هر ماه انجام خواهد شد.'); return;
