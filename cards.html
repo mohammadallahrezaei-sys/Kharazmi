@@ -306,7 +306,7 @@ $('list').addEventListener('change',async ev=>{
     else if(f!=='status' && f!=='is_excellent')v=v.trim()||null;
     
     const body={[f]:v};
-    if(f==='status'&&!cards.find(c=>c.id===t.dataset.id).received_date)body.received_date=new Date().toISOString().slice(0,10);
+    if(f==='status'&&!cards.find(c=>c.id===t.dataset.id).received_date)body.received_date=HSEToday();
     
     await req('hse_cards?id=eq.'+t.dataset.id,'PATCH',body,'return=minimal');
     const c=cards.find(c=>c.id===t.dataset.id);
@@ -329,7 +329,7 @@ $('bNew').onclick=()=>{
   $('cPick').innerHTML='';
   $('cUnit').value='';
   $('cExcellent').checked = false; // ✅ ریست چک‌باکس
-  jdSet($('cDate'),new Date().toISOString().slice(0,10));
+  jdSet($('cDate'),HSEToday());
   $('modal').classList.add('on')
 };
 $('list').addEventListener('click',ev=>{const id=ev.target.dataset.edit;if(!id)return;const c=cards.find(x=>String(x.id)===String(id));if(!c)return;
@@ -368,7 +368,7 @@ $('cSave').onclick=async()=>{
       is_excellent: $('cExcellent').checked || false, // ✅ ارسال وضعیت گزارش عالی
     };
     if(EDITID){await req('hse_cards?id=eq.'+EDITID,'PATCH',body,'return=minimal')}
-    else{body.reg_no=K+'-'+String(n).padStart(3,'0');body.received_date=new Date().toISOString().slice(0,10);await req('hse_cards','POST',body,'return=minimal')}
+    else{body.reg_no=K+'-'+String(n).padStart(3,'0');body.received_date=HSEToday();await req('hse_cards','POST',body,'return=minimal')}
     $('modal').classList.remove('on');
     load();
   }catch(e){

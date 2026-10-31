@@ -91,7 +91,7 @@ function lvl(r){
   if(r.method==='reba')return s>=11?{t:'خیلی زیاد',c:RED,h:1}:s>=8?{t:'زیاد',c:ORG,h:1}:s>=4?{t:'متوسط',c:YEL,h:0}:s>=2?{t:'کم',c:GRN,h:0}:{t:'ناچیز',c:GRN,h:0};
   return s>=7?{t:'تغییر فوری',c:RED,h:1}:s>=5?{t:'بررسی و تغییر به‌زودی',c:ORG,h:1}:s>=3?{t:'نیاز به بررسی بیشتر',c:YEL,h:0}:{t:'قابل قبول',c:GRN,h:0}}
 const calc=(m,s,o,d)=>m==='fmea'?s*o*(d||1):s*o;
-const TODAY=new Date().toISOString().slice(0,10);
+const TODAY=HSEToday();
 const fday=d=>{try{return new Date(String(d).slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
 let R=[],F=[],I=[],C=[],CH=[],units=[],editId=null;
 const isMgr=()=>window.HSEAuth&&HSEAuth.role==='manager';

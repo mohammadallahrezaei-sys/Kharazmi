@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تعهدات دوره‌ای - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.w{max-width:900px;margin:0 auto;padding:14px}
+.top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.card2{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin:10px 0}
+.t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.mu{color:var(--mu);font-size:12px}
+.b2{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.b2.p{background:var(--ac);color:var(--acx);border-color:var(--ac)}.b2.ok{border-color:var(--ok);color:var(--ok)}.b2.bad{border-color:var(--bad);color:var(--bad)}
+.bg{display:inline-block;border-radius:99px;padding:1px 10px;font-size:11px;border:1px solid var(--bd)}.bg.ok{color:var(--ok);border-color:var(--ok)}.bg.bad{color:var(--bad);border-color:var(--bad)}.bg.wa{color:var(--wa);border-color:var(--wa)}
+.sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0}.sm button{text-align:center;padding:8px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}.sm b{display:block;font-size:20px}.sm .on{border-color:var(--ac);outline:2px solid var(--ac)}
+input,select,textarea{font:inherit;font-size:13px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:7px 9px;width:100%}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);width:min(94vw,520px);padding:14px}
+dialog::backdrop{background:rgba(15,23,42,.55)}
+label.f{display:block;font-size:12px;color:var(--mu);margin-top:8px}
+.jd{display:flex;gap:4px}.jd select{width:auto;flex:1}
+.lg{border-top:1px dashed var(--bd);margin-top:6px;padding-top:4px;font-size:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="w">
+ <div class="top"><div><h1 style="margin:0">📆 تعهدات دوره‌ای HSE</h1><div class="mu">سنجش‌ها، مانورها، آزمون‌ها، ممیزی و بازنگری‌ها و مجوزها — هر کدام با موعد، سابقه و هشدار</div></div><div><a href="index.html">← صفحه اصلی</a></div></div>
+ <div class="sm" id="sm"></div>
+ <div class="row"><select id="cat" style="flex:1;min-width:150px"></select><input id="q" placeholder="🔍 جستجو…" style="flex:2;min-width:160px"><button class="b2 p" id="bAdd">＋ مورد جدید</button></div>
+ <div id="warn"></div><div id="list"></div>
+</div>
+<dialog id="dlg"></dialog>
+<div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:99px;font-size:13px;z-index:99999"></div>
+<script src="eval_core.js"></script>
+<script>
+const {fa,esc}=HSE,$=s=>document.querySelector(s),SB='https://priopguwfjawybffarhd.supabase.co/rest/v1/';
+const CATS=['سنجش و پایش','اضطراری و مانور','بازرسی و آزمون','ممیزی و بازنگری','قانونی و مجوز','محیط زیست','سایر'];
+/* فهرست پیشنهادی (قابل ویرایش): موعد اولیه خالی است تا مدیر پس از تعیین سابقه/برنامه وارد کند */
+const SEED=[
+ ['سنجش عوامل زیان‌آور شیمیایی (آلاینده‌سنجی هوای محیط کار)','سنجش و پایش',12,'مرکز بهداشت / شرکت دارای صلاحیت'],
+ ['سنجش صدا','سنجش و پایش',12,'مرکز بهداشت / شرکت دارای صلاحیت'],
+ ['سنجش روشنایی','سنجش و پایش',12,'مرکز بهداشت / شرکت دارای صلاحیت'],
+ ['سنجش استرس حرارتی (سالن‌های گرم)','سنجش و پایش',12,'مرکز بهداشت / شرکت دارای صلاحیت'],
+ ['مانور آتش‌سوزی و تخلیه','اضطراری و مانور',6,'HSE + آتش‌نشانی'],
+ ['مانور نشت اسید / مواد شیمیایی','اضطراری و مانور',12,'HSE'],
+ ['بازنگری طرح واکنش در شرایط اضطراری و تیم‌ها','اضطراری و مانور',12,'HSE'],
+ ['اندازه‌گیری ارت و بررسی سیستم برقگیر','بازرسی و آزمون',12,'برق / پیمانکار'],
+ ['بازرسی و آزمون مخازن تحت فشار / دیگ بخار','بازرسی و آزمون',12,'پیمانکار دارای صلاحیت'],
+ ['کالیبراسیون گازسنج‌ها و آشکارسازها','بازرسی و آزمون',6,'پیمانکار / سازنده'],
+ ['ممیزی داخلی HSE','ممیزی و بازنگری',12,'HSE'],
+ ['بازنگری مدیریت (ارائهٔ عملکرد HSE به مدیرعامل)','ممیزی و بازنگری',6,'مدیر HSE'],
+ ['بازنگری ارزیابی ریسک‌ها','ممیزی و بازنگری',12,'HSE'],
+ ['بازنگری برگه‌های ایمنی مواد (SDS) و فهرست مواد شیمیایی','ممیزی و بازنگری',12,'HSE'],
+ ['بررسی الزامات قانونی و تطبیق (قوانین کار، آیین‌نامه‌ها، ابلاغیه‌ها)','قانونی و مجوز',12,'HSE'],
+ ['پایش پساب و پسماند (نمونه‌برداری/آزمایش و تحویل به پیمانکار مجاز)','محیط زیست',6,'HSE / محیط زیست'],
+];
+let O=[],G=[],ME='',FIL='all';
+const todayISO=()=>HSEToday();
+const jl=iso=>iso?new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'}):'—';
+const diff=(a,b)=>Math.round((new Date(a+'T12:00:00Z')-new Date(b+'T12:00:00Z'))/864e5);
+function addM(iso,n){const d=new Date(iso+'T12:00:00Z'),day=d.getUTCDate();d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+n);const last=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate();d.setUTCDate(Math.min(day,last));return d.toISOString().slice(0,10)}
+const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',2600)};
+async function rq(p,o={}){const r=await fetch(SB+p,{...o,headers:{'Content-Type':'application/json','Prefer':'return=representation',...(o.headers||{})}});if(!r.ok)throw new Error((await r.text()).slice(0,250));const t=await r.text();return t?JSON.parse(t):null}
+const st=o=>{if(!o.next_due)return{k:'none',t:'موعد تعیین نشده',c:'wa',n:0};const d=diff(o.next_due,todayISO());return d<0?{k:'late',t:'معوق '+fa(-d)+' روز',c:'bad',n:d}:d<=30?{k:'soon',t:fa(d)+' روز مانده',c:'wa',n:d}:{k:'ok',t:fa(d)+' روز مانده',c:'ok',n:d}};
+async function load(){
+  O=(await HSE.getAll('hse_obligations?select=*&order=created_at.asc'));if(!Array.isArray(O))throw new Error('table');
+  G=(await HSE.getAll('hse_obligation_log?select=*&order=done_at.desc'))||[];O=O.filter(o=>o.active!==false);draw()}
+function draw(){
+  const S=O.map(o=>({o,s:st(o)})),cnt=k=>S.filter(x=>x.s.k===k).length;
+  $('#sm').innerHTML=[['all','همه',O.length,''],['late','معوق',cnt('late'),'var(--bad)'],['soon','تا ۳۰ روز آینده',cnt('soon'),'var(--wa)'],['none','بدون موعد',cnt('none'),'var(--wa)'],['ok','در مهلت',cnt('ok'),'var(--ok)']].map(([k,t,n,c])=>`<button data-f="${k}" class="${FIL===k?'on':''}"><b style="color:${c}">${fa(n)}</b>${t}</button>`).join('');
+  const cv=$('#cat').value||'';$('#cat').innerHTML='<option value="">همهٔ گروه‌ها</option>'+CATS.map(c=>`<option ${c===cv?'selected':''}>${c}</option>`).join('');
+  const q=$('#q').value.trim(),L=S.filter(x=>(FIL==='all'||x.s.k===FIL)&&(!cv||x.o.category===cv)&&(!q||[x.o.title,x.o.authority,x.o.owner,x.o.note].join(' ').includes(q)))
+    .sort((a,b)=>({late:0,none:1,soon:2,ok:3}[a.s.k]-{late:0,none:1,soon:2,ok:3}[b.s.k])||a.s.n-b.s.n);
+  if(!O.length){$('#list').innerHTML=`<div class="card2">هنوز موردی ثبت نشده است.<div style="margin-top:8px"><button class="b2 p" id="bSeed">بارگذاری فهرست پیشنهادی (${fa(SEED.length)} مورد، قابل ویرایش و حذف)</button></div></div>`;return}
+  $('#list').innerHTML=L.map(({o,s})=>{const lg=G.filter(x=>x.obligation_id===o.id);
+    return`<div class="card2"><div class="t"><div style="flex:1;min-width:220px"><b>${esc(o.title)}</b> <span class="bg">${esc(o.category)}</span> <span class="bg ${s.c}">${s.t}</span>
+     <div class="mu">هر ${fa(o.period_months)} ماه · موعد: ${jl(o.next_due)} · آخرین انجام: ${jl(o.last_done)}${o.authority?' · مجری: '+esc(o.authority):''}${o.owner?' · مسئول: '+esc(o.owner):''}</div>${o.note?`<div class="mu">${esc(o.note)}</div>`:''}</div>
+     <div class="row"><button class="b2 ok" data-a="done" data-id="${o.id}">✔ انجام شد</button><button class="b2" data-a="edit" data-id="${o.id}">✏️</button></div></div>
+     ${lg.length?`<details><summary class="mu" style="cursor:pointer">سابقه (${fa(lg.length)})</summary>${lg.map(x=>`<div class="lg">${jl(x.done_at)}${x.note?' — '+esc(x.note):''}${x.done_by?' <span class="mu">('+esc(x.done_by)+')</span>':''}</div>`).join('')}</details>`:''}</div>`}).join('')||'<div class="card2 mu">موردی با این فیلتر نیست.</div>'}
+function dateField(id){return`<div id="${id}" class="jd"><select></select><select></select><select></select></div>`}
+function openDone(id){
+  const o=O.find(x=>x.id===id);
+  $('#dlg').innerHTML=`<b>ثبت انجام: ${esc(o.title)}</b>
+   <label class="f">تاریخ انجام</label>${dateField('dD')}
+   <label class="f">توضیح / شمارهٔ گزارش یا مدرک (اختیاری)<input id="dN"></label>
+   <div class="mu" style="margin-top:6px">موعد بعدی: ${fa(o.period_months)} ماه بعد از تاریخ انجام (قابل ویرایش)</div>
+   <div id="dE" class="mu" style="color:var(--bad)"></div>
+   <div class="row" style="margin-top:12px"><button class="b2" id="dX">انصراف</button><button class="b2 p" id="dS" style="margin-inline-start:auto">ثبت</button></div>`;
+  HSE.jdInit($('#dD'));HSE.jdSet($('#dD'),todayISO());$('#dlg').showModal();$('#dX').onclick=()=>$('#dlg').close();
+  $('#dS').onclick=async()=>{const d=HSE.jdGet($('#dD'))||todayISO();if(d>todayISO())return $('#dE').textContent='تاریخ انجام نمی‌تواند در آینده باشد';
+    try{await rq('hse_obligation_log',{method:'POST',body:JSON.stringify({obligation_id:id,done_at:d,note:$('#dN').value.trim()||null,done_by:ME||null}),headers:{Prefer:'return=minimal'}});
+      const upd={last_done:!o.last_done||d>=o.last_done?d:o.last_done};upd.next_due=addM(upd.last_done,o.period_months);
+      await rq('hse_obligations?id=eq.'+id,{method:'PATCH',body:JSON.stringify(upd),headers:{Prefer:'return=minimal'}});
+      $('#dlg').close();toast('ثبت شد؛ موعد بعدی: '+jl(upd.next_due));await load()}catch(e){$('#dE').textContent=e.message}}}
+function openForm(id){
+  const o=id?O.find(x=>x.id===id):{period_months:12,category:CATS[0]};
+  $('#dlg').innerHTML=`<b>${id?'ویرایش':'مورد جدید'}</b>
+   <label class="f">عنوان *<input id="fT" value="${esc(o.title||'')}"></label>
+   <label class="f">گروه<select id="fC">${CATS.map(c=>`<option ${c===o.category?'selected':''}>${c}</option>`).join('')}</select></label>
+   <label class="f">دوره (ماه)<input id="fP" type="number" min="1" max="120" value="${o.period_months}"></label>
+   <label class="f">آخرین انجام (در صورت وجود)</label>${dateField('fL')}
+   <label class="f">موعد بعدی (خالی = از آخرین انجام + دوره محاسبه می‌شود)</label>${dateField('fN')}
+   <label class="f">مجری / شرکت<input id="fA" value="${esc(o.authority||'')}"></label>
+   <label class="f">مسئول پیگیری<input id="fO" value="${esc(o.owner||'')}"></label>
+   <label class="f">توضیح<textarea id="fD" rows="2">${esc(o.note||'')}</textarea></label>
+   <div id="fE" class="mu" style="color:var(--bad)"></div>
+   <div class="row" style="margin-top:12px">${id?'<button class="b2 bad" id="fDel">حذف</button>':''}<button class="b2" id="fX">انصراف</button><button class="b2 p" id="fS" style="margin-inline-start:auto">ذخیره</button></div>`;
+  HSE.jdInit($('#fL'),true);HSE.jdInit($('#fN'),true);if(o.last_done)HSE.jdSet($('#fL'),String(o.last_done).slice(0,10));if(o.next_due)HSE.jdSet($('#fN'),String(o.next_due).slice(0,10));
+  $('#dlg').showModal();$('#fX').onclick=()=>$('#dlg').close();
+  if(id)$('#fDel').onclick=async()=>{if(!confirm('این مورد و سابقه‌اش حذف شود؟'))return;try{await rq('hse_obligations?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=minimal'}});$('#dlg').close();await load()}catch(e){$('#fE').textContent=e.message}};
+  $('#fS').onclick=async()=>{const title=$('#fT').value.trim(),per=Math.max(1,Math.min(120,+$('#fP').value||12));if(!title)return $('#fE').textContent='عنوان را بنویسید';
+    const last=HSE.jdGet($('#fL'));let nx=HSE.jdGet($('#fN'));if(!nx&&last)nx=addM(last,per);
+    const b={title,category:$('#fC').value,period_months:per,last_done:last||null,next_due:nx||null,authority:$('#fA').value.trim()||null,owner:$('#fO').value.trim()||null,note:$('#fD').value.trim()||null};
+    try{if(id)await rq('hse_obligations?id=eq.'+id,{method:'PATCH',body:JSON.stringify(b),headers:{Prefer:'return=minimal'}});else await rq('hse_obligations',{method:'POST',body:JSON.stringify({...b,created_by:ME||null}),headers:{Prefer:'return=minimal'}});
+      $('#dlg').close();toast('ثبت شد');await load()}catch(e){$('#fE').textContent=e.message}}}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-f],[data-a],#bAdd,#bSeed');if(!t)return;
+  try{
+    if(t.id==='bAdd')return openForm(null);
+    if(t.id==='bSeed'){t.disabled=true;await rq('hse_obligations',{method:'POST',body:JSON.stringify(SEED.map(([title,category,period_months,authority])=>({title,category,period_months,authority,created_by:ME||null}))),headers:{Prefer:'return=minimal'}});toast('فهرست بارگذاری شد؛ موعد هر مورد را تعیین کنید');return load()}
+    if(t.dataset.f){FIL=t.dataset.f;return draw()}
+    if(t.dataset.a==='done')openDone(t.dataset.id);else if(t.dataset.a==='edit')openForm(t.dataset.id);
+  }catch(er){toast('خطا: '+er.message.slice(0,120))}
+});
+$('#q').oninput=draw;$('#cat').onchange=draw;
+HSEAuth.ready.then(()=>{ME=HSEAuth.email||'';load().catch(()=>{$('#warn').innerHTML='<div class="card2"><span class="bg bad">جدول ساخته نشده</span> فایل hse_obligations.sql را یک‌بار در Supabase SQL Editor اجرا کنید.</div>'})});
+</script>
+</body>
+</html>

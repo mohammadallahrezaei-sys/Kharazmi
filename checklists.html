@@ -551,7 +551,7 @@ const CATS = [
 ];
 const cat = (mk, q) => (CATS.find(c => c[1].test(q)) || [['SAN','KIT','ENV'].includes(mk) ? 'بهداشت و محیط‌زیست' : 'نظم و ایمنی عمومی'])[0];
 const dsev = q => /اتوکلاو|دیگ|شیر اطمینان|مانومتر|قطع اضطراری|سیلندر|برق|ارت|LOTO|حریق|کپسول|ارتفاع|پرتگاه|گود|ترک|جرثقیل|بالابر|لیفتراک|اینترلاک|توقف اضطراری|خروج اضطراری|اسید|سمی|اکسیژن|استیلن|فلش‌بک/.test(q) ? 3 : 2;
-const addDays = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+const addDays = n => HSEToday(n);
 
 /* نمایش سوال‌ها به‌صورت پرسشی («آیا … ؟»). متن ذخیره‌شده در عدم‌انطباق‌ها همان جمله‌ی اصلی می‌ماند تا تطبیق و گزارش‌ها به‌هم نخورد. */
 const asQ = s => {
@@ -732,7 +732,7 @@ const SCHED = (typeof HSE_SCHED !== 'undefined' && HSE_SCHED) || null, SCHED_OK 
 const EQCYC = SCHED_OK ? SCHED.EQC : {}; /* ماژول: [دسته‌های تجهیز در جدول equipment، دوره‌ی بازدید به ماه] — تعریف در sched.js */
 /* دوره‌ی بازدید دوماهه برای برق، ماشین‌آلات، جرثقیل، بالابر، لیفتراک، مخزن تحت فشار و دیگ بخار (هماهنگ با برچسب «هر ۲ ماه») */
 ['E', 'EQ', 'CR', 'LF', 'FK', 'PV', 'BL'].forEach(k => { if (EQCYC[k]) EQCYC[k][1] = 2; });
-const EQ_START = SCHED_OK ? SCHED.EQ_START : new Date().toISOString().slice(0, 10); /* شروع دوره: دستگاه‌های بدون بازدید از این تاریخ در طول دوره‌شان پخش می‌شوند */
+const EQ_START = SCHED_OK ? SCHED.EQ_START : HSEToday(); /* شروع دوره: دستگاه‌های بدون بازدید از این تاریخ در طول دوره‌شان پخش می‌شوند */
 let EQ_COL = null, DUE = null, INACT = [];
 const addM = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); };
 const dayDiff = (a, b) => Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 864e5);
@@ -745,11 +745,11 @@ async function dueLoad() {
   catch (e) { try { INACT = await api('equipment?select=code,title,category,hall&active=eq.false&order=code.asc&limit=500&category=' + catQ); } catch (e2) { INACT = []; } }
   let last = {};
   try {
-    const ins = await api('inspections?select=equipment_code,created_at&equipment_code=not.is.null&order=created_at.desc&limit=5000');
+    const ins = await HSEDB.getAll('inspections?select=equipment_code,created_at&equipment_code=not.is.null&order=created_at.desc'); if (!ins) throw new Error('inspections');
     ins.forEach(x => { if (!last[x.equipment_code]) last[x.equipment_code] = x.created_at.slice(0, 10); });
     EQ_COL = true;
   } catch (e) { EQ_COL = false; }
-  const today = new Date().toISOString().slice(0, 10), out = {};
+  const today = HSEToday(), out = {};
   const SP = SCHED.spread(Object.fromEntries(Object.entries(EQCYC).map(([mk, [cs]]) => [mk, eq.filter(e => cs.includes(e.category)).map(e => e.code)])));
   for (const [mk, [cs, n]] of Object.entries(EQCYC)) {
     const list = eq.filter(e => cs.includes(e.category));
@@ -1176,7 +1176,7 @@ function medConsume(o, q) {
   for (const b of o.batches.filter(b => b.q > 0).sort((a, b) => (a.exp || '9999') < (b.exp || '9999') ? -1 : 1)) { if (q <= 0) break; const t = Math.min(b.q, q); b.q -= t; q -= t; }
 }
 function medCalc() {
-  const by = {}, td = new Date().toISOString().slice(0, 10), soon = new Date(Date.now() + SOON * 864e5).toISOString().slice(0, 10);
+  const by = {}, td = HSEToday(), soon = HSEToday(SOON);
   MED.items.forEach(i => by[i.id] = { i, stock: 0, batches: [], has: false });
   MED.moves.forEach(m => {
     const o = by[m.item_id]; if (!o) return; o.has = true; const q = +m.qty;
