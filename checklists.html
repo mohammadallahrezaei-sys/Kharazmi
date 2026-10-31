@@ -595,11 +595,20 @@ function fuBlock(x) {
 }
 /* ===== چرخهٔ پیگیری: اکسل کامل + نامهٔ ارجاع به فنی + ثبت پاسخ فنی از اکسل + گزارش عدم‌تایید ===== */
 async function loadXL() { if (!window.XLSX) await new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = () => no(new Error('بارگذاری کتابخانهٔ اکسل ناموفق بود')); document.head.appendChild(s); }); }
-/* توضیح تکمیلی عدم‌انطباق: جزئیات بعد از «|» در شرح + سؤال چک‌لیست (اگر با شرح فرق دارد) */
-function moreOf(x) {
-  const parts = String(x.note || x.question || '').split('|').slice(1).map(a => a.trim()).filter(Boolean), q = String(x.question || '').trim(), head = String(x.note || x.question || '').split('|')[0].trim();
-  if (x.note && q && q !== head && !q.startsWith(head)) parts.push('سؤال چک‌لیست: ' + q);
-  return parts.join(' — ');
+/* شرح تمیز عدم‌انطباق: برخی ثبت‌ها متن مرکب دارند («تجهیز: … — ثبت: … — وضعیت اعلان: … — سؤال چک‌لیست: …»)؛
+   فقط خود شرح می‌ماند و کد/نام تجهیز از همان متن جدا می‌شود */
+function descOf(x) {
+  const raw = String(x.note || x.question || ''); let eqc = x.equipment_code && x.equipment_code != '0' ? x.equipment_code : '', eqt = x.equipment_title || '';
+  const segs = raw.split(/\s+[—–]\s+|\s*\|\s*/).map(t => t.trim()).filter(Boolean), keep = [];
+  segs.forEach(t => {
+    let m;
+    if ((m = /^تجهیز\s*[:：]\s*(.+)$/.exec(t))) { const mm = /^(.*?)\s*\(([A-Za-z0-9._\-]+)\)\s*$/.exec(m[1]); if (mm) { eqt = eqt || mm[1].trim(); eqc = eqc || mm[2]; } else eqt = eqt || m[1].trim(); return; }
+    if (/^(ثبت|وضعیت اعلان|اعلان|تاریخ|شماره اعلان)\s*[:：]/.test(t)) return;
+    keep.push(t.replace(/^(سؤال|سوال)\s*چک[‌ ]?لیست\s*[:：]\s*/, ''));
+  });
+  let q = (keep.join(' — ') || raw).trim();
+  q = q.replace(/\s*\(([^()]+)\)\s*$/, (all, p) => (eqt && (eqt.includes(p.trim()) || p.includes(eqt))) || (x.location && String(x.location).includes(p.trim())) ? '' : all).trim();
+  return { q, eqc, eqt };
 }
 const eqLine = r => [r.eqc, r.eqt].filter(Boolean).join(' — ') || '—';
 async function cycleData() {
@@ -607,7 +616,7 @@ async function cycleData() {
   const fm = {}; try { const ids = rows.map(r => r.id); for (let i = 0; i < ids.length; i += 150) (await api('finding_followups?select=*&order=followed_at.desc,created_at.desc&finding_id=in.(' + ids.slice(i, i + 150).join(',') + ')')).forEach(f => (fm[f.finding_id] = fm[f.finding_id] || []).push(f)); } catch (e) {}
   const t0 = todayIso();
   return rows.map((x, i) => { const L = fm[x.id] || [], l = L[0], age = Math.round((new Date(t0 + 'T12:00:00Z') - new Date(new Date(x.created_at).toLocaleDateString('en-CA') + 'T12:00:00Z')) / 864e5);
-    return { id: x.id, n: i + 1, no: x.notice_code || '', d: fd(x.created_at), age, loc: x.location || '', eqc: x.equipment_code && x.equipment_code != '0' ? x.equipment_code : '', eqt: x.equipment_title || '', q: String(x.note || x.question || '').split('|')[0].trim(), more: moreOf(x), cat: x.category || '', sev: SEVN[x.severity] || '', resp: x.responsible || '', due: x.due_date ? fd(x.due_date + 'T12:00:00') : '', l, L,
+    return { id: x.id, n: i + 1, no: x.notice_code || '', d: fd(x.created_at), age, loc: x.location || '', ...descOf(x), cat: x.category || '', sev: SEVN[x.severity] || '', resp: x.responsible || '', due: x.due_date ? fd(x.due_date + 'T12:00:00') : '', l, L,
       lf: l ? fd(l.followed_at + 'T12:00:00') + ' — ' + (KL[l.kind] || 'پیگیری') + ': ' + l.result : '', st: l && l.kind == 'claim' ? 'فنی اعلام انجام داده؛ منتظر بازدید' : l && l.kind == 'rejected' ? 'عدم تایید شده' : '' }; });
 }
 function letterDoc(title, subject, intro, head, body, closing) {
@@ -628,21 +637,22 @@ async function exportOpen(kind, btn) {
       letterDoc('گزارش عدم تایید', 'گزارش عدم‌تایید اقدامات اعلام‌شده برای رفع عدم‌انطباق‌های ایمنی',
         `بر اساس پیگیری‌های انجام‌شده، واحد فنی انجام اقدام اصلاحی ${fa(R.length)} مورد از عدم‌انطباق‌ها را اعلام کرده بود. پس از بازدید میدانی HSE، اقدام انجام‌شده در موارد زیر <b>تایید نشد</b>. خواهشمند است نسبت به رفع نواقص اعلام‌شده اقدام و نتیجه را اعلام فرمایید.`,
         ['ردیف', 'اعلان', 'کد و نام تجهیز', 'محل دقیق', 'شرح عدم‌انطباق', 'تاریخ عدم تایید', 'دلیل عدم تایید'],
-        R.map((r, i) => [fa(i + 1), r.no, eqLine(r), r.loc, r.q + (r.more ? ' (' + r.more + ')' : ''), fd(r.l.followed_at + 'T12:00:00'), r.l.result]),
+        R.map((r, i) => [fa(i + 1), r.no, eqLine(r), r.loc, r.q, fd(r.l.followed_at + 'T12:00:00'), r.l.result]),
         'پس از انجام اصلاح، مراتب را به واحد HSE اعلام فرمایید تا بازدید مجدد انجام شود.'); return;
     }
     if (!data.length) { alert('عدم‌انطباق بازی وجود ندارد.'); return; }
     if (kind == 'letter') {
       letterDoc('نامه پیگیری عدم‌انطباق‌ها', 'پیگیری عدم‌انطباق‌های باز ایمنی و اعلام برنامهٔ اقدام',
         `فهرست ${fa(data.length)} مورد عدم‌انطباق ایمنی که تا تاریخ ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))} همچنان باز است، به‌شرح جدول زیر و فایل اکسل پیوست ارسال می‌شود. خواهشمند است برای هر مورد <b>برنامه و زمان‌بندی اقدام</b> را در ستون‌های مربوط فایل اکسل پیوست تکمیل و حداکثر ظرف ۳ روز کاری به واحد HSE عودت فرمایید. در صورت انجام هر مورد، همان را در فایل اعلام کنید تا بازدید و تایید شود.`,
-        ['ردیف', 'اعلان', 'تاریخ ثبت', 'کد و نام تجهیز', 'محل دقیق', 'شرح عدم‌انطباق', 'مسئول', 'مهلت', 'آخرین وضعیت'],
-        data.map(r => [fa(r.n), r.no, r.d, eqLine(r), r.loc, r.q + (r.more ? ' (' + r.more + ')' : ''), r.resp, r.due, r.st || r.lf]),
+        ['ردیف', 'اعلان', 'تاریخ ثبت', 'کد و نام تجهیز', 'محل', 'شرح عدم‌انطباق', 'آخرین وضعیت'],
+        data.map((r, i) => [fa(i + 1), r.no, r.d, eqLine(r), r.loc, r.q, r.st || r.lf]),
         'پیگیری مجدد این موارد در روزهای ۱ و ۱۵ هر ماه انجام خواهد شد.'); return;
     }
     await loadXL();
-    const H = ['شناسه (تغییر ندهید)', 'شمارهٔ اعلان', 'تاریخ ثبت', 'سن (روز)', 'کد تجهیز', 'نام تجهیز', 'محل دقیق', 'شرح عدم‌انطباق', 'توضیح تکمیلی / سؤال چک‌لیست', 'دسته', 'شدت', 'مسئول', 'مهلت اصلاح', 'آخرین پیگیری', 'وضعیت', 'وضعیت اعلامی واحد فنی ▼', 'برنامه اقدام واحد فنی', 'مهلت اعلامی فنی (شمسی ۱۴۰۵/۰۸/۲۰)'];
-    const ws = XLSX.utils.aoa_to_sheet([H, ...data.map(r => [r.id, r.no, r.d, r.age, r.eqc, r.eqt, r.loc, r.q, r.more, r.cat, r.sev, r.resp, r.due, r.lf, r.st, '', '', ''])]);
-    ws['!cols'] = [12, 12, 12, 8, 14, 26, 24, 60, 40, 16, 8, 14, 12, 40, 24, 22, 40, 20].map(w => ({ wch: w })); ws['!views'] = [{ rightToLeft: true }];
+    const H = ['شناسه (تغییر ندهید)', 'اعلان', 'تاریخ ثبت', 'تجهیز', 'محل', 'شرح عدم‌انطباق', 'وضعیت اعلامی واحد فنی ▼', 'برنامه اقدام واحد فنی', 'مهلت اعلامی فنی (شمسی ۱۴۰۵/۰۸/۲۰)'];
+    const sorted = [...data].sort((a, b) => String(a.loc).localeCompare(String(b.loc), 'fa') || a.n - b.n);
+    const ws = XLSX.utils.aoa_to_sheet([H, ...sorted.map(r => [r.id, r.no, r.d, eqLine(r) == '—' ? '' : eqLine(r), r.loc, r.q, '', '', ''])]);
+    ws['!cols'] = [10, 11, 11, 28, 24, 55, 22, 40, 18].map(w => ({ wch: w })); ws['!views'] = [{ rightToLeft: true }]; ws['!autofilter'] = { ref: 'A1:I' + (sorted.length + 1) };
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'عدم‌انطباق‌های باز');
     const g = XLSX.utils.aoa_to_sheet([['راهنمای تکمیل توسط واحد فنی'], ['ستون «وضعیت اعلامی»: در حال انجام / نیاز به تأمین / انجام شد / برنامه ندارد'], ['ستون «برنامه اقدام»: چه کاری، توسط چه کسی و چگونه'], ['ستون «مهلت اعلامی»: تاریخ شمسی به‌صورت 1405/08/20'], ['ستون اول (شناسه) را تغییر ندهید و ردیف‌ها را حذف نکنید.']]); g['!cols'] = [{ wch: 80 }]; g['!views'] = [{ rightToLeft: true }];
     XLSX.utils.book_append_sheet(wb, g, 'راهنما'); XLSX.writeFile(wb, 'follow-up-' + todayIso() + '.xlsx');
