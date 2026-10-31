@@ -608,16 +608,32 @@ function descOf(x) {
   });
   let q = (keep.join(' — ') || raw).trim();
   q = q.replace(/\s*\(([^()]+)\)\s*$/, (all, p) => (eqt && (eqt.includes(p.trim()) || p.includes(eqt))) || (x.location && String(x.location).includes(p.trim())) ? '' : all).trim();
+  if (!eqc) eqt = ''; /* کد «۰»/خالی = تجهیز مشخص نیست */
   return { q, eqc, eqt };
 }
-const eqLine = r => [r.eqc, r.eqt].filter(Boolean).join(' — ') || '—';
+const isGenericDesc = q => !q || /^\s*اعلان\s*[\d۰-۹]+/.test(q) || /^ورود دسته‌ای/.test(q);
+const eqLine = r => r.eqc ? [r.eqc, r.eqt].filter(Boolean).join(' — ') : '—';
+function descFull(x) {
+  let d = descOf(x);
+  if (isGenericDesc(d.q) && x._nt && x._nt.description) { const n = descOf({ note: x._nt.description, equipment_code: x.equipment_code, equipment_title: x.equipment_title }); if (n.q) d = { q: n.q, eqc: d.eqc || n.eqc, eqt: d.eqt || n.eqt }; }
+  return d;
+}
+/* یک ردیف برای هر کد اعلان (چند عدم‌انطباق با یک اعلان ادغام می‌شوند؛ شناسه‌ها با ویرگول) */
+function byNotice(data) {
+  const m = new Map(); data.forEach(r => { const k = String(r.no); if (!m.has(k)) m.set(k, { ...r, ids: [r.id] }); else m.get(k).ids.push(r.id); });
+  const loc = r => /نامشخص|^\s*$/.test(r.loc) ? '\uffff' : r.loc;
+  return [...m.values()].sort((a, b) => loc(a).localeCompare(loc(b), 'fa') || String(a.no).localeCompare(String(b.no), undefined, { numeric: true })).map((r, i) => ({ ...r, n: i + 1 }));
+}
 async function cycleData() {
   let rows = []; for (let o = 0; o < 20000; o += 1000) { const r = await api('findings?select=id,question,note,location,module,category,severity,responsible,due_date,created_at,notice_code,inspector,equipment_code,equipment_title&status=eq.open&module=neq.MED&order=created_at.asc&limit=1000&offset=' + o); rows = rows.concat(r || []); if ((r || []).length < 1000) break; }
   rows = rows.filter(x => { const c = String(x.notice_code || '').trim(); return c && c.toUpperCase() != 'NOTICED'; }); /* فقط مواردی که کد اعلان واقعی دارند */
   const fm = {}; try { const ids = rows.map(r => r.id); for (let i = 0; i < ids.length; i += 150) (await api('finding_followups?select=*&order=followed_at.desc,created_at.desc&finding_id=in.(' + ids.slice(i, i + 150).join(',') + ')')).forEach(f => (fm[f.finding_id] = fm[f.finding_id] || []).push(f)); } catch (e) {}
+  /* شرح عدم‌انطباق‌های واردشده از گزارش فنی («اعلان ۱۷۲۲۰ (تعمیراتی)») از جدول اعلان‌ها گرفته می‌شود */
+  const NT = {}; try { const cs = [...new Set(rows.map(r => String(r.notice_code).trim()))]; for (let i = 0; i < cs.length; i += 100) (await api('notices?select=*&no=in.(' + cs.slice(i, i + 100).map(c => encodeURIComponent(c)).join(',') + ')')).forEach(n => { NT[String(n.no)] = n; }); } catch (e) { }
+  rows.forEach(x => { const n = NT[String(x.notice_code).trim()]; if (!n) return; x._nt = n; if (!x.equipment_code && n.equipment_code) x.equipment_code = n.equipment_code; if (!x.equipment_title) x.equipment_title = n.equipment_title || n.equipment_name || n.equipment || ''; });
   const t0 = todayIso();
   return rows.map((x, i) => { const L = fm[x.id] || [], l = L[0], age = Math.round((new Date(t0 + 'T12:00:00Z') - new Date(new Date(x.created_at).toLocaleDateString('en-CA') + 'T12:00:00Z')) / 864e5);
-    return { id: x.id, n: i + 1, no: x.notice_code || '', d: fd(x.created_at), age, loc: x.location || '', ...descOf(x), cat: x.category || '', sev: SEVN[x.severity] || '', resp: x.responsible || '', due: x.due_date ? fd(x.due_date + 'T12:00:00') : '', l, L,
+    return { id: x.id, n: i + 1, no: x.notice_code || '', d: fd(x.created_at), age, loc: x.location || '', ...descFull(x), cat: x.category || '', sev: SEVN[x.severity] || '', resp: x.responsible || '', due: x.due_date ? fd(x.due_date + 'T12:00:00') : '', l, L,
       lf: l ? fd(l.followed_at + 'T12:00:00') + ' — ' + (KL[l.kind] || 'پیگیری') + ': ' + l.result : '', st: l && l.kind == 'claim' ? 'فنی اعلام انجام داده؛ منتظر بازدید' : l && l.kind == 'rejected' ? 'عدم تایید شده' : '' }; });
 }
 function letterDoc(title, subject, intro, head, body, closing) {
@@ -644,32 +660,32 @@ async function exportOpen(kind, btn) {
     if (!data.length) { alert('عدم‌انطباق بازی که کد اعلان آن ثبت شده باشد وجود ندارد.'); return; }
     if (kind == 'letter') {
       letterDoc('نامه پیگیری عدم‌انطباق‌ها', 'پیگیری عدم‌انطباق‌های باز ایمنی و اعلام برنامهٔ اقدام',
-        `${fa(data.length)} مورد عدم‌انطباق ایمنی که برای آن‌ها اعلان ثبت شده، تا تاریخ ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))} همچنان باز است و در جدول زیر آمده است. خواهشمند است برای هر مورد، <b>برنامهٔ اقدام و مهلت انجام</b> را در فایل اکسل پیوست تکمیل کرده و ظرف ۳ روز کاری به واحد HSE ارسال فرمایید. پس از انجام هر مورد نیز اعلام شود تا بازدید و تایید گردد.`,
-        ['ردیف', 'اعلان', 'تاریخ ثبت', 'کد و نام تجهیز', 'محل', 'شرح عدم‌انطباق', 'آخرین وضعیت'],
-        data.map((r, i) => [fa(i + 1), r.no, r.d, eqLine(r), r.loc, r.q, r.st || r.lf]),
+        `${fa(byNotice(data).length)} مورد عدم‌انطباق ایمنی که برای آن‌ها اعلان ثبت شده، تا تاریخ ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))} همچنان باز است و در جدول زیر آمده است. خواهشمند است برای هر مورد، <b>برنامهٔ اقدام و مهلت انجام</b> را در فایل اکسل پیوست تکمیل کرده و ظرف ۳ روز کاری به واحد HSE ارسال فرمایید. پس از انجام هر مورد نیز اعلام شود تا بازدید و تایید گردد.`,
+        ['ردیف', 'اعلان', 'کد و نام تجهیز', 'محل', 'شرح عدم‌انطباق', 'آخرین وضعیت'],
+        byNotice(data).map(r => [fa(r.n), r.no, eqLine(r), r.loc, r.q, r.st || r.lf]),
         'پیگیری مجدد این موارد در روزهای ۱ و ۱۵ هر ماه انجام خواهد شد.'); return;
     }
     await loadXL();
-    const H = ['شناسه (تغییر ندهید)', 'اعلان', 'تاریخ ثبت', 'تجهیز', 'محل', 'شرح عدم‌انطباق', 'وضعیت اعلامی واحد فنی ▼', 'برنامه اقدام واحد فنی', 'مهلت اعلامی فنی (شمسی ۱۴۰۵/۰۸/۲۰)'];
-    const sorted = [...data].sort((a, b) => String(a.loc).localeCompare(String(b.loc), 'fa') || a.n - b.n);
-    const ws = XLSX.utils.aoa_to_sheet([H, ...sorted.map(r => [r.id, r.no, r.d, eqLine(r) == '—' ? '' : eqLine(r), r.loc, r.q, '', '', ''])]);
-    ws['!cols'] = [10, 11, 11, 28, 24, 55, 22, 40, 18].map(w => ({ wch: w })); ws['!views'] = [{ rightToLeft: true }]; ws['!autofilter'] = { ref: 'A1:I' + (sorted.length + 1) };
+    const H = ['شناسه', 'اعلان', 'تجهیز', 'محل', 'شرح عدم‌انطباق', 'وضعیت اعلامی واحد فنی ▼', 'برنامه اقدام', 'مهلت (۱۴۰۵/۰۸/۲۰)'];
+    const sorted = byNotice(data);
+    const ws = XLSX.utils.aoa_to_sheet([H, ...sorted.map(r => [r.ids.join(','), r.no, eqLine(r) == '—' ? '' : eqLine(r), r.loc, r.q, '', '', ''])]);
+    ws['!cols'] = [{ wch: 6, hidden: true }, { wch: 8 }, { wch: 24 }, { wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 28 }, { wch: 14 }]; ws['!views'] = [{ rightToLeft: true }]; ws['!autofilter'] = { ref: 'A1:H' + (sorted.length + 1) };
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'عدم‌انطباق‌های باز');
-    const g = XLSX.utils.aoa_to_sheet([['راهنمای تکمیل توسط واحد فنی'], ['ستون «وضعیت اعلامی»: در حال انجام / نیاز به تأمین / انجام شد / برنامه ندارد'], ['ستون «برنامه اقدام»: چه کاری، توسط چه کسی و چگونه'], ['ستون «مهلت اعلامی»: تاریخ شمسی به‌صورت 1405/08/20'], ['ستون اول (شناسه) را تغییر ندهید و ردیف‌ها را حذف نکنید.']]); g['!cols'] = [{ wch: 80 }]; g['!views'] = [{ rightToLeft: true }];
+    const g = XLSX.utils.aoa_to_sheet([['راهنما: وضعیت = در حال انجام / نیاز به تأمین / انجام شد / برنامه ندارد · برنامه = چه کاری و توسط چه کسی · مهلت = تاریخ شمسی 1405/08/20 · ردیف‌ها را حذف نکنید.']]); g['!cols'] = [{ wch: 80 }]; g['!views'] = [{ rightToLeft: true }];
     XLSX.utils.book_append_sheet(wb, g, 'راهنما'); XLSX.writeFile(wb, 'follow-up-' + todayIso() + '.xlsx');
   } catch (e) { alert(e.message); } finally { btn.textContent = old; btn.disabled = false; }
 }
 async function importReplies(file) {
   try {
     await loadXL(); const wb = XLSX.read(await file.arrayBuffer()), ws = wb.Sheets[wb.SheetNames[0]], R = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }).slice(1);
-    const hd = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })[0] || [], ix = re => { const k = hd.findIndex(h => re.test(String(h))); return k; }, cS = ix(/وضعیت اعلامی/), cP = ix(/برنامه اقدام/), cD = ix(/مهلت اعلامی/); /* بر اساس عنوان ستون (فایل‌های قدیمی: ۱۲ تا ۱۴) */
+    const hd = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })[0] || [], ix = re => { const k = hd.findIndex(h => re.test(String(h))); return k; }, cS = ix(/وضعیت اعلامی/), cP = ix(/برنامه اقدام/), cD = ix(/مهلت (اعلامی|\()/); /* بر اساس عنوان ستون (فایل‌های قدیمی: ۱۲ تا ۱۴) */
     const iS = cS >= 0 ? cS : 12, iP = cP >= 0 ? cP : 13, iD = cD >= 0 ? cD : 14;
-    const items = R.filter(r => r[0] && (String(r[iS]).trim() || String(r[iP]).trim() || String(r[iD]).trim())).map(r => ({ id: String(r[0]).trim(), st: String(r[iS]).trim(), plan: String(r[iP]).trim(), dl: HSEC.parseJ(r[iD]) }));
+    const items = R.filter(r => r[0] && (String(r[iS]).trim() || String(r[iP]).trim() || String(r[iD]).trim())).map(r => ({ ids: String(r[0]).split(',').map(a => a.trim()).filter(Boolean), st: String(r[iS]).trim(), plan: String(r[iP]).trim(), dl: HSEC.parseJ(r[iD]) }));
     if (!items.length) return alert('در فایل پاسخی برای ثبت پیدا نشد (ستون‌های وضعیت/برنامه/مهلت خالی است).');
     const done = items.filter(i => /انجام شد/.test(i.st)).length;
     if (!confirm(`${fa(items.length)} پاسخ واحد فنی ثبت شود؟\n(${fa(done)} مورد «انجام شد» که باید بازدید و تایید شوند)`)) return;
     const t0 = todayIso(); let ok = 0, bad = 0;
-    for (const i of items) { const claim = /انجام شد/.test(i.st), res = [i.st, i.plan].filter(Boolean).join(' — ') || 'پاسخ واحد فنی (از فایل اکسل)';
+    for (const i0 of items) for (const fid of i0.ids) { const i = { ...i0, id: fid }; const claim = /انجام شد/.test(i.st), res = [i.st, i.plan].filter(Boolean).join(' — ') || 'پاسخ واحد فنی (از فایل اکسل)';
       try { await api('finding_followups', { method: 'POST', body: JSON.stringify({ finding_id: i.id, followed_at: t0, followed_by: mail, result: res, kind: claim ? 'claim' : 'follow', tech_deadline: i.dl || null, next_due: claim ? isoAdd(t0, 3) : HSEC.next(t0) }) }); ok++; } catch (e) { bad++; } }
     alert(`${fa(ok)} پاسخ ثبت شد${bad ? ' — ' + fa(bad) + ' مورد خطا (SQL فایل hse_finding_followups2.sql اجرا شده؟)' : ''}.`); await loadFinds();
   } catch (e) { alert(e.message); }
