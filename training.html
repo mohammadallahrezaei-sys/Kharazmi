@@ -62,7 +62,7 @@ function render(){
   const ft=$('flt').value||'all',byT=t=>trs.filter(x=>x.training_type===t).length;
   const hrs=trs.reduce((s,t)=>s+(+t.duration_hours||0)*att.filter(a=>a.training_id===t.id).length,0);
   $('stats').innerHTML=[[trs.length,'جلسه'],[att.length,'حضور ثبت‌شده'],[fa(Math.round(hrs)),'نفر-ساعت'],[byT('post_incident'),'آموزش پس از حادثه']].map(([n,l])=>`<div class="bg-slate-800 border border-slate-700 rounded-xl p-2 text-center"><div class="text-lg font-bold text-emerald-400">${typeof n==='number'?fa(n):n}</div><div class="text-[11px] text-slate-400">${l}</div></div>`).join('');
-  const cut=new Date(Date.now()-365*864e5).toISOString().slice(0,10),recent=new Set(trs.filter(t=>t.training_date>=cut).map(t=>t.id));
+  const cut=HSEToday(-365),recent=new Set(trs.filter(t=>t.training_date>=cut).map(t=>t.id));
   const cov=new Set(att.filter(a=>recent.has(a.training_id)&&a.employee_id).map(a=>a.employee_id)),act=emps.filter(e=>HSEP.isActive(e)),miss=act.filter(e=>!cov.has(e.id));
   $('gapSum').textContent=`پوشش آموزش ۱۲ ماه اخیر: ${fa(act.length?Math.round(act.filter(e=>cov.has(e.id)).length/act.length*100):0)}٪ — ${fa(miss.length)} نفر بدون آموزش`;
   $('gapList').innerHTML=miss.slice(0,300).map(e=>`${esc(name(e))} (${esc(e.emp_id)}${e.department?' · '+esc(e.department):''})`).join('')||'همه پرسنل آموزش دیده‌اند.';
@@ -90,7 +90,7 @@ function setDate(iso){const [y,m,d]=toJ(new Date(iso+'T00:00:00Z')),ty=toJ(new D
   $('dM').innerHTML=JM.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('');
   $('dD').innerHTML=Array.from({length:31},(_,i)=>`<option value="${i+1}">${fa(i+1)}</option>`).join('');
   $('dY').value=y;$('dM').value=m;$('dD').value=d}
-$('btnNew').onclick=()=>{EDIT=null;$('mTitle').textContent='ثبت جلسه آموزشی';$('fSave').textContent='ثبت';$('fType').value='onboarding';$('fType').onchange();$('fHours').value='';sel.clear();chips();pick();setDate(new Date().toISOString().slice(0,10));
+$('btnNew').onclick=()=>{EDIT=null;$('mTitle').textContent='ثبت جلسه آموزشی';$('fSave').textContent='ثبت';$('fType').value='onboarding';$('fType').onchange();$('fHours').value='';sel.clear();chips();pick();setDate(HSEToday());
   $('fInc').innerHTML='<option value="">حادثه مرتبط (اختیاری)</option>'+incs.map(i=>`<option value="${i.id}">${fday((i.incident_date||'').slice(0,10))} - ${esc(i.location)}</option>`).join('');
   $('modal').classList.remove('hidden');$('modal').classList.add('flex')};
 $('fCancel').onclick=()=>{EDIT=null;$('modal').classList.add('hidden');$('modal').classList.remove('flex')};

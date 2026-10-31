@@ -81,19 +81,20 @@ const prevK=K=>{let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}return y+'-
 const nextK=K=>{let y=+K.slice(0,4),m=+K.slice(5)+1;if(m>12){m=1;y++}return y+'-'+String(m).padStart(2,'0')};
 
 const MODT={CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخزن تحت فشار',AC:'اتوکلاو',BL:'دیگ بخار',PJ:'جک پالت'};
-let TICKS=new Set(),CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
+let TICKS=new Set(),CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],OBL=[],X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
 if(/[?&]embed=1/.test(location.search)){document.documentElement.classList.add('emb')}
 
 async function hd(){let t=KEY;try{t=(await HSEAuth.token())||KEY}catch(e){}return{apikey:KEY,Authorization:'Bearer '+t}}
 const getAll=t=>HSEDB.getAll(t);
 
 async function load(){
-  const since=new Date(Date.now()-500*864e5).toISOString().slice(0,10),base='inspections?select=module,location,created_at&order=created_at.desc&created_at=gte.'+since;
+  const since=HSEToday(-500),base='inspections?select=module,location,created_at&order=created_at.desc&created_at=gte.'+since;
   let ins=await getAll(base.replace('location,','location,equipment_code,'));
   if(!ins){EQ_COL=false;ins=await getAll(base)||[]}
   INS=ins.map(x=>({m:x.module,loc:x.location||'',code:x.equipment_code||null,d:new Date(x.created_at).toLocaleDateString('en-CA')}));
   TICKS=new Set((await getAll("daily_ticks?select=tick_date&key=eq.chlorination").catch(()=>null)||[]).map(x=>String(x.tick_date).slice(0,10)));
   CTR=(await getAll('contractors?select=id,name,contract_no,scope,start_date,end_date,status').catch(()=>null)||[]).filter(c=>c.start_date);
+  OBL=(await getAll('hse_obligations?select=id,title,next_due,active').catch(()=>null)||[]).filter(o=>o.active!==false&&o.next_due);
   const cats=[...new Set(Object.values(EQC).flatMap(v=>v[0]))];
   EQ=await getAll('equipment?select=code,title,category,hall&active=eq.true&category=in.('+cats.map(c=>'"'+c+'"').join(',')+')&order=code.asc')||[];
   /* کارهای دیگری که در امتیاز کارشناس حساب می‌شوند (فقط برای ورود کارشناس) */
@@ -168,6 +169,7 @@ function build(K){
       if(asg)T.push({id:'AS'+x.id,date:adjust(due&&inM(due)?due:today<a?a:today>b?b:today,days),due:due||today,t:'ارجاع مدیر: '+txt,sub:'شاخص «پیگیری و بستن»',done:false,kind:'score',go:'checklists.html'});
       else if(due&&inM(due))T.push({id:'FN'+x.id,date:adjust(due,days),due,t:'بستن عدم‌انطباق: '+txt,sub:'مهلت: '+lbl(due),done:x.status==='closed',kind:'score',go:'checklists.html'})});
   }
+  OBL.forEach(o=>{const due=String(o.next_due).slice(0,10);if(!(due>=a&&due<=b)&&!(due<a&&K===nowK))return;T.push({id:'OB'+o.id,date:adjust(due<a?a:due,days),due,t:'تعهد دوره‌ای: '+o.title,sub:'مهلت: '+lbl(due),done:false,kind:'month',go:'obligations.html'})});
   T.forEach(x=>{x.late=!x.done&&x.date<today});
   return T;
 }

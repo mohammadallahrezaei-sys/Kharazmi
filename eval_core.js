@@ -24,7 +24,7 @@
   }
   /* قطع همکاری: تا ماهی که قطع همکاری در آن رخ داده محاسبه می‌شود و از ماه بعد حذف (قاعده‌ی مشترک؛ HSEP در auth.js) */
   const isActive = (e, refISO) => !e || !e.termination_date || String(e.termination_date).slice(0, 10) >= refISO;
-  const nowK = () => jk(new Date().toISOString());
+  const nowK = () => jk(HSEToday());
   function monthKeys(n) { const out = []; let [y, m] = nowK().split('-').map(Number); for (let i = 0; i < n; i++) { out.push(y + '-' + String(m).padStart(2, '0')); if (--m < 1) { m = 12; y--; } } return out; }
   const monthLabel = K => MN[+K.slice(5) - 1] + ' ' + fa(K.slice(0, 4));
   function jalToISO(y, m, d) { const st = Date.UTC(y + 621, 2, 17); for (let i = 0; i < 400; i++) { const t = new Date(st + i * 864e5), j = toJal(t); if (j[0] === y && j[1] === m && j[2] === d) return t.toISOString().slice(0, 10); } return null; }
@@ -35,7 +35,7 @@
     ss[0].innerHTML = (optional ? o('', 'روز') : '') + Array.from({ length: 31 }, (_, i) => o(i + 1, fa(i + 1))).join('');
     ss[1].innerHTML = (optional ? o('', 'ماه') : '') + MN.map((n, i) => o(i + 1, n)).join('');
     ss[2].innerHTML = (optional ? o('', 'سال') : '') + [ty - 2, ty - 1, ty, ty + 1].map(v => o(v, fa(v))).join('');
-    if (!optional) jdSet(el, new Date().toISOString().slice(0, 10));
+    if (!optional) jdSet(el, HSEToday());
   }
   function jdSet(el, iso) { const ss = el.querySelectorAll('select'), [y, m, d] = toJal(new Date(iso + 'T00:00:00Z')); ss[0].value = d; ss[1].value = m; ss[2].value = y; }
   function jdGet(el) { const [d, m, y] = [...el.querySelectorAll('select')].map(x => +x.value); if (!d || !m || !y) return null; return jalToISO(y, m, d) || jalToISO(y, m, 29); }

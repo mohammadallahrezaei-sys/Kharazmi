@@ -43,7 +43,7 @@ h2 a{font-size:11px;font-weight:400;margin-inline-start:8px;color:var(--mu)}
 <script>
 const {esc,fa,getAll,monthKeys}=HSE;
 const $=id=>document.getElementById(id);
-const TODAY=new Date().toISOString().slice(0,10);
+const TODAY=HSEToday();
 $('today').textContent=new Date().toLocaleDateString('fa-IR',{dateStyle:'full'});
 const dd=(a,b)=>Math.round((new Date(a)-new Date(b))/864e5);
 const fday=d=>{try{return new Date(String(d).slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};

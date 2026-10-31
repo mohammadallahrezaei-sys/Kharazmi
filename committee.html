@@ -311,7 +311,7 @@ async function buildSuggest(){
   wl.filter(w=>!used.has('w:'+w.id)).forEach(w=>{const tt=clean(w.title),ds=clean(w.description).slice(0,150),body=tt+(ds?' — '+ds:'');
     out.push({type:'گزارش کار روزانه',kind:w.status==='done'?'done':'ongoing',t:{done:body+(w.status==='done'?'.':' (انجام شد).'),ongoing:`${body} (در دست اقدام).`},actor:'HSE',ref:'w:'+w.id,n:1})});
   /* ۴) عدم‌انطباق‌های باز → در دست اقدام / مصوبهٔ جدید (مهلت‌گذشته‌ها و قدیمی‌ترین‌ها اول) */
-  const iso=new Date().toISOString().slice(0,10),od=x=>x.due_date&&x.due_date<iso?0:1;
+  const iso=HSEToday(),od=x=>x.due_date&&x.due_date<iso?0:1;
   opn.filter(f=>!used.has('o:'+f.id)).sort((a,b)=>od(a)-od(b)||String(a.created_at).localeCompare(b.created_at)).slice(0,12).forEach((f,i)=>{const loc=place(f),dsc=`«${iss(f)}»${loc?' در '+loc:''}`;
     out.push({type:'عدم‌انطباق باز',kind:i<3?'ongoing':'new',t:{ongoing:`رفع عدم‌انطباق ${dsc} توسط واحد فنی در دست پیگیری است.`,new:`رفع عدم‌انطباق ${dsc} تا مهلت مقرر.`,done:`عدم‌انطباق ${dsc} برطرف شد.`},actor:f.responsible||'فنی',ref:'o:'+f.id,n:1,dl:nEnd})});
   /* ۵) آموزش‌ها */

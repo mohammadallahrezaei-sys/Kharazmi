@@ -370,7 +370,7 @@ async function saveInsp(){const e=cur;const date=normJ($('#fDate').value);if(!da
 async function saveSpec(){const e=cur;const act=$('#eAct').value==='فعال',rsn=$('#eRsn').value.trim();
   if(!act&&!rsn)return toast('علت غیرفعال شدن را بنویسید');const specs={};document.querySelectorAll('#eSpecs .kv').forEach(r=>{const[k,v]=r.querySelectorAll('input');if(k.value.trim())specs[k.value.trim()]=v.value.trim()});
   const row={...e,title:$('#eTitle').value.trim()||e.title,hall:$('#eHall').value.trim(),location:$('#eLoc').value.trim(),interval_months:Math.max(1,+$('#eInt').value||CFG.DEFAULT_INTERVAL),
-    active:act,inactive_reason:act?null:rsn,inactive_at:act?null:(e.active?new Date().toISOString().slice(0,10):(e.inactive_at||new Date().toISOString().slice(0,10))),requires_inspection:$('#eReq').value==='بله',notes:$('#eNote').value.trim(),specs};delete row._i;
+    active:act,inactive_reason:act?null:rsn,inactive_at:act?null:(e.active?HSEToday():(e.inactive_at||HSEToday())),requires_inspection:$('#eReq').value==='بله',notes:$('#eNote').value.trim(),specs};delete row._i;
   try{try{await DB.saveEquip(row)}catch(err){
       if(!/inactive_/.test(String(err.message||err)))throw err;
       if(!act)throw new Error('ستون‌های علت غیرفعال‌سازی ساخته نشده؛ فایل hse_equipment_inactive.sql را در Supabase اجرا کنید');

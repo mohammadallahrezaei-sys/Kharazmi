@@ -115,6 +115,9 @@
     A.email = email; A.role = role; try { A.viewAs = role === 'manager' && localStorage.getItem('hse_view_as') === 'expert'; } catch (_) { A.viewAs = false; } done(); chrome();
   }
 
+  /* تاریخ امروز به وقت تهران (toISOString در ۰۰:۰۰–۰۳:۳۰ بامداد تاریخ دیروز را می‌دهد). HSEToday(n) = n روز بعد/قبل */
+  window.HSEToday = function (n) { const t = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tehran' }); return n ? new Date(new Date(t + 'T12:00:00Z').getTime() + n * 864e5).toISOString().slice(0, 10) : t; };
+
   /* ===== دریافت‌کنندهٔ مشترک داده (HSEDB): موازی، مرتب (بدون جاافتادگی/تکرار) و بدون سقف ۱۰۰۰ ردیف =====
      HSEDB.getAll('table?select=a,b&filter...') → آرایهٔ همهٔ ردیف‌ها یا null در صورت خطا.
      درخواست اول تعداد کل را می‌گیرد و بقیهٔ صفحه‌ها همزمان دریافت می‌شوند؛ درخواست‌های یکسانِ هم‌زمان یکی می‌شوند. */

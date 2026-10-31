@@ -50,7 +50,7 @@
 <script>
 const {esc,fa,nd,jk,norm,getAll,monthKeys,monthLabel,loadEval,compute,ZONES,PARAM,unitMatcher,monthRange,isActive}=HSE;
 const $=id=>document.getElementById(id);
-const TODAY=new Date().toISOString().slice(0,10),dd=(a,b)=>Math.round((new Date(a)-new Date(b))/864e5);
+const TODAY=HSEToday(),dd=(a,b)=>Math.round((new Date(a)-new Date(b))/864e5);
 const n1=v=>fa(Math.round(v*10)/10);
 const ZC=['#059669','#0284c7','#d97706','#dc2626'];
 const TECH_RE=/فنی/;               /* واحدی که مسئول رفع عدم‌انطباق‌هاست: نامش شامل «فنی» باشد */

@@ -156,7 +156,7 @@ function buildOptions(){
 
 /* ---- محاسبه شاخص‌ها برای یک بازه ---- */
 function metricsRange(fromDate,toDate){
-  const {ins,fin,inc,fu,ek,tr,ta,emp}=D,today=new Date().toISOString().slice(0,10),end=toDate<today?toDate:today;
+  const {ins,fin,inc,fu,ek,tr,ta,emp}=D,today=HSEToday(),end=toDate<today?toDate:today;
   const inR=(a,f)=>(a||[]).filter(x=>{const d=String(x[f]||'').slice(0,10);return d>=fromDate&&d<=toDate;});
   const d10=v=>String(v||'').slice(0,10);
   const m={from:fromDate,to:toDate,end};
