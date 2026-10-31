@@ -1609,7 +1609,7 @@ async function loadFinds() {
     const total = pg.total ?? pg.rows.length, pages = Math.max(1, Math.ceil(total / FQ.size));
     if (FQ.page >= pages) { FQ.page = pages - 1; return loadFinds(); }
     const no = cOpen.total ?? 0, na = cAll.total ?? 0, nx = cCan.total ?? 0;
-    $('#fchips').innerHTML = `<button class="chip" data-a="fexp" data-k="xls">⬇ اکسل پیگیری (برای فنی)</button><button class="chip" data-a="fexp" data-k="letter">✉ نامه ارجاع به فنی</button><button class="chip" data-a="fimp">⬆ ثبت پاسخ فنی از اکسل</button><button class="chip" data-a="fexp" data-k="rej">❌ گزارش عدم‌تایید برای فنی</button>` + [['', 'همه', na], ['open', 'باز', no], ['closed', 'اصلاح‌شده', na - no - nx], ['cancelled', 'لغو شده', nx]].map(([v, t, n]) =>
+    $('#fchips').innerHTML = `<button class="chip" data-a="fexp" data-k="pick">📤 نامه و اکسل پیگیری برای فنی</button><button class="chip" data-a="fimp">⬆ ثبت پاسخ فنی از اکسل</button><button class="chip" data-a="fexp" data-k="rej">❌ گزارش عدم‌تایید برای فنی</button>` + [['', 'همه', na], ['open', 'باز', no], ['closed', 'اصلاح‌شده', na - no - nx], ['cancelled', 'لغو شده', nx]].map(([v, t, n]) =>
       `<button class="chip ${FQ.st == v ? 'on' : ''}" data-a="fst" data-v="${v}">${t} <b>${fa(n)}</b></button>`).join('') +
       `<button class="chip ${FQ.ntc == 'no' ? 'on' : ''}" data-a="fntc" data-v="no">📭 بدون اعلان</button><button class="chip ${FQ.ntc == 'yes' ? 'on' : ''}" data-a="fntc" data-v="yes">📬 دارای اعلان</button><button class="chip ${FQ.asg == 'me' ? 'on' : ''}" data-a="fasg">📌 ارجاع به من</button>`;
     let last = null, html = '';
