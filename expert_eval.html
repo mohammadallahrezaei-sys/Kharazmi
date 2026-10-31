@@ -157,8 +157,13 @@ function ratioRows(email,K){
   D.ins.forEach(r=>{const d=new Date(r.created_at).toLocaleDateString('en-CA'),q=Math.max(0,(r.total||0)-(r.na||0));
     if(d>=R.a&&d<=R.b&&eqm(r.inspector,email)){const o=cur[r.module]||(cur[r.module]={n:0,q:0,nc:0});o.n++;o.q+=q;o.nc+=r.nc||0}
     else if(d>=a6&&d<R.a){const o=base[r.module]||(base[r.module]={q:0,nc:0});o.q+=q;o.nc+=r.nc||0}});
-  return Object.entries(cur).map(([m,o])=>{const b=base[m],rate=b&&b.q>=60?b.nc/b.q:null,exp=rate==null?null:Math.round(o.q*rate);
-    return{m,label:label(m),n:o.n,q:o.q,nc:o.nc,exp,low:exp!=null&&o.n>=3&&exp>=3&&o.nc<0.4*exp}}).filter(x=>x.q>0).sort((x,y)=>(y.low-x.low)||(y.exp||0)-(x.exp||0));
+  /* چک‌لیست بدون سابقه: نیمی از میانگین نرخ همهٔ چک‌لیست‌های ۶ ماه قبل (در نبود آن، همین ماه همهٔ بازدیدکننده‌ها) */
+  let gq=0,gn=0;Object.values(base).forEach(b=>{gq+=b.q;gn+=b.nc});
+  if(gq<100){gq=0;gn=0;D.ins.forEach(r=>{const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d>=R.a&&d<=R.b){gq+=Math.max(0,(r.total||0)-(r.na||0));gn+=r.nc||0}})}
+  const g=gq>=100?gn/gq*0.5:null;
+  return Object.entries(cur).map(([m,o])=>{const b=base[m],own=b&&b.q>=60,rate=own?b.nc/b.q:g,exp=rate==null?null:Math.round(o.q*rate);
+    const low=o.n>=3&&((exp!=null&&exp>=3&&o.nc<0.4*exp)||(o.nc===0&&o.q>=30));
+    return{m,label:label(m),n:o.n,q:o.q,nc:o.nc,exp,gen:!own,low}}).filter(x=>x.q>0).sort((x,y)=>(y.low-x.low)||(y.exp||0)-(x.exp||0));
 }
 function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
@@ -172,7 +177,7 @@ function core(email,K){
     if(n/a.length>=0.8)flags.push(`${fa(n)} از ${fa(a.length)} ثبت ماژول ${m} دقیقاً نتیجه‌ی یکسان دارد (کل - تأیید - عدم‌انطباق - ن.م.: ${k})`)});
   const ts=mine.map(x=>x.t).sort((a,b)=>a-b);let mx=0;for(let i=0,j=0;i<ts.length;i++){while(ts[i]-ts[j]>30*6e4)j++;mx=Math.max(mx,i-j+1)}
   if(mx>=15)flags.push(`${fa(mx)} ثبت در یک بازه‌ی ۳۰ دقیقه‌ای (ممکن است ثبت دسته‌ای بعد از بازدید باشد)`);
-  ratioRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`«${x.label}»: ${fa(x.n)} چک‌لیست و ${fa(x.q)} سؤال پاسخ‌داده‌شده فقط ${fa(x.nc)} عدم‌انطباق ثبت شده؛ بر اساس سابقهٔ ۶ ماه قبل انتظار حدود ${fa(x.exp)} مورد می‌رفت (احتمال بازدید سطحی از همهٔ بخش‌های محل؛ با کارشناس بررسی شود)`));
+  ratioRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`«${x.label}»: ${fa(x.n)} چک‌لیست و ${fa(x.q)} سؤال پاسخ‌داده‌شده فقط ${fa(x.nc)} عدم‌انطباق ثبت شده؛ ${x.exp!=null?(x.gen?'بر اساس میانگین کل چک‌لیست‌ها':'بر اساس سابقهٔ ۶ ماه قبل همین چک‌لیست')+` انتظار حدود ${fa(x.exp)} مورد می‌رفت `:'هیچ موردی ثبت نشده است '}(احتمال بازدید سطحی از همهٔ بخش‌های محل؛ با کارشناس بررسی شود)`));
   return{R,recs,un,flags}}
 const created=(e,R)=>D.fin.filter(f=>eqm(f.inspector,e)&&d10(f.created_at)>=R.a&&d10(f.created_at)<=R.b).length;
 const _CC={};
@@ -289,8 +294,8 @@ const NAMES={ctr:'چک‌لیست روزانهٔ پیمانکاران حاضر �
 /* روند و ضعیف‌ترین شاخص‌ها: نمودار خطی ۶ ماه + نقشهٔ گرمایی شاخص×ماه + سه شاخص ضعیف‌تر (میانگین ۶ ماه) */
 function ratioBlock(email,K){
   const L=ratioRows(email,K);if(!L.length)return'';
-  return `<div class="card"><h2>نسبت عدم‌انطباق ثبت‌شده به سؤال چک‌لیست‌ها</h2><div class="mu">انتظار = تعداد سؤال این ماه × نرخ عدم‌انطباق همان چک‌لیست در ۶ ماه قبل. عدد خیلی کمتر از انتظار یعنی بازدید احتمالاً سطحی بوده است.</div>
-   <table style="margin-top:6px"><tr><th>چک‌لیست</th><th class="c">دفعات</th><th class="c">سؤال</th><th class="c">ثبت‌شده</th><th class="c">انتظار</th></tr>${L.map(x=>`<tr><td>${esc(x.label)}</td><td class="c">${fa(x.n)}</td><td class="c">${fa(x.q)}</td><td class="c ${x.low?'bad':''}"><b>${fa(x.nc)}</b></td><td class="c mu">${x.exp==null?'—':fa(x.exp)}</td></tr>`).join('')}</table></div>`;
+  return `<div class="card"><h2>نسبت عدم‌انطباق ثبت‌شده به سؤال چک‌لیست‌ها</h2><div class="mu">انتظار = تعداد سؤال این ماه × نرخ عدم‌انطباق همان چک‌لیست در ۶ ماه قبل. عدد خیلی کمتر از انتظار یعنی بازدید احتمالاً سطحی بوده است. (* چک‌لیست بدون سابقهٔ کافی؛ انتظار از نصف میانگین کل چک‌لیست‌ها محاسبه شده است. هر چک‌لیستِ ۳ بار یا بیشتر با ≥۳۰ سؤال و صفر ثبت هم هشدار می‌گیرد.)</div>
+   <table style="margin-top:6px"><tr><th>چک‌لیست</th><th class="c">دفعات</th><th class="c">سؤال</th><th class="c">ثبت‌شده</th><th class="c">انتظار</th></tr>${L.map(x=>`<tr><td>${esc(x.label)}</td><td class="c">${fa(x.n)}</td><td class="c">${fa(x.q)}</td><td class="c ${x.low?'bad':''}"><b>${fa(x.nc)}</b></td><td class="c mu">${x.exp==null?'—':fa(x.exp)+(x.gen?' *':'')}</td></tr>`).join('')}</table></div>`;
 }
 function trendBlock(email,K){
   const kk=[];let k=K;for(let i=0;i<6;i++){kk.unshift(k);k=prevK(k)}
