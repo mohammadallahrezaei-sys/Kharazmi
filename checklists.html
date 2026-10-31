@@ -789,7 +789,7 @@ const SS = getSession();
 let tok = SS.t || KEY, mail = SS.e || 'کاربر سامانه', cur, A = {}, N = {}, D = { loc: '', extra: {} };
 
 let EQP = {}, LNK = {}, EQ_OK = null, ENC = {};
-const save = () => localStorage.draft = JSON.stringify({ k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS, LC, EX, EQP, LNK, eq: D.eq });
+const save = () => localStorage.draft = JSON.stringify({ t0: D.t0 || null, k: cur[0], loc: D.loc, extra: D.extra, shift: D.shift, A, N, SV, RS, LC, EX, EQP, LNK, eq: D.eq });
 const AH = () => ({ apikey: KEY, Authorization: 'Bearer ' + tok });
 
 let RISKS = [];
@@ -1128,7 +1128,8 @@ async function send() {
 
   let r = null;
   try {
-    const insBody = { module: m[0], location: loc, freq: m[2], total: ids.length, ok: c('ok'), nc: rd ? ncs.length : c('nc'), na: c('na'), inspector: mail, shift: D.shift || SHIFTS[0] };
+    const insBody = { module: m[0], location: loc, freq: m[2], total: ids.length, ok: c('ok'), nc: rd ? ncs.length : c('nc'), na: c('na'), inspector: mail, shift: D.shift || SHIFTS[0], duration_sec: D.t0 ? Math.min(86400, Math.max(1, Math.round((Date.now() - D.t0) / 1000))) : null };
+    const insPost = async b => { try { return await api('inspections', { method: 'POST', body: JSON.stringify(b) }); } catch (e) { if (!/duration_sec/.test(e.message)) throw e; const { duration_sec, ...b2 } = b; return await api('inspections', { method: 'POST', body: JSON.stringify(b2) }); } };
     /* اول عکس‌ها آپلود و ردیف‌ها آماده می‌شود؛ اگر اینترنت قطع شود هنوز چیزی در دیتابیس ثبت نشده است (بازدید نیمه‌کاره و تکراری ساخته نمی‌شود) */
     const f = [];
     for (const i of ncs) {
@@ -1143,13 +1144,13 @@ async function send() {
       });
     }
     if (EQCYC[m[0]] && D.eq && EQ_COL !== false) {
-      try { [r] = await api('inspections', { method: 'POST', body: JSON.stringify({ ...insBody, equipment_code: D.eq.code, equipment_title: D.eq.title || null }) }); }
+      try { [r] = await insPost({ ...insBody, equipment_code: D.eq.code, equipment_title: D.eq.title || null }); }
       catch (e) { if (!/equipment_(code|title)/.test(e.message)) throw e; EQ_COL = false; }
     }
-    if (!r) [r] = await api('inspections', { method: 'POST', body: JSON.stringify(insBody) });
+    if (!r) [r] = await insPost(insBody);
     DUE = null;
     if (f.length) await api('findings', { method: 'POST', body: JSON.stringify(f.map(x => ({ inspection_id: r.id, ...x }))) });
-    localStorage.removeItem('draft'); Object.keys(PH).forEach(k => delete PH[k]); SV = {}; RS = {}; LC = {}; EX = {}; EQP = {}; LNK = {}; D.eq = null;
+    localStorage.removeItem('draft'); D.t0 = null; Object.keys(PH).forEach(k => delete PH[k]); SV = {}; RS = {}; LC = {}; EX = {}; EQP = {}; LNK = {}; D.eq = null;
     alert('بازدید با موفقیت ثبت شد.');
     home();
   } catch (e) {
@@ -2412,8 +2413,8 @@ document.onclick = async e => {
     if (t.dataset.k == 'MED') return medHome();
     cur = M.find(m => m[0] == t.dataset.k);
     const d = JSON.parse(localStorage.draft || '{}');
-    if (d.k == cur[0]) { A = d.A || {}; N = d.N || {}; SV = d.SV || {}; RS = d.RS || {}; LC = d.LC || {}; EX = d.EX || {}; D.loc = d.loc || ''; D.extra = d.extra || {}; D.shift = d.shift || ''; EQP = d.EQP || {}; LNK = d.LNK || {}; D.eq = d.eq || null; }
-    else { A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; D.loc = ''; D.extra = {}; D.shift = ''; D.oth = false; EQP = {}; LNK = {}; D.eq = null; }
+    if (d.k == cur[0]) { D.t0 = d.t0 || Date.now(); A = d.A || {}; N = d.N || {}; SV = d.SV || {}; RS = d.RS || {}; LC = d.LC || {}; EX = d.EX || {}; D.loc = d.loc || ''; D.extra = d.extra || {}; D.shift = d.shift || ''; EQP = d.EQP || {}; LNK = d.LNK || {}; D.eq = d.eq || null; }
+    else { D.t0 = Date.now(); A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; D.loc = ''; D.extra = {}; D.shift = ''; D.oth = false; EQP = {}; LNK = {}; D.eq = null; }
     await eqInit(); form();
   }
   else if (a == 'ans') { A[t.dataset.id] = t.dataset.v; save(); form(); scrollTo(0, y); }
