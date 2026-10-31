@@ -149,6 +149,17 @@ function fuStats(email,K){
   const open=D.fin.some(f=>d10(f.created_at)<=end&&(f.status==='open'||(f.closed_at&&d10(f.closed_at)>end)));
   const s=(!logged&&!over.length&&!open)?null:Math.max(0,(logged?onTime/logged:1)-0.1*over.length);
   return{na:false,logged,onTime,overdue:over.length,late,over,s}}
+/* نسبت عدم‌انطباق به سؤال: سهم عدم‌انطباق هر چک‌لیست در این ماه برای کارشناس، در برابر میانگین ۶ ماه قبلِ همان چک‌لیست (همهٔ بازدیدکننده‌ها)؛
+   اگر خیلی پایین‌تر از انتظار باشد یعنی احتمالاً بازدید واقعی/دقیق انجام نشده است */
+function ratioRows(email,K){
+  const R=monthRange(K);let k6=K;for(let i=0;i<6;i++)k6=prevK(k6);const a6=monthRange(k6).a;
+  const cur={},base={},label=m=>{const t=(MODS[m]||[]).map(i=>SCHED[i]&&SCHED[i].t).filter(Boolean);return t.length?t.slice(0,2).join(' / '):({D:'بازدید روزانه ایمنی',CT:'چک‌لیست پیمانکاران',CH:'کلرزنی',Q:'بازرسی موردی'}[m]||m)};
+  D.ins.forEach(r=>{const d=new Date(r.created_at).toLocaleDateString('en-CA'),q=Math.max(0,(r.total||0)-(r.na||0));
+    if(d>=R.a&&d<=R.b&&eqm(r.inspector,email)){const o=cur[r.module]||(cur[r.module]={n:0,q:0,nc:0});o.n++;o.q+=q;o.nc+=r.nc||0}
+    else if(d>=a6&&d<R.a){const o=base[r.module]||(base[r.module]={q:0,nc:0});o.q+=q;o.nc+=r.nc||0}});
+  return Object.entries(cur).map(([m,o])=>{const b=base[m],rate=b&&b.q>=60?b.nc/b.q:null,exp=rate==null?null:Math.round(o.q*rate);
+    return{m,label:label(m),n:o.n,q:o.q,nc:o.nc,exp,low:exp!=null&&o.n>=3&&exp>=3&&o.nc<0.4*exp}}).filter(x=>x.q>0).sort((x,y)=>(y.low-x.low)||(y.exp||0)-(x.exp||0));
+}
 function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
   D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
@@ -161,6 +172,7 @@ function core(email,K){
     if(n/a.length>=0.8)flags.push(`${fa(n)} از ${fa(a.length)} ثبت ماژول ${m} دقیقاً نتیجه‌ی یکسان دارد (کل - تأیید - عدم‌انطباق - ن.م.: ${k})`)});
   const ts=mine.map(x=>x.t).sort((a,b)=>a-b);let mx=0;for(let i=0,j=0;i<ts.length;i++){while(ts[i]-ts[j]>30*6e4)j++;mx=Math.max(mx,i-j+1)}
   if(mx>=15)flags.push(`${fa(mx)} ثبت در یک بازه‌ی ۳۰ دقیقه‌ای (ممکن است ثبت دسته‌ای بعد از بازدید باشد)`);
+  ratioRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`«${x.label}»: ${fa(x.n)} چک‌لیست و ${fa(x.q)} سؤال پاسخ‌داده‌شده فقط ${fa(x.nc)} عدم‌انطباق ثبت شده؛ بر اساس سابقهٔ ۶ ماه قبل انتظار حدود ${fa(x.exp)} مورد می‌رفت (احتمال بازدید سطحی از همهٔ بخش‌های محل؛ با کارشناس بررسی شود)`));
   return{R,recs,un,flags}}
 const created=(e,R)=>D.fin.filter(f=>eqm(f.inspector,e)&&d10(f.created_at)>=R.a&&d10(f.created_at)<=R.b).length;
 const _CC={};
@@ -275,6 +287,11 @@ const tv=(e,x)=>{const c=calc(e,x);return c.na?null:c.total};const fm=v=>v==null
 const NAMES={ctr:'چک‌لیست روزانهٔ پیمانکاران حاضر در کارخانه',sched:'رعایت جدول زمان‌بندی چک‌لیست‌ها (با وزن ریسک)',fq:'کیفیت ثبت عدم‌انطباق (عکس و شرح مشخص)',verify:'اعتبارسنجی بازدید توسط مدیر (موارد از‌قلم‌افتاده)',ffu:'پیگیری عدم‌انطباق‌ها با واحد فنی (ثبت نتیجه و موعد بعدی حداکثر ۱۰ روز)',recog:'بازخورد مثبت (تشویق)',warn:'اخطار/تذکر ایمنی ثبت‌شده (حداقل ۳ در ماه)',talk:'آموزش کوتاه در محل (هفته‌ای یک جلسه)',inc:'مشارکت در بررسی حوادث (نظر کارشناس پیش از مدیر)',train:'آموزش (مشترک واحد)',fup:'اقدام اصلاحی و پیگیری طب کار (مشترک واحد)'};
 
 /* روند و ضعیف‌ترین شاخص‌ها: نمودار خطی ۶ ماه + نقشهٔ گرمایی شاخص×ماه + سه شاخص ضعیف‌تر (میانگین ۶ ماه) */
+function ratioBlock(email,K){
+  const L=ratioRows(email,K);if(!L.length)return'';
+  return `<div class="card"><h2>نسبت عدم‌انطباق ثبت‌شده به سؤال چک‌لیست‌ها</h2><div class="mu">انتظار = تعداد سؤال این ماه × نرخ عدم‌انطباق همان چک‌لیست در ۶ ماه قبل. عدد خیلی کمتر از انتظار یعنی بازدید احتمالاً سطحی بوده است.</div>
+   <table style="margin-top:6px"><tr><th>چک‌لیست</th><th class="c">دفعات</th><th class="c">سؤال</th><th class="c">ثبت‌شده</th><th class="c">انتظار</th></tr>${L.map(x=>`<tr><td>${esc(x.label)}</td><td class="c">${fa(x.n)}</td><td class="c">${fa(x.q)}</td><td class="c ${x.low?'bad':''}"><b>${fa(x.nc)}</b></td><td class="c mu">${x.exp==null?'—':fa(x.exp)}</td></tr>`).join('')}</table></div>`;
+}
 function trendBlock(email,K){
   const kk=[];let k=K;for(let i=0;i<6;i++){kk.unshift(k);k=prevK(k)}
   const tot=kk.map(x=>tv(email,x)),pts=tot.map((v,i)=>v==null?null:[i,v]).filter(Boolean);
@@ -318,6 +335,7 @@ function card(email,K){
    <div class="mu" style="margin-top:6px">هر روز تأخیر ${fa(Math.round(CFG.LATE_PEN*100))}٪ از امتیاز آن چک‌لیست کم می‌کند. انجام زودتر از مهلت جریمه ندارد.</div>`:'<div class="mu">برای این ماه در جدول ۱۴۰۵ برنامه‌ای نیست.</div>'}
    ${isMgr()&&c.un.size?`<div class="wa" style="margin-top:6px">⚠ ثبت‌هایی که با هیچ چک‌لیست جدول تطبیق نخوردند: ${[...c.un].map(esc).join('، ')} — اگر چک‌لیست جدول هستند، کلمه‌ی کلیدی‌شان را در KW اضافه کنید.</div>`:''}</div>
   ${c.flags.length?`<div class="card"><h2>الگوهای نیازمند بررسی (بدون کسر امتیاز)</h2><ul>${c.flags.map(f=>`<li class="wa">${f}</li>`).join('')}</ul><div class="mu">زمان ثبت = زمان ورود به سامانه است، نه لزوماً زمان بازدید. پیش از هر اقدام انضباطی با خود کارشناس و فرم‌های کاغذی تطبیق دهید.</div></div>`:''}
+  ${ratioBlock(email,K)}
   ${trendBlock(email,K)}
   <div class="card"><h2>روند ۶ ماه اخیر (خودکنترلی)</h2><table><tr>${trend.map(t=>`<th class="c">${MN[+t[0].slice(5)-1]}${t[0]===nowK?'<span class="mu">جاری</span>':''}</th>`).join('')}</tr>
    <tr>${trend.map((t,i)=>`<td class="c ${cc(t[1])}">${fm(t[1])} ${i&&t[1]!=null&&trend[i-1][1]!=null?(t[1]>trend[i-1][1]?'↗':t[1]<trend[i-1][1]?'↘':''):''}</td>`).join('')}</tr></table></div>`;
