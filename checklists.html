@@ -650,7 +650,7 @@ function letterDoc(title, subject, intro, head, body, closing) {
   const w = window.open('', '_blank'); if (!w) { alert('اجازهٔ باز شدن پنجره را بدهید.'); return; }
   w.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>${title}</title><style>@page{size:A4;margin:14mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:12px;line-height:1.9}.h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:6px}.h b{font-size:15px}table{width:100%;border-collapse:collapse;margin:8px 0}td,th{border:1px solid #000;padding:3px 6px;vertical-align:top;font-size:11px}th{background:#eee}tr{page-break-inside:avoid}.s{margin-top:28px;display:flex;justify-content:flex-end;padding-inline-end:30px}</style></head><body>
     <div class="h"><div><b>شرکت گسترش فناوری خوارزمی</b><br>واحد بهداشت، ایمنی و محیط زیست (HSE)</div><div>شماره: ........................<br>تاریخ: ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))}<br>پیوست: دارد</div></div>
-    <p><b>گیرنده:</b> مدیریت محترم واحد فنی / تدارکات<br><b>موضوع:</b> ${subject}</p><p>با سلام و احترام،</p><p>${intro}</p>
+    <p><b>گیرنده:</b> مدیریت محترم واحد فنی<br><b>موضوع:</b> ${subject}</p><p>با سلام و احترام،</p><p>${intro}</p>
     <table><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr>${body.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>
     <p>${closing}</p><div class="s"><div>با تشکر<br>کارشناس HSE</div></div><script>setTimeout(()=>print(),500)<\/script></body></html>`); w.document.close();
 }
@@ -674,19 +674,19 @@ async function exportOpen(kind, btn) {
     if (kind == 'letter') {
       letterEdit('پیگیری عدم‌انطباق‌های معوق ایمنی و اعلام برنامهٔ اقدام',
         [`در حال حاضر <b>${fa(rows.length)} مورد</b> عدم‌انطباق ایمنی که برای آن‌ها اعلان ثبت شده است، با گذشت مهلت اصلاح (بر اساس شدت هر مورد) تا تاریخ ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))} همچنان باز است. فهرست کامل این موارد شامل کد اعلان، تجهیز، محل و شرح هر مورد در فایل اکسل پیوست آمده است.`,
-          `خواهشمند است برای هر مورد، ستون‌های «وضعیت اعلامی»، «برنامه اقدام» و «مهلت» را در همان فایل تکمیل کرده و ظرف ۳ روز کاری به واحد HSE بازگردانید. در صورت انجام اقدام، وضعیت «انجام شد» را ثبت کنید تا بازدید میدانی و تایید انجام شود.`,
+          `خواهشمند است آن واحد محترم برای هر مورد، سه ستون نارنجی فایل («وضعیت اعلامی»، «برنامه اقدام» و «مهلت») را تکمیل کرده و ظرف ۳ روز کاری به واحد HSE بازگرداند. در صورت انجام اقدام، وضعیت «انجام شد» ثبت شود تا بازدید میدانی و تایید انجام شود.`,
           'پیگیری مجدد موارد باز در روزهای ۱ و ۱۵ هر ماه انجام خواهد شد.']); return;
     }
     await Promise.all([loadXL(), loadEJS()]);
     const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('عدم‌انطباق‌های معوق', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }], pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '1:1', paperSize: 9 } });
-    ws.columns = [{ header: 'شناسه', key: 'id', width: 8, hidden: true }, { header: 'ردیف', key: 'n', width: 6 }, { header: 'اعلان', key: 'no', width: 9 }, { header: 'کد و نام تجهیز', key: 'eq', width: 26 }, { header: 'محل', key: 'loc', width: 20 }, { header: 'شرح عدم‌انطباق', key: 'q', width: 44 }, { header: 'آخرین وضعیت', key: 'st', width: 24 }, { header: 'وضعیت اعلامی واحد فنی', key: 'a', width: 18 }, { header: 'برنامه اقدام', key: 'b', width: 30 }, { header: 'مهلت (مثال ۱۴۰۵/۰۸/۲۰)', key: 'c', width: 16 }];
+    ws.columns = [{ header: 'شناسه', key: 'id', width: 8, hidden: true }, { header: 'ردیف', key: 'n', width: 6 }, { header: 'اعلان', key: 'no', width: 9 }, { header: 'کد و نام تجهیز', key: 'eq', width: 26 }, { header: 'محل', key: 'loc', width: 20 }, { header: 'شرح عدم‌انطباق', key: 'q', width: 44 }, { header: 'وضعیت اعلامی واحد فنی', key: 'a', width: 18 }, { header: 'برنامه اقدام', key: 'b', width: 30 }, { header: 'مهلت (مثال ۱۴۰۵/۰۸/۲۰)', key: 'c', width: 16 }];
     const thin = { style: 'thin', color: { argb: 'FFBFC5CC' } }, bd = { top: thin, left: thin, bottom: thin, right: thin }, al = { vertical: 'middle', horizontal: 'right', wrapText: true, readingOrder: 'rtl' };
-    const hr = ws.getRow(1); hr.height = 30; hr.eachCell((c, k) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: k >= 8 ? 'FFB45309' : 'FF0F766E' } }; c.alignment = { ...al, horizontal: 'center' }; c.border = bd; });
-    rows.forEach((r, i) => { const row = ws.addRow({ id: r.ids.join(','), n: r.n, no: r.no, eq: r.eqc ? eqLine(r) : '', loc: r.loc, q: r.q, st: r.st || r.lf || '', a: '', b: '', c: '' });
-      row.eachCell({ includeEmpty: true }, (c, k) => { c.alignment = k == 2 || k == 3 ? { ...al, horizontal: 'center' } : al; c.border = bd; c.font = { size: 10 }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: k >= 8 ? 'FFFFF7E0' : (i % 2 ? 'FFF3F6F8' : 'FFFFFFFF') } }; });
-      row.getCell(8).dataValidation = { type: 'list', allowBlank: true, formulae: ['"در حال انجام,نیاز به تأمین,انجام شد,برنامه ندارد"'] };
+    const hr = ws.getRow(1); hr.height = 30; hr.eachCell((c, k) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: k >= 7 ? 'FFB45309' : 'FF0F766E' } }; c.alignment = { ...al, horizontal: 'center' }; c.border = bd; });
+    rows.forEach((r, i) => { const row = ws.addRow({ id: r.ids.join(','), n: r.n, no: r.no, eq: r.eqc ? eqLine(r) : '', loc: r.loc, q: r.q, a: '', b: '', c: '' });
+      row.eachCell({ includeEmpty: true }, (c, k) => { c.alignment = k == 2 || k == 3 ? { ...al, horizontal: 'center' } : al; c.border = bd; c.font = { size: 10 }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: k >= 7 ? 'FFFFF7E0' : (i % 2 ? 'FFF3F6F8' : 'FFFFFFFF') } }; });
+      row.getCell(7).dataValidation = { type: 'list', allowBlank: true, formulae: ['"در حال انجام,نیاز به تأمین,انجام شد,برنامه ندارد"'] };
       row.height = Math.max(20, Math.ceil(String(r.q).length / 42) * 15 + 4); });
-    ws.autoFilter = { from: 'A1', to: 'J' + (rows.length + 1) };
+    ws.autoFilter = { from: 'A1', to: 'I' + (rows.length + 1) };
     const gs = wb.addWorksheet('راهنما', { views: [{ rightToLeft: true }] }); gs.columns = [{ width: 100 }];
     ['راهنمای تکمیل توسط واحد فنی', 'ستون‌های نارنجی را پر کنید: وضعیت اعلامی (از فهرست)، برنامه اقدام (چه کاری، توسط چه کسی)، مهلت (تاریخ شمسی مانند 1405/08/20).', 'ردیف‌ها را حذف یا جابه‌جا نکنید؛ فایل تکمیل‌شده به HSE بازگردانده می‌شود.'].forEach((t, i) => { const c = gs.addRow([t]).getCell(1); c.alignment = al; if (!i) c.font = { bold: true, size: 13 }; });
     const buf = await wb.xlsx.writeBuffer(), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); a.download = 'follow-up-' + todayIso() + '.xlsx'; document.body.appendChild(a); a.click(); a.remove();
