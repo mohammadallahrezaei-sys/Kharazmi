@@ -602,7 +602,7 @@ function letterEdit(subject, paras) {
   w.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>نامه پیگیری</title><style>@page{size:A4;margin:16mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:13px;line-height:2.1;max-width:780px;margin:0 auto;padding:12px}.bar{position:sticky;top:0;background:#fffbe6;border:1px solid #f0d36b;padding:8px;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.bar button{font:inherit;padding:4px 14px;cursor:pointer}.h{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:6px}.h b{font-size:15px}#L{outline:none}#L:focus{background:#fcfcf5}.s{margin-top:28px;padding-inline-end:30px;text-align:left}@media print{.bar{display:none}#L:focus{background:none}}</style></head><body>
     <div class="bar"><span>متن قابل ویرایش است؛ روی هر قسمت کلیک و تغییر دهید.</span><button onclick="print()">🖨 چاپ / PDF</button><button id="cp">📋 کپی متن برای ایمیل</button></div>
     <div id="L" contenteditable="true"><div class="h"><div><b>شرکت گسترش فناوری خوارزمی</b><br>واحد بهداشت، ایمنی و محیط زیست (HSE)</div><div>شماره: ........................<br>تاریخ: ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))}<br>پیوست: فایل اکسل</div></div>
-    <p><b>گیرنده:</b> مدیریت محترم واحد فنی<br><b>موضوع:</b> ${subject}</p><p>با سلام و احترام،</p>${paras.map(p => '<p>' + p + '</p>').join('')}<div class="s">با تشکر<br>کارشناس HSE</div></div>
+    <p><b>گیرنده:</b> واحد فنی<br><b>موضوع:</b> ${subject}</p><p>با سلام و احترام،</p>${paras.map(p => '<p>' + p + '</p>').join('')}<div class="s">با تشکر<br>کارشناس HSE</div></div>
     <script>document.getElementById('cp').onclick=function(){var t=document.getElementById('L').innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){alert('متن کپی شد')},function(){var r=document.createRange();r.selectNodeContents(document.getElementById('L'));var q=getSelection();q.removeAllRanges();q.addRange(r);document.execCommand('copy');alert('متن کپی شد')})}<\/script></body></html>`); w.document.close();
 }
 /* شرح تمیز عدم‌انطباق: برخی ثبت‌ها متن مرکب دارند («تجهیز: … — ثبت: … — وضعیت اعلان: … — سؤال چک‌لیست: …»)؛
@@ -650,7 +650,7 @@ function letterDoc(title, subject, intro, head, body, closing) {
   const w = window.open('', '_blank'); if (!w) { alert('اجازهٔ باز شدن پنجره را بدهید.'); return; }
   w.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>${title}</title><style>@page{size:A4;margin:14mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:12px;line-height:1.9}.h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:6px}.h b{font-size:15px}table{width:100%;border-collapse:collapse;margin:8px 0}td,th{border:1px solid #000;padding:3px 6px;vertical-align:top;font-size:11px}th{background:#eee}tr{page-break-inside:avoid}.s{margin-top:28px;display:flex;justify-content:flex-end;padding-inline-end:30px}</style></head><body>
     <div class="h"><div><b>شرکت گسترش فناوری خوارزمی</b><br>واحد بهداشت، ایمنی و محیط زیست (HSE)</div><div>شماره: ........................<br>تاریخ: ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))}<br>پیوست: دارد</div></div>
-    <p><b>گیرنده:</b> مدیریت محترم واحد فنی<br><b>موضوع:</b> ${subject}</p><p>با سلام و احترام،</p><p>${intro}</p>
+    <p><b>گیرنده:</b> واحد فنی<br><b>موضوع:</b> ${subject}</p><p>با سلام و احترام،</p><p>${intro}</p>
     <table><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr>${body.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>
     <p>${closing}</p><div class="s"><div>با تشکر<br>کارشناس HSE</div></div><script>setTimeout(()=>print(),500)<\/script></body></html>`); w.document.close();
 }
@@ -674,7 +674,7 @@ async function exportOpen(kind, btn) {
     if (kind == 'letter') {
       letterEdit('پیگیری عدم‌انطباق‌های معوق ایمنی و اعلام برنامهٔ اقدام',
         [`در حال حاضر <b>${fa(rows.length)} مورد</b> عدم‌انطباق ایمنی که برای آن‌ها اعلان ثبت شده است، با گذشت مهلت اصلاح (بر اساس شدت هر مورد) تا تاریخ ${fa(new Date().toLocaleDateString('fa-IR-u-nu-latn'))} همچنان باز است. فهرست کامل این موارد شامل کد اعلان، تجهیز، محل و شرح هر مورد در فایل اکسل پیوست آمده است.`,
-          `خواهشمند است آن واحد محترم برای هر مورد، سه ستون نارنجی فایل («وضعیت اعلامی»، «برنامه اقدام» و «مهلت») را تکمیل کرده و ظرف ۳ روز کاری به واحد HSE بازگرداند. در صورت انجام اقدام، وضعیت «انجام شد» ثبت شود تا بازدید میدانی و تایید انجام شود.`,
+          `خواهشمند است آن واحد برای هر مورد، سه ستون نارنجی فایل («وضعیت اعلامی»، «برنامه اقدام» و «مهلت») را تکمیل کرده و ظرف ۳ روز کاری به واحد HSE بازگرداند. در صورت انجام اقدام، وضعیت «انجام شد» ثبت شود تا بازدید میدانی و تایید انجام شود.`,
           'پیگیری مجدد موارد باز در روزهای ۱ و ۱۵ هر ماه انجام خواهد شد.']); return;
     }
     await Promise.all([loadXL(), loadEJS()]);
