@@ -310,6 +310,9 @@ async function buildSuggest(){
     g(`work_log?select=id,title,description,status,category,work_date&work_date=gte.${A}&work_date=lte.${R.b}&order=work_date.asc`).catch(()=>[]),
     g(`findings?select=id,question,note,location,category,responsible,due_date,created_at,notice_code,equipment_code,equipment_title&status=eq.open&module=neq.MED&order=created_at.asc&limit=300`).catch(()=>[])]);
   await attachNotices([...fin,...opn],g);
+  /* موارد واردشده به‌صورت دسته‌ای که شرح مشخصی ندارند (مثل «ورود دسته‌ای از گزارش…») در پیش‌نویس نمی‌آیند */
+  const real=x=>!isGenericDesc(descFull(x).q);
+  for(const a of [fin,opn]){const k=a.filter(real);a.length=0;a.push(...k)}
   const place=f=>clean(String(f.location||'').split(' - ')[0])||'';
   const iss=x=>clean(String((x.note&&x.note.length>5?x.note:x.question)||'').split('|')[0]).slice(0,150);
   /* ۱) ارسال مستندات دوره‌ای به مرکز بهداشت */
