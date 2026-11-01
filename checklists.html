@@ -675,25 +675,18 @@ async function fuMakeXls(rows) {
     ['راهنمای تکمیل توسط واحد فنی', 'ستون‌های نارنجی را پر کنید: وضعیت اعلامی (از فهرست)، برنامه اقدام (چه کاری، توسط چه کسی)، مهلت (تاریخ شمسی مانند 1405/08/20).', 'ردیف‌ها را حذف یا جابه‌جا نکنید؛ فایل تکمیل‌شده به HSE بازگردانده می‌شود.'].forEach((t, i) => { const c = gs.addRow([t]).getCell(1); c.alignment = al; if (!i) c.font = { bold: true, size: 13 }; });
     const buf = await wb.xlsx.writeBuffer(), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); a.download = 'follow-up-' + todayIso() + '.xlsx'; document.body.appendChild(a); a.click(); a.remove();
 }
-/* انتخاب کارشناس: فهرست موارد معوق؛ هر چه تیک نخورد در نامه و اکسل نمی‌آید */
+/* همهٔ موارد معوقِ دارای کد اعلان بدون انتخاب در نامه و اکسل می‌آیند؛ فقط یادآوری بررسی برای کارشناس */
 function fuPick(rows) {
   const o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);overflow:auto;padding:12px';
-  const t0 = todayIso(), late = r => Math.max(0, Math.round((new Date(t0 + 'T12:00:00Z') - new Date(r.dd + 'T12:00:00Z')) / 864e5));
-  o.innerHTML = `<div class="q" style="max-width:760px;margin:20px auto;background:var(--card);" dir="rtl"><b>📤 موارد معوق برای اعلام به واحد فنی (${fa(rows.length)} مورد)</b>
-    <small style="display:block;margin:4px 0 8px;">مواردی را که فعلاً نباید اعلام شوند از تیک خارج کنید؛ سپس نامه و/یا اکسل را بسازید.</small>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;"><button class="chip" id="fpAll">همه</button><button class="chip" id="fpNone">هیچ‌کدام</button><input id="fpQ" placeholder="🔍 جستجو در شرح، تجهیز، محل" style="flex:1;min-width:160px;"><span id="fpN"></span></div>
-    <div id="fpL" style="max-height:55vh;overflow:auto;border:1px solid var(--bd);border-radius:8px;">${rows.map((r, i) => `<label data-fp="${i}" style="display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-bottom:1px solid var(--bd);font-size:13px;cursor:pointer;"><input type="checkbox" checked data-i="${i}" style="margin-top:4px;"><span style="flex:1;"><b dir="ltr">${esc(r.no)}</b> · ${esc(r.q)}<br><small style="color:var(--mu);">${esc(r.eqc ? eqLine(r) : 'تجهیز نامشخص')} · ${esc(r.loc || '—')} · ${fa(late(r))} روز از مهلت گذشته</small></span></label>`).join('')}</div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="chip" id="fpX">انصراف</button><span style="flex:1"></span><button class="chip on" id="fpXls">⬇ ایجاد اکسل</button><button class="chip on" id="fpLet">✉ ایجاد نامه</button></div></div>`;
+  o.innerHTML = `<div class="q" style="max-width:520px;margin:60px auto;background:var(--card);" dir="rtl"><b>📤 نامه و اکسل پیگیری برای واحد فنی</b>
+    <p style="margin:10px 0;font-size:13px;line-height:2;">${fa(rows.length)} عدم‌انطباق معوق (دارای کد اعلان) در نامه و اکسل می‌آید.</p>
+    <div style="border:1px solid var(--wa,#d97706);background:rgba(217,119,6,.1);border-radius:10px;padding:10px;font-size:13px;line-height:2;">⚠ <b>قبل از ارسال به واحد فنی</b>، همهٔ ردیف‌های اکسل را یک‌به‌یک بررسی کنید و از صحت اطلاعات مطمئن شوید. ممکن است عدم‌انطباقی در عمل اصلاح شده و به‌اشتباه باز مانده باشد؛ چنین مواردی را قبل از ارسال ببندید یا از فایل حذف کنید.</div>
+    <div style="display:flex;gap:8px;margin-top:12px;"><button class="chip" id="fpX">انصراف</button><span style="flex:1"></span><button class="chip on" id="fpGo">✉ ایجاد نامه و اکسل</button></div></div>`;
   document.body.appendChild(o);
-  const cbs = () => [...o.querySelectorAll('input[data-i]')], chosen = () => cbs().filter(c => c.checked).map(c => rows[+c.dataset.i]).map((r, k) => ({ ...r, n: k + 1 })),
-    upd = () => { o.querySelector('#fpN').textContent = fa(cbs().filter(c => c.checked).length) + ' انتخاب‌شده'; };
-  o.addEventListener('change', upd); upd();
-  o.querySelector('#fpAll').onclick = () => { cbs().forEach(c => { if (!c.closest('label').hidden) c.checked = true; }); upd(); };
-  o.querySelector('#fpNone').onclick = () => { cbs().forEach(c => { if (!c.closest('label').hidden) c.checked = false; }); upd(); };
-  o.querySelector('#fpQ').oninput = e => { const q = e.target.value.trim(); o.querySelectorAll('label[data-fp]').forEach(l => { l.hidden = !!q && !l.textContent.includes(q); }); };
   o.querySelector('#fpX').onclick = () => o.remove();
-  o.querySelector('#fpLet').onclick = () => { const R = chosen(); if (!R.length) return alert('موردی انتخاب نشده است.'); fuMakeLetter(R); };
-  o.querySelector('#fpXls').onclick = async e => { const R = chosen(); if (!R.length) return alert('موردی انتخاب نشده است.'); const b = e.target, t = b.textContent; b.textContent = '… در حال ساخت'; b.disabled = true; try { await fuMakeXls(R); } catch (er) { alert(er.message); } finally { b.textContent = t; b.disabled = false; } };
+  o.querySelector('#fpGo').onclick = async e => { const b = e.target, t = b.textContent; b.textContent = '… در حال ساخت'; b.disabled = true;
+    const R = rows.map((r, k) => ({ ...r, n: k + 1 }));
+    try { fuMakeLetter(R); await fuMakeXls(R); o.remove(); } catch (er) { alert(er.message); b.textContent = t; b.disabled = false; } };
 }
 async function exportOpen(kind, btn) {
   const old = btn.textContent; btn.textContent = '… در حال آماده‌سازی'; btn.disabled = true;
