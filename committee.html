@@ -171,7 +171,7 @@ function newMeeting(){
 /* بهبود جمله‌بندی با هوش مصنوعی (تابع Supabase polish-text)؛ متن اصلی برای بازگشت در حافظه می‌ماند، نه در دیتابیس */
 const ORIG=new WeakMap();
 async function polishTexts(arr){
-  const tk=await HSEAuth.token(),r=await fetch(SB+'/functions/v1/polish-text',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk,apikey:'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu'},body:JSON.stringify({texts:arr})});
+  const tk=await HSEAuth.token();let r;try{r=await fetch(SB+'/functions/v1/polish-text',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk,apikey:'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu'},body:JSON.stringify({texts:arr})}) }catch(e){throw new Error('اتصال به تابع هوش مصنوعی برقرار نشد؛ احتمالاً تابع polish-text هنوز در Supabase ساخته و Deploy نشده است (راهنما: supabase/functions/polish-text/README.md)')}
   let d={};try{d=await r.json()}catch(e){}
   if(!r.ok||!d.texts)throw new Error(r.status===404?'تابع polish-text در Supabase ساخته نشده است (راهنما: supabase/functions/polish-text/README.md)':(d.error||'خطا در اتصال'));
   return d.texts}
