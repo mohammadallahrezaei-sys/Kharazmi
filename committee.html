@@ -276,11 +276,31 @@ function monthOpts(){const ks=HSE.monthKeys(14);return ks.map(k=>`<option value=
 const pad2=n=>String(n).padStart(2,'0');
 const docMonth=d=>{const m=/^(\d{4})\/(\d{1,2})/.exec(en(d.letter_date||''));if(m)return +m[2];const i=HSE.MN.findIndex(n=>(d.period||'').includes(n));return i<0?0:i+1};
 const SGK={done:'اقدام شد',ongoing:'در دست اقدام',new:'مصوبه'};
+/* شرح تمیز عدم‌انطباق (مثل اکسل واحد فنی): متن مرکب تجزیه می‌شود و برای ثبت‌های واردشده از گزارش، شرح از جدول اعلان‌ها می‌آید */
+function descOf(x){
+  const raw=String(x.note||x.question||'');let eqc=x.equipment_code&&x.equipment_code!='0'?x.equipment_code:'',eqt=x.equipment_title||'';
+  const segs=raw.split(/\s+[—–]\s+|\s*\|\s*/).map(t=>t.trim()).filter(Boolean),keep=[];
+  segs.forEach(t=>{let m;
+    if((m=/^تجهیز\s*[:：]\s*(.+)$/.exec(t))){const mm=/^(.*?)\s*\(([A-Za-z0-9._\-]+)\)\s*$/.exec(m[1]);if(mm){eqt=eqt||mm[1].trim();eqc=eqc||mm[2]}else eqt=eqt||m[1].trim();return}
+    if(/^(ثبت|وضعیت اعلان|اعلان|تاریخ|شماره اعلان)\s*[:：]/.test(t))return;
+    keep.push(t.replace(/^(سؤال|سوال)\s*چک[‌ ]?لیست\s*[:：]\s*/,''))});
+  let q=(keep.join(' — ')||raw).trim();
+  q=q.replace(/\s*\(([^()]+)\)\s*$/,(all,p)=>(eqt&&(eqt.includes(p.trim())||p.includes(eqt)))||(x.location&&String(x.location).includes(p.trim()))?'':all).trim();
+  if(!eqc)eqt='';return{q,eqc,eqt}}
+const isGenericDesc=q=>!q||/^\s*اعلان\s*[\d۰-۹]+/.test(q)||/^ورود دسته‌ای/.test(q);
+function descFull(x){let d=descOf(x);
+  if(isGenericDesc(d.q)&&x._nt&&x._nt.description){const n=descOf({note:x._nt.description,equipment_code:x.equipment_code,equipment_title:x.equipment_title});if(n.q)d={q:n.q,eqc:d.eqc||n.eqc,eqt:d.eqt||n.eqt}}return d}
+async function attachNotices(rows,g){const cs=[...new Set(rows.map(r=>String(r.notice_code||'').trim()).filter(c=>c&&c.toUpperCase()!=='NOTICED'))],NT={};
+  try{for(let i=0;i<cs.length;i+=100)((await g('notices?select=*&no=in.('+cs.slice(i,i+100).map(encodeURIComponent).join(',')+')'))||[]).forEach(n=>NT[String(n.no)]=n)}catch(e){}
+  rows.forEach(x=>{const n=NT[String(x.notice_code||'').trim()];if(!n)return;x._nt=n;if(!x.equipment_code&&n.equipment_code)x.equipment_code=n.equipment_code;if(!x.equipment_title)x.equipment_title=n.equipment_title||n.equipment_name||n.equipment||''})}
+/* جملهٔ کامل برای صورتجلسه: شرح مشخص، کد و نام تجهیز، محل دقیق و کد اعلان */
+function nclause(x){const d=descFull(x),loc=clean(String(x.location||'').replace(/\s+-\s+/g,'، ')),no=String(x.notice_code||'').trim(),nn=no&&no.toUpperCase()!=='NOTICED'?no:'';
+  return `«${clean(d.q).slice(0,150)}»${d.eqc?` مربوط به تجهیز ${d.eqc}${d.eqt?' ('+clean(d.eqt)+')':''}`:''}${loc?' در '+loc:''}${nn?' (اعلان '+fa(nn)+')':''}`}
 async function buildSuggest(){
   const K=SG.K,R=HSE.monthRange(K),A=R.a,B=nextISO(R.b),pre=K.replace('-','/')+'/',used=usedRefs(),g=HSE.getAll,out=[];
   const jy=+K.slice(0,4),jm=+K.slice(5,7),nm=jm===12?1:jm+1,ny=jm===12?jy+1:jy,nEnd=ny+'/'+pad2(nm)+'/'+pad2(lastDay(ny,nm));
   const [fin,tr,ta,eqi,eq,ins,cd,wl,opn]=await Promise.all([
-    g(`findings?select=id,question,note,location,module,category,responsible,notice_code&status=eq.closed&module=neq.MED&closed_at=gte.${A}T00:00:00%2B03:30&closed_at=lt.${B}T00:00:00%2B03:30&order=category.asc`).catch(()=>[]),
+    g(`findings?select=id,question,note,location,module,category,responsible,notice_code,equipment_code,equipment_title&status=eq.closed&module=neq.MED&closed_at=gte.${A}T00:00:00%2B03:30&closed_at=lt.${B}T00:00:00%2B03:30&order=category.asc`).catch(()=>[]),
     g(`trainings?select=id,title,training_date,duration_hours,training_type&training_date=gte.${A}&training_date=lte.${R.b}&order=training_date.asc`).catch(()=>[]),
     g('training_attendees?select=training_id').catch(()=>[]),
     g(`equipment_inspections?select=equipment_code,inspected_on,result&inspected_on=like.${encodeURIComponent(pre)}*`).catch(()=>[]),
@@ -288,7 +308,8 @@ async function buildSuggest(){
     g(`inspections?select=id,module,created_at&created_at=gte.${A}T00:00:00%2B03:30&created_at=lt.${B}T00:00:00%2B03:30`).catch(()=>[]),
     g(`hse_cards?select=id,card_type,status,unit,description,hse_note&card_date=gte.${A}&card_date=lte.${R.b}&status=eq.done`).catch(()=>[]),
     g(`work_log?select=id,title,description,status,category,work_date&work_date=gte.${A}&work_date=lte.${R.b}&order=work_date.asc`).catch(()=>[]),
-    g(`findings?select=id,question,note,location,category,responsible,due_date,created_at&status=eq.open&module=neq.MED&order=created_at.asc&limit=300`).catch(()=>[])]);
+    g(`findings?select=id,question,note,location,category,responsible,due_date,created_at,notice_code,equipment_code,equipment_title&status=eq.open&module=neq.MED&order=created_at.asc&limit=300`).catch(()=>[])]);
+  await attachNotices([...fin,...opn],g);
   const place=f=>clean(String(f.location||'').split(' - ')[0])||'';
   const iss=x=>clean(String((x.note&&x.note.length>5?x.note:x.question)||'').split('|')[0]).slice(0,150);
   /* ۱) ارسال مستندات دوره‌ای به مرکز بهداشت */
@@ -305,14 +326,14 @@ async function buildSuggest(){
   /* ۲) عدم‌انطباق‌های رفع‌شده */
   const groups=new Map();fin.filter(f=>!used.has('f:'+f.id)).forEach(f=>{const k=SG.group?(f.category||'عمومی')+'|'+place(f):'f'+f.id;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(f)});
   groups.forEach(l=>{const f=l[0],loc=place(f),cat=f.category||'';
-    const text=l.length===1?`عدم‌انطباق «${iss(f)}»${loc?' در '+loc:''} برطرف شد.`:`${fa(l.length)} مورد عدم‌انطباق${loc?' در '+loc:''}${cat?' ('+cat+')':''} برطرف شد: ${l.map(x=>'«'+iss(x)+'»').join('؛ ')}.`;
+    const text=l.length===1?`عدم‌انطباق ${nclause(f)} برطرف شد.`:`${fa(l.length)} مورد عدم‌انطباق${loc?' در '+loc:''}${cat?' ('+cat+')':''} برطرف شد: ${l.map(x=>{const d=descFull(x);return '«'+clean(d.q).slice(0,150)+'»'+(d.eqc?' (تجهیز '+d.eqc+')':'')}).join('؛ ')}.`;
     out.push({type:'عدم‌انطباق رفع‌شده',kind:'done',t:{done:text},actor:[...new Set(l.map(x=>x.responsible).filter(Boolean))].slice(0,2).join('/')||'فنی',ref:l.map(x=>'f:'+x.id).join(','),n:l.length})});
   /* ۳) گزارش کارهای روزانه */
   wl.filter(w=>!used.has('w:'+w.id)).forEach(w=>{const tt=clean(w.title),ds=clean(w.description).slice(0,150),body=tt+(ds?' — '+ds:'');
     out.push({type:'گزارش کار روزانه',kind:w.status==='done'?'done':'ongoing',t:{done:body+(w.status==='done'?'.':' (انجام شد).'),ongoing:`${body} (در دست اقدام).`},actor:'HSE',ref:'w:'+w.id,n:1})});
   /* ۴) عدم‌انطباق‌های باز → در دست اقدام / مصوبهٔ جدید (مهلت‌گذشته‌ها و قدیمی‌ترین‌ها اول) */
   const iso=HSEToday(),od=x=>x.due_date&&x.due_date<iso?0:1;
-  opn.filter(f=>!used.has('o:'+f.id)).sort((a,b)=>od(a)-od(b)||String(a.created_at).localeCompare(b.created_at)).slice(0,12).forEach((f,i)=>{const loc=place(f),dsc=`«${iss(f)}»${loc?' در '+loc:''}`;
+  opn.filter(f=>!used.has('o:'+f.id)).sort((a,b)=>od(a)-od(b)||String(a.created_at).localeCompare(b.created_at)).slice(0,12).forEach((f,i)=>{const dsc=nclause(f);
     out.push({type:'عدم‌انطباق باز',kind:i<3?'ongoing':'new',t:{ongoing:`رفع عدم‌انطباق ${dsc} توسط واحد فنی در دست پیگیری است.`,new:`رفع عدم‌انطباق ${dsc} تا مهلت مقرر.`,done:`عدم‌انطباق ${dsc} برطرف شد.`},actor:f.responsible||'فنی',ref:'o:'+f.id,n:1,dl:nEnd})});
   /* ۵) آموزش‌ها */
   tr.filter(x=>!used.has('t:'+x.id)).forEach(x=>{const n=ta.filter(a=>a.training_id===x.id).length;
