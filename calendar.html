@@ -167,7 +167,7 @@ function build(K){
     /* چرخهٔ پیگیری: همهٔ عدم‌انطباق‌های باز با موعد یکسان (۱ و ۱۵ شمسی) یک کار تجمیعی می‌شوند */
     const fuBy={};X.fu.forEach(f=>{if(!inM(f.due)&&!(f.due<a&&K===nowK))return;const k=f.due<a?'overdue':f.due;(fuBy[k]=fuBy[k]||[]).push(f)});
     Object.entries(fuBy).forEach(([k,l])=>{const due=k==='overdue'?l.map(f=>f.due).sort()[0]:k,dt=k==='overdue'?today:k;
-      T.push({id:'FU'+k,date:adjust(dt<a?a:dt,days),due,t:'پیگیری '+fa(l.length)+' عدم‌انطباق باز با واحد فنی',sub:'اکسل + نامه به فنی، ثبت برنامه/مهلت فنی، بازدید موارد «انجام‌شده» · مهلت: '+lbl(due),done:false,kind:'score',go:'checklists.html#cycle'})});
+      T.push({id:'FU'+k,date:adjust(dt<a?a:dt,days),due,t:'پیگیری '+fa(l.length)+' عدم‌انطباق باز با واحد فنی',sub:'اکسل + نامه به فنی، ثبت برنامه/مهلت فنی، بازدید موارد «انجام‌شده» · مهلت: '+lbl(due),done:false,kind:'score',go:'tech_followup.html'})});
     X.fin.forEach(x=>{const due=x.due_date&&String(x.due_date).slice(0,10),asg=x.assigned_to&&x.status==='open'&&x.assigned_to.toLowerCase()===String(HSEAuth.role==='expert'?HSEAuth.email:Object.keys(HSEAuth.EXPERTS||{})[0]||'').toLowerCase(),txt=String(x.note||x.question||'').split('|')[0].trim().slice(0,60);
       if(asg)T.push({id:'AS'+x.id,date:adjust(due&&inM(due)?due:today<a?a:today>b?b:today,days),due:due||today,t:'ارجاع مدیر: '+txt,sub:'شاخص «پیگیری و بستن»',done:false,kind:'score',go:'checklists.html'});
       else if(due&&inM(due))T.push({id:'FN'+x.id,date:adjust(due,days),due,t:'بستن عدم‌انطباق: '+txt,sub:'مهلت: '+lbl(due),done:x.status==='closed',kind:'score',go:'checklists.html'})});

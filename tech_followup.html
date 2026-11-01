@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js"></script>
+<script src="cycle.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>پیگیری با واحد فنی - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.w{max-width:960px;margin:0 auto;padding:14px}
+.top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.mu{color:var(--mu);font-size:12px}
+.sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:12px 0}
+.sm div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px;text-align:center}.sm b{display:block;font-size:22px}
+.act{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.b2{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:9px 14px;font:inherit;font-size:13px;cursor:pointer}
+.b2.p{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--card);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+th,td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:right;vertical-align:top}th{background:var(--soft,#f1f5f9);font-size:12px}
+.bad{color:var(--bad)}.wa{color:var(--wa)}.ok{color:var(--ok)}
+.q{border:1px solid var(--bd);border-radius:12px;padding:12px}.chip{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}.chip.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+small{display:block}
+</style>
+</head>
+<body>
+<div class="w">
+ <div class="top"><div><h1 style="margin:0">📤 پیگیری عدم‌انطباق‌ها با واحد فنی</h1><div class="mu">فقط موارد باز دارای کد اعلان؛ معوق بر اساس مهلت اصلاحِ هر شدت</div></div>
+  <div class="row" style="display:flex;gap:8px"><a href="checklists.html" class="b2">← چک‌لیست‌ها</a><a href="index.html" class="b2">صفحه اصلی</a></div></div>
+ <div class="sm" id="sm"></div>
+ <div class="act"><button class="b2 p" id="bMk">✉ نامه و اکسل پیگیری برای فنی</button><button class="b2" id="bIm">⬆ ثبت پاسخ فنی از اکسل</button><button class="b2" id="bRej">❌ گزارش عدم‌تایید برای فنی</button></div>
+ <div id="lst"><div class="mu">در حال بارگذاری…</div></div>
+</div>
+<script src="tech_followup.js"></script>
+<script>
+const URL_='https://priopguwfjawybffarhd.supabase.co',KEY='sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+let tok=KEY,mail='کاربر سامانه';
+const AH=()=>({apikey:KEY,Authorization:'Bearer '+tok});
+async function api(p,o={}){const r=await fetch(URL_+'/rest/v1/'+p,{...o,headers:{...AH(),'Content-Type':'application/json',Prefer:'return=representation'}});
+  if(r.status==401)throw new Error('دسترسی غیرمجاز (401). دوباره وارد شوید.');if(!r.ok)throw new Error(await r.text());return r.json()}
+const $=s=>document.querySelector(s),fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fd=d=>new Date(d).toLocaleDateString('fa-IR');
+const isoAdd=(iso,n)=>new Date(new Date(iso+'T12:00:00Z').getTime()+n*864e5).toISOString().slice(0,10);
+const todayIso=()=>new Date().toLocaleDateString('en-CA');
+const SEVN={1:'کم',2:'متوسط',3:'زیاد',4:'بحرانی'},SLA={1:30,2:14,3:3,4:1},KL={follow:'پیگیری',claim:'فنی اعلام انجام داد',rejected:'❌ عدم تایید'};
+let DATA=[];
+async function loadFinds(){
+  try{DATA=await cycleData()}catch(e){$('#lst').innerHTML='<div class="q bad">خطا: '+esc(e.message)+'</div>';return}
+  const t0=todayIso(),late=DATA.filter(r=>r.dd&&r.dd<t0),claim=DATA.filter(r=>r.l&&r.l.kind=='claim').length,rej=DATA.filter(r=>r.l&&r.l.kind=='rejected').length;
+  $('#sm').innerHTML=`<div><b>${fa(DATA.length)}</b>باز با کد اعلان</div><div><b class="${late.length?'bad':'ok'}">${fa(late.length)}</b>معوق (مهلت گذشته)</div><div><b class="${claim?'wa':''}">${fa(claim)}</b>فنی اعلام انجام داده؛ منتظر بازدید</div><div><b class="${rej?'bad':''}">${fa(rej)}</b>عدم تایید</div>`;
+  const rows=byNotice(late);
+  $('#lst').innerHTML=rows.length?`<h3 style="margin:8px 0">موارد معوق (${fa(rows.length)} اعلان) — پیش‌نمایش آنچه در نامه و اکسل می‌آید</h3><table><tr><th>اعلان</th><th>تجهیز</th><th>محل</th><th>شرح عدم‌انطباق</th><th>تأخیر (روز)</th></tr>${rows.map(r=>`<tr><td>${esc(r.no)}</td><td>${esc(eqLine(r))}</td><td>${esc(r.loc)}</td><td>${esc(r.q)}</td><td>${fa(Math.round((new Date(t0)-new Date(r.dd))/864e5))}</td></tr>`).join('')}</table>`:'<div class="q ok">هیچ مورد معوقی با کد اعلان وجود ندارد.</div>';
+}
+$('#bMk').onclick=e=>exportOpen('pick',e.target);
+$('#bRej').onclick=e=>exportOpen('rej',e.target);
+$('#bIm').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='.xlsx,.xls';i.onchange=()=>i.files[0]&&importReplies(i.files[0]);i.click()};
+HSEAuth.ready.then(async()=>{mail=HSEAuth.email||mail;try{tok=await HSEAuth.token()||KEY}catch(e){}loadFinds()});
+</script>
+</body>
+</html>
