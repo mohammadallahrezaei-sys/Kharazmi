@@ -57,7 +57,8 @@ const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد'
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 const nm=s=>NAME_MAP[s]||OWN_NAMES[String(s||'').toLowerCase()]||(s===ME?'خودم':s);
 /* فهرست افراد: کارشناسان + خود مدیر (اگر در فهرست کارشناسان نیست) */
-const people=()=>{const a=Object.keys(NAME_MAP);if(ME&&!a.some(e=>eqm(e,ME)))a.unshift(ME);return a};
+/* مدیر واحد (محمد اله رضایی) کارشناس نیست: فقط شاخص‌های مدیر برایش محاسبه می‌شود و در فهرست کارشناسان نمی‌آید */
+const people=()=>{const a=Object.keys(NAME_MAP);if(ME&&!(HSEAuth.MANAGERS||[]).some(m=>eqm(m,ME))&&!a.some(e=>eqm(e,ME)))a.unshift(ME);return a};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PFU=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',timeZone:'UTC'});
 const key=p=>p.find(x=>x.type==='year').value+'-'+String(+p.find(x=>x.type==='month').value).padStart(2,'0');
