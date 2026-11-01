@@ -433,7 +433,7 @@ function printWin(html,title){
   /* حاشیهٔ صفر صفحه: سرصفحه/پاصفحهٔ مرورگر (تاریخ، ساعت، about:blank، شماره صفحه) چاپ نمی‌شود؛ حاشیهٔ ۹ میلی‌متر با جدول wr ساخته می‌شود */
   @page{size:A4;margin:0}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:13px;color:#000;margin:0;line-height:1.7}
   .c{text-align:center}table{width:100%;border-collapse:collapse}td,th{border:1px solid #000;padding:7px 8px;vertical-align:middle;font-size:13px}th{background:#f1f1f1;font-weight:700;text-align:center}
-  .k{background:#f7f7f7;font-weight:700;text-align:center}.ir td{height:62px}.ir .d{text-align:right;line-height:1.8}.b{font-weight:700}
+  .k{background:#f7f7f7;font-weight:700;text-align:center}.kc{border-top:0;border-bottom:0}.kc.kf{border-top:1px solid #000}.kc.kl{border-bottom:1px solid #000}.ir td{height:62px}.ir .d{text-align:right;line-height:1.8}.b{font-weight:700}
   .a .nm{height:120px;font-weight:700}.n td{padding:8px 10px}tr{page-break-inside:avoid}
   table.wr{border:0}table.wr>thead>tr>td,table.wr>tbody>tr>td,table.wr>tfoot>tr>td{border:0;padding:0}table.wr>tbody>tr{page-break-inside:auto}table.wr .sp{height:9mm}table.wr>tbody>tr>td{padding:0 9mm}
   </style></head><body><table class="wr"><thead><tr><td><div class="sp"></div></td></tr></thead><tbody><tr><td>${html}</td></tr></tbody><tfoot><tr><td><div class="sp"></div></td></tr></tfoot></table><script>setTimeout(()=>window.print(),400)<\/script></body></html>`);w.document.close()}
@@ -441,7 +441,7 @@ function minutesHTML(m,items,workers){
   const L=s=>en(String(s==null?'':s));          /* فرم کاغذی اصلی با ارقام لاتین نوشته شده */
   const rowsFor=k=>{const l=items.filter(x=>x.kind===k);const t=KINDS.find(z=>z[0]===k)[1];
     if(!l.length)return`<tr class="ir"><td class="k">${t}</td><td colspan="5"></td></tr>`;
-    return l.map((x,i)=>`<tr class="ir">${i===0?`<td class="k" rowspan="${l.length}">${t}</td>`:''}<td class="d">${i+1}- ${esc(x.text)}</td><td class="c">${esc(x.actor||'')}</td><td class="c">${esc(x.follower||'')}</td><td class="c b">${L(x.deadline||'')}</td><td class="c">${esc(x.result==='مصوبه'?'':x.result||'')}</td></tr>`).join('')};
+    return l.map((x,i)=>`<tr class="ir"><td class="k kc ${i===0?'kf':''} ${i===l.length-1?'kl':''}">${i===0?t:''}</td><td class="d">${i+1}- ${esc(x.text)}</td><td class="c">${esc(x.actor||'')}</td><td class="c">${esc(x.follower||'')}</td><td class="c b">${L(x.deadline||'')}</td><td class="c">${esc(x.result==='مصوبه'?'':x.result||'')}</td></tr>`).join('')};
   const att=m.att||{};
   return`<div class="c" style="line-height:1.9"><b>بسمه تعالی</b><br><b style="font-size:15px">فرم صورتجلسه کمیته حفاظت فنی و بهداشت کار</b></div>
   <table class="h"><tr><td style="width:37%">نام کارگاه: <b>گسترش فناوری خوارزمی</b><br>کد تأمین اجتماعی: <b>0343290030</b></td><td class="c" style="width:26%">نوع فعالیت: صنعتی</td><td style="width:37%">تعداد کل کارگران: <b>${workers?L(workers)+' نفر':'—'}</b></td></tr>
@@ -449,7 +449,7 @@ function minutesHTML(m,items,workers){
   <tr><td>تلفن: <span dir="ltr">026-36108122</span></td><td>فکس: <span dir="ltr">026-36108128</span></td><td>آدرس ایمیل: <span dir="ltr">info@khwarizmico.com</span></td></tr>
   <tr><td>شماره جلسه: <b>${L(m.no_label||m.no)}</b></td><td>ساعت شروع: <b>${L(m.t1||'')}</b></td><td>ساعت پایان: <b>${L(m.t2||'')}</b></td></tr>
   <tr><td>تاریخ جلسه: <b>${L(m.jdate)}</b></td><td colspan="2">مکان تشکیل جلسه: ${esc(m.place||'')}</td></tr></table>
-  <table class="i" style="margin-top:12px"><tr><th style="width:12%">موضوع</th><th>شرح</th><th style="width:13%">واحد / شخص اقدام‌کننده</th><th style="width:13%">واحد / شخص پیگیری‌کننده</th><th style="width:11%">مهلت اقدام</th><th style="width:10%">نتیجه</th></tr>${KINDS.map(([k])=>rowsFor(k)).join('')}</table>
+  <table class="i" style="margin-top:12px"><thead><tr><th style="width:12%">موضوع</th><th>شرح</th><th style="width:13%">واحد / شخص اقدام‌کننده</th><th style="width:13%">واحد / شخص پیگیری‌کننده</th><th style="width:11%">مهلت اقدام</th><th style="width:10%">نتیجه</th></tr></thead><tbody>${KINDS.map(([k])=>rowsFor(k)).join('')}</tbody></table>
   <table class="a" style="margin-top:12px"><tr><th rowspan="3" style="width:12%">اعضای کمیته حفاظت فنی و بهداشت کار</th><th rowspan="2" style="width:10%">حاضرین</th>${ROLES.map(r=>`<th>${r} :</th>`).join('')}</tr>
   <tr>${ROLES.map(r=>`<td class="c nm">${esc(att[r]||'')}</td>`).join('')}</tr>
   <tr><td class="c">غایبین و دلایل غیبت</td><td colspan="5" style="height:36px">${esc(m.absent||'')}</td></tr></table>
