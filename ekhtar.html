@@ -557,6 +557,7 @@ $('ektSearchBox').addEventListener('input', renderTable);
         $('ektMissWho').style.display = $('ektMiss').checked && EXP.length > 1 ? '' : 'none';
     };
     $('ektType').addEventListener('change', sync); $('ektMiss').addEventListener('change', sync); sync();
+    if (location.hash === '#new') setTimeout(() => { const f = $('ektEmpInput'); if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); } }, 400);
 })();
 
 /* ---------- ثبت و حذف ---------- */
