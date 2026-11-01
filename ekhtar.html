@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="tw.css">
 <link rel="stylesheet" href="hse_ui.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <style>
 .lbl { display:block; font-size:12px; color:var(--mu); margin-bottom:.2rem; }
 
@@ -175,7 +176,10 @@
     <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-4">
         <div class="flex flex-col md:flex-row justify-between items-center gap-3">
             <h3 class="text-sm font-bold text-white">📋 لیست کامل سوابق و جستجوی پیشرفته</h3>
-            <div class="w-full md:w-80"><input type="text" id="ektSearchBox" class="fld text-xs" placeholder="جستجو بر اساس نام، کد پرسنلی یا علت..."></div>
+            <div class="flex w-full md:w-auto items-center gap-2">
+                <div class="w-full md:w-80"><input type="text" id="ektSearchBox" class="fld text-xs" placeholder="جستجو بر اساس نام، کد پرسنلی یا علت..."></div>
+                <button type="button" id="ektExcel" class="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold whitespace-nowrap">📥 خروجی اکسل</button>
+            </div>
         </div>
         <div class="overflow-x-auto border border-slate-700 rounded-xl">
             <table class="w-full text-right text-xs">
@@ -514,12 +518,15 @@ $('ektEmpInput').addEventListener('change', onEmpChange);
 $('pClear').onclick = () => { $('ektEmpInput').value = ''; onEmpChange(); };
 
 /* ---------- جدول ---------- */
-function renderTable() {
+function filteredRecords() {
     const q = $('ektSearchBox').value.toLowerCase().trim();
-    const rows = records.filter(item => {
+    return records.filter(item => {
         const e = empById(item.employee_id);
         return !q || [e.emp_id, empName(e), item.reason, item.record_type, item.description, regName(item.registered_by)].join(' ').toLowerCase().includes(q);
     });
+}
+function renderTable() {
+    const rows = filteredRecords();
     const tbody = $('ektTableBody');
     if (!rows.length) {
         tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-500">هیچ سوابقی یافت نشد.</td></tr>';
@@ -547,6 +554,51 @@ function renderTable() {
     }).join('');
 }
 $('ektSearchBox').addEventListener('input', renderTable);
+
+/* ---------- خروجی اکسل (طبق فیلتر جستجوی فعلی) ---------- */
+function exportExcel() {
+    const rows = filteredRecords();
+    if (!rows.length) { alert('سابقه‌ای برای خروجی وجود ندارد.'); return; }
+    const head = ['ردیف', 'کد پرسنلی', 'نام و نام خانوادگی', 'واحد', 'نوع سابقه', 'علت / موضوع', 'تاریخ', 'توضیحات', 'ثبت‌کننده'];
+    const data = rows.map((r, i) => {
+        const e = empById(r.employee_id);
+        return [i + 1, e.emp_id || '', e.id ? empName(e) : 'نامشخص', e.department || '', r.record_type || '', r.reason || '', r.record_date || '', r.description || '', regName(r.registered_by)];
+    });
+    /* خلاصه به تفکیک پرسنل */
+    const sum = {};
+    rows.forEach(r => {
+        const e = empById(r.employee_id), k = r.employee_id;
+        const o = sum[k] || (sum[k] = [e.emp_id || '', e.id ? empName(e) : 'نامشخص', e.department || '', 0, 0, 0]);
+        if (r.record_type === 'اخطار کتبی') o[3]++; else if (r.record_type === 'تذکر شفاهی') o[4]++; else if (r.record_type === 'تشویق') o[5]++;
+    });
+    const sumHead = ['کد پرسنلی', 'نام و نام خانوادگی', 'واحد', 'اخطار کتبی', 'تذکر شفاهی', 'تشویق', 'جمع اخطار و تذکر'];
+    const sumData = Object.values(sum).map(o => o.concat(o[3] + o[4])).sort((a, b) => b[6] - a[6]);
+    const fname = 'سوابق-HSE-' + normDigits(jalaliToday()).replace(/\//g, '-') + '.xlsx';
+
+    if (window.XLSX) {
+        const wb = XLSX.utils.book_new();
+        const mk = (h, d, w) => {
+            const ws = XLSX.utils.aoa_to_sheet([h].concat(d));
+            ws['!cols'] = w.map(c => ({ wch: c }));
+            ws['!views'] = [{ RTL: true }];
+            ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: d.length, c: h.length - 1 } }) };
+            return ws;
+        };
+        XLSX.utils.book_append_sheet(wb, mk(head, data, [6, 12, 24, 18, 14, 36, 12, 30, 18]), 'سوابق');
+        XLSX.utils.book_append_sheet(wb, mk(sumHead, sumData, [12, 24, 18, 12, 12, 10, 16]), 'خلاصه پرسنل');
+        wb.Workbook = { Views: [{ RTL: true }] };
+        XLSX.writeFile(wb, fname);
+    } else {
+        /* در صورت نبودن اینترنت (بارگذاری نشدن کتابخانه): CSV سازگار با اکسل */
+        const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+        const csv = '\uFEFF' + [head].concat(data).map(r => r.map(q).join(',')).join('\r\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+        a.download = fname.replace('.xlsx', '.csv');
+        document.body.appendChild(a); a.click(); a.remove();
+    }
+}
+$('ektExcel').addEventListener('click', exportExcel);
 /* کسر امتیاز کارشناس: فقط برای اخطار/تذکر و فقط وقتی مدیر ثبت می‌کند */
 (function () {
     const EXP = Object.entries(REG_NAMES).filter(([m]) => m !== 'm.rezaei@gmail.com');
