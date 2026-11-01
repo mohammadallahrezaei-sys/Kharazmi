@@ -183,8 +183,6 @@ function core(email,K){
   const flags=[],bm={};mine.forEach(x=>(bm[x.m]=bm[x.m]||[]).push(x));
   Object.entries(bm).forEach(([m,a])=>{if(a.length<8)return;const c={};a.forEach(x=>c[x.k]=(c[x.k]||0)+1);const [k,n]=Object.entries(c).sort((p,q)=>q[1]-p[1])[0];
     if(n/a.length>=0.8)flags.push(`${fa(n)} از ${fa(a.length)} ثبت ماژول ${m} دقیقاً نتیجه‌ی یکسان دارد (کل - تأیید - عدم‌انطباق - ن.م.: ${k})`)});
-  const ts=mine.map(x=>x.t).sort((a,b)=>a-b);let mx=0;for(let i=0,j=0;i<ts.length;i++){while(ts[i]-ts[j]>30*6e4)j++;mx=Math.max(mx,i-j+1)}
-  if(mx>=15)flags.push(`${fa(mx)} ثبت در یک بازه‌ی ۳۰ دقیقه‌ای (ممکن است ثبت دسته‌ای بعد از بازدید باشد)`);
   ratioRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`«${x.label}»: ${fa(x.n)} چک‌لیست و ${fa(x.q)} سؤال پاسخ‌داده‌شده فقط ${fa(x.nc)} عدم‌انطباق ثبت شده؛ ${x.exp!=null?(x.gen?'بر اساس میانگین کل چک‌لیست‌ها':'بر اساس سابقهٔ ۶ ماه قبل همین چک‌لیست')+` انتظار حدود ${fa(x.exp)} مورد می‌رفت `:'هیچ موردی ثبت نشده است '}(احتمال بازدید سطحی از همهٔ بخش‌های محل؛ با کارشناس بررسی شود)`));
   facRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`اماکن بهداشتی: ${fa(x.c)} ${x.n} در کارخانه وجود دارد (${x.d}) ولی در ۲ ماه اخیر فقط ${fa(x.nc)} عدم‌انطباق مربوط به آن ثبت شده؛ انتظار حداقل حدود ${fa(x.exp)} مورد می‌رفت (احتمال بازدید نکردن همهٔ نقاط)`));
   return{R,recs,un,flags}}
