@@ -24,8 +24,8 @@ a{color:inherit;text-decoration:none}
 .desk b{font-size:18px;display:block}
 .desk span{font-size:13px;opacity:.92}
 .desk i{font-style:normal;font-size:22px}
-.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.quick a{display:flex;align-items:center;justify-content:center;text-align:center;min-height:56px;padding:8px;border:1px solid var(--ac);border-radius:12px;color:var(--ac);font-weight:700;font-size:13px;line-height:1.5;background:var(--card)}
+.quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.quick a{display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:5px;border:1px solid var(--ac);border-radius:10px;color:var(--ac);font-weight:700;font-size:12px;line-height:1.5;background:var(--card)}
 .quick a:hover,.desk:hover{filter:brightness(1.06)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
 .list{display:flex;flex-direction:column;gap:8px}
@@ -77,7 +77,7 @@ header{flex-wrap:wrap}
 .srch input{width:100%;font:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx)}
 .srch input:focus{outline:2px solid var(--ac);outline-offset:1px;border-color:var(--ac)}
 .mg h2{margin:2px 2px 8px;font-size:13px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(124px,1fr));gap:10px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
 .tiles a{position:relative;display:flex;flex-direction:column;padding:0;overflow:hidden;min-height:0;border:1px solid var(--bd);border-radius:14px;background:var(--card);transition:transform .15s,border-color .15s,box-shadow .15s}
 .tiles a:hover{border-color:var(--ac);transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,23,42,.14)}
 .tiles .im{display:block;aspect-ratio:160/84;background:var(--g)}
@@ -131,6 +131,11 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
   <a href="clinic.html">＋ مراجعه بهداری</a>
   <a href="ekhtar.html#new">＋ اخطار / تشویق</a>
 </div>
+<!-- افراد پرریسک: کشویی و فقط برای مدیر (اطلاعات پزشکی دارد؛ با دیده‌شدن بخش مدیر نمایش داده می‌شود) -->
+<details id="hr" style="display:none">
+  <summary>افراد پرریسک: اولویت آموزش و پیگیری <small id="mHr">باز کنید</small></summary>
+  <div id="hrBody" class="mu" style="margin-top:10px">در حال محاسبه...</div>
+</details>
 
 <button id="myBtn" type="button" style="display:none;width:100%;margin:0 0 10px;min-height:48px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;font:inherit;font-weight:700;cursor:pointer"></button>
 <dialog id="myDlg" style="width:min(980px,96vw);max-height:92vh;border:1px solid var(--bd);border-radius:16px;background:var(--bg,var(--card));color:var(--tx);padding:12px;direction:rtl">
@@ -167,11 +172,6 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
 <!-- بخش مدیر: لینک‌ها و نشانی صفحه‌ها دقیقاً مثل قبل است تا پنهان‌سازی auth.js همان‌طور کار کند -->
 <details class="card grp" id="mgr">
   <summary>گزارش و ارزیابی (مدیر)</summary>
-<!-- افراد پرریسک: کشویی و فقط برای مدیر (اطلاعات پزشکی دارد؛ با دیده‌شدن بخش مدیر نمایش داده می‌شود) -->
-<details id="hr" style="display:none">
-  <summary>افراد پرریسک: اولویت آموزش و پیگیری <small id="mHr">باز کنید</small></summary>
-  <div id="hrBody" class="mu" style="margin-top:10px">در حال محاسبه...</div>
-</details>
   <div class="tiles">
     <a class="m" href="report.html" data-k="گزارش ماهانه hse"><span class="im" style="--g:linear-gradient(135deg,#34d399,#065f46)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="48" y="9" width="64" height="68" rx="7" fill="#fff"/><rect x="57" y="17" width="28" height="4.5" rx="2.2" fill="#cbd5e1"/><rect x="57" y="25" width="18" height="3.5" rx="1.7" fill="#e2e8f0"/><rect x="58" y="52" width="9" height="16" rx="2" fill="#6ee7b7"/><rect x="71" y="44" width="9" height="24" rx="2" fill="#10b981"/><rect x="84" y="36" width="9" height="32" rx="2" fill="#059669"/><rect x="97" y="46" width="9" height="22" rx="2" fill="#34d399"/><polyline points="58,44 71,38 84,30 97,36" fill="none" stroke="#f59e0b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".0"/></svg></span><b>گزارش ماهانه HSE</b></a>
     <a class="m" href="unit_report.html" data-k="گزارش واحد outlook ایمیل کارنامه نامه سرپرست"><span class="im" style="--g:linear-gradient(135deg,#60a5fa,#1e40af)"><svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="22" cy="12" r="26" fill="#fff" opacity=".10"/><circle cx="150" cy="78" r="36" fill="#fff" opacity=".10"/><circle cx="132" cy="10" r="8" fill="#fff" opacity=".12"/><rect x="56" y="8" width="48" height="36" rx="5" fill="#fff" opacity=".92"/><rect x="63" y="16" width="14" height="4" rx="2" fill="#93c5fd"/><rect x="63" y="25" width="7" height="12" rx="1.5" fill="#3b82f6"/><rect x="73" y="29" width="7" height="8" rx="1.5" fill="#60a5fa"/><rect x="83" y="22" width="7" height="15" rx="1.5" fill="#1d4ed8"/><rect x="38" y="30" width="84" height="48" rx="8" fill="#fff"/><path d="M40 34 L80 60 L120 34" fill="none" stroke="#3b82f6" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/><circle cx="124" cy="30" r="9" fill="#fbbf24"/><path d="M119.5 30 l3.2 3.2 l5.5 -6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>گزارش واحدها (Outlook)</b></a>
@@ -193,6 +193,7 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
 <footer>نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <b>محمد اله رضایی</b></footer>
 </div>
 
+<script src="hr_risk.js"></script>
 <script>
 const URL_ = 'https://priopguwfjawybffarhd.supabase.co', KEY = 'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
 const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };
@@ -271,71 +272,6 @@ function syncMgr() {
 }
 
 /* ===== افراد پرریسک: حوادث، روز استعلاجی، اخطار، سوابق پزشکی و آموزش ===== */
-const HRW = { sev: { minor: 3, moderate: 8, severe: 20, fatal: 40 }, repeatInc: 10, lostPerDay: 0.5, lostCap: 90, warnWritten: 6, warnOther: 2, warnCap: 20, epilepsy: 30, seizureVisit: 25, cardiac: 12, htn: 12, htnMaybe: 6, dm: 6, restricted: 6, fuOver: 5, noTrain: 5, trainCredit: 8, manyVisits: 5, HIGH: 30, MID: 15 };
-const SEVL = { minor: 'جزئی', moderate: 'متوسط', severe: 'شدید', fatal: 'فوتی' };
-const ndg = s => String(s == null ? '' : s).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
-const PFU = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC' });
-function jalToISO(y, m, d) { const st = Date.UTC(y + 621, 2, 17); for (let i = 0; i < 400; i++) { const t = new Date(st + i * 864e5), p = PFU.formatToParts(t), g = k => +p.find(x => x.type === k).value; if (g('year') === y && g('month') === m && g('day') === d) return t.toISOString().slice(0, 10); } return null; }
-function dISO(v) {
-  if (!v) return null; const s = ndg(v).trim(), m = s.match(/^(1[34]\d\d)[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
-  if (m) return jalToISO(+m[1], +m[2], +m[3]);
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  const d = new Date(s); return isNaN(d) ? null : d.toISOString().slice(0, 10);
-}
-const agoISO = mo => { const d = new Date(); d.setMonth(d.getMonth() - mo); return d.toISOString().slice(0, 10); };
-const getAllRows = t => HSEDB.getAll(t);
-const pickK = (o, ks) => { for (const k of ks) if (o[k] != null && o[k] !== '') return o[k]; return null; };
-
-async function computeHR() {
-  const [emp, inc, vis, ex, fu, ekh, tr, ta] = await Promise.all(['employees?select=*', 'clinic_incidents?select=employee_id,incident_date,severity,description', 'clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days', 'clinic_exams?select=employee_id,exam_date,history,vitals,fitness,restrictions', 'clinic_followups?select=employee_id,status,due_date', 'ekhtars?select=*', 'trainings?select=id,training_date', 'training_attendees?select=training_id,employee_id'].map(getAllRows));
-  if (!emp) return null;
-  const c24 = agoISO(24), c36 = agoISO(36), c60 = agoISO(60), c12 = agoISO(12), c6 = agoISO(6), today = HSEToday();
-  /* کل سوابق لحاظ می‌شود؛ هرچه قدیمی‌تر، وزن کمتر (۲ سال اخیر ۱۰۰٪، تا ۵ سال ۶۰٪، قدیمی‌تر ۳۵٪؛ حادثه شدید/فوتی حداقل ۶۰٪) */
-  const wAge = (d, sev) => { const w = d >= c24 ? 1 : d >= c60 ? 0.6 : 0.35; return sev >= 3 ? Math.max(w, 0.6) : w; };
-  const P = {}, byCode = {};
-  const empA = emp.filter(e => HSEP.isActive(e)); /* قطع همکاری: از فهرست افراد پرخطر حذف */
-  empA.forEach(e => { P[e.id] = { e, n: 0, nRec: 0, n36: 0, sevMax: 0, pts: 0, lostInc: 0, lostVis: 0, lostIncW: 0, lostVisW: 0, warnPts: 0, lastEv: null, warnW: 0, warnO: 0, v6: 0, vBP: 0, seizV: 0, cond: new Set(), bp: false, restr: false, fuOver: 0, lastTr: null, chips: [], act: new Set() }; if (e.emp_id != null) byCode[String(e.emp_id)] = e.id; });
-  const SO = { minor: 1, moderate: 2, severe: 3, fatal: 4 };
-  (inc || []).forEach(i => { const p = P[i.employee_id], d = dISO(i.incident_date); if (!p || !d) return; const sv = HRW.sev[i.severity] ? i.severity : 'minor', w = wAge(d, SO[sv]); if (!p.lastEv || d > p.lastEv) p.lastEv = d; p.n++; if (d >= c24) p.nRec++; if (d >= c36) p.n36++; p.pts += HRW.sev[sv] * w; p.sevMax = Math.max(p.sevMax, SO[sv]); const m = ndg(i.description).match(/روز از دست رفته:\s*(\d+)/); if (m) { p.lostInc += +m[1]; p.lostIncW += +m[1] * w; } });
-  (vis || []).forEach(v => { const p = P[v.employee_id], d = dISO(v.visit_date); if (!p || !d) return; const ld = Number(v.medical_leave_days) || 0; p.lostVis += ld; p.lostVisW += ld * wAge(d, 0); if (d >= c6) p.v6++; const r = String(v.visit_reason || ''); if (d >= c12 && /فشار/.test(r)) p.vBP++; if (/تشنج|صرع|غش|بیهوش/.test(r)) p.seizV++; });
-  const latest = {}; (ex || []).forEach(x => { const c = latest[x.employee_id]; if (!c || String(x.exam_date) > String(c.exam_date)) latest[x.employee_id] = x; if (P[x.employee_id]) Object.keys(((x.history || {}).cond) || {}).forEach(k => P[x.employee_id].cond.add(k)); });
-  Object.keys(latest).forEach(id => { const p = P[id], x = latest[id]; if (!p) return; const v = x.vitals || {}; if ((+v.sys >= 140) || (+v.dia >= 90)) p.bp = true; if (['fit_restricted', 'temp_unfit', 'unfit'].includes(x.fitness)) p.restr = true; });
-  (fu || []).forEach(f => { const p = P[f.employee_id]; if (p && ['pending', 'overdue'].includes(f.status) && f.due_date && f.due_date < today) p.fuOver++; });
-  (ekh || []).forEach(o => { const id = pickK(o, ['employee_id', 'personnel_id']) || byCode[String(pickK(o, ['emp_id', 'employee_code', 'personnel_code', 'code']))], p = P[id]; if (!p) return; const d = dISO(pickK(o, ['record_date', 'issue_date', 'issued_at', 'letter_date', 'date', 'created_at'])), w = d ? wAge(d, 0) : 1; if (d && (!p.lastEv || d > p.lastEv)) p.lastEv = d; if ((pickK(o, ['record_type', 'type', 'kind']) || '') === 'اخطار کتبی') { p.warnW++; p.warnPts += HRW.warnWritten * w; } else { p.warnO++; p.warnPts += HRW.warnOther * w; } });
-  const trD = {}; (tr || []).forEach(t => trD[t.id] = dISO(t.training_date)); const haveTr = !!(tr && ta);
-  (ta || []).forEach(a => { const p = P[a.employee_id], d = trD[a.training_id]; if (p && d && (!p.lastTr || d > p.lastTr)) p.lastTr = d; });
-  const out = [];
-  Object.values(P).forEach(p => {
-    const ch = [], add = (t, c) => ch.push([t, c || '']);
-    const lost = Math.max(p.lostInc, p.lostVis), lostW = Math.max(p.lostIncW, p.lostVisW);
-    if (p.n) { add(`${fa(p.n)} حادثه` + (p.n !== p.nRec ? ` (${fa(p.nRec)} در ۲ سال اخیر)` : ''), p.n36 >= 3 ? 'r' : 'o'); if (p.sevMax >= 3) add(p.sevMax === 4 ? 'حادثه فوتی' : 'حادثه شدید', 'r'); }
-    if (p.n36 >= 3) p.pts += HRW.repeatInc;
-    if (lost) { p.pts += Math.min(lostW, HRW.lostCap) * HRW.lostPerDay; add(`${fa(lost)} روز استعلاجی`, lost >= 30 ? 'r' : 'o'); }
-    if (p.warnW || p.warnO) { p.pts += Math.min(HRW.warnCap, p.warnPts); add(p.warnW ? `${fa(p.warnW)} اخطار کتبی` : `${fa(p.warnO)} سابقه انضباطی`, p.warnW ? 'o' : ''); }
-    let med = false;
-    if (p.cond.has('epilepsy')) { p.pts += HRW.epilepsy; add('سابقه صرع/تشنج', 'r'); med = true; } else if (p.seizV) { p.pts += HRW.seizureVisit; add('مراجعه برای تشنج/غش', 'r'); med = true; }
-    if (p.cond.has('cardiac')) { p.pts += HRW.cardiac; add('بیماری قلبی', 'r'); med = true; }
-    if (p.cond.has('htn') || p.bp) { p.pts += HRW.htn; add('فشار خون بالا', 'o'); med = true; } else if (p.vBP >= 2) { p.pts += HRW.htnMaybe; add('مراجعه مکرر برای فشار', 'o'); med = true; }
-    if (p.cond.has('dm')) { p.pts += HRW.dm; add('دیابت'); }
-    if (p.restr) { p.pts += HRW.restricted; add('محدودیت کاری طب کار', 'o'); }
-    if (p.fuOver) { p.pts += HRW.fuOver; add('پیگیری بهداری معوق', 'o'); med = true; }
-    if (p.v6 >= 4) { p.pts += HRW.manyVisits; add(`${fa(p.v6)} مراجعه بهداری در ۶ ماه`); }
-    /* آموزش: اگر ۱۲ ماه اخیر آموزش ندیده، امتیاز و پیشنهاد آموزش؛ اگر بعد از آخرین حادثه/اخطار آموزش دیده، اعتبار آموزش (کاهش امتیاز و حذف پیشنهاد)؛ اگر بعد از آموزش دوباره حادثه/اخطار داشته، آموزش مجدد */
-    const noTr = haveTr && (!p.lastTr || p.lastTr < c12); let trAct = '';
-    if (!haveTr) { if (p.lastEv) trAct = 'آموزش'; }
-    else if (noTr) { p.pts += HRW.noTrain; add('بدون آموزش در ۱۲ ماه اخیر', 'o'); trAct = 'آموزش'; }
-    else if (p.lastEv) {
-      if (p.lastTr >= p.lastEv) { p.pts = Math.max(0, p.pts - HRW.trainCredit); add('آموزش پس از آخرین رویداد', 'g'); }
-      else { add('رویداد پس از آخرین آموزش', 'r'); trAct = 'آموزش مجدد'; }
-    }
-    p.score = Math.round(p.pts); p.chips = ch; p.med = med;
-    p.level = p.score >= HRW.HIGH ? 'high' : p.score >= HRW.MID ? 'mid' : (med ? 'med' : 'low');
-    const a = []; if (trAct) a.push(trAct); if (p.level === 'high') a.push('کنترل بیشتر'); if (med) a.push('پیگیری پزشکی');
-    p.actions = a;
-  });
-  const list = out.concat(Object.values(P).filter(p => p.level !== 'low')).sort((a, b) => ({ high: 0, mid: 1, med: 2 }[a.level] - { high: 0, mid: 1, med: 2 }[b.level]) || b.score - a.score);
-  return { list, total: empA.length, haveTr };
-}
 let HRC = null, HRN = 8;
 function renderHR() {
   const box = document.getElementById('hrBody'), R = HRC;
