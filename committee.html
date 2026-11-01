@@ -293,9 +293,9 @@ function descFull(x){let d=descOf(x);
 async function attachNotices(rows,g){const cs=[...new Set(rows.map(r=>String(r.notice_code||'').trim()).filter(c=>c&&c.toUpperCase()!=='NOTICED'))],NT={};
   try{for(let i=0;i<cs.length;i+=100)((await g('notices?select=*&no=in.('+cs.slice(i,i+100).map(encodeURIComponent).join(',')+')'))||[]).forEach(n=>NT[String(n.no)]=n)}catch(e){}
   rows.forEach(x=>{const n=NT[String(x.notice_code||'').trim()];if(!n)return;x._nt=n;if(!x.equipment_code&&n.equipment_code)x.equipment_code=n.equipment_code;if(!x.equipment_title)x.equipment_title=n.equipment_title||n.equipment_name||n.equipment||''})}
-/* جملهٔ کامل برای صورتجلسه: شرح مشخص، کد و نام تجهیز، محل دقیق و کد اعلان */
-function nclause(x){const d=descFull(x),loc=clean(String(x.location||'').replace(/\s+-\s+/g,'، ')),no=String(x.notice_code||'').trim(),nn=no&&no.toUpperCase()!=='NOTICED'?no:'';
-  return `«${clean(d.q).slice(0,150)}»${d.eqc?` مربوط به تجهیز ${d.eqc}${d.eqt?' ('+clean(d.eqt)+')':''}`:''}${loc?' در '+loc:''}${nn?' (اعلان '+fa(nn)+')':''}`}
+/* جملهٔ کامل برای صورتجلسه: شرح مشخص، نام تجهیز (بدون کد) و محل دقیق؛ کد تجهیز و کد اعلان نمی‌آید */
+function nclause(x){const d=descFull(x),loc=clean(String(x.location||'').replace(/\s+-\s+/g,'، '));
+  return `«${clean(d.q).slice(0,150)}»${d.eqc&&d.eqt?` مربوط به ${clean(d.eqt)}`:''}${loc?' در '+loc:''}`}
 async function buildSuggest(){
   const K=SG.K,R=HSE.monthRange(K),A=R.a,B=nextISO(R.b),pre=K.replace('-','/')+'/',used=usedRefs(),g=HSE.getAll,out=[];
   const jy=+K.slice(0,4),jm=+K.slice(5,7),nm=jm===12?1:jm+1,ny=jm===12?jy+1:jy,nEnd=ny+'/'+pad2(nm)+'/'+pad2(lastDay(ny,nm));
@@ -326,7 +326,7 @@ async function buildSuggest(){
   /* ۲) عدم‌انطباق‌های رفع‌شده */
   const groups=new Map();fin.filter(f=>!used.has('f:'+f.id)).forEach(f=>{const k=SG.group?(f.category||'عمومی')+'|'+place(f):'f'+f.id;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(f)});
   groups.forEach(l=>{const f=l[0],loc=place(f),cat=f.category||'';
-    const text=l.length===1?`عدم‌انطباق ${nclause(f)} برطرف شد.`:`${fa(l.length)} مورد عدم‌انطباق${loc?' در '+loc:''}${cat?' ('+cat+')':''} برطرف شد: ${l.map(x=>{const d=descFull(x);return '«'+clean(d.q).slice(0,150)+'»'+(d.eqc?' (تجهیز '+d.eqc+')':'')}).join('؛ ')}.`;
+    const text=l.length===1?`عدم‌انطباق ${nclause(f)} برطرف شد.`:`${fa(l.length)} مورد عدم‌انطباق${loc?' در '+loc:''}${cat?' ('+cat+')':''} برطرف شد: ${l.map(x=>{const d=descFull(x);return '«'+clean(d.q).slice(0,150)+'»'+}).join('؛ ')}.`;
     out.push({type:'عدم‌انطباق رفع‌شده',kind:'done',t:{done:text},actor:[...new Set(l.map(x=>x.responsible).filter(Boolean))].slice(0,2).join('/')||'فنی',ref:l.map(x=>'f:'+x.id).join(','),n:l.length})});
   /* ۳) گزارش کارهای روزانه */
   wl.filter(w=>!used.has('w:'+w.id)).forEach(w=>{const tt=clean(w.title),ds=clean(w.description).slice(0,150),body=tt+(ds?' — '+ds:'');
