@@ -172,7 +172,7 @@ function facRows(email,K){
   const n=D.ins.filter(r=>r.module==='SAN'&&eqm(r.inspector,email)&&new Date(r.created_at).toLocaleDateString('en-CA')>=a&&new Date(r.created_at).toLocaleDateString('en-CA')<=R.b).length;
   if(!n)return[];
   return FAC.map(f=>{const nc=D.fin.filter(x=>x.module==='SAN'&&eqm(x.inspector,email)&&d10(x.created_at)>=a&&d10(x.created_at)<=R.b&&String(x.question||'').trim().startsWith(f.pre)).length,exp=Math.round(f.c*FAC_RATE);
-    return{...f,nc,exp,n,low:exp>=2&&nc<0.4*exp}})}
+    return{...f,nc,exp,visits:n,low:exp>=2&&nc<0.4*exp}})}
 function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
   D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
