@@ -4,6 +4,7 @@
     <script src="auth.js"></script>
     <script src="sched.js"></script>
     <script src="cycle.js"></script>
+    <script src="hr_risk.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ارزیابی و خودکنترلی کارشناس HSE</title>
@@ -56,7 +57,8 @@ const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد'
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 const nm=s=>NAME_MAP[s]||OWN_NAMES[String(s||'').toLowerCase()]||(s===ME?'خودم':s);
 /* فهرست افراد: کارشناسان + خود مدیر (اگر در فهرست کارشناسان نیست) */
-const people=()=>{const a=Object.keys(NAME_MAP);if(ME&&!a.some(e=>eqm(e,ME)))a.unshift(ME);return a};
+/* مدیر واحد (محمد اله رضایی) کارشناس نیست: فقط شاخص‌های مدیر برایش محاسبه می‌شود و در فهرست کارشناسان نمی‌آید */
+const people=()=>{const a=Object.keys(NAME_MAP);if(ME&&!(HSEAuth.MANAGERS||[]).some(m=>eqm(m,ME))&&!a.some(e=>eqm(e,ME)))a.unshift(ME);return a};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PFU=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',timeZone:'UTC'});
 const key=p=>p.find(x=>x.type==='year').value+'-'+String(+p.find(x=>x.type==='month').value).padStart(2,'0');
@@ -96,7 +98,8 @@ async function start(){
   const ctrs=await getAll('contractors?select=name,start_date,end_date,status')||[];
   const vr=await getAll('verify_rounds?select=expert,week_start,result,location,note')||[];
   const inc2=inc||await getAll('clinic_incidents?select=corrective_action,action_status,action_due_date,incident_date');
-  D={ffl,ctrs,vr,eqCol,eqRows,eqIns,risks,exams,cards,cul,ins:ins.filter(r=>r.module!=='Q'&&!String(r.location||'').startsWith(IMPORT_LOC)),fin:fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc2||[],fu:fu||[]};
+  let hrt=null;try{const R=await computeHR();hrt=R?R.list.filter(p=>p.actions.some(a=>a.startsWith('آموزش'))):null}catch(e){}
+  D={hrt,ffl,ctrs,vr,eqCol,eqRows,eqIns,risks,exams,cards,cul,ins:ins.filter(r=>r.module!=='Q'&&!String(r.location||'').startsWith(IMPORT_LOC)),fin:fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc2||[],fu:fu||[]};
   const es=document.getElementById('esel'),ms=document.getElementById('msel');
   const mine=isMgr()?people():[ME];
   es.innerHTML=mine.map(e=>`<option value="${esc(e)}">${esc(nm(e))}</option>`).join('');es.style.display=isMgr()?'':'none';
@@ -291,7 +294,7 @@ function mgrCalc_(K){
   return{m,det,pts,total:ws?Math.round(raw/ws*100):null}}
 function mgrCard(K){
   const c=mgrCalc(K);if(c.total==null)return'';
-  return `<div class="card"><h2>شاخص‌های مدیر واحد HSE — ${lab(K)}${K===nowK?' <span class="mu">(ماه جاری؛ هنوز تمام نشده)</span>':''}</h2>
+  return `<div class="card"><h2>شاخص‌های مدیر واحد HSE (محمد اله رضایی) — ${lab(K)}${K===nowK?' <span class="mu">(ماه جاری؛ هنوز تمام نشده)</span>':''}</h2>
    <div class="big ${col(c.total)}">${fa(c.total)}<span class="mu"> / ۱۰۰</span></div>
    <table style="margin-top:8px">${Object.keys(MW).map(k=>`<tr><td>${MNAMES[k]}<div class="mu">${c.det[k]}</div></td><td style="width:26%"><div class="bar"><i style="width:${(c.m[k]||0)*100}%;background:var(--${c.m[k]>=.85?'ok':c.m[k]>=.65?'wa':'bad'})"></i></div></td><td class="c ${c.m[k]==null?'mu':col(c.m[k]*100)}">${c.pts[k]==null?'—':fa(c.pts[k])+' از '+fa(MW[k])}</td></tr>`).join('')}</table>
    <div class="mu" style="margin-top:6px">این شاخص‌ها عملکرد مدیریتی واحد را می‌سنجند و جدا از امتیاز شخصی بازرسی شماست. شاخصی که داده‌اش در دسترس نیست از محاسبه حذف و امتیاز روی ۱۰۰ نرمال می‌شود.</div></div>`}
@@ -301,6 +304,9 @@ const NAMES={ctr:'چک‌لیست روزانهٔ پیمانکاران حاضر �
 /* روند و ضعیف‌ترین شاخص‌ها: نمودار خطی ۶ ماه + نقشهٔ گرمایی شاخص×ماه + سه شاخص ضعیف‌تر (میانگین ۶ ماه) */
 function facBlock(email,K){const F=facRows(email,K);if(!F.length)return'';
   return `<div class="card"><h2>اماکن رفاهی و بهداشتی (شناسنامه کارگاه)</h2><div class="mu">انتظار = تعداد × ${FAC_RATE} عدم‌انطباق برای هر دور چک‌لیست؛ بازهٔ بررسی: ماه جاری و ماه قبل.</div><table style="margin-top:6px"><tr><th>محل</th><th class="c">تعداد</th><th>پراکندگی</th><th class="c">ثبت‌شده</th><th class="c">انتظار</th></tr>${F.map(x=>`<tr><td>${x.n}</td><td class="c">${fa(x.c)}</td><td class="mu">${x.d}</td><td class="c ${x.low?'bad':''}"><b>${fa(x.nc)}</b></td><td class="c mu">${fa(x.exp)}</td></tr>`).join('')}</table></div>`}
+function hrtBlock(K){
+  if(K!==nowK||!D.hrt)return'';const L=D.hrt;
+  return `<div class="card"><h2>آموزش افراد پرریسک</h2>${L.length?`<div class="mu">${fa(L.length)} نفر از افراد پرریسک آموزش لازم را ندیده‌اند یا بعد از آخرین آموزش رویداد داشته‌اند؛ برنامه‌ریزی و ثبت آموزش کار کارشناس است (کار «آموزش افراد پرریسک» در تقویم). با ثبت آموزش، نام فرد از فهرست حذف می‌شود.</div><table style="margin-top:6px"><tr><th>نام</th><th>واحد</th><th>اقدام</th></tr>${L.slice(0,10).map(p=>`<tr><td>${esc(((p.e.first_name||'')+' '+(p.e.last_name||'')).trim())}</td><td class="mu">${esc(p.e.department||'—')}</td><td class="c">${esc(p.actions.filter(a=>a.startsWith('آموزش')).join(''))}</td></tr>`).join('')}</table>${L.length>10?`<div class="mu">و ${fa(L.length-10)} نفر دیگر</div>`:''}`:'<div class="ok">همهٔ افراد پرریسک آموزش لازم را دیده‌اند.</div>'}</div>`}
 function ratioBlock(email,K){
   const L=ratioRows(email,K);if(!L.length)return'';
   return `<div class="card"><h2>نسبت عدم‌انطباق ثبت‌شده به سؤال چک‌لیست‌ها</h2><div class="mu">انتظار = تعداد سؤال این ماه × نرخ عدم‌انطباق همان چک‌لیست در ۶ ماه قبل. عدد خیلی کمتر از انتظار یعنی بازدید احتمالاً سطحی بوده است. (* چک‌لیست بدون سابقهٔ کافی؛ انتظار از نصف میانگین کل چک‌لیست‌ها محاسبه شده است. هر چک‌لیستِ ۳ بار یا بیشتر با ≥۳۰ سؤال و صفر ثبت هم هشدار می‌گیرد.)</div>
@@ -336,6 +342,7 @@ function card(email,K){
   if(c.missed.length)weak.push(`${fa(c.missed.length)} مورد در بازرسی تأییدی مدیر دیده شد که در بازدید شما از قلم افتاده بود.`);
   if(c.FS&&!c.FS.na){if(c.FS.overdue)weak.push(`${fa(c.FS.overdue)} عدم‌انطباق باز پیگیری معوق دارد (نتیجهٔ پیگیری و موعد بعدی ثبت نشده).`);if(c.FS.logged>c.FS.onTime)weak.push(`${fa(c.FS.logged-c.FS.onTime)} از ${fa(c.FS.logged)} پیگیری ثبت‌شده بعد از موعد انجام شده است.`)}
   if(c.rw<CFG.MIN_RW)weak.push(`${fa(c.rw)} تشویق ثبت شده؛ انتظار حداقل ${fa(CFG.MIN_RW)} مورد بازخورد مثبت در ماه بود.${D.ekAttr?'':' (ستون ثبت‌کننده در جدول نیست؛ SQL ستون registered_by را اجرا کنید)'}`);
+  if(K===nowK&&D.hrt&&D.hrt.length)weak.push(`${fa(D.hrt.length)} فرد پرریسک نیازمند آموزش هستند (برنامه‌ریزی و ثبت آموزش بر عهدهٔ کارشناس است)`);
   if(c.s.train<.8)weak.push(`آموزش: ${fa(c.trN)} جلسه در ماه (حداقل ${fa(CFG.MIN_TRAIN)}) و پوشش ۱۲ ماهه‌ی پرسنل ${fa(Math.round(c.cov*100))}٪ (هدف ${fa(Math.round(CFG.COV_TARGET*100))}٪).`);
   if(c.capaO+c.fuO)weak.push(`${fa(c.capaO)} اقدام اصلاحی حوادث و ${fa(c.fuO)} پیگیری طب کار معوق است.`);
   const trend=[];let k=K;for(let i=0;i<6;i++){trend.unshift([k,tv(email,k)]);k=prevK(k)}
@@ -349,6 +356,7 @@ function card(email,K){
    <div class="mu" style="margin-top:6px">هر روز تأخیر ${fa(Math.round(CFG.LATE_PEN*100))}٪ از امتیاز آن چک‌لیست کم می‌کند. انجام زودتر از مهلت جریمه ندارد.</div>`:'<div class="mu">برای این ماه در جدول ۱۴۰۵ برنامه‌ای نیست.</div>'}
    ${isMgr()&&c.un.size?`<div class="wa" style="margin-top:6px">⚠ ثبت‌هایی که با هیچ چک‌لیست جدول تطبیق نخوردند: ${[...c.un].map(esc).join('، ')} — اگر چک‌لیست جدول هستند، کلمه‌ی کلیدی‌شان را در KW اضافه کنید.</div>`:''}</div>
   ${c.flags.length?`<div class="card"><h2>الگوهای نیازمند بررسی (بدون کسر امتیاز)</h2><ul>${c.flags.map(f=>`<li class="wa">${f}</li>`).join('')}</ul><div class="mu">زمان ثبت = زمان ورود به سامانه است، نه لزوماً زمان بازدید. پیش از هر اقدام انضباطی با خود کارشناس و فرم‌های کاغذی تطبیق دهید.</div></div>`:''}
+  ${hrtBlock(K)}
   ${ratioBlock(email,K)}
   ${facBlock(email,K)}
   ${trendBlock(email,K)}
