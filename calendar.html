@@ -178,7 +178,7 @@ function build(K){
      نام هر نفر پس از ثبت حضور در آموزش خودکار از فهرست حذف می‌شود */
   if(HRT&&HRT.length&&K===nowK&&days&&(HSEAuth.role==='expert'||HSEAuth.role==='manager')){
     const nm=HRT.slice(0,8).map(p=>((p.e.first_name||'')+' '+(p.e.last_name||'')).trim()).join('، ')+(HRT.length>8?' و …':''),dl=days[days.length-1].iso;
-    days.filter(d=>isWork(d.iso)&&d.iso>=a).forEach(d=>T.push({id:'HRT'+d.iso,date:d.iso,due:dl,t:'آموزش افراد پرریسک: '+fa(HRT.length)+' نفر باقی‌مانده',sub:nm+' · موعد همه: '+lbl(dl)+' · روزی که آموزش دادید تیک بزنید',done:HTK.has(d.iso),kind:'month',tick:'hrtrain'}))}
+    days.filter(d=>isWork(d.iso)&&d.iso>=a).forEach(d=>T.push({id:'HRT'+d.iso,date:d.iso,due:dl,t:'آموزش افراد پرریسک: '+fa(HRT.length)+' نفر باقی‌مانده',sub:nm+' · موعد همه: '+lbl(dl)+' · روزی که آموزش دادید تیک بزنید',done:HTK.has(d.iso),kind:'month',tick:'hrtrain',go:'training.html#hr'}))}
   T.forEach(x=>{x.late=!x.done&&(x.tick==='hrtrain'?x.due<today:x.date<today)});
   return T;
 }

@@ -2,6 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
      <script src="auth.js"></script>
+<script src="sched.js"></script><script src="cycle.js"></script><script src="hr_risk.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ماژول آموزش - نرم‌افزار جامع HSE</title>
@@ -121,7 +122,23 @@ function editTr(id){
   $('modal').classList.remove('hidden');$('modal').classList.add('flex');
 }
 $('list').onclick=async ev=>{if(ev.target.dataset.edit){editTr(ev.target.dataset.edit);return}const id=ev.target.dataset.del;if(id&&confirm('این جلسه و فهرست حاضرین حذف شود؟')){try{await api('trainings?id=eq.'+id,{method:'DELETE'});load()}catch(e){alert(e.message)}}};
-load();
+/* ثبت آموزش افراد پرریسک: عنوان و سرفصل از روی دلایل ریسک افراد پیشنهاد می‌شود */
+async function hrPrefill(){
+  if(location.hash!=='#hr')return;
+  let R=null;try{R=await computeHR()}catch(e){}
+  const L=R?R.list.filter(p=>p.actions.some(a=>a.startsWith('آموزش'))):[],txt=L.map(p=>(p.chips||[]).map(c=>Array.isArray(c)?c[0]:c).join(' ')).join(' ');
+  const has=re=>re.test(txt),T=['اصول ایمنی عمومی و رعایت دقیق دستورالعمل‌های کار در واحد','استفاده صحیح از تجهیزات حفاظت فردی (PPE) متناسب با کار'];
+  if(has(/حادثه|رویداد/))T.push('مرور حوادث گذشته، علل ریشه‌ای و روش‌های پیشگیری از تکرار');
+  if(has(/اخطار|انضباطی/))T.push('مسئولیت‌های ایمنی فرد و پیامدهای عدم رعایت مقررات');
+  if(has(/صرع|قلب|فشار|تشنج|طب کار|بهداری/))T.push('علائم هشداردهنده سلامتی، توقف کار و اطلاع‌رسانی فوری به سرپرست/بهداری');
+  T.push('گزارش شبه‌حادثه و شرایط ناایمن');
+  $('btnNew').click();
+  $('fType').value='on_job';$('fType').onchange();
+  $('fTitle').value='آموزش ایمنی افراد پرریسک';
+  $('fNotes').value='سرفصل‌ها: '+T.map((s,i)=>fa(i+1)+') '+s).join(' ؛ ');
+  L.forEach(p=>sel.set(p.e.id,p.e));chips();pick();
+}
+load().then(hrPrefill);
 </script>
 </body>
 </html>
