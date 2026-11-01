@@ -151,6 +151,9 @@ function fuStats(email,K){
   return{na:false,logged,onTime,overdue:over.length,late,over,s}}
 /* نسبت عدم‌انطباق به سؤال: سهم عدم‌انطباق هر چک‌لیست در این ماه برای کارشناس، در برابر میانگین ۶ ماه قبلِ همان چک‌لیست (همهٔ بازدیدکننده‌ها)؛
    اگر خیلی پایین‌تر از انتظار باشد یعنی احتمالاً بازدید واقعی/دقیق انجام نشده است */
+/* تعداد واحد (دستگاه/محل) هر چک‌لیست و طول دوره (ماه). تجهیزات از رجیستر تجهیزات؛ اماکن بهداشتی از شناسنامه کارگاه (۹+۹+۲۳+۲). چک‌لیستِ بدون عدد از این قاعده خارج است */
+const UQ_RATE=0.2,UNITS_FIX={SAN:{n:43,p:2}};
+function UNITS_OF(m){if(EQC[m]){const n=eqN(m);return n>0?{n,p:EQC[m][1]}:null}return UNITS_FIX[m]||null}
 function ratioRows(email,K){
   const R=monthRange(K);let k6=K;for(let i=0;i<6;i++)k6=prevK(k6);const a6=monthRange(k6).a;
   const cur={},base={},label=m=>{const t=(MODS[m]||[]).map(i=>SCHED[i]&&SCHED[i].t).filter(Boolean);return t.length?t.slice(0,2).join(' / '):({D:'بازدید روزانه ایمنی',CT:'چک‌لیست پیمانکاران',CH:'کلرزنی',Q:'بازرسی موردی'}[m]||m)};
@@ -161,9 +164,11 @@ function ratioRows(email,K){
   let gq=0,gn=0;Object.values(base).forEach(b=>{gq+=b.q;gn+=b.nc});
   if(gq<100){gq=0;gn=0;D.ins.forEach(r=>{const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d>=R.a&&d<=R.b){gq+=Math.max(0,(r.total||0)-(r.na||0));gn+=r.nc||0}})}
   const g=gq>=100?gn/gq*0.5:null;
-  return Object.entries(cur).map(([m,o])=>{const b=base[m],own=b&&b.q>=60,rate=own?b.nc/b.q:g,exp=rate==null?null:Math.round(o.q*rate);
-    const low=o.n>=3&&((exp!=null&&exp>=3&&o.nc<0.4*exp)||(o.nc===0&&o.q>=30));
-    return{m,label:label(m),n:o.n,q:o.q,nc:o.nc,exp,gen:!own,low}}).filter(x=>x.q>0).sort((x,y)=>(y.low-x.low)||(y.exp||0)-(x.exp||0));
+  return Object.entries(cur).map(([m,o])=>{const b=base[m],own=b&&b.q>=60,rate=own?b.nc/b.q:g;let exp=rate==null?null:Math.round(o.q*rate);
+    let low=o.n>=3&&((exp!=null&&exp>=3&&o.nc<0.4*exp)||(o.nc===0&&o.q>=30)),uq=null;
+    /* سهمیهٔ مبتنی بر تعداد تجهیز/محل: در هر دورهٔ بازدید حداقل UQ_RATE از واحدها باید عدم‌انطباق داشته باشند (سهم ماهانه = تعداد ÷ طول دوره) */
+    const U=UNITS_OF(m);if(U){uq={U:U.n,p:U.p};exp=Math.max(1,Math.ceil(UQ_RATE*U.n/U.p));low=o.nc<exp}
+    return{m,label:label(m),n:o.n,q:o.q,nc:o.nc,exp,gen:!own&&!uq,uq,low}}).filter(x=>x.q>0).sort((x,y)=>(y.low-x.low)||(y.exp||0)-(x.exp||0));
 }
 /* فهرست اماکن (شناسنامه کارگاه): تعداد هر نوع محل؛ چک‌لیست «اماکن بهداشتی» هر ۲ ماه، انتظار حداقلی ثبت عدم‌انطباق = تعداد × FAC_RATE */
 const FAC=[{n:'رختکن',c:9,pre:'رختکن',d:'ساختمان رفاهی (۶۰۰ کمد)'},{n:'حمام',c:9,pre:'حمام',d:'ساختمان رفاهی'},{n:'دستشویی',c:23,pre:'سرویس بهداشتی',d:'رفاهی، آزمایشگاه‌ها و اداری، سوله ۱۱، حراست'},{n:'آبدارخانه',c:2,pre:'آبدارخانه',d:'رستوران، سوله ۱'}],FAC_RATE=0.25;
@@ -183,8 +188,7 @@ function core(email,K){
   const flags=[],bm={};mine.forEach(x=>(bm[x.m]=bm[x.m]||[]).push(x));
   Object.entries(bm).forEach(([m,a])=>{if(a.length<8)return;const c={};a.forEach(x=>c[x.k]=(c[x.k]||0)+1);const [k,n]=Object.entries(c).sort((p,q)=>q[1]-p[1])[0];
     if(n/a.length>=0.8)flags.push(`${fa(n)} از ${fa(a.length)} ثبت ماژول ${m} دقیقاً نتیجه‌ی یکسان دارد (کل - تأیید - عدم‌انطباق - ن.م.: ${k})`)});
-  ratioRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`«${x.label}»: ${fa(x.n)} چک‌لیست و ${fa(x.q)} سؤال پاسخ‌داده‌شده فقط ${fa(x.nc)} عدم‌انطباق ثبت شده؛ ${x.exp!=null?(x.gen?'بر اساس میانگین کل چک‌لیست‌ها':'بر اساس سابقهٔ ۶ ماه قبل همین چک‌لیست')+` انتظار حدود ${fa(x.exp)} مورد می‌رفت `:'هیچ موردی ثبت نشده است '}(احتمال بازدید سطحی از همهٔ بخش‌های محل؛ با کارشناس بررسی شود)`));
-  facRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`اماکن بهداشتی: ${fa(x.c)} ${x.n} در کارخانه وجود دارد (${x.d}) ولی در ۲ ماه اخیر فقط ${fa(x.nc)} عدم‌انطباق مربوط به آن ثبت شده؛ انتظار حداقل حدود ${fa(x.exp)} مورد می‌رفت (احتمال بازدید نکردن همهٔ نقاط)`));
+  ratioRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`«${x.label}»: ${fa(x.n)} چک‌لیست و ${fa(x.q)} سؤال پاسخ‌داده‌شده فقط ${fa(x.nc)} عدم‌انطباق ثبت شده؛ ${x.exp!=null?(x.uq?`بر اساس ${fa(x.uq.U)} واحد (حداقل ${fa(UQ_RATE*100)}٪ در هر دوره ${fa(x.uq.p)} ماهه)`:x.gen?'بر اساس میانگین کل چک‌لیست‌ها':'بر اساس سابقهٔ ۶ ماه قبل همین چک‌لیست')+` انتظار حدود ${fa(x.exp)} مورد می‌رفت `:'هیچ موردی ثبت نشده است '}(احتمال بازدید سطحی از همهٔ بخش‌های محل؛ با کارشناس بررسی شود)`));
   return{R,recs,un,flags}}
 const created=(e,R)=>D.fin.filter(f=>eqm(f.inspector,e)&&d10(f.created_at)>=R.a&&d10(f.created_at)<=R.b).length;
 const _CC={};
@@ -303,7 +307,7 @@ function facBlock(email,K){const F=facRows(email,K);if(!F.length)return'';
   return `<div class="card"><h2>اماکن رفاهی و بهداشتی (شناسنامه کارگاه)</h2><div class="mu">انتظار = تعداد × ${FAC_RATE} عدم‌انطباق برای هر دور چک‌لیست؛ بازهٔ بررسی: ماه جاری و ماه قبل.</div><table style="margin-top:6px"><tr><th>محل</th><th class="c">تعداد</th><th>پراکندگی</th><th class="c">ثبت‌شده</th><th class="c">انتظار</th></tr>${F.map(x=>`<tr><td>${x.n}</td><td class="c">${fa(x.c)}</td><td class="mu">${x.d}</td><td class="c ${x.low?'bad':''}"><b>${fa(x.nc)}</b></td><td class="c mu">${fa(x.exp)}</td></tr>`).join('')}</table></div>`}
 function ratioBlock(email,K){
   const L=ratioRows(email,K);if(!L.length)return'';
-  return `<div class="card"><h2>نسبت عدم‌انطباق ثبت‌شده به سؤال چک‌لیست‌ها</h2><div class="mu">انتظار = تعداد سؤال این ماه × نرخ عدم‌انطباق همان چک‌لیست در ۶ ماه قبل. عدد خیلی کمتر از انتظار یعنی بازدید احتمالاً سطحی بوده است. (* چک‌لیست بدون سابقهٔ کافی؛ انتظار از نصف میانگین کل چک‌لیست‌ها محاسبه شده است. هر چک‌لیستِ ۳ بار یا بیشتر با ≥۳۰ سؤال و صفر ثبت هم هشدار می‌گیرد.)</div>
+  return `<div class="card"><h2>نسبت عدم‌انطباق ثبت‌شده به سؤال چک‌لیست‌ها</h2><div class="mu">برای چک‌لیست‌هایی که تعداد واحد (دستگاه/محل) دارند: حداقل ۲۰٪ واحدها در هر دورهٔ بازدید باید عدم‌انطباق داشته باشند (سهم ماهانه = تعداد × ۲۰٪ ÷ طول دوره). برای بقیه: انتظار = تعداد سؤال این ماه × نرخ عدم‌انطباق همان چک‌لیست در ۶ ماه قبل. عدد خیلی کمتر از انتظار یعنی بازدید احتمالاً سطحی بوده است. (* چک‌لیست بدون سابقهٔ کافی؛ انتظار از نصف میانگین کل چک‌لیست‌ها محاسبه شده است. هر چک‌لیستِ ۳ بار یا بیشتر با ≥۳۰ سؤال و صفر ثبت هم هشدار می‌گیرد.)</div>
    <table style="margin-top:6px"><tr><th>چک‌لیست</th><th class="c">دفعات</th><th class="c">سؤال</th><th class="c">ثبت‌شده</th><th class="c">انتظار</th></tr>${L.map(x=>`<tr><td>${esc(x.label)}</td><td class="c">${fa(x.n)}</td><td class="c">${fa(x.q)}</td><td class="c ${x.low?'bad':''}"><b>${fa(x.nc)}</b></td><td class="c mu">${x.exp==null?'—':fa(x.exp)+(x.gen?' *':'')}</td></tr>`).join('')}</table></div>`;
 }
 function trendBlock(email,K){
