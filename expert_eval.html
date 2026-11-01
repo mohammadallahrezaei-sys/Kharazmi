@@ -270,7 +270,7 @@ function mgrCalc_(K){
   const FM=fuStats(null,K);m.close=FM.s;det.close=FM.na?'از ۱۴۰۵/۸/۶ شروع می‌شود':`${fa(FM.overdue)} عدم‌انطباق باز با پیگیری معوق · ${fa(FM.onTime)} از ${fa(FM.logged)} پیگیری ثبت‌شدهٔ این ماه به‌موقع بود`;
   const ex=Object.keys(NAME_MAP).filter(e=>!eqm(e,ME)).map(e=>calc(e,K)).filter(c=>!c.na);
   m.team=ex.length?ex.reduce((a,c)=>a+c.s.sched,0)/ex.length:null;det.team=ex.length?`میانگین رعایت جدول: ${fa(Math.round(m.team*100))}٪ (${fa(ex.length)} کارشناس)`:'کارشناسی با برنامه‌ی این ماه نیست';
-  if(D.cards){const pe=D.cards.filter(c=>['pending','in_review'].includes(c.status)&&c.card_date&&d10(c.card_date)<=end),old=pe.filter(c=>(new Date(end)-new Date(d10(c.card_date)))/864e5>7).length;
+  if(D.cards){const pe=D.cards.filter(c=>c.status==='pending'&&c.card_date&&d10(c.card_date)<=end),old=pe.filter(c=>(new Date(end)-new Date(d10(c.card_date)))/864e5>7).length;
     m.cards=pe.length?1-old/pe.length:1;det.cards=`${fa(pe.length)} کارت بدون نتیجه، ${fa(old)} مورد بیش از ۷ روز`}else{m.cards=null;det.cards='دسترسی به جدول کارت‌ها نیست'}
   /* سلامت ثبت ریسک */
   if(D.risks){const act=D.risks.filter(x=>x.status!=='archived'),good=act.filter(x=>x.status==='approved'&&!(x.review_date&&x.review_date<end)).length,dr=act.filter(x=>x.status==='draft').length,od=act.filter(x=>x.review_date&&x.review_date<end).length;
