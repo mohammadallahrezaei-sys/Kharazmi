@@ -420,11 +420,13 @@ async function exportXlsx(list,name){
 function printWin(html,title){
   const w=window.open('','_blank');if(!w)return toast('اجازهٔ باز شدن پنجره را بدهید');
   w.document.write(`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><base href="${location.href}"><title>${esc(title)}</title><link rel="stylesheet" href="fonts.css"><style>
-  @page{size:A4;margin:9mm}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:13px;color:#000;margin:0;line-height:1.7}
+  /* حاشیهٔ صفر صفحه: سرصفحه/پاصفحهٔ مرورگر (تاریخ، ساعت، about:blank، شماره صفحه) چاپ نمی‌شود؛ حاشیهٔ ۹ میلی‌متر با جدول wr ساخته می‌شود */
+  @page{size:A4;margin:0}body{font-family:Vazirmatn,Tahoma,sans-serif;font-size:13px;color:#000;margin:0;line-height:1.7}
   .c{text-align:center}table{width:100%;border-collapse:collapse}td,th{border:1px solid #000;padding:7px 8px;vertical-align:middle;font-size:13px}th{background:#f1f1f1;font-weight:700;text-align:center}
   .k{background:#f7f7f7;font-weight:700;text-align:center}.ir td{height:62px}.ir .d{text-align:right;line-height:1.8}.b{font-weight:700}
   .a .nm{height:120px;font-weight:700}.n td{padding:8px 10px}tr{page-break-inside:avoid}
-  </style></head><body>${html}<script>setTimeout(()=>window.print(),400)<\/script></body></html>`);w.document.close()}
+  table.wr{border:0}table.wr>thead>tr>td,table.wr>tbody>tr>td,table.wr>tfoot>tr>td{border:0;padding:0}table.wr>tbody>tr{page-break-inside:auto}table.wr .sp{height:9mm}table.wr>tbody>tr>td{padding:0 9mm}
+  </style></head><body><table class="wr"><thead><tr><td><div class="sp"></div></td></tr></thead><tbody><tr><td>${html}</td></tr></tbody><tfoot><tr><td><div class="sp"></div></td></tr></tfoot></table><script>setTimeout(()=>window.print(),400)<\/script></body></html>`);w.document.close()}
 function minutesHTML(m,items,workers){
   const L=s=>en(String(s==null?'':s));          /* فرم کاغذی اصلی با ارقام لاتین نوشته شده */
   const rowsFor=k=>{const l=items.filter(x=>x.kind===k);const t=KINDS.find(z=>z[0]===k)[1];
