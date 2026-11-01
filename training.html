@@ -61,7 +61,7 @@ async function load(){
 }
 function render(){
   const ft=$('flt').value||'all',byT=t=>trs.filter(x=>x.training_type===t).length;
-  const hrs=trs.reduce((s,t)=>s+(+t.duration_hours||0)*att.filter(a=>a.training_id===t.id).length,0);
+  const hrs=trs.reduce((s,t)=>s+({onboarding:.5,periodic:2}[t.training_type]??.25)*att.filter(a=>a.training_id===t.id).length,0);
   $('stats').innerHTML=[[trs.length,'جلسه'],[att.length,'حضور ثبت‌شده'],[fa(Math.round(hrs)),'نفر-ساعت'],[byT('post_incident'),'آموزش پس از حادثه']].map(([n,l])=>`<div class="bg-slate-800 border border-slate-700 rounded-xl p-2 text-center"><div class="text-lg font-bold text-emerald-400">${typeof n==='number'?fa(n):n}</div><div class="text-[11px] text-slate-400">${l}</div></div>`).join('');
   const cut=HSEToday(-365),recent=new Set(trs.filter(t=>t.training_date>=cut).map(t=>t.id));
   const cov=new Set(att.filter(a=>recent.has(a.training_id)&&a.employee_id).map(a=>a.employee_id)),act=emps.filter(e=>HSEP.isActive(e)),miss=act.filter(e=>!cov.has(e.id));

@@ -377,6 +377,10 @@ async function buildSuggest(){
   opn.filter(f=>!used.has('o:'+f.id)).sort((a,b)=>od(a)-od(b)||String(a.created_at).localeCompare(b.created_at)).slice(0,12).forEach((f,i)=>{const dsc=nclause(f);
     out.push({type:'عدم‌انطباق باز',kind:i<3?'ongoing':'new',t:{ongoing:`رفع عدم‌انطباق ${dsc} توسط واحد فنی در دست پیگیری است.`,new:`رفع عدم‌انطباق ${dsc} تا مهلت مقرر.`,done:`عدم‌انطباق ${dsc} برطرف شد.`},actor:f.responsible||'فنی',ref:'o:'+f.id,n:1,dl:nEnd})});
   /* ۵) آموزش‌ها */
+  {const TN={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران',safety_talk:'جلسه کوتاه ایمنی'},cnt={};
+   tr.forEach(x=>{const n=ta.filter(a=>a.training_id===x.id).length;if(n)cnt[x.training_type]=(cnt[x.training_type]||0)+n});
+   const parts=Object.entries(cnt).map(([k,n])=>`${TN[k]||k}: ${fa(n)} نفر`);
+   if(parts.length)out.push({type:'آموزش',kind:'done',t:{done:`به‌منظور ارتقای آگاهی و صلاحیت ایمنی پرسنل، آموزش‌های ماه برگزار شد (${parts.join('، ')}).`},actor:'منابع انسانی/HSE',ref:'tsum:'+K,n:1})}
   tr.filter(x=>!used.has('t:'+x.id)).forEach(x=>{const n=ta.filter(a=>a.training_id===x.id).length;
     out.push({type:'آموزش',kind:'done',t:{done:`برگزاری دورهٔ آموزشی «${clean(x.title)}»${x.duration_hours?' به‌مدت '+fa(x.duration_hours)+' ساعت':''}${n?' با شرکت '+fa(n)+' نفر از پرسنل':''}${x.training_type==='contractor'?' (پرسنل پیمانکار)':''}.`},actor:'منابع انسانی/HSE',ref:'t:'+x.id,n:1})});
   /* ۶) تاییدیه‌های فنی تجهیزات */
