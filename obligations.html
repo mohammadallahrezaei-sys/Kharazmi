@@ -38,10 +38,11 @@ label.f{display:block;font-size:12px;color:var(--mu);margin-top:8px}
 <script src="eval_core.js"></script>
 <script>
 const {fa,esc}=HSE,$=s=>document.querySelector(s),SB='https://priopguwfjawybffarhd.supabase.co/rest/v1/';
-const CATS=['سنجش و پایش','اضطراری و مانور','بازرسی و آزمون','ممیزی و بازنگری','قانونی و مجوز','محیط زیست','سایر'];
+const CATS=['سنجش و پایش','اضطراری و مانور','بازرسی و آزمون','ممیزی و بازنگری','قانونی و مجوز','محیط زیست','تأییدیه و معاینات','سایر'];
+const ANCH='تأییدیه و معاینات'; /* موعد ثابت: موعد بعدی از روی موعد قبلی محاسبه می‌شود نه تاریخ انجام (انجام زودتر/دیرتر سررسید سالانه را جابه‌جا نمی‌کند) */
 /* فهرست پیشنهادی (قابل ویرایش): موعد اولیه خالی است تا مدیر پس از تعیین سابقه/برنامه وارد کند */
 const SEED=[
- ['سنجش عوامل زیان‌آور شیمیایی (آلاینده‌سنجی هوای محیط کار)','سنجش و پایش',12,'مرکز بهداشت / شرکت دارای صلاحیت'],
+ ['سنجش عوامل زیان‌آور شیمیایی (آلاینده‌سنجی هوای محیط کار)','سنجش و پایش',24,'هر ۲ سال؛ فقط در صورت درخواست شبکه بهداشت'],
  ['سنجش صدا','سنجش و پایش',12,'مرکز بهداشت / شرکت دارای صلاحیت'],
  ['سنجش روشنایی','سنجش و پایش',12,'مرکز بهداشت / شرکت دارای صلاحیت'],
  ['سنجش استرس حرارتی (سالن‌های گرم)','سنجش و پایش',12,'مرکز بهداشت / شرکت دارای صلاحیت'],
@@ -58,6 +59,10 @@ const SEED=[
  ['بررسی الزامات قانونی و تطبیق (قوانین کار، آیین‌نامه‌ها، ابلاغیه‌ها)','قانونی و مجوز',12,'HSE'],
  ['پایش پساب و پسماند (نمونه‌برداری/آزمایش و تحویل به پیمانکار مجاز)','محیط زیست',6,'HSE / محیط زیست'],
 ];
+const SEED2=[
+ ['اخذ تأییدیه‌های ایمنی (آتش‌نشانی، دستگاه‌ها و ...)','تأییدیه و معاینات',12,'سالی یک‌بار، سر موعد هر تأییدیه'],
+ ['معاینات دوره‌ای پرسنل (طب کار)','تأییدیه و معاینات',12,'سالی یک‌بار، سر موعد'],
+];SEED.push(...SEED2);
 let O=[],G=[],ME='',FIL='all';
 const todayISO=()=>HSEToday();
 const jl=iso=>iso?new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'}):'—';
@@ -76,7 +81,8 @@ function draw(){
   const q=$('#q').value.trim(),L=S.filter(x=>(FIL==='all'||x.s.k===FIL)&&(!cv||x.o.category===cv)&&(!q||[x.o.title,x.o.authority,x.o.owner,x.o.note].join(' ').includes(q)))
     .sort((a,b)=>({late:0,none:1,soon:2,ok:3}[a.s.k]-{late:0,none:1,soon:2,ok:3}[b.s.k])||a.s.n-b.s.n);
   if(!O.length){$('#list').innerHTML=`<div class="card2">هنوز موردی ثبت نشده است.<div style="margin-top:8px"><button class="b2 p" id="bSeed">بارگذاری فهرست پیشنهادی (${fa(SEED.length)} مورد، قابل ویرایش و حذف)</button></div></div>`;return}
-  $('#list').innerHTML=L.map(({o,s})=>{const lg=G.filter(x=>x.obligation_id===o.id);
+  const miss=SEED.filter(x=>!O.some(o=>o.title===x[0]&&true));const old=O.find(o=>o.title.startsWith('سنجش عوامل زیان‌آور شیمیایی')&&o.period_months===12);
+  $('#list').innerHTML=(miss.length&&O.length?`<div class="card2" style="margin-bottom:8px">موارد پیشنهادی جدید: ${miss.slice(-2).map(x=>esc(x[0])).join('، ')}${miss.length>2?' و ...':''}<div style="margin-top:6px"><button class="b2" id="bMiss">افزودن ${fa(miss.length>2?2:miss.length)} مورد جدید</button>${old?' <button class="b2" id="bOld">تغییر دوره آلاینده‌سنجی به ۲ سال</button>':''}</div></div>`:'')+L.map(({o,s})=>{const lg=G.filter(x=>x.obligation_id===o.id);
     return`<div class="card2"><div class="t"><div style="flex:1;min-width:220px"><b>${esc(o.title)}</b> <span class="bg">${esc(o.category)}</span> <span class="bg ${s.c}">${s.t}</span>
      <div class="mu">هر ${fa(o.period_months)} ماه · موعد: ${jl(o.next_due)} · آخرین انجام: ${jl(o.last_done)}${o.authority?' · مجری: '+esc(o.authority):''}${o.owner?' · مسئول: '+esc(o.owner):''}</div>${o.note?`<div class="mu">${esc(o.note)}</div>`:''}</div>
      <div class="row"><button class="b2 ok" data-a="done" data-id="${o.id}">✔ انجام شد</button><button class="b2" data-a="edit" data-id="${o.id}">✏️</button></div></div>
@@ -87,13 +93,13 @@ function openDone(id){
   $('#dlg').innerHTML=`<b>ثبت انجام: ${esc(o.title)}</b>
    <label class="f">تاریخ انجام</label>${dateField('dD')}
    <label class="f">توضیح / شمارهٔ گزارش یا مدرک (اختیاری)<input id="dN"></label>
-   <div class="mu" style="margin-top:6px">موعد بعدی: ${fa(o.period_months)} ماه بعد از تاریخ انجام (قابل ویرایش)</div>
+   <div class="mu" style="margin-top:6px">${o.category===ANCH?'موعد ثابت: موعد بعدی '+fa(o.period_months)+' ماه بعد از موعد فعلی می‌شود (قابل ویرایش)':'موعد بعدی: '+fa(o.period_months)+' ماه بعد از تاریخ انجام (قابل ویرایش)'}</div>
    <div id="dE" class="mu" style="color:var(--bad)"></div>
    <div class="row" style="margin-top:12px"><button class="b2" id="dX">انصراف</button><button class="b2 p" id="dS" style="margin-inline-start:auto">ثبت</button></div>`;
   HSE.jdInit($('#dD'));HSE.jdSet($('#dD'),todayISO());$('#dlg').showModal();$('#dX').onclick=()=>$('#dlg').close();
   $('#dS').onclick=async()=>{const d=HSE.jdGet($('#dD'))||todayISO();if(d>todayISO())return $('#dE').textContent='تاریخ انجام نمی‌تواند در آینده باشد';
     try{await rq('hse_obligation_log',{method:'POST',body:JSON.stringify({obligation_id:id,done_at:d,note:$('#dN').value.trim()||null,done_by:ME||null}),headers:{Prefer:'return=minimal'}});
-      const upd={last_done:!o.last_done||d>=o.last_done?d:o.last_done};upd.next_due=addM(upd.last_done,o.period_months);
+      const upd={last_done:!o.last_done||d>=o.last_done?d:o.last_done};upd.next_due=addM(upd.last_done,o.period_months);if(o.category===ANCH&&o.next_due){let n=String(o.next_due).slice(0,10);do n=addM(n,o.period_months);while(n<=d);upd.next_due=n}
       await rq('hse_obligations?id=eq.'+id,{method:'PATCH',body:JSON.stringify(upd),headers:{Prefer:'return=minimal'}});
       $('#dlg').close();toast('ثبت شد؛ موعد بعدی: '+jl(upd.next_due));await load()}catch(e){$('#dE').textContent=e.message}}}
 function openForm(id){
@@ -118,9 +124,11 @@ function openForm(id){
     try{if(id)await rq('hse_obligations?id=eq.'+id,{method:'PATCH',body:JSON.stringify(b),headers:{Prefer:'return=minimal'}});else await rq('hse_obligations',{method:'POST',body:JSON.stringify({...b,created_by:ME||null}),headers:{Prefer:'return=minimal'}});
       $('#dlg').close();toast('ثبت شد');await load()}catch(e){$('#fE').textContent=e.message}}}
 document.addEventListener('click',async e=>{
-  const t=e.target.closest('[data-f],[data-a],#bAdd,#bSeed');if(!t)return;
+  const t=e.target.closest('[data-f],[data-a],#bAdd,#bSeed,#bMiss,#bOld');if(!t)return;
   try{
     if(t.id==='bAdd')return openForm(null);
+    if(t.id==='bMiss'){t.disabled=true;await rq('hse_obligations',{method:'POST',body:JSON.stringify(SEED2.filter(x=>!O.some(o=>o.title===x[0])).map(([title,category,period_months,authority])=>({title,category,period_months,authority,created_by:ME||null}))),headers:{Prefer:'return=minimal'}});toast('افزوده شد؛ موعد هر مورد را تعیین کنید');return load()}
+    if(t.id==='bOld'){const o=O.find(o=>o.title.startsWith('سنجش عوامل زیان‌آور شیمیایی'));t.disabled=true;await rq('hse_obligations?id=eq.'+o.id,{method:'PATCH',body:JSON.stringify({period_months:24,authority:'هر ۲ سال؛ فقط در صورت درخواست شبکه بهداشت'}),headers:{Prefer:'return=minimal'}});toast('دوره ۲ سال شد');return load()}
     if(t.id==='bSeed'){t.disabled=true;await rq('hse_obligations',{method:'POST',body:JSON.stringify(SEED.map(([title,category,period_months,authority])=>({title,category,period_months,authority,created_by:ME||null}))),headers:{Prefer:'return=minimal'}});toast('فهرست بارگذاری شد؛ موعد هر مورد را تعیین کنید');return load()}
     if(t.dataset.f){FIL=t.dataset.f;return draw()}
     if(t.dataset.a==='done')openDone(t.dataset.id);else if(t.dataset.a==='edit')openForm(t.dataset.id);
