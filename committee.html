@@ -188,6 +188,13 @@ function openEdit(id,toSub){
   E={isNew:false,m:{...m,att:{...(m.att||{})}},items:(ITEMS.get(id)||[]).map(x=>({...x})),sub:{labor:{...(SUBS.get(id+'|labor')||{})},health:{...(SUBS.get(id+'|health')||{})}}};
   render();if(toSub)setTimeout(()=>{const e=$('#subsec');e&&e.scrollIntoView()},50);
 }
+/* بخش جدا بالای بندها: مصوبات و موارد در دست اقدام جلسهٔ قبلی (فقط‌خواندنی)؛ نشان می‌دهد هر مورد در جلسهٔ جاری کجا آمده */
+function prevPanel(){
+  const pm=MEET.find(x=>x.id!==E.m.id&&x.jdate<E.m.jdate)||(E.isNew?MEET[0]:null);if(!pm)return'';
+  const L=(ITEMS.get(pm.id)||[]).filter(x=>x.kind!=='done'&&x.result!=='لغو شد');if(!L.length)return'';
+  const where=x=>{const t=String(x.text||'').trim(),f=E.items.find(y=>String(y.text||'').trim()===t);return f?(KN0[f.kind]||''):'در این جلسه نیامده'};
+  return`<div class="sec"><span>📌 مصوبات و موارد جلسهٔ قبل (${fa(L.length)}) — جلسهٔ ${esc(pm.no_label||pm.no)} · ${esc(pm.jdate)}</span></div><div class="it" style="background:color-mix(in srgb,var(--ac) 6%,var(--card))">${L.map((x,i)=>`<div style="padding:5px 0;border-top:${i?'1px dashed var(--bd)':'0'};font-size:13px">${fa(i+1)}- ${esc(x.text)}<div class="mu" style="font-size:11px">${x.actor?'اقدام‌کننده: '+esc(x.actor)+' · ':''}${x.deadline?'مهلت: '+esc(x.deadline)+' · ':''}در جلسهٔ جاری: <b>${esc(where(x))}</b></div></div>`).join('')}</div>`}
+const KN0=Object.fromEntries(KINDS);
 function renderEdit(){
   const m=E.m;
   const itemsHTML=KINDS.map(([k,t])=>{const rows=E.items.map((x,i)=>[x,i]).filter(([x])=>x.kind===k);
@@ -211,7 +218,7 @@ function renderEdit(){
    <label class="f">مکان تشکیل جلسه<input data-m="place" value="${esc(m.place||'')}"></label>
    <div class="sec"><span>اعضای حاضر</span></div><div class="g5">${ROLES.map(r=>`<label class="f">${r}<input data-att="${esc(r)}" value="${esc((m.att||{})[r]||'')}"></label>`).join('')}</div>
    <div class="g2"><label class="f">غایبین و دلایل غیبت<input data-m="absent" value="${esc(m.absent||'')}"></label><label class="f">مدعوین<input data-m="guests" value="${esc(m.guests||'')}"></label></div></div>
-   <div class="mc">${itemsHTML}</div>
+   ${prevPanel()}<div class="mc">${itemsHTML}</div>
    <div class="mc"><div class="sec"><span>فایل‌های جلسه (اصل صورتجلسه، اسکن امضاشده)</span></div>${(m.files||[]).map((f,k)=>`<div class="fl">📎 <span>${esc(f.name)}</span><button class="btn2" data-a="openf" data-p="${esc(f.path)}">باز کردن</button><button class="btn2 d" data-a="delmf" data-k="${k}">✕</button></div>`).join('')}<label class="btn2" style="display:inline-block;margin-top:8px">📎 افزودن فایل<input type="file" hidden multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" data-up="m:x"></label></div>
    <div class="mc"><label class="f">توضیحات<textarea data-m="notes" rows="2">${esc(m.notes||'')}</textarea></label><label class="f">تاریخ جلسهٔ بعدی<input data-m="next_date" value="${esc(m.next_date||'')}" dir="ltr" placeholder="1405/08/30"></label></div>
    <div class="mc" id="subsec"><div class="sec"><span>ارسال به ادارات و رسیدها</span></div><div class="mu" style="font-size:12px">شمارهٔ نامه و تاریخ را بعد از ارسال، و شمارهٔ ثبت دبیرخانهٔ مقصد را بعد از دریافت رسید وارد کنید و عکس رسید را پیوست کنید.</div>${subHTML}</div>
