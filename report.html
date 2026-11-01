@@ -199,7 +199,7 @@ function metricsRange(fromDate,toDate){
   m.trOk=!!tr;
   if(tr){
     const TM=inR(tr,'training_date'),ids=new Set(TM.map(x=>x.id)),AM=(ta||[]).filter(a=>ids.has(a.training_id));
-    m.trN=TM.length;m.trAtt=AM.length;m.trHrs=Math.round(TM.reduce((s,t)=>s+(+t.duration_hours||0)*AM.filter(a=>a.training_id===t.id).length,0));
+    m.trN=TM.length;m.trAtt=AM.length;const TDUR={onboarding:.5,periodic:2},tdur=t=>TDUR[t.training_type]??.25;m.trPer={};m.trPh={};TM.forEach(t=>{const n=AM.filter(a=>a.training_id===t.id).length;m.trPer[t.training_type]=(m.trPer[t.training_type]||0)+n;m.trPh[t.training_type]=(m.trPh[t.training_type]||0)+n*tdur(t)});m.trHrs=Math.round(Object.values(m.trPh).reduce((a,b)=>a+b,0));
     m.trType={};TM.forEach(t=>m.trType[t.training_type]=(m.trType[t.training_type]||0)+1);
     const cut=new Date(new Date(end).getTime()-365*864e5).toISOString().slice(0,10),rec=new Set(tr.filter(t=>t.training_date>cut&&t.training_date<=end).map(t=>t.id));
     const actE=new Set((emp||[]).filter(e=>HSEP.isActive(e,fromDate)).map(e=>e.id));m.empN=emp?actE.size:0;m.cov=new Set((ta||[]).filter(a=>rec.has(a.training_id)&&a.employee_id&&actE.has(a.employee_id)).map(a=>a.employee_id)).size;m.covP=m.empN?pct(m.cov,m.empN):null;
@@ -471,7 +471,7 @@ function render(selVal){
   `:'';
 
   const tr=c.trOk?`<div class="card"><h2>آموزش</h2><div class="g">${k(fa(c.trN),'جلسه آموزشی',0,p.trOk?fa(p.trN):null)}${k(fa(c.trAtt),'حضور ثبت‌شده',0,p.trOk?fa(p.trAtt):null)}${k(fa(c.trHrs),'نفر-ساعت آموزش',0,p.trOk?fa(p.trHrs):null)}${k(P(c.covP),'پوشش آموزش پرسنل (۱۲ ماه)',col(c.covP),p.trOk?P(p.covP):null)}</div>
-   <table style="margin-top:10px">${Object.entries({onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران'}).map(([a,b])=>`<tr><th>${b}</th><td>${fa((c.trType||{})[a]||0)} جلسه</td></tr>`).join('')}</table>
+   <table style="margin-top:10px">${Object.entries({onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران',safety_talk:'جلسه کوتاه ایمنی'}).map(([a,b])=>`<tr><th>${b}</th><td>${fa((c.trType||{})[a]||0)} جلسه · ${fa((c.trPer||{})[a]||0)} نفر · ${fa(Math.round(((c.trPh||{})[a]||0)*10)/10)} نفر-ساعت</td></tr>`).join('')}</table>
    ${c.inc?`<div class="mu" style="margin-top:6px">${fa(c.inc)} حادثه در دوره، ${fa(c.trPost)} جلسه آموزش پس از حادثه${c.trPost<c.inc?' — برای همه حوادث آموزش ثبت نشده':''}</div>`:''}</div>`:'<div class="card"><h2>آموزش</h2><div class="mu">ثبت نشده (ماژول آموزش راه‌اندازی نشده است)</div></div>';
   /* ---- کارت «نیازمند توجه»: فقط مواردی که اقدام می‌خواهند ---- */
   const AT=[];
