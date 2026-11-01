@@ -339,6 +339,24 @@ function chartsHtml(type,y,n){
    ${card('پوشش آموزش پرسنل (٪)',svgChart(L,[{name:'پوشش ۱۲ ماه',c:'var(--ac)',v:V(m=>m.c.covP)}],{max:100,lines:[{y:90,t:'هدف ۹۰'}]}))}
   </div></div>`;
 }
+/* شاخص‌های نتیجه‌محور (نه فعالیت): شدت حوادث، روند، شبه‌حادثه، سرعت بستن موارد شدید، روز از آخرین حادثه جدی */
+function outcomeHtml(R,c,p,hasPrev){
+  const d10=v=>String(v||'').slice(0,10),inc=D.inc||[],sv=c.sev||{},hi=(sv.severe||0)+(sv.fatal||0),pHi=p&&p.sev?(p.sev.severe||0)+(p.sev.fatal||0):null;
+  const lastHi=inc.filter(x=>x.severity==='severe'||x.severity==='fatal').map(x=>d10(x.incident_date)).filter(Boolean).sort().pop();
+  const end=R.b<HSEToday()?R.b:HSEToday(),days=lastHi?Math.round((new Date(end)-new Date(lastHi))/864e5):null;
+  const cdL=(D.x&&D.x.C||[]).filter(x=>x.card_type==='near_miss'&&d10(x.card_date)>=R.a&&d10(x.card_date)<=R.b).length;
+  const SEVH=x=>(+x.severity||0)>=3;
+  const cl=(D.fin||[]).filter(x=>SEVH(x)&&x.closed_at&&d10(x.closed_at)>=R.a&&d10(x.closed_at)<=R.b&&x.created_at),avg=cl.length?Math.round(cl.reduce((a,x)=>a+(new Date(d10(x.closed_at))-new Date(d10(x.created_at)))/864e5,0)/cl.length):null;
+  const op=(D.fin||[]).filter(x=>SEVH(x)&&d10(x.created_at)<=end&&(x.status==='open'||(x.closed_at&&d10(x.closed_at)>end))),ov=op.filter(x=>x.due_date&&String(x.due_date).slice(0,10)<end).length;
+  const k=(n2,l,cl2,pv)=>`<div class="k"><b class="${cl2||''}">${n2}</b><span>${l}</span>${hasPrev&&pv!=null?`<span style="display:block;font-size:11px">قبل: ${pv}</span>`:''}</div>`;
+  return `<div class="card" style="border-color:var(--ac)"><h2>🎯 شاخص‌های نتیجه (مسیر حادثهٔ شدید صفر)</h2><div class="g">
+   ${k(fa(hi),'حادثه شدید/فوتی در دوره',hi?'bad':'ok',pHi!=null?fa(pHi):null)}
+   ${k(fa(c.inc||0),'کل حوادث در دوره',(c.inc||0)?'wa':'ok',p&&p.inc!=null?fa(p.inc):null)}
+   ${k(days==null?'—':fa(days),'روز از آخرین حادثه شدید/فوتی',days!=null&&days<90?'wa':'ok')}
+   ${k(fa(cdL),'شبه‌حادثه گزارش‌شده (بیشتر = فرهنگ گزارش‌دهی بهتر)',cdL?'ok':'wa')}
+   ${k(avg==null?'—':fa(avg)+' روز','میانگین زمان بستن موارد شدید',avg!=null&&avg>14?'wa':'ok')}
+   ${k(fa(ov),'موارد شدید باز و معوق',ov?'bad':'ok')}</div>
+   <div class="mu" style="margin-top:6px">هدف: صفر حادثهٔ شدید/فوتی، کاهش پیوستهٔ کل حوادث، و افزایش گزارش شبه‌حادثه. صفر شدن «کل حوادث» به‌تنهایی هدف نیست، چون ممکن است به‌معنای کم‌گزارشی باشد.</div></div>`}
 function obligationsHtml(R){
   const ob=(D.ob||[]).filter(o=>o.active!==false);if(!ob.length)return'';
   const d10=v=>String(v||'').slice(0,10),end=R.b<HSEToday()?R.b:HSEToday(),done=(D.obl||[]).filter(x=>d10(x.done_at)>=R.a&&d10(x.done_at)<=R.b),title=id=>(ob.find(o=>o.id===id)||{}).title||'—';
@@ -467,6 +485,7 @@ function render(selVal){
   const bad=['inspections','findings','clinic_incidents','clinic_followups','ekhtars'].filter((t,i)=>[D.ins,D.fin,D.inc,D.fu,D.ek][i]==null);
   document.getElementById('out').outerHTML=`<div id="out">
   ${attnCard}
+  ${outcomeHtml(R,c,p,hasPrev)}
   ${excellenceHtml(c,R,type,y,n)}${chartsHtml(type,y,n)}${weakAreasHtml(R,c)}${obligationsHtml(R)}
   ${achievements(R,c,pw)}
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
