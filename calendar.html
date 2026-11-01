@@ -82,7 +82,7 @@ const prevK=K=>{let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}return y+'-
 const nextK=K=>{let y=+K.slice(0,4),m=+K.slice(5)+1;if(m>12){m=1;y++}return y+'-'+String(m).padStart(2,'0')};
 
 const MODT={CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخزن تحت فشار',AC:'اتوکلاو',BL:'دیگ بخار',PJ:'جک پالت'};
-let TICKS=new Set(),CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],OBL=[],HRT=null,X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
+let TICKS=new Set(),HTK=new Set(),CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],OBL=[],HRT=null,X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
 if(/[?&]embed=1/.test(location.search)){document.documentElement.classList.add('emb')}
 
 async function hd(){let t=KEY;try{t=(await HSEAuth.token())||KEY}catch(e){}return{apikey:KEY,Authorization:'Bearer '+t}}
@@ -93,6 +93,7 @@ async function load(){
   let ins=await getAll(base.replace('location,','location,equipment_code,'));
   if(!ins){EQ_COL=false;ins=await getAll(base)||[]}
   INS=ins.map(x=>({m:x.module,loc:x.location||'',code:x.equipment_code||null,d:new Date(x.created_at).toLocaleDateString('en-CA')}));
+  HTK=new Set((await getAll("daily_ticks?select=tick_date&key=eq.hrtrain").catch(()=>null)||[]).map(x=>String(x.tick_date).slice(0,10)));
   TICKS=new Set((await getAll("daily_ticks?select=tick_date&key=eq.chlorination").catch(()=>null)||[]).map(x=>String(x.tick_date).slice(0,10)));
   CTR=(await getAll('contractors?select=id,name,contract_no,scope,start_date,end_date,status').catch(()=>null)||[]).filter(c=>c.start_date);
   try{const R=await computeHR();HRT=R?R.list.filter(p=>p.actions.some(a=>a.startsWith('آموزش'))):[]}catch(e){HRT=null}
@@ -173,17 +174,19 @@ function build(K){
   }
   OBL.forEach(o=>{const due=String(o.next_due).slice(0,10);if(!(due>=a&&due<=b)&&!(due<a&&K===nowK))return;T.push({id:'OB'+o.id,date:adjust(due<a?a:due,days),due,t:'تعهد دوره‌ای: '+o.title,sub:'مهلت: '+lbl(due),done:false,kind:'month',go:'obligations.html'})});
   /* آموزش افراد پرریسک: کار کارشناس؛ فقط نام و واحد و دلیل غیرپزشکی نمایش داده می‌شود */
-  if(HRT&&HRT.length&&K===nowK&&(HSEAuth.role==='expert'||HSEAuth.role==='manager')){
-    const nm=HRT.slice(0,5).map(p=>((p.e.first_name||'')+' '+(p.e.last_name||'')).trim()).join('، ');
-    T.push({id:'HRT',date:today,due:today,t:'آموزش افراد پرریسک: '+fa(HRT.length)+' نفر',sub:nm+(HRT.length>5?' و …':'')+' · برنامه‌ریزی و ثبت آموزش',done:false,kind:'month',go:'training.html'})}
-  T.forEach(x=>{x.late=!x.done&&x.date<today});
+  /* آموزش افراد پرریسک: همهٔ افراد تا آخر ماه (موعد = آخرین روز ماه)؛ هر روز کاری یک ردیف در تقویم هست و کارشناس روزی که آموزش داد تیک می‌زند.
+     نام هر نفر پس از ثبت حضور در آموزش خودکار از فهرست حذف می‌شود */
+  if(HRT&&HRT.length&&K===nowK&&days&&(HSEAuth.role==='expert'||HSEAuth.role==='manager')){
+    const nm=HRT.slice(0,8).map(p=>((p.e.first_name||'')+' '+(p.e.last_name||'')).trim()).join('، ')+(HRT.length>8?' و …':''),dl=days[days.length-1].iso;
+    days.filter(d=>isWork(d.iso)&&d.iso>=a).forEach(d=>T.push({id:'HRT'+d.iso,date:d.iso,due:dl,t:'آموزش افراد پرریسک: '+fa(HRT.length)+' نفر باقی‌مانده',sub:nm+' · موعد همه: '+lbl(dl)+' · روزی که آموزش دادید تیک بزنید',done:HTK.has(d.iso),kind:'month',tick:'hrtrain'}))}
+  T.forEach(x=>{x.late=!x.done&&(x.tick==='hrtrain'?x.due<today:x.date<today)});
   return T;
 }
 function href(x){if(x.go)return x.go;return 'checklists.html#visit='+encodeURIComponent(x.mk)+(x.code?'&code='+encodeURIComponent(x.code)+'&title='+encodeURIComponent(x.title||'')+'&hall='+encodeURIComponent(x.hall||''):'')}
 function taskHTML(x){
   return `<div class="ct ${x.done?'done':''} ${x.late?'late':''}"><div class="ctk">${x.done?'✓':''}</div>
    <div class="cx"><b>${esc(x.t)}</b>${x.late?'<span class="ctag bad">عقب‌افتاده</span>':''}<small>${esc(x.sub||'')}${x.done&&x.doneAt?' · انجام شد '+lbl(x.doneAt):''}</small></div>
-   ${x.tick?`<button class="cgo" style="background:${x.done?'transparent':'var(--ac)'};color:${x.done?'var(--mu)':'var(--acx)'};cursor:pointer" data-tick="${x.date}">${x.done?'↩ لغو':'✔ انجام شد'}</button>`:x.done?'':`<a class="cgo" href="${href(x)}">شروع</a>`}</div>`}
+   ${x.tick?`<button class="cgo" style="background:${x.done?'transparent':'var(--ac)'};color:${x.done?'var(--mu)':'var(--acx)'};cursor:pointer" data-tick="${x.date}" data-key="${x.tick}">${x.done?'↩ لغو':'✔ انجام شد'}</button>`:x.done?'':`<a class="cgo" href="${href(x)}">شروع</a>`}</div>`}
 function render(){
   TASKS=build(K);const days=monthDays(K);
   $('mt').textContent=MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
@@ -200,10 +203,10 @@ function render(){
   const LT=TASKS.filter(x=>x.late&&x.date!==SEL).sort((p,q)=>p.date<q.date?-1:1);
   $('late').innerHTML=LT.length?`<div class="card" style="margin-top:12px"><h2 style="color:var(--bad)">عقب‌افتاده‌های این ماه (${fa(LT.length)})</h2>${LT.slice(0,40).map(x=>taskHTML({...x,sub:(x.sub||'')+' · برنامه: '+lbl(x.date)})).join('')}${LT.length>40?`<div class="mu" style="color:var(--mu)">و ${fa(LT.length-40)} مورد دیگر</div>`:''}</div>`:'';
 }
-document.addEventListener('click',async e=>{const b=e.target.closest('[data-tick]');if(!b)return;const d=b.dataset.tick;b.disabled=true;
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-tick]');if(!b)return;const d=b.dataset.tick,kk=b.dataset.key||'chlorination',SET=kk==='hrtrain'?HTK:TICKS;b.disabled=true;
   try{const h=await hd();h['Content-Type']='application/json';
-    if(TICKS.has(d)){const r=await fetch(URL_+'/rest/v1/daily_ticks?key=eq.chlorination&tick_date=eq.'+d,{method:'DELETE',headers:h});if(!r.ok)throw new Error(await r.text());TICKS.delete(d)}
-    else{const r=await fetch(URL_+'/rest/v1/daily_ticks',{method:'POST',headers:{...h,Prefer:'return=minimal'},body:JSON.stringify({tick_date:d,key:'chlorination',done_by:HSEAuth.email||null})});if(!r.ok)throw new Error(await r.text());TICKS.add(d)}
+    if(SET.has(d)){const r=await fetch(URL_+'/rest/v1/daily_ticks?key=eq.'+kk+'&tick_date=eq.'+d,{method:'DELETE',headers:h});if(!r.ok)throw new Error(await r.text());SET.delete(d)}
+    else{const r=await fetch(URL_+'/rest/v1/daily_ticks',{method:'POST',headers:{...h,Prefer:'return=minimal'},body:JSON.stringify({tick_date:d,key:kk,done_by:HSEAuth.email||null})});if(!r.ok)throw new Error(await r.text());SET.add(d)}
     render()}catch(er){b.disabled=false;alert(/relation|does not exist|daily_ticks/.test(er.message)?'جدول ساخته نشده؛ فایل hse_worklog.sql را در Supabase اجرا کنید.':'خطا: '+er.message.slice(0,100))}});
 $('grid').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;SEL=b.dataset.d;render()};
 $('pv').onclick=()=>{K=prevK(K);SEL=monthDays(K)[0].iso;render()};
