@@ -4,6 +4,7 @@
 <script src="auth.js"></script>
 <script src="sched.js"></script>
 <script src="cycle.js"></script>
+<script src="hr_risk.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>تقویم بازرسی - نرم‌افزار جامع HSE</title>
@@ -81,7 +82,7 @@ const prevK=K=>{let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}return y+'-
 const nextK=K=>{let y=+K.slice(0,4),m=+K.slice(5)+1;if(m>12){m=1;y++}return y+'-'+String(m).padStart(2,'0')};
 
 const MODT={CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخزن تحت فشار',AC:'اتوکلاو',BL:'دیگ بخار',PJ:'جک پالت'};
-let TICKS=new Set(),CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],OBL=[],X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
+let TICKS=new Set(),CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],OBL=[],HRT=null,X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
 if(/[?&]embed=1/.test(location.search)){document.documentElement.classList.add('emb')}
 
 async function hd(){let t=KEY;try{t=(await HSEAuth.token())||KEY}catch(e){}return{apikey:KEY,Authorization:'Bearer '+t}}
@@ -94,6 +95,7 @@ async function load(){
   INS=ins.map(x=>({m:x.module,loc:x.location||'',code:x.equipment_code||null,d:new Date(x.created_at).toLocaleDateString('en-CA')}));
   TICKS=new Set((await getAll("daily_ticks?select=tick_date&key=eq.chlorination").catch(()=>null)||[]).map(x=>String(x.tick_date).slice(0,10)));
   CTR=(await getAll('contractors?select=id,name,contract_no,scope,start_date,end_date,status').catch(()=>null)||[]).filter(c=>c.start_date);
+  try{const R=await computeHR();HRT=R?R.list.filter(p=>p.actions.some(a=>a.startsWith('آموزش'))):[]}catch(e){HRT=null}
   OBL=(await getAll('hse_obligations?select=id,title,next_due,active').catch(()=>null)||[]).filter(o=>o.active!==false&&o.next_due);
   const cats=[...new Set(Object.values(EQC).flatMap(v=>v[0]))];
   EQ=await getAll('equipment?select=code,title,category,hall&active=eq.true&category=in.('+cats.map(c=>'"'+c+'"').join(',')+')&order=code.asc')||[];
@@ -170,6 +172,10 @@ function build(K){
       else if(due&&inM(due))T.push({id:'FN'+x.id,date:adjust(due,days),due,t:'بستن عدم‌انطباق: '+txt,sub:'مهلت: '+lbl(due),done:x.status==='closed',kind:'score',go:'checklists.html'})});
   }
   OBL.forEach(o=>{const due=String(o.next_due).slice(0,10);if(!(due>=a&&due<=b)&&!(due<a&&K===nowK))return;T.push({id:'OB'+o.id,date:adjust(due<a?a:due,days),due,t:'تعهد دوره‌ای: '+o.title,sub:'مهلت: '+lbl(due),done:false,kind:'month',go:'obligations.html'})});
+  /* آموزش افراد پرریسک: کار کارشناس؛ فقط نام و واحد و دلیل غیرپزشکی نمایش داده می‌شود */
+  if(HRT&&HRT.length&&K===nowK&&(HSEAuth.role==='expert'||HSEAuth.role==='manager')){
+    const nm=HRT.slice(0,5).map(p=>((p.e.first_name||'')+' '+(p.e.last_name||'')).trim()).join('، ');
+    T.push({id:'HRT',date:today,due:today,t:'آموزش افراد پرریسک: '+fa(HRT.length)+' نفر',sub:nm+(HRT.length>5?' و …':'')+' · برنامه‌ریزی و ثبت آموزش',done:false,kind:'month',go:'training.html'})}
   T.forEach(x=>{x.late=!x.done&&x.date<today});
   return T;
 }
