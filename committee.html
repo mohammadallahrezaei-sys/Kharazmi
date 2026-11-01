@@ -188,7 +188,7 @@ function openEdit(id,toSub){
 function renderEdit(){
   const m=E.m;
   const itemsHTML=KINDS.map(([k,t])=>{const rows=E.items.map((x,i)=>[x,i]).filter(([x])=>x.kind===k);
-    return`<div class="sec"><span>${t} (${fa(rows.length)})</span><span style="display:flex;gap:6px">${k==='done'?'<button class="btn2 p" data-a="suggest">✨ پیش‌نویس از کارهای ماه</button>':''}<button class="btn2" data-a="polishall" data-k="${k}">✨ بهبود جمله‌بندی همه</button><button class="btn2" data-a="additem" data-k="${k}">＋ افزودن</button></span></div>`+rows.map(([x,i],n)=>`<div class="it"><div class="mu" style="font-size:11px">${fa(n+1)}</div>
+    return`<div class="sec"><span>${t} (${fa(rows.length)})</span><span style="display:flex;gap:6px">${k==='done'?'<button class="btn2 p" data-a="suggest">✨ پیش‌نویس از کارهای ماه</button>':''}<button class="btn2" data-a="polishall" data-k="${k}">✨ بهبود جمله‌بندی همه</button><button class="btn2" data-a="cpai" data-k="${k}">📋 کپی برای Claude (رایگان)</button><button class="btn2" data-a="psai" data-k="${k}">📥 جایگذاری نتیجه</button><button class="btn2" data-a="additem" data-k="${k}">＋ افزودن</button></span></div>`+rows.map(([x,i],n)=>`<div class="it"><div class="mu" style="font-size:11px">${fa(n+1)}</div>
       <textarea data-i="${i}" data-f="text" placeholder="شرح اقدام / مصوبه" style="width:100%;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;padding:8px">${esc(x.text)}</textarea>
       <div class="g5"><label class="f">اقدام‌کننده<input data-i="${i}" data-f="actor" value="${esc(x.actor)}" placeholder="مثلاً نت / HSE"></label><label class="f">پیگیری‌کننده<input data-i="${i}" data-f="follower" value="${esc(x.follower)}"></label>
       <label class="f">مهلت (۱۴۰۵/۰۷/۳۰)<input data-i="${i}" data-f="deadline" value="${esc(x.deadline)}" dir="ltr" inputmode="numeric"></label>
@@ -560,6 +560,16 @@ document.addEventListener('click',async ev=>{
   if(a==='suggest')return openSuggest();
   if(a==='additem'){E.items.push({id:uid(),kind:t.dataset.k,text:'',actor:'',follower:'',deadline:'',result:t.dataset.k==='done'?'اقدام شد':t.dataset.k==='new'?'مصوبه':'در دست اقدام'});renderEdit();return}
   if(a==='polish'){polishItems([+t.dataset.i],t);return}
+  if(a==='cpai'){const L=E.items.filter(x=>x.kind===t.dataset.k&&String(x.text||'').trim());if(!L.length)return toast('متنی نیست');
+    const txt='جمله‌بندی بندهای زیر از صورتجلسهٔ کمیتهٔ حفاظت فنی و بهداشت کار را رسمی، روان و کوتاه کن. هیچ عدد، نام، محل، تاریخ یا ادعای جدیدی اضافه نکن و متن داخل «» را بدون تغییر نگه دار. خروجی را دقیقاً با همان شماره‌گذاری و همان تعداد بند، هر بند در یک خط، به‌صورت «۱) …» بنویس و چیز دیگری ننویس.\n\n'+L.map((x,i)=>(i+1)+') '+String(x.text).replace(/\s+/g,' ').trim()).join('\n');
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('کپی شد؛ در Claude پیست کنید، سپس نتیجه را با «جایگذاری نتیجه» برگردانید'),()=>{prompt('متن را کپی کنید:',txt)});return}
+  if(a==='psai'){const L=E.items.filter(x=>x.kind===t.dataset.k&&String(x.text||'').trim()),dlg=document.createElement('dialog');
+    dlg.style.cssText='width:min(94vw,640px);border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);padding:14px;direction:rtl';
+    dlg.innerHTML='<b>جایگذاری نتیجهٔ Claude</b><div class="mu" style="margin:6px 0">خروجی شماره‌دار Claude را اینجا پیست کنید ('+fa(L.length)+' بند).</div><textarea id="psT" rows="10" style="width:100%"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="btn2" id="psX">انصراف</button><span style="flex:1"></span><button class="btn2 p" id="psOk">جایگذاری</button></div>';
+    document.body.appendChild(dlg);dlg.showModal();dlg.querySelector('#psX').onclick=()=>{dlg.close();dlg.remove()};
+    dlg.querySelector('#psOk').onclick=()=>{const m=new Map();String(dlg.querySelector('#psT').value).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).split(/\n+/).forEach(l=>{const q=/^\s*(\d+)\s*[\)\.\-:：]\s*(.+)$/.exec(l);if(q)m.set(+q[1],q[2].trim())});
+      if(m.size!==L.length){alert('تعداد بندهای پیست‌شده ('+fa(m.size)+') با تعداد بندها ('+fa(L.length)+') برابر نیست؛ هیچ چیز تغییر نکرد.');return}
+      L.forEach((x,i)=>{const n=m.get(i+1);if(n&&n!==x.text){if(!ORIG.has(x))ORIG.set(x,x.text);x.text=n}});dlg.close();dlg.remove();renderEdit();toast('جایگذاری شد')};return}
   if(a==='polishall'){polishItems(E.items.map((x,i)=>[x,i]).filter(([x])=>x.kind===t.dataset.k).map(([,i])=>i).slice(0,30),t);return}
   if(a==='unpolish'){const x=E.items[+t.dataset.i];if(x&&ORIG.has(x)){x.text=ORIG.get(x);ORIG.delete(x);renderEdit()}return}
   if(a==='delitem'){E.items.splice(+t.dataset.i,1);renderEdit();return}
