@@ -326,7 +326,7 @@ async function buildSuggest(){
   /* ۲) عدم‌انطباق‌های رفع‌شده */
   const groups=new Map();fin.filter(f=>!used.has('f:'+f.id)).forEach(f=>{const k=SG.group?(f.category||'عمومی')+'|'+place(f):'f'+f.id;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(f)});
   groups.forEach(l=>{const f=l[0],loc=place(f),cat=f.category||'';
-    const text=l.length===1?`عدم‌انطباق ${nclause(f)} برطرف شد.`:`${fa(l.length)} مورد عدم‌انطباق${loc?' در '+loc:''}${cat?' ('+cat+')':''} برطرف شد: ${l.map(x=>{const d=descFull(x);return '«'+clean(d.q).slice(0,150)+'»'+}).join('؛ ')}.`;
+    const text=l.length===1?`عدم‌انطباق ${nclause(f)} برطرف شد.`:`${fa(l.length)} مورد عدم‌انطباق${loc?' در '+loc:''}${cat?' ('+cat+')':''} برطرف شد: ${l.map(x=>{const d=descFull(x);return '«'+clean(d.q).slice(0,150)+'»'}).join('؛ ')}.`;
     out.push({type:'عدم‌انطباق رفع‌شده',kind:'done',t:{done:text},actor:[...new Set(l.map(x=>x.responsible).filter(Boolean))].slice(0,2).join('/')||'فنی',ref:l.map(x=>'f:'+x.id).join(','),n:l.length})});
   /* ۳) گزارش کارهای روزانه */
   wl.filter(w=>!used.has('w:'+w.id)).forEach(w=>{const tt=clean(w.title),ds=clean(w.description).slice(0,150),body=tt+(ds?' — '+ds:'');
