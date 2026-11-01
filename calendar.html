@@ -173,9 +173,12 @@ function build(K){
   }
   OBL.forEach(o=>{const due=String(o.next_due).slice(0,10);if(!(due>=a&&due<=b)&&!(due<a&&K===nowK))return;T.push({id:'OB'+o.id,date:adjust(due<a?a:due,days),due,t:'تعهد دوره‌ای: '+o.title,sub:'مهلت: '+lbl(due),done:false,kind:'month',go:'obligations.html'})});
   /* آموزش افراد پرریسک: کار کارشناس؛ فقط نام و واحد و دلیل غیرپزشکی نمایش داده می‌شود */
-  if(HRT&&HRT.length&&K===nowK&&(HSEAuth.role==='expert'||HSEAuth.role==='manager')){
-    const nm=HRT.slice(0,5).map(p=>((p.e.first_name||'')+' '+(p.e.last_name||'')).trim()).join('، ');
-    T.push({id:'HRT',date:today,due:today,t:'آموزش افراد پرریسک: '+fa(HRT.length)+' نفر',sub:nm+(HRT.length>5?' و …':'')+' · برنامه‌ریزی و ثبت آموزش',done:false,kind:'month',go:'training.html'})}
+  /* برنامهٔ آموزش افراد پرریسک تا آخر ماه: فهرست بر اساس ریسک مرتب است و بین روزهای کاری باقی‌مانده تقسیم می‌شود.
+     کسی که آموزش ببیند از فهرست حذف می‌شود؛ غایب یا آموزش‌ندیده خودکار فردا دوباره در صدر می‌آید و سهم روزهای بعد بازتقسیم می‌شود */
+  if(HRT&&HRT.length&&K===nowK&&days&&(HSEAuth.role==='expert'||HSEAuth.role==='manager')){
+    const left=days.filter(d=>isWork(d.iso)&&d.iso>=today).map(d=>d.iso),ds=left.length?left:[days[days.length-1].iso],per=Math.ceil(HRT.length/ds.length);
+    ds.forEach((d,n)=>{const g=HRT.slice(n*per,(n+1)*per);if(!g.length)return;
+      T.push({id:'HRT'+d,date:d,due:d,t:'آموزش افراد پرریسک ('+fa(g.length)+' نفر)',sub:g.map(p=>((p.e.first_name||'')+' '+(p.e.last_name||'')).trim()).join('، ')+(n===0?' · هرکس امروز نبود یا نشد، خودکار فردا منتقل می‌شود':''),done:false,kind:'month',go:'training.html'})})}
   T.forEach(x=>{x.late=!x.done&&x.date<today});
   return T;
 }
