@@ -186,7 +186,7 @@ function href(x){if(x.go)return x.go;return 'checklists.html#visit='+encodeURICo
 function taskHTML(x){
   return `<div class="ct ${x.done?'done':''} ${x.late?'late':''}"><div class="ctk">${x.done?'✓':''}</div>
    <div class="cx"><b>${esc(x.t)}</b>${x.late?'<span class="ctag bad">عقب‌افتاده</span>':''}<small>${esc(x.sub||'')}${x.done&&x.doneAt?' · انجام شد '+lbl(x.doneAt):''}</small></div>
-   ${x.tick?`<button class="cgo" style="background:${x.done?'transparent':'var(--ac)'};color:${x.done?'var(--mu)':'var(--acx)'};cursor:pointer" data-tick="${x.date}" data-key="${x.tick}">${x.done?'↩ لغو':'✔ انجام شد'}</button>`:x.done?'':`<a class="cgo" href="${href(x)}">شروع</a>`}</div>`}
+   ${x.tick?`${x.go?`<a class="cgo" href="${x.go}">ثبت آموزش</a> `:''}<button class="cgo" style="background:${x.done?'transparent':'var(--ac)'};color:${x.done?'var(--mu)':'var(--acx)'};cursor:pointer" data-tick="${x.date}" data-key="${x.tick}">${x.done?'↩ لغو':'✔ انجام شد'}</button>`:x.done?'':`<a class="cgo" href="${href(x)}">شروع</a>`}</div>`}
 function render(){
   TASKS=build(K);const days=monthDays(K);
   $('mt').textContent=MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
