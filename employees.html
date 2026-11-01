@@ -47,7 +47,7 @@ details[open] .chev { transform: rotate(180deg); }
 
 <div id="addModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden backdrop-blur-sm">
   <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-    <h2 class="text-lg font-bold text-white mb-4">فرم ثبت پرسنل جدید</h2>
+    <h2 id="formTtl" class="text-lg font-bold text-white mb-4">فرم ثبت پرسنل جدید</h2>
     <form id="empForm" class="space-y-3">
       <div id="formFields" class="grid grid-cols-2 gap-3"></div>
       <div class="flex gap-2 pt-2">
@@ -133,7 +133,7 @@ function card(x) {
     <div class="px-4 pb-4 space-y-3 border-t border-slate-700 pt-3">
       ${groups.map(([tt, fs]) => `<div><h3 class="text-xs font-bold ${tt === 'قطع همکاری' ? 'text-red-400' : 'text-emerald-400'} mb-2">${tt}</h3><div class="grid grid-cols-2 gap-2">${fs.map(f => cell(x, f)).join('')}</div></div>`).join('')}
       ${extra.length ? `<div><h3 class="text-xs font-bold text-emerald-400 mb-2">سایر اطلاعات</h3><div class="grid grid-cols-2 gap-2">${extra.map(k => cell(x, [k, k])).join('')}</div></div>` : ''}
-      <div class="flex gap-2 pt-1">${t
+      <div class="flex gap-2 pt-1"><button type="button" onclick="openEdit('${esc(x.id)}')" class="abtn">✏️ ویرایش اطلاعات</button>${t
         ? `<button type="button" onclick="revertTerm('${esc(x.id)}')" class="abtn">↩ بازگشت به کار (لغو قطع همکاری)</button>`
         : `<button type="button" onclick="openTerm('${esc(x.id)}')" class="abtn danger">⛔ ثبت قطع همکاری</button>`}</div>
     </div>
@@ -206,21 +206,34 @@ const FORM = [
   ['father_name', 'نام پدر'], ['gender', 'جنسیت'], ['marital_status', 'وضعیت تأهل'], ['birth_place', 'محل تولد'],
   ['education', 'تحصیلات'], ['military_status', 'وضعیت خدمت'], ['department', 'واحد خدمت / بخش'], ['job_title', 'عنوان سمت شغلی'],
   ['supervisor', 'سرپرست مربوطه'], ['phone_mobile', 'تلفن همراه ۱'], ['phone_mobile2', 'تلفن همراه ۲'], ['phone_landline', 'تلفن ثابت'],
-  ['postal_code', 'کد پستی'], ['address', 'آدرس', 0, 1]
+  ['postal_code', 'کد پستی'], ['address', 'آدرس', 0, 1],
+  ['birth_cert_no', 'شماره شناسنامه'], ['issue_place', 'محل صدور'], ['birth_year', 'سال تولد (شمسی)'], ['birth_month', 'ماه تولد'], ['birth_day', 'روز تولد'],
+  ['position_rahkaran', 'پست راهکاران'], ['insurance_no', 'شماره بیمه'], ['insurance_start', 'شروع بکار بیمه‌ای'], ['initial_exam', 'معاینات بدو استخدام'],
+  ['skills', 'مهارت و توانایی فنی', 0, 1], ['training_courses', 'دوره‌های آموزشی', 0, 1]
 ];
+const NUMK = new Set(['birth_year', 'birth_month', 'birth_day']);
+let editId = null;
+function openEdit(id) {
+  const x = all.find(e => String(e.id) === String(id)); if (!x) return;
+  editId = id; document.getElementById('formTtl').textContent = `ویرایش اطلاعات: ${x.first_name || ''} ${x.last_name || ''}`;
+  document.querySelectorAll('#empForm [data-f]').forEach(i => { i.value = x[i.dataset.f] == null ? '' : x[i.dataset.f]; });
+  document.getElementById('addModal').classList.remove('hidden');
+}
 document.getElementById('formFields').innerHTML = FORM.map(([k, l, req, wide]) =>
   `<div class="${wide ? 'col-span-2' : ''}"><label class="block text-xs text-slate-300 mb-1">${l}</label>
    <input type="text" data-f="${k}" ${req ? 'required' : ''} class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:border-emerald-500 outline-none"></div>`).join('');
 
 function toggleModal(show) {
   document.getElementById('addModal').classList.toggle('hidden', !show);
-  if (!show) document.getElementById('empForm').reset();
+  if (show) { editId = null; document.getElementById('formTtl').textContent = 'فرم ثبت پرسنل جدید'; document.getElementById('empForm').reset(); }
+  if (!show) { editId = null; document.getElementById('empForm').reset(); }
 }
 
 document.getElementById('empForm').onsubmit = async e => {
   e.preventDefault();
   const body = {};
-  document.querySelectorAll('#empForm [data-f]').forEach(i => { const v = i.value.trim(); if (v) body[i.dataset.f] = v; });
+  document.querySelectorAll('#empForm [data-f]').forEach(i => { const v = i.value.trim(), k = i.dataset.f; if (v) body[k] = NUMK.has(k) && !isNaN(+v) ? +v : v; else if (editId) body[k] = null; });
+  if (editId) { if (await patchEmp(editId, body)) { toggleModal(false); loadEmployees(); } return; }
   try {
     const res = await fetch(`${URL_}/rest/v1/employees`, { method: 'POST', headers: { ...H, 'Content-Type': 'application/json', Prefer: 'return=representation' }, body: JSON.stringify(body) });
     if (!res.ok) throw new Error(await res.text());
