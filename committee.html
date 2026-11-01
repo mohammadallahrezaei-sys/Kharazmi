@@ -168,6 +168,18 @@ function newMeeting(){
   E={isNew:true,m:{id:uid(),year:y,no,no_label:'',jdate:defDate(last),t1:last?last.t1||'':'',t2:last?last.t2||'':'',place:last?last.place||'':'اتاق کنفرانس مدیریت',workers:last?last.workers:null,next_date:'',att:{...(last?last.att:{})},absent:'',guests:'',notes:''},items:carry,sub:{labor:{},health:{}}};
   render();
 }
+/* بهبود جمله‌بندی با هوش مصنوعی (تابع Supabase polish-text)؛ متن اصلی برای بازگشت در حافظه می‌ماند، نه در دیتابیس */
+const ORIG=new WeakMap();
+async function polishTexts(arr){
+  const tk=await HSEAuth.token(),r=await fetch(SB+'/functions/v1/polish-text',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk,apikey:'sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu'},body:JSON.stringify({texts:arr})});
+  let d={};try{d=await r.json()}catch(e){}
+  if(!r.ok||!d.texts)throw new Error(r.status===404?'تابع polish-text در Supabase ساخته نشده است (راهنما: supabase/functions/polish-text/README.md)':(d.error||'خطا در اتصال'));
+  return d.texts}
+async function polishItems(idx,btn){
+  const old=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent='… در حال بهبود'}
+  try{const its=idx.map(i=>E.items[i]).filter(x=>x&&String(x.text||'').trim());if(!its.length){alert('متنی برای بهبود نیست.');return}
+    const out=await polishTexts(its.map(x=>x.text));its.forEach((x,k)=>{if(out[k]&&out[k]!==x.text){if(!ORIG.has(x))ORIG.set(x,x.text);x.text=out[k]}});renderEdit()}
+  catch(e){alert(e.message);if(btn){btn.disabled=false;btn.textContent=old}}}
 function openEdit(id,toSub){
   const m=MEET.find(x=>x.id===id);if(!m)return;
   E={isNew:false,m:{...m,att:{...(m.att||{})}},items:(ITEMS.get(id)||[]).map(x=>({...x})),sub:{labor:{...(SUBS.get(id+'|labor')||{})},health:{...(SUBS.get(id+'|health')||{})}}};
@@ -176,13 +188,13 @@ function openEdit(id,toSub){
 function renderEdit(){
   const m=E.m;
   const itemsHTML=KINDS.map(([k,t])=>{const rows=E.items.map((x,i)=>[x,i]).filter(([x])=>x.kind===k);
-    return`<div class="sec"><span>${t} (${fa(rows.length)})</span><span style="display:flex;gap:6px">${k==='done'?'<button class="btn2 p" data-a="suggest">✨ پیش‌نویس از کارهای ماه</button>':''}<button class="btn2" data-a="additem" data-k="${k}">＋ افزودن</button></span></div>`+rows.map(([x,i],n)=>`<div class="it"><div class="mu" style="font-size:11px">${fa(n+1)}</div>
+    return`<div class="sec"><span>${t} (${fa(rows.length)})</span><span style="display:flex;gap:6px">${k==='done'?'<button class="btn2 p" data-a="suggest">✨ پیش‌نویس از کارهای ماه</button>':''}<button class="btn2" data-a="polishall" data-k="${k}">✨ بهبود جمله‌بندی همه</button><button class="btn2" data-a="additem" data-k="${k}">＋ افزودن</button></span></div>`+rows.map(([x,i],n)=>`<div class="it"><div class="mu" style="font-size:11px">${fa(n+1)}</div>
       <textarea data-i="${i}" data-f="text" placeholder="شرح اقدام / مصوبه" style="width:100%;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;padding:8px">${esc(x.text)}</textarea>
       <div class="g5"><label class="f">اقدام‌کننده<input data-i="${i}" data-f="actor" value="${esc(x.actor)}" placeholder="مثلاً نت / HSE"></label><label class="f">پیگیری‌کننده<input data-i="${i}" data-f="follower" value="${esc(x.follower)}"></label>
       <label class="f">مهلت (۱۴۰۵/۰۷/۳۰)<input data-i="${i}" data-f="deadline" value="${esc(x.deadline)}" dir="ltr" inputmode="numeric"></label>
       <label class="f">نتیجه<select data-i="${i}" data-f="result">${RESULTS.map(r=>`<option ${x.result===r?'selected':''}>${r}</option>`).join('')}</select></label>
       <label class="f">بخش<select data-i="${i}" data-f="kind">${KINDS.map(([kk,tt])=>`<option value="${kk}" ${x.kind===kk?'selected':''}>${tt}</option>`).join('')}</select></label></div>
-      <div style="text-align:left;margin-top:6px"><button class="btn2 d" data-a="delitem" data-i="${i}">حذف</button></div></div>`).join('')}).join('');
+      <div style="text-align:left;margin-top:6px"><button class="btn2" data-a="polish" data-i="${i}">✨ بهبود جمله‌بندی</button>${ORIG.has(x)?` <button class="btn2" data-a="unpolish" data-i="${i}">↩ متن قبلی</button>`:''} <button class="btn2 d" data-a="delitem" data-i="${i}">حذف</button></div></div>`).join('')}).join('');
   const subHTML=['labor','health'].map(t=>{const s=E.sub[t]||{};return`<div class="it"><b>${ORG[t]}</b> <span class="mu" style="font-size:11px">(${ADDR[t]})</span>
     <div class="g2"><label class="f">شمارهٔ نامهٔ ارسال<input data-s="${t}" data-f="letter_no" value="${esc(s.letter_no||'')}" dir="ltr"></label><label class="f">تاریخ نامه<input data-s="${t}" data-f="letter_date" value="${esc(s.letter_date||'')}" dir="ltr" placeholder="1405/07/05"></label>
     <label class="f">شمارهٔ ثبت دبیرخانهٔ مقصد (رسید)<input data-s="${t}" data-f="receipt_no" value="${esc(s.receipt_no||'')}" dir="ltr"></label><label class="f">تاریخ ثبت در مقصد<input data-s="${t}" data-f="receipt_date" value="${esc(s.receipt_date||'')}" dir="ltr" placeholder="1405/07/06"></label></div>
@@ -545,6 +557,9 @@ document.addEventListener('click',async ev=>{
   if(a==='letter'){const m=E.m;return printWin(letterHTML({...m,jdate:normD(m.jdate)||m.jdate},t.dataset.t,E.sub[t.dataset.t]||{}),'نامهٔ ارسال')}
   if(a==='suggest')return openSuggest();
   if(a==='additem'){E.items.push({id:uid(),kind:t.dataset.k,text:'',actor:'',follower:'',deadline:'',result:t.dataset.k==='done'?'اقدام شد':t.dataset.k==='new'?'مصوبه':'در دست اقدام'});renderEdit();return}
+  if(a==='polish'){polishItems([+t.dataset.i],t);return}
+  if(a==='polishall'){polishItems(E.items.map((x,i)=>[x,i]).filter(([x])=>x.kind===t.dataset.k).map(([,i])=>i).slice(0,30),t);return}
+  if(a==='unpolish'){const x=E.items[+t.dataset.i];if(x&&ORIG.has(x)){x.text=ORIG.get(x);ORIG.delete(x);renderEdit()}return}
   if(a==='delitem'){E.items.splice(+t.dataset.i,1);renderEdit();return}
   if(a==='save')return saveMeeting();
   if(a==='delm'){if(!confirm('کل این جلسه با موارد و ارسال‌هایش حذف شود؟'))return;try{await rq('committee_meetings?id=eq.'+E.m.id,{method:'DELETE',headers:{Prefer:'return=minimal'}});E=null;toast('حذف شد');await load()}catch(e){toast('خطا: '+e.message.slice(0,100))}return}
