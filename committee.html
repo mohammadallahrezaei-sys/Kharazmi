@@ -318,6 +318,22 @@ async function attachNotices(rows,g){const cs=[...new Set(rows.map(r=>String(r.n
 /* جملهٔ کامل برای صورتجلسه: شرح مشخص، کد و نام تجهیز، محل دقیق و کد اعلان */
 function nclause(x){const d=descFull(x),loc=clean(String(x.location||'').replace(/\s+-\s+/g,'، ')),no=String(x.notice_code||'').trim(),nn=no&&no.toUpperCase()!=='NOTICED'?no:'';
   return `«${clean(d.q).slice(0,150)}»${d.eqc?` مربوط به تجهیز ${d.eqc}${d.eqt?' ('+clean(d.eqt)+')':''}`:''}${loc?' در '+loc:''}${nn?' (اعلان '+fa(nn)+')':''}`}
+/* «سبک ایمنی‌محور»: هر بند پیش‌نویس با هدف HSE مشخص شروع می‌شود («به‌منظور کنترل ریسک …، …»)؛ هدف از روی کلیدواژه‌های متن/نوع بند تعیین می‌شود */
+const HSE_PURPOSE=[[/برق|تابلو|چاه ارت|ارتینگ|سیستم ارت|کابل|رکتیفایر|اتصالی|فیوز/,'به‌منظور کنترل ریسک برق‌گرفتگی و اتصالی'],
+  [/کپسول|اطفا|فایرباکس|حریق|آتش/,'به‌منظور تضمین آمادگی تجهیزات اطفای حریق'],
+  [/نشت|گاز|مشعل|کوره|اسید|مخزن|بخار|آمونیاک|انفجار/,'به‌منظور کنترل ریسک نشت، آتش‌سوزی و انفجار'],
+  [/جرثقیل|بالابر|لیفتراک|زنجیر|هوک|جک|باربرداری|طناب|قلاب/,'به‌منظور کنترل ریسک سقوط بار در تجهیزات باربرداری'],
+  [/ارتفاع|نردبان|سقوط|کمربند/,'جهت کنترل ریسک سقوط از ارتفاع'],
+  [/ارگونوم|گاری|حمل دستی|وضعیت بدنی/,'جهت کاهش ریسک ارگونومیک'],
+  [/حفاظ|گارد|پرده نوری|سیلندر|دستگاه|پرس|اکسترودر/,'جهت حفاظت از اپراتور در برابر آسیب‌های مکانیکی'],
+  [/آموزش|دورهٔ|دوره/,'جهت ارتقای آگاهی و فرهنگ ایمنی'],
+  [/بهداشت|نظافت|پسماند|پساب|سرویس|رختکن|حمام|غذا|آبدارخانه|حشرات/,'جهت ارتقای شرایط بهداشت محیط کار'],
+  [/بازدید|چک‌لیست/,'به‌منظور شناسایی شرایط ناایمن و پایش مستمر ایمنی'],
+  [/شبه‌حادثه|کارت|گزارش‌دهی/,'جهت تقویت فرهنگ ایمنی و گزارش‌دهی خطرات']];
+function styleHSE(t,type){
+  t=String(t||'').trim();if(!t||type==='ارسال مستندات'||/^(به‌منظور|جهت|به‌عنوان)\s/.test(t))return t;
+  const hit=HSE_PURPOSE.find(([re])=>re.test(t)),pu=type==='تاییدیه فنی'?'به‌منظور تضمین ایمنی و سلامت فنی تجهیزات':type==='بازدیدهای ایمنی'?'به‌منظور شناسایی شرایط ناایمن و پایش مستمر ایمنی':type==='کارت‌ها'?'جهت تقویت فرهنگ ایمنی و گزارش‌دهی خطرات':(hit?hit[1]:'به‌عنوان اقدام اصلاحی');
+  return pu+'، '+t}
 async function buildSuggest(){
   const K=SG.K,R=HSE.monthRange(K),A=R.a,B=nextISO(R.b),pre=K.replace('-','/')+'/',used=usedRefs(),g=HSE.getAll,out=[];
   const jy=+K.slice(0,4),jm=+K.slice(5,7),nm=jm===12?1:jm+1,ny=jm===12?jy+1:jy,nEnd=ny+'/'+pad2(nm)+'/'+pad2(lastDay(ny,nm));
@@ -379,7 +395,7 @@ async function buildSuggest(){
   out.sort((a,b)=>ko[a.kind]-ko[b.kind]||(ord[a.type]||9)-(ord[b.type]||9));
   const cap={done:8,ongoing:3,new:3},cnt={done:0,ongoing:0,new:0};
   out.forEach(s=>{if(s.type==='ارسال مستندات'){s.pick=true;return}s.pick=cnt[s.kind]<cap[s.kind];if(s.pick)cnt[s.kind]++;s.text=''});
-  out.forEach(s=>{s.text=s.t[s.kind]||s.t.done});
+  out.forEach(s=>{s.text=styleHSE(s.t[s.kind]||s.t.done,s.type)});
   SG.list=out;
 }
 async function openSuggest(){
