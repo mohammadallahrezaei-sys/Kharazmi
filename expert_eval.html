@@ -173,6 +173,13 @@ function facRows(email,K){
   if(!n)return[];
   return FAC.map(f=>{const nc=D.fin.filter(x=>x.module==='SAN'&&eqm(x.inspector,email)&&d10(x.created_at)>=a&&d10(x.created_at)<=R.b&&String(x.question||'').trim().startsWith(f.pre)).length,exp=Math.round(f.c*FAC_RATE);
     return{...f,nc,exp,visits:n,low:exp>=2&&nc<0.4*exp}})}
+/* بازدید «تمیز» که بعدش دیگران مورد پیدا کردند: چک‌لیست بدون عدم‌انطباق از کارشناس و ظرف ۷ روز بعد، عدم‌انطباقی در همان ماژول که کس دیگری (مدیر/غیرکارشناس) ثبت کرده یا «از‌قلم‌افتاده» علامت خورده؛ بدون هیچ کار اضافه برای کارشناس */
+function cleanMiss(email,K){
+  const R=monthRange(K),out=[];
+  D.ins.forEach(r=>{if(!eqm(r.inspector,email)||(r.nc||0)>0)return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
+    const t=new Date(r.created_at).getTime(),hit=D.fin.filter(f=>f.module===r.module&&(!eqm(f.inspector,email)||f.missed_by)&&new Date(f.created_at).getTime()>t&&new Date(f.created_at).getTime()-t<=7*864e5);
+    if(hit.length)out.push({m:r.module,d,n:hit.length})});
+  return out}
 function core(email,K){
   const R=monthRange(K),recs={},un=new Set(),mine=[];
   D.ins.forEach(r=>{if(!eqm(r.inspector,email))return;const d=new Date(r.created_at).toLocaleDateString('en-CA');if(d<R.a||d>R.b)return;
@@ -183,6 +190,7 @@ function core(email,K){
   const flags=[],bm={};mine.forEach(x=>(bm[x.m]=bm[x.m]||[]).push(x));
   Object.entries(bm).forEach(([m,a])=>{if(a.length<8)return;const c={};a.forEach(x=>c[x.k]=(c[x.k]||0)+1);const [k,n]=Object.entries(c).sort((p,q)=>q[1]-p[1])[0];
     if(n/a.length>=0.8)flags.push(`${fa(n)} از ${fa(a.length)} ثبت ماژول ${m} دقیقاً نتیجه‌ی یکسان دارد (کل - تأیید - عدم‌انطباق - ن.م.: ${k})`)});
+  {const cm=cleanMiss(email,K);if(cm.length)flags.push(`${fa(cm.length)} بازدید بدون عدم‌انطباق که ظرف ۷ روز بعدش در همان ماژول، عدم‌انطباق توسط شخص دیگری ثبت یا به‌عنوان از‌قلم‌افتاده علامت خورده است (ماژول‌ها: ${[...new Set(cm.map(x=>x.m))].join('، ')})`)}
   ratioRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`«${x.label}»: ${fa(x.n)} چک‌لیست و ${fa(x.q)} سؤال پاسخ‌داده‌شده فقط ${fa(x.nc)} عدم‌انطباق ثبت شده؛ ${x.exp!=null?(x.gen?'بر اساس میانگین کل چک‌لیست‌ها':'بر اساس سابقهٔ ۶ ماه قبل همین چک‌لیست')+` انتظار حدود ${fa(x.exp)} مورد می‌رفت `:'هیچ موردی ثبت نشده است '}(احتمال بازدید سطحی از همهٔ بخش‌های محل؛ با کارشناس بررسی شود)`));
   facRows(email,K).filter(x=>x.low).forEach(x=>flags.push(`اماکن بهداشتی: ${fa(x.c)} ${x.n} در کارخانه وجود دارد (${x.d}) ولی در ۲ ماه اخیر فقط ${fa(x.nc)} عدم‌انطباق مربوط به آن ثبت شده؛ انتظار حداقل حدود ${fa(x.exp)} مورد می‌رفت (احتمال بازدید نکردن همهٔ نقاط)`));
   return{R,recs,un,flags}}
