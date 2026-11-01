@@ -164,7 +164,10 @@ function defDate(last){   /* جلسهٔ بعدیِ گزارش‌نشده: ماه
   return d<=today||today.slice(0,7)===d.slice(0,7)?d<=today?d:today:today}
 function newMeeting(){
   const last=MEET[0],y=+tj().slice(0,4),no=Math.max(0,...MEET.filter(m=>m.year===y).map(m=>m.no))+1;
-  const carry=last?openItems(last).map((x,i)=>({id:uid(),kind:'ongoing',text:x.text,actor:x.actor||'',follower:x.follower||'',deadline:x.deadline||'',result:'در دست اقدام'})):[];
+  /* مصوبات صورتجلسهٔ قبلی خودکار و بدون انتخاب در «اقدامات انجام شده» جلسهٔ جدید می‌آیند (کارشناس هر بند را در صورت ناتمام بودن با گزینهٔ «بخش» به «در دست اقدام» ببرد)؛ موارد در دست اقدام قبلی همچنان در دست اقدام منتقل می‌شوند */
+  const prev=last?(ITEMS.get(last.id)||[]):[];
+  const carry=last?[...prev.filter(x=>x.kind==='new'&&x.result!=='لغو شد').map(x=>({id:uid(),kind:'done',text:x.text,actor:x.actor||'',follower:x.follower||'',deadline:x.deadline||'',result:'اقدام شد'})),
+    ...openItems(last).filter(x=>x.kind!=='new').map(x=>({id:uid(),kind:'ongoing',text:x.text,actor:x.actor||'',follower:x.follower||'',deadline:x.deadline||'',result:'در دست اقدام'}))]:[];
   E={isNew:true,m:{id:uid(),year:y,no,no_label:'',jdate:defDate(last),t1:last?last.t1||'':'',t2:last?last.t2||'':'',place:last?last.place||'':'اتاق کنفرانس مدیریت',workers:last?last.workers:null,next_date:'',att:{...(last?last.att:{})},absent:'',guests:'',notes:''},items:carry,sub:{labor:{},health:{}}};
   render();
 }
