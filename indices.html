@@ -37,6 +37,7 @@ details summary{cursor:pointer;color:var(--ac)}
   <div class="mu">ستون‌های لازم: Code، Name، Family، Date (مثل ۱۴۰۴/۰۱/۲۴)، Sick Leave (Days). حوادث با روز از دست رفته صفر یا خالی وارد شاخص نمی‌شوند. اگر حادثه‌ای با همان کد و تاریخ قبلاً بارگذاری شده باشد جایگزین می‌شود و اگر در بهداری هم ثبت شده باشد دوبار شمرده نمی‌شود.</div>
   <div class="row" style="margin-top:8px"><input type="file" id="fl" accept=".xlsx,.xls"><button class="p" id="bLog" disabled>💾 ثبت حوادث</button></div><div id="lg" class="mu" style="margin-top:6px"></div><div id="lgs" class="mu" style="margin-top:4px"></div></div>
  <div class="card"><h2>۲) شاخص‌ها</h2>
+  <div class="row" id="pre" style="margin-bottom:6px"></div>
   <div class="row"><label>از</label><select id="mf"></select><label>تا</label><select id="mt"></select>
    <label>مبنای ساعت کار</label><select id="basis"><option value="all">کارکرد + اضافه‌کار (ساعت واقعی کار)</option><option value="base">فقط کارکرد</option></select></div>
   <div id="res" style="margin-top:10px"><div class="mu">در حال بارگذاری…</div></div></div>
@@ -90,7 +91,9 @@ async function load(){
 function fillSel(){
   const ks=MH.map(x=>x.month_key);const o=ks.map(k=>`<option value="${k}">${lbl(k)}</option>`).join('');
   const cf=$('#mf').value,ct=$('#mt').value;$('#mf').innerHTML=o;$('#mt').innerHTML=o;
-  if(ks.length){$('#mt').value=ct&&ks.includes(ct)?ct:ks[ks.length-1];$('#mf').value=cf&&ks.includes(cf)?cf:ks[Math.max(0,ks.length-12)]}
+  if(ks.length){$('#mt').value=ct&&ks.includes(ct)?ct:ks[ks.length-1];$('#mf').value=cf&&ks.includes(cf)?cf:ks[0]}
+  const ys=[...new Set(ks.map(k=>k.slice(0,4)))];
+  $('#pre').innerHTML=ys.map(y=>`<button type="button" data-y="${y}">سال ${fa(y)}</button>`).join('')+'<button type="button" data-all="1">همهٔ ماه‌ها</button><button type="button" data-l12="1">۱۲ ماه اخیر</button>';
 }
 /* فهرست یکپارچه: ۱) حوادث فایل اکسل (Sick Leave (Days)) ۲) حوادث بهداری که در فایل نیامده‌اند */
 function allInc(){
@@ -136,6 +139,9 @@ function render(){
 $('#res').addEventListener('click',async e=>{const id=e.target.dataset.setlost;if(!id)return;const v=+$(`[data-lost="${id}"]`).value;if(!(v>0))return alert('تعداد روز را وارد کنید.');
   const i=INC.find(x=>String(x.id)===id);if(!i)return;e.target.disabled=true;
   try{const d=((i.description||'').replace(/\n?\[روز از دست رفته:[^\]]*\]/,'')+'\n[روز از دست رفته: '+v+']').trim();await api('clinic_incidents?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({description:d})});i.description=d;render()}catch(er){alert('خطا: '+er.message);e.target.disabled=false}});
+$('#pre').onclick=e=>{const d=e.target.dataset;if(!d)return;const ks=MH.map(x=>x.month_key);let a,b;
+  if(d.y){const l=ks.filter(k=>k.startsWith(d.y));a=l[0];b=l[l.length-1]}else if(d.all){a=ks[0];b=ks[ks.length-1]}else if(d.l12){b=ks[ks.length-1];a=ks[Math.max(0,ks.length-12)]}else return;
+  $('#mf').value=a;$('#mt').value=b;render()};
 ['#mf','#mt','#basis'].forEach(s=>$(s).onchange=render);
 
 /* خواندن فایل کارکرد: ستون‌ها: کارکرد | شبکاری | اضافه‌کار مجاز | تعطیل | جمعه | ماموریت (هر کدام ساعت و دقیقه) */
