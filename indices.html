@@ -33,6 +33,9 @@ details summary{cursor:pointer;color:var(--ac)}
   <div class="row" style="margin-top:8px"><input type="file" id="fi" accept=".xlsx,.xls" multiple><button class="p" id="bSave" disabled>💾 ثبت ساعت‌ها در سیستم</button></div>
   <div id="files" style="margin-top:8px"></div></div>
 
+ <div class="card"><h2>۱-ب) بارگذاری فهرست حوادث (اکسل با ستون Sick Leave (Days))</h2>
+  <div class="mu">ستون‌های لازم: Code، Name، Family، Date (مثل ۱۴۰۴/۰۱/۲۴)، Sick Leave (Days). حوادث با روز از دست رفته صفر یا خالی وارد شاخص نمی‌شوند. اگر حادثه‌ای با همان کد و تاریخ قبلاً بارگذاری شده باشد جایگزین می‌شود و اگر در بهداری هم ثبت شده باشد دوبار شمرده نمی‌شود.</div>
+  <div class="row" style="margin-top:8px"><input type="file" id="fl" accept=".xlsx,.xls"><button class="p" id="bLog" disabled>💾 ثبت حوادث</button></div><div id="lg" class="mu" style="margin-top:6px"></div></div>
  <div class="card"><h2>۲) شاخص‌ها</h2>
   <div class="row"><label>از</label><select id="mf"></select><label>تا</label><select id="mt"></select>
    <label>مبنای ساعت کار</label><select id="basis"><option value="all">کارکرد + اضافه‌کار (ساعت واقعی کار)</option><option value="base">فقط کارکرد</option></select></div>
@@ -41,7 +44,7 @@ details summary{cursor:pointer;color:var(--ac)}
  <details class="card"><summary>فرمول‌ها و نحوهٔ محاسبه</summary>
   <div class="mu" style="line-height:2">
    AFR (ضریب تکرار) = تعداد حوادث دارای روز از دست رفته × ۱٬۰۰۰٬۰۰۰ ÷ مجموع ساعت کار<br>
-   ASR (ضریب شدت) = مجموع روزهای از دست رفته × ۱٬۰۰۰٬۰۰۰ ÷ مجموع ساعت کار<br>
+   ASR (ضریب شدت) = مجموع روزهای از دست رفته × ۱۰۰۰ ÷ مجموع ساعت کار (مطابق فایل شاخص‌های شما؛ روزهای جریمه‌ای مثل ۹۰۰۰ برای مسمومیت/معلولیت شدید همان‌طور که در ستون Sick Leave (Days) آمده حساب می‌شود)<br>
    FSI (شاخص تکرار-شدت) = √(AFR × ASR ÷ ۱۰۰۰)<br>
    Safe-T = (AFR دوره جاری − AFR دورهٔ قبل) ÷ √(AFR دورهٔ قبل ÷ (ساعت کار دورهٔ جاری ÷ ۱٬۰۰۰٬۰۰۰)): بیشتر از ۲+ یعنی بدتر شدن معنادار، کمتر از ۲− یعنی بهبود معنادار، بین این دو یعنی تغییر معنادار نیست.<br>
    دورهٔ قبل = همان تعداد ماه، بلافاصله پیش از دورهٔ انتخابی. روز از دست رفته از فیلد «روز از دست رفته» ثبت حادثه در بهداری خوانده می‌شود؛ اگر پر نشده باشد، استعلاجی ثبت‌شده در ویزیت‌های بهداری همان فرد از روز حادثه تا ۷ روز بعد جایگزین می‌شود. حوادث بدون هیچ‌کدام حساب نمی‌شوند.</div></details>
@@ -55,11 +58,12 @@ const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد'
 const lbl=k=>{const[y,m]=k.split('-');return MN[+m-1]+' '+fa(y)};
 const num=(x,d=2)=>x==null||!isFinite(x)?'—':fa((Math.round(x*10**d)/10**d).toLocaleString('en-US'));
 const JF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'Asia/Tehran'});
+function jfull(iso){const p=JF.formatToParts(new Date(iso)),g=t=>+p.find(x=>x.type===t).value;return g('year')+'/'+String(g('month')).padStart(2,'0')+'/'+String(g('day')).padStart(2,'0')}
 function jkey(iso){const p=JF.formatToParts(new Date(iso)),g=t=>+p.find(x=>x.type===t).value;return g('year')+'-'+String(g('month')).padStart(2,'0')}
 const nowJ=()=>jkey(new Date().toISOString());
 const AH=()=>({apikey:KEY,Authorization:'Bearer '+tok});
 async function api(p,o={}){const r=await fetch(URL_+'/rest/v1/'+p,{...o,headers:{...AH(),'Content-Type':'application/json',...(o.headers||{})}});if(!r.ok)throw new Error(await r.text());const t=await r.text();return t?JSON.parse(t):null}
-let MH=[],INC=[],VIS=[],EMP=new Map(),PARSED=[];
+let MH=[],INC=[],VIS=[],LOG=[],EMP=new Map(),ECODE=new Map(),PARSED=[];
 const D2E=s=>String(s).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
 const lostTxt=i=>{const m=/روز از دست رفته:\s*([\d۰-۹]+)/.exec(i.description||'');return m?+D2E(m[1]):0};
 /* اولویت با «روز از دست رفته» ثبت‌شده روی حادثه؛ اگر نبود، استعلاجی‌های بهداری همان فرد از روز حادثه تا ۷ روز بعد */
@@ -68,6 +72,7 @@ const lostOf=i=>lostTxt(i)||lostVis(i);
 const srcOf=i=>lostTxt(i)?'ثبت حادثه':lostVis(i)?'استعلاجی بهداری':'';
 const mkSeq=(k,n)=>{let[y,m]=k.split('-').map(Number),o=[];for(let i=0;i<n;i++){o.push(y+'-'+String(m).padStart(2,'0'));m++;if(m>12){m=1;y++}}return o};
 const mkAdd=(k,d)=>{let[y,m]=k.split('-').map(Number),t=y*12+(m-1)+d;return Math.floor(t/12)+'-'+String(t%12+1).padStart(2,'0')};
+function jToDate(j){const st=Date.UTC(+j.slice(0,4)+621,2,10);for(let i=0;i<420;i++){const t=new Date(st+i*864e5);if(jfull(t.toISOString())===j)return t.getTime()}return Date.now()}
 function hrs(r,b){return r?(+r.base_hours||0)+(b=='all'?(+r.ot_hours||0):0):0}
 
 async function load(){
@@ -75,7 +80,8 @@ async function load(){
     MH=await api('hse_manhours?select=*&order=month_key.asc').catch(e=>{throw new Error('جدول hse_manhours ساخته نشده؛ فایل hse_manhours.sql را یک‌بار در Supabase اجرا کنید.')});
     INC=(await HSEDB.getAll('clinic_incidents?select=id,incident_date,employee_id,location,description,severity&order=incident_date.asc'))||[];
     VIS=((await HSEDB.getAll('clinic_visits?select=employee_id,visit_date,medical_leave_days&medical_leave_days=gt.0').catch(()=>[]))||[]);
-    const em=(await HSEDB.getAll('employees?select=id,first_name,last_name'))||[];EMP=new Map(em.map(e=>[e.id,((e.first_name||'')+' '+(e.last_name||'')).trim()]));
+    LOG=(await api('hse_lost_incidents?select=*&order=jdate.asc').catch(()=>[]))||[];
+    const em=(await HSEDB.getAll('employees?select=id,first_name,last_name,emp_id'))||[];EMP=new Map(em.map(e=>[e.id,((e.first_name||'')+' '+(e.last_name||'')).trim()]));ECODE=new Map(em.map(e=>[e.id,String(e.emp_id??'').trim()]));
     $('#err').style.display='none';
   }catch(e){$('#err').style.display='block';$('#err').textContent='⚠️ '+e.message;MH=MH||[]}
   fillSel();render();
@@ -85,11 +91,19 @@ function fillSel(){
   const cf=$('#mf').value,ct=$('#mt').value;$('#mf').innerHTML=o;$('#mt').innerHTML=o;
   if(ks.length){$('#mt').value=ct&&ks.includes(ct)?ct:ks[ks.length-1];$('#mf').value=cf&&ks.includes(cf)?cf:ks[Math.max(0,ks.length-12)]}
 }
+/* فهرست یکپارچه: ۱) حوادث فایل اکسل (Sick Leave (Days)) ۲) حوادث بهداری که در فایل نیامده‌اند */
+function allInc(){
+  const out=LOG.map(r=>({d:r.jdate,k:r.month_key,name:r.name||'',loc:r.location||'',lost:+r.lost_days||0,src:'فایل حوادث'}));
+  const seen=new Set(LOG.map(r=>String(r.emp_code||'').trim()+'|'+r.jdate));
+  INC.forEach(i=>{const iso=String(i.incident_date).slice(0,10)+'T12:00:00',jd=jfull(iso),code=ECODE.get(i.employee_id)||'';if(code&&seen.has(code+'|'+jd))return;
+    out.push({d:jd,k:jkey(iso),name:EMP.get(i.employee_id)||'',loc:i.location||'',lost:lostOf(i),src:srcOf(i)})});
+  return out;
+}
 function agg(keys,b){
   const set=new Set(keys),R=MH.filter(r=>set.has(r.month_key)),missing=keys.filter(k=>!MH.some(r=>r.month_key==k));
   const H=R.reduce((a,r)=>a+hrs(r,b),0);
-  const I=INC.map(i=>({i,lost:lostOf(i),k:jkey(String(i.incident_date).slice(0,10)+'T12:00:00')})).filter(x=>x.lost>0&&set.has(x.k));
-  const n=I.length,days=I.reduce((a,x)=>a+x.lost,0),afr=H?n*1e6/H:null,asr=H?days*1e6/H:null;
+  const I=allInc().filter(x=>x.lost>0&&set.has(x.k));
+  const n=I.length,days=I.reduce((a,x)=>a+x.lost,0),afr=H?n*1e6/H:null,asr=H?days*1000/H:null;
   return{keys,R,H,I,n,days,afr,asr,fsi:afr!=null&&asr!=null?Math.sqrt(afr*asr/1000):null,missing};
 }
 function render(){
@@ -103,8 +117,8 @@ function render(){
   else if(P.H&&P.afr===0)verdict='<span class="mu">دورهٔ قبل حادثهٔ استعلاجی نداشته؛ Safe-T قابل محاسبه نیست.</span>';
   else verdict='<span class="mu">برای Safe-T ساعت کار دورهٔ قبل (هم‌طول) ثبت نشده است.</span>';
   const kp=(v,l,c)=>`<div class="k"><b class="${c||''}">${v}</b><span>${l}</span></div>`;
-  const last=A.I.length?A.I.map(x=>String(x.i.incident_date).slice(0,10)).sort().pop():null;
-  const since=last?Math.floor((Date.now()-new Date(last+'T12:00:00'))/864e5):null;
+  const last=A.I.length?A.I.map(x=>x.d).sort().pop():null;
+  const since=last?Math.floor((Date.now()-jToDate(last))/864e5):null;
   const warn=A.missing.length?`<div class="mu wa">⚠ ساعت کار این ماه‌ها ثبت نشده است و در محاسبه نیامده: ${A.missing.map(lbl).join('، ')}</div>`:'';
   const mrows=keys.map(k=>{const r=MH.find(x=>x.month_key==k),h=hrs(r,b),m=A.I.filter(x=>x.k==k),d=m.reduce((a,x)=>a+x.lost,0);
     return `<tr><td>${lbl(k)}</td><td>${r?fa(r.headcount):'—'}</td><td>${r?num(h,0):'—'}</td><td>${r?num(h/Math.max(1,r.headcount),0):'—'}</td><td>${fa(m.length)}</td><td>${fa(d)}</td><td>${h?num(m.length*1e6/h):'—'}</td><td>${h?num(d*1e6/h):'—'}</td></tr>`}).join('');
@@ -114,8 +128,8 @@ function render(){
    ${kp(A.n?num(A.days/A.n,1):'—','میانگین روز از دست رفته در هر حادثه')}${kp(since==null?'—':fa(since),'روز از آخرین حادثه استعلاجی')}${kp(safe==null?'—':num(safe),'Safe-T')}</div>
    <div style="margin-top:8px">${verdict}${P.H?` <span class="mu">· دورهٔ قبل (${lbl(P.keys[0])} تا ${lbl(P.keys[P.keys.length-1])}): AFR ${num(P.afr)}، ${fa(P.n)} حادثه، ${num(P.H,0)} نفر-ساعت</span>`:''}</div>
    <div style="overflow:auto;margin-top:10px"><table><tr><th>ماه</th><th>نفرات</th><th>ساعت کار</th><th>میانگین هر نفر</th><th>حوادث</th><th>روز از دست رفته</th><th>AFR</th><th>ASR</th></tr>${mrows}</table></div>
-   ${(()=>{const set=new Set(keys),U=INC.filter(i=>set.has(jkey(String(i.incident_date).slice(0,10)+'T12:00:00'))&&!lostOf(i));return `<details style="margin-top:8px"><summary>حوادث ثبت‌شدهٔ بدون روز از دست رفته (${fa(U.length)}) — در شاخص نیامده‌اند</summary><div class="mu">اگر حادثه‌ای استعلاجی داشته، تعداد روز را اینجا بزنید تا در شاخص‌ها بیاید.</div><table><tr><th>تاریخ</th><th>پرسنل</th><th>محل</th><th>روز از دست رفته</th></tr>${U.map(i=>`<tr><td>${esc(String(i.incident_date).slice(0,10))}</td><td>${esc(EMP.get(i.employee_id)||'')}</td><td>${esc(i.location||'')}</td><td><input type="number" min="0" value="0" style="width:70px" data-lost="${i.id}"> <button data-setlost="${i.id}">ثبت</button></td></tr>`).join('')||'<tr><td colspan="4" class="mu">همهٔ حوادث بازه استعلاجی دارند یا حادثه‌ای ثبت نشده است.</td></tr>'}</table></details>`})()}
-   <details style="margin-top:8px"><summary>حوادث لحاظ‌شده (${fa(A.n)})</summary><table><tr><th>تاریخ</th><th>پرسنل</th><th>محل</th><th>روز از دست رفته</th><th>منبع</th></tr>${A.I.map(x=>`<tr><td>${esc(String(x.i.incident_date).slice(0,10))}</td><td>${esc(EMP.get(x.i.employee_id)||'')}</td><td>${esc(x.i.location||'')}</td><td>${fa(x.lost)}</td><td class="mu">${srcOf(x.i)}</td></tr>`).join('')||'<tr><td colspan="5" class="mu">حادثهٔ استعلاجی در این بازه ثبت نشده است.</td></tr>'}</table></details>`;
+   ${(()=>{const set=new Set(keys),seenL=new Set(LOG.map(r=>String(r.emp_code||'').trim()+'|'+r.jdate)),U=INC.filter(i=>set.has(jkey(String(i.incident_date).slice(0,10)+'T12:00:00'))&&!lostOf(i)&&!seenL.has((ECODE.get(i.employee_id)||'')+'|'+jfull(String(i.incident_date).slice(0,10)+'T12:00:00')));return `<details style="margin-top:8px"><summary>حوادث ثبت‌شدهٔ بدون روز از دست رفته (${fa(U.length)}) — در شاخص نیامده‌اند</summary><div class="mu">اگر حادثه‌ای استعلاجی داشته، تعداد روز را اینجا بزنید تا در شاخص‌ها بیاید.</div><table><tr><th>تاریخ</th><th>پرسنل</th><th>محل</th><th>روز از دست رفته</th></tr>${U.map(i=>`<tr><td>${esc(jfull(String(i.incident_date).slice(0,10)+'T12:00:00'))}</td><td>${esc(EMP.get(i.employee_id)||'')}</td><td>${esc(i.location||'')}</td><td><input type="number" min="0" value="0" style="width:70px" data-lost="${i.id}"> <button data-setlost="${i.id}">ثبت</button></td></tr>`).join('')||'<tr><td colspan="4" class="mu">همهٔ حوادث بازه استعلاجی دارند یا حادثه‌ای ثبت نشده است.</td></tr>'}</table></details>`})()}
+   <details style="margin-top:8px"><summary>حوادث لحاظ‌شده (${fa(A.n)})</summary><table><tr><th>تاریخ</th><th>پرسنل</th><th>محل</th><th>روز از دست رفته</th><th>منبع</th></tr>${A.I.map(x=>`<tr><td>${esc(x.d)}</td><td>${esc(x.name)}</td><td>${esc(x.loc)}</td><td>${fa(x.lost)}${x.lost>=6000?' <span class="mu">(روز جریمه‌ای)</span>':''}</td><td class="mu">${x.src}</td></tr>`).join('')||'<tr><td colspan="5" class="mu">حادثهٔ استعلاجی در این بازه ثبت نشده است.</td></tr>'}</table></details>`;
 }
 $('#res').addEventListener('click',async e=>{const id=e.target.dataset.setlost;if(!id)return;const v=+$(`[data-lost="${id}"]`).value;if(!(v>0))return alert('تعداد روز را وارد کنید.');
   const i=INC.find(x=>String(x.id)===id);if(!i)return;e.target.disabled=true;
@@ -150,6 +164,26 @@ $('#bSave').onclick=async()=>{
     PARSED=[];$('#files').innerHTML='<div class="ok">✅ ثبت شد.</div>';$('#bSave').disabled=true;$('#fi').value='';load();
   }catch(e){alert('خطا در ثبت: '+e.message)}
 };
+let LOGP=[];
+const P2E=s=>String(s??'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+$('#fl').onchange=async e=>{
+  LOGP=[];const f=e.target.files[0];if(!f)return;
+  try{const wb=XLSX.read(await f.arrayBuffer());let ws=null,H=null;
+    for(const n of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:null});const hi=rows.findIndex(r=>r.some(c=>/sick\s*leave/i.test(String(c||''))));if(hi>=0){ws=rows;H=hi;break}}
+    if(!ws)throw new Error('ستون Sick Leave (Days) پیدا نشد');
+    const h=ws[H].map(c=>String(c||'').trim().toLowerCase()),ix=re=>h.findIndex(c=>re.test(c)),iC=ix(/^code$/),iN=ix(/^name$/),iF=ix(/^family$/),iD=ix(/^date$/),iL=ix(/sick\s*leave/),iLoc=ix(/exact location/),iDep=ix(/department|^unit$/);
+    if(iC<0||iD<0)throw new Error('ستون Code یا Date پیدا نشد');
+    ws.slice(H+1).forEach(r=>{const jd=P2E(r[iD]).trim().replace(/-/g,'/'),m=/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(jd);if(!m)return;const lost=+P2E(r[iL])||0;if(!(lost>0))return;
+      const jdate=m[1]+'/'+m[2].padStart(2,'0')+'/'+m[3].padStart(2,'0');
+      LOGP.push({jdate,month_key:m[1]+'-'+m[2].padStart(2,'0'),emp_code:P2E(r[iC]).trim(),name:((r[iN]||'')+' '+(r[iF]||'')).replace(/\s+/g,' ').trim(),department:r[iDep]?String(r[iDep]).trim():null,location:r[iLoc]?String(r[iLoc]).trim():null,lost_days:lost,updated_by:mail})});
+    $('#lg').innerHTML=LOGP.length?`${fa(LOGP.length)} حادثهٔ دارای روز از دست رفته خوانده شد (مجموع ${fa(LOGP.reduce((a,x)=>a+x.lost_days,0))} روز).`:'<span class="wa">حادثه‌ای با روز از دست رفته بیشتر از صفر پیدا نشد.</span>';
+  }catch(er){$('#lg').innerHTML='<span class="bad">'+esc(er.message)+'</span>'}
+  $('#bLog').disabled=!LOGP.length;
+};
+$('#bLog').onclick=async()=>{
+  if(!confirm(fa(LOGP.length)+' حادثه ثبت شود؟'))return;
+  try{await api('hse_lost_incidents?on_conflict=jdate,emp_code',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(LOGP)});
+    LOGP=[];$('#lg').innerHTML='<span class="ok">✅ ثبت شد.</span>';$('#bLog').disabled=true;$('#fl').value='';load()}catch(e){alert('خطا در ثبت: '+(/hse_lost_incidents/.test(e.message)?'جدول ساخته نشده؛ فایل hse_incident_log.sql را در Supabase اجرا کنید.':e.message))}};
 HSEAuth.ready.then(async()=>{mail=HSEAuth.email||'';try{tok=await HSEAuth.token()||KEY}catch(e){}load()});
 </script>
 </body>
