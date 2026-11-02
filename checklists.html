@@ -2014,20 +2014,45 @@ async function findingSlide(f, n, tot, logo) {
 }
 
 /* اسلاید اقدام ثبت‌شده در گزارش کارهای روزانه (بدون قبل/بعد: فقط عنوان، شرح و عکس‌های ثبت‌شده) */
-async function workSlide(w, k, N, n, tot, logo) {
+/* چیدمان هوشمند تا ۳ عکس: از بین چیدمان‌های ممکن (ستونی، ردیفی، یکی بزرگ + دو کوچک) و ترتیب‌ها، آن‌که بیشترین مساحت واقعی عکس‌ها را بدهد */
+function fitPhotos(ims, X, Y, W, H) {
+  const g = 14, n = ims.length, L = [];
+  if (n == 1) L.push([[X, Y, W, H]]);
+  if (n == 2) { const cw = (W - g) / 2, rh = (H - g) / 2; L.push([[X + cw + g, Y, cw, H], [X, Y, cw, H]], [[X, Y, W, rh], [X, Y + rh + g, W, rh]]); }
+  if (n == 3) {
+    const cw = (W - 2 * g) / 3, rh = (H - 2 * g) / 3, bw = W * 0.56, sw = W - bw - g, bh = H * 0.56, sh = H - bh - g;
+    L.push([[X + 2 * (cw + g), Y, cw, H], [X + cw + g, Y, cw, H], [X, Y, cw, H]],
+      [[X, Y, W, rh], [X, Y + rh + g, W, rh], [X, Y + 2 * (rh + g), W, rh]],
+      [[X + W - bw, Y, bw, H], [X, Y, sw, (H - g) / 2], [X, Y + (H - g) / 2 + g, sw, (H - g) / 2]],
+      [[X, Y, bw, H], [X + bw + g, Y, sw, (H - g) / 2], [X + bw + g, Y + (H - g) / 2 + g, sw, (H - g) / 2]],
+      [[X, Y, W, bh], [X + W / 2 + g / 2, Y + bh + g, (W - g) / 2, sh], [X, Y + bh + g, (W - g) / 2, sh]]);
+  }
+  const perms = a => a.length < 2 ? [a] : a.flatMap((v, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map(p => [v, ...p]));
+  let best = null;
+  L.forEach(rects => perms(ims.map((_, i) => i)).forEach(p => {
+    const sc = rects.map((r, j) => { const im = ims[p[j]], k = Math.min(r[2] / im.width, r[3] / im.height); return im.width * im.height * k * k; });
+    const tot = sc.reduce((a, b) => a + b, 0), mn = Math.min(...sc), key = tot + mn * 0.5;
+    if (!best || key > best.key) best = { key, rects, p };
+  }));
+  return best.rects.map((r, j) => ({ r, im: ims[best.p[j]] }));
+}
+async function workSlide(w, k, cnt3, N, n, tot, logo) {
   const [c, x] = mkS();
   frame(x, logo, n, tot, 'گزارش کار روزانه');
-  x.fillStyle = NAVY; x.font = '800 36px ' + FONT;
+  x.fillStyle = NAVY; x.font = '800 34px ' + FONT;
   const tl = wrapText(x, w.title || '', SW - 120).slice(0, 2);
-  tl.forEach((l, i) => x.fillText(l, SW - 60, 180 + i * 46));
-  x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
-  x.fillText('تاریخ: ' + fl(w.work_date + 'T12:00:00') + (w.category ? '  |  دسته: ' + w.category : '') + '  |  ' + (w.status == 'done' ? 'انجام شد' : 'در جریان'), SW - 60, 180 + tl.length * 46 + 10);
-  let py = 180 + tl.length * 46 + 50;
-  if (w.description) { x.font = '400 26px ' + FONT; x.fillStyle = '#334155'; const dl = wrapText(x, w.description, SW - 120).slice(0, 4); dl.forEach((l, i) => x.fillText(l, SW - 60, py + i * 38)); py += dl.length * 38 + 20; }
-  const ims = (await Promise.all([(w.photos || [])[k]].filter(Boolean).map(photoImg))).filter(Boolean);
-  panel(x, 60, py, SW - 120, SH - py - 70, 'تصویر اقدام انجام‌شده' + (N > 1 ? ' — ' + fa(k + 1) + ' از ' + fa(N) : ''), GREEN, ims, 'تصویری ثبت نشده است');
+  tl.forEach((l, i) => x.fillText(l, SW - 60, 160 + i * 42));
+  x.font = '400 22px ' + FONT; x.fillStyle = '#64748b';
+  x.fillText('تاریخ: ' + fl(w.work_date + 'T12:00:00') + (w.category ? '  |  دسته: ' + w.category : '') + '  |  ' + (w.status == 'done' ? 'انجام شد' : 'در جریان') + (N > cnt3 ? '  |  تصاویر ' + fa(k + 1) + ' تا ' + fa(Math.min(N, k + cnt3)) + ' از ' + fa(N) : ''), SW - 60, 160 + tl.length * 42 + 6);
+  let py = 160 + tl.length * 42 + 44;
+  if (w.description) { x.font = '400 24px ' + FONT; x.fillStyle = '#334155'; const dl = wrapText(x, w.description, SW - 120).slice(0, 3); dl.forEach((l, i) => x.fillText(l, SW - 60, py + i * 34)); py += dl.length * 34 + 12; }
+  const ims = (await Promise.all((w.photos || []).slice(k, k + cnt3).map(photoImg))).filter(Boolean);
+  const ay = py, ah = SH - py - 60;
+  x.fillStyle = '#f8fafc'; x.fillRect(40, ay, SW - 80, ah);
+  if (!ims.length) { x.fillStyle = '#94a3b8'; x.font = '400 26px ' + FONT; x.textAlign = 'center'; x.fillText('تصویری ثبت نشده است', SW / 2, ay + ah / 2 - 13); x.textAlign = 'right'; }
+  else fitPhotos(ims, 50, ay + 10, SW - 100, ah - 20).forEach(({ r, im }) => { const kk = Math.min(r[2] / im.width, r[3] / im.height), dw = im.width * kk, dh = im.height * kk; x.drawImage(im, r[0] + (r[2] - dw) / 2, r[1] + (r[3] - dh) / 2, dw, dh); });
   ims.forEach(b => b.close && b.close());
-  return c.toDataURL('image/jpeg', 0.85);
+  return c.toDataURL('image/jpeg', 0.88);
 }
 
 /* خلاصهٔ کل اقدامات HSE در بازه: اصلاحی، کارهای روزانه، آموزش */
@@ -2199,8 +2224,8 @@ async function genSlides(preview) {
       F.forEach(f => body.push({ t: 'f', f }));
     }
     if (WL.length) {
-      body.push({ t: 'd', label: 'اقدامات گزارش کارهای روزانه', sub: fa(WL.length) + ' اقدام ثبت‌شده در این بازه؛ هر عکس در یک اسلاید کامل', col: '#38bdf8' });
-      WL.filter(w => (w.photos || []).length).forEach(w => { const N = w.photos.length; for (let k = 0; k < N; k++) body.push({ t: 'w', w, k, N }); });
+      body.push({ t: 'd', label: 'اقدامات گزارش کارهای روزانه', sub: fa(WL.length) + ' اقدام ثبت‌شده در این بازه؛ تا ۳ عکس هر اقدام در یک اسلاید', col: '#38bdf8' });
+      WL.filter(w => (w.photos || []).length).forEach(w => { const N = w.photos.length; for (let k = 0; k < N; k += 3) body.push({ t: 'w', w, k, N }); });
       const np = WL.filter(w => !(w.photos || []).length), pgs = Math.ceil(np.length / 7);
       for (let p = 0; p < pgs; p++) body.push({ t: 'x', items: np.slice(p * 7, p * 7 + 7), p, pgs });
     }
@@ -2216,7 +2241,7 @@ async function genSlides(preview) {
       const chunk = chunks[pi], imgs = [], base = preN + chunks.slice(0, pi).reduce((a, c) => a + c.length, 0);
       if (pi == 0) { imgs.push(coverSlide(logo, 'گزارش عملکرد کارخانه', S.bz, S, cl)); imgs.push(summarySlide(logo, 2, tot, S)); imgs.push(hseSlide(logo, 3, tot, { bz: S.bz, cl, wl: WL.length, trN: TR.length, trP: TA.length, cats: cnt(WL, w => w.category || 'سایر').slice(0, 8), trT: Object.entries(trT).sort((a, b) => b[1] - a[1]) })); for (let q = 0; q < nStats; q++) imgs.push(statsSlide(logo, 4 + q, tot, S, q, nStats)); }
       const res = await pool(6, chunk, async (it, i) => {
-        const d = it.t == 'd' ? dividerSlide(logo, it, base + i + 1, tot) : it.t == 'x' ? workTextSlide(it.items, it.p, it.pgs, base + i + 1, tot, logo) : it.t == 'w' ? await workSlide(it.w, it.k, it.N, base + i + 1, tot, logo) : await findingSlide(it.f, base + i + 1, tot, logo);
+        const d = it.t == 'd' ? dividerSlide(logo, it, base + i + 1, tot) : it.t == 'x' ? workTextSlide(it.items, it.p, it.pgs, base + i + 1, tot, logo) : it.t == 'w' ? await workSlide(it.w, it.k, Math.min(3, it.N - it.k), it.N, base + i + 1, tot, logo) : await findingSlide(it.f, base + i + 1, tot, logo);
         done++; gp.value = done;
         const sec = (Date.now() - t0) / 1000, eta = Math.round(sec / done * (body.length - done));
         prog(`در حال تولید اسلایدها... ${fa(done)} از ${fa(body.length)} — فایل ${fa(pi + 1)} از ${fa(parts)} — حدود ${fa(Math.ceil(eta / 60))} دقیقه باقی‌مانده`);
