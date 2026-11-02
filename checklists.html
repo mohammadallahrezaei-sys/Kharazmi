@@ -2013,6 +2013,23 @@ async function findingSlide(f, n, tot, logo) {
   return c.toDataURL('image/jpeg', 0.85);
 }
 
+/* اسلاید اقدام ثبت‌شده در گزارش کارهای روزانه (بدون قبل/بعد: فقط عنوان، شرح و عکس‌های ثبت‌شده) */
+async function workSlide(w, n, tot, logo) {
+  const [c, x] = mkS();
+  frame(x, logo, n, tot, 'گزارش کار روزانه');
+  x.fillStyle = NAVY; x.font = '800 36px ' + FONT;
+  const tl = wrapText(x, w.title || '', SW - 120).slice(0, 2);
+  tl.forEach((l, i) => x.fillText(l, SW - 60, 180 + i * 46));
+  x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
+  x.fillText('تاریخ: ' + fl(w.work_date + 'T12:00:00') + (w.category ? '  |  دسته: ' + w.category : '') + '  |  ' + (w.status == 'done' ? 'انجام شد' : 'در جریان'), SW - 60, 180 + tl.length * 46 + 10);
+  let py = 180 + tl.length * 46 + 50;
+  if (w.description) { x.font = '400 26px ' + FONT; x.fillStyle = '#334155'; const dl = wrapText(x, w.description, SW - 120).slice(0, 4); dl.forEach((l, i) => x.fillText(l, SW - 60, py + i * 38)); py += dl.length * 38 + 20; }
+  const ims = (await Promise.all((w.photos || []).slice(0, 4).map(photoImg))).filter(Boolean);
+  panel(x, 60, py, SW - 120, SH - py - 90, 'تصاویر اقدام انجام‌شده', GREEN, ims, 'تصویری ثبت نشده است');
+  ims.forEach(b => b.close && b.close());
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
 async function buildPptx(imgs) {
   const p = new PptxGenJS(); p.layout = 'LAYOUT_WIDE';
   imgs.forEach(d => p.addSlide().addImage({ data: d.replace(/^data:/, ''), x: 0, y: 0, w: 13.333, h: 7.5 }));
@@ -2090,12 +2107,15 @@ async function genSlides(preview) {
   try {
     const FS = 'module,location,qid,question,status,created_at,closed_at,notice_at,severity,category,responsible,due_date,photos_before,photos_after';
     const dq = rDateQ(), mq = rModQ(), r = rRange();
+    const wIso = d => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Tehran' });
+    let WQ = ''; if (r.from) WQ += '&work_date=gte.' + wIso(r.from); if (r.to) WQ += '&work_date=lt.' + wIso(r.to);
+    const WL = R.mod ? [] : await fetchAll('work_log?select=title,description,status,category,work_date,photos&order=work_date.asc,created_at.asc' + WQ).catch(() => []);
     const [P, OF, I] = await Promise.all([
       fetchAll('findings?select=' + FS + '&order=created_at.desc,id.asc' + rQuery()),
       fetchAll('findings?select=' + FS + '&status=eq.open&order=created_at.desc,id.asc' + mq),
       fetchAll('inspections?select=module,location,ok,nc,inspector,created_at&order=created_at.desc,id.asc' + dq + mq)
     ]);
-    if (!P.length) throw new Error('در این بازه و با این فیلترها موردی وجود ندارد.');
+    if (!P.length && !WL.length) throw new Error('در این بازه و با این فیلترها موردی وجود ندارد.');
     const ok = I.reduce((a, x) => a + x.ok, 0), nc = I.reduce((a, x) => a + x.nc, 0), cl = P.filter(x => x.status == 'closed').length;
     const S = {
       bz: r.label, totalPeriod: P.length, insCount: rounds(I), chkCount: checks(I), rate: pct(ok, ok + nc),
@@ -2126,6 +2146,7 @@ async function genSlides(preview) {
         : (a, b) => (a.status == 'open' ? 0 : 1) - (b.status == 'open' ? 0 : 1) || sev_(b) - sev_(a) || byCr(b, a));
       F.forEach(f => body.push({ t: 'f', f }));
     }
+    if (WL.length) { body.push({ t: 'd', label: 'اقدامات گزارش کارهای روزانه', sub: fa(WL.length) + ' اقدام ثبت‌شده در این بازه', col: '#38bdf8' }); WL.forEach(w => body.push({ t: 'w', w })); }
     try { if (document.fonts && document.fonts.load) await document.fonts.load('700 32px Vazirmatn'); } catch (e) { }
     const nStats = Math.max(1, Math.ceil(S.months.length / 16)), preN = 2 + nStats;
     const logo = await loadImg('logo.png'), per = +R.per || body.length, tot = preN + body.length, t0 = Date.now();
@@ -2138,7 +2159,7 @@ async function genSlides(preview) {
       const chunk = chunks[pi], imgs = [], base = preN + chunks.slice(0, pi).reduce((a, c) => a + c.length, 0);
       if (pi == 0) { imgs.push(coverSlide(logo, 'گزارش عملکرد کارخانه', S.bz, S, cl)); imgs.push(summarySlide(logo, 2, tot, S)); for (let q = 0; q < nStats; q++) imgs.push(statsSlide(logo, 3 + q, tot, S, q, nStats)); }
       const res = await pool(6, chunk, async (it, i) => {
-        const d = it.t == 'd' ? dividerSlide(logo, it, base + i + 1, tot) : await findingSlide(it.f, base + i + 1, tot, logo);
+        const d = it.t == 'd' ? dividerSlide(logo, it, base + i + 1, tot) : it.t == 'w' ? await workSlide(it.w, base + i + 1, tot, logo) : await findingSlide(it.f, base + i + 1, tot, logo);
         done++; gp.value = done;
         const sec = (Date.now() - t0) / 1000, eta = Math.round(sec / done * (body.length - done));
         prog(`در حال تولید اسلایدها... ${fa(done)} از ${fa(body.length)} — فایل ${fa(pi + 1)} از ${fa(parts)} — حدود ${fa(Math.ceil(eta / 60))} دقیقه باقی‌مانده`);
