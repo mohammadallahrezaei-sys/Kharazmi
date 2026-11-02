@@ -1716,30 +1716,34 @@ async function finds(iid) {
       <input data-ff="q" placeholder="🔍 جستجو در متن، توضیحات، کد، محل، مسئول..." value="${esc(FQ.q)}">
       <div class="fgrid">
         <select data-ff="mod">${optH('', 'همه چک‌لیست‌ها', FQ.mod)}${FMODS.map(m => optH(m[0], m[1], FQ.mod)).join('')}</select>
-        <select data-ff="insp">${optH('', 'همه کارشناسان ثبت‌کننده', FQ.insp)}${Object.entries(INSPN).map(([e, n]) => optH(e, '👤 ' + n, FQ.insp)).join('')}</select>
-        <select data-ff="cat">${optH('', 'همه دسته‌ها', FQ.cat)}${CATN.map(c => optH(c, c, FQ.cat)).join('')}</select>
         <select data-ff="sev">${optH('', 'همه شدت‌ها', FQ.sev)}${[4, 3, 2, 1].map(s => optH(s, 'شدت ' + SEVN[s], FQ.sev)).join('')}</select>
-        <select data-ff="asg">${optH('', 'ارجاع: همه', FQ.asg)}${optH('me', '📌 ارجاع‌شده به من', FQ.asg)}${optH('any', '📌 ارجاع‌شده (همه)', FQ.asg)}${ASGN.map(([e, n]) => optH(e, '📌 به ' + n, FQ.asg)).join('')}</select>
         <select data-ff="ntc">${optH('', 'اعلان: همه', FQ.ntc)}${optH('yes', 'اعلان ثبت شده', FQ.ntc)}${optH('no', 'بدون اعلان', FQ.ntc)}</select>
-        <select data-ff="ph">${optH('', 'عکس: همه', FQ.ph)}${optH('noafter', 'بدون عکس پس از اصلاح', FQ.ph)}${optH('phafter', 'بسته‌شده با عکس جایگزین (برای تکمیل)', FQ.ph)}${optH('ph', 'بدون عکس قبل (جایگزین)', FQ.ph)}</select>
-        <input data-ff="loc" list="locs" placeholder="محل..." value="${esc(FQ.loc)}">
         <select data-ff="per">${optH('all', 'همه زمان‌ها', FQ.per)}${optH('d7', '۷ روز گذشته', FQ.per)}${optH('d30', '۳۰ روز گذشته', FQ.per)}${optH('d90', '۹۰ روز گذشته', FQ.per)}${optH('j', 'ماه / سال شمسی', FQ.per)}</select>
         <div id="fj" class="fgrid2" ${FQ.per == 'j' ? '' : 'hidden'}>
           <select data-ff="jy">${years.map(y => optH(y, fa(y), FQ.jy)).join('')}</select>
           <select data-ff="jm">${optH(0, 'کل سال', FQ.jm)}${JMN.map((t, i) => optH(i + 1, t, FQ.jm)).join('')}</select>
         </div>
+      </div>
+      <details style="margin-top:8px;" ${['insp','cat','asg','ph','loc','grp'].some(k => FQ[k]) ? 'open' : ''}><summary style="cursor:pointer;color:var(--ac);font-size:13px;">فیلترهای بیشتر (کارشناس، دسته، ارجاع، عکس، محل، گروه‌بندی…)</summary>
+      <div class="fgrid">
+        <select data-ff="insp">${optH('', 'همه کارشناسان ثبت‌کننده', FQ.insp)}${Object.entries(INSPN).map(([e, n]) => optH(e, '👤 ' + n, FQ.insp)).join('')}</select>
+        <select data-ff="cat">${optH('', 'همه دسته‌ها', FQ.cat)}${CATN.map(c => optH(c, c, FQ.cat)).join('')}</select>
+        <select data-ff="asg">${optH('', 'ارجاع: همه', FQ.asg)}${optH('me', '📌 ارجاع‌شده به من', FQ.asg)}${optH('any', '📌 ارجاع‌شده (همه)', FQ.asg)}${ASGN.map(([e, n]) => optH(e, '📌 به ' + n, FQ.asg)).join('')}</select>
+        <select data-ff="ph">${optH('', 'عکس: همه', FQ.ph)}${optH('noafter', 'بدون عکس پس از اصلاح', FQ.ph)}${optH('phafter', 'بسته‌شده با عکس جایگزین (برای تکمیل)', FQ.ph)}${optH('ph', 'بدون عکس قبل (جایگزین)', FQ.ph)}</select>
+        <input data-ff="loc" list="locs" placeholder="محل..." value="${esc(FQ.loc)}">
         <select data-ff="grp">${optH('', 'بدون گروه‌بندی', FQ.grp)}${optH('mod', 'گروه‌بندی: چک‌لیست', FQ.grp)}${optH('cat', 'گروه‌بندی: دسته', FQ.grp)}${optH('loc', 'گروه‌بندی: محل', FQ.grp)}${optH('st', 'گروه‌بندی: وضعیت', FQ.grp)}${optH('sev', 'گروه‌بندی: شدت', FQ.grp)}</select>
         <select data-ff="ord">${optH('new', 'جدیدترین اول', FQ.ord)}${optH('old', 'قدیمی‌ترین اول', FQ.ord)}${optH('sev', 'شدت بالا اول', FQ.ord)}${optH('due', 'نزدیک‌ترین مهلت', FQ.ord)}</select>
         <select data-ff="size">${[20, 50, 100].map(v => optH(v, fa(v) + ' مورد در صفحه', FQ.size)).join('')}</select>
-      </div>
+      </div></details>
       <button class="l" data-a="fclear" style="margin-top:8px;">✖ پاک‌کردن فیلترها</button>
+      <details style="margin-top:8px;"><summary style="cursor:pointer;color:var(--ac);font-size:13px;">گزارش‌ها و ابزارها</summary>
       <div class="fgrid2" style="margin-top:8px;">
         <button class="l" data-a="rprint" data-k="open">🖨️ گزارش چاپی موارد باز</button>
         <button class="l" data-a="rprint" data-k="photo">📷 گزارش عکس‌های ناقص</button>
       </div>
       <button class="l" data-a="dups" data-k="open" style="margin-top:8px;">🔍 یافتن عدم‌انطباق‌های تکراری (باز)</button>
       <button class="l" data-a="recon" style="margin-top:8px;">📊 تطبیق آمار با گزارش واحد فنی</button>
-      <small id="rpmsg" style="margin-top:4px;">گزارش چاپی طبق فیلترهای بالا (محل، چک‌لیست، شدت و ...) ساخته می‌شود؛ وضعیت را خودش تعیین می‌کند.</small>
+      <small id="rpmsg" style="margin-top:4px;">گزارش چاپی طبق فیلترهای بالا (محل، چک‌لیست، شدت و ...) ساخته می‌شود؛ وضعیت را خودش تعیین می‌کند.</small></details>
     </div>
     <div id="fchips" class="chips"></div>
     <div id="fl"></div>
