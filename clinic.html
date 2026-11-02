@@ -1500,6 +1500,8 @@ function renderIncidents() {
                 <div class="flex gap-1.5 flex-wrap items-center">
                     <span class="text-[11px] border px-2 py-0.5 rounded-full ${SEV_TXT[i.severity] ? sevColor : 'bg-slate-500/10 text-slate-400 border-slate-500/30'}">شدت: ${SEV_TXT[i.severity] || 'تعیین‌نشده'}</span>
                     ${(i.accident_cause || (!SEV_TXT[i.severity] && i.severity)) ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border-violet-500/30">علت: ${esc(i.accident_cause || i.severity)}</span>` : ''}
+                    ${incLost(i) ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border-amber-500/30">استعلاجی ${incLost(i)} روز</span>` : ''}
+                    <button data-lostinc="${esc(i.id)}" class="text-[11px] text-amber-400 px-1">🩹 روز استعلاجی</button>
                     ${i.referral_place ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border-sky-500/30">اعزام: ${esc(i.referral_place)}</span>` : ''}
                     ${i.social_security_reported ? `<span class="text-[11px] border px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border-blue-500/30">گزارش تامین اجتماعی (شعبه ${esc(i.ss_branch || '-')})</span>` : ''}
                     <button data-profile="${esc(i.employee_id)}" class="text-[11px] text-blue-400 px-1">پرونده</button>
@@ -1865,6 +1867,7 @@ document.addEventListener('click', e => {
     else if (d.revex !== undefined) saveReview(d.revex, 'ex');
     else if (d.revmg !== undefined) saveReview(d.revmg, 'mg');
     else if (d.editinc !== undefined) editIncident(d.editinc);
+    else if (d.lostinc !== undefined) setIncLost(d.lostinc);
     else if (d.fixinc !== undefined) fixIncidents();
     else if (d.delinc !== undefined) deleteRow('clinic_incidents', d.delinc, 'این حادثه حذف شود؟ این کار قابل بازگشت نیست. (مواد مصرفی کسرشده به موجودی کمد برمی‌گردد.)', loadIncidents, () => restoreMeds(d.delinc, 'incident'));
 });
@@ -1937,6 +1940,19 @@ async function patchInc(id, body) {
             delete b[m[1]]; window._incColMissing = true;
         }
     }
+}
+/* روز از دست رفته (استعلاجی) حادثه: در انتهای شرح به‌صورت «[روز از دست رفته: N]» نگه داشته می‌شود و شاخص‌های AFR/ASR از آن می‌خوانند */
+const incLost = i => { const m = /روز از دست رفته:\s*([\d۰-۹]+)/.exec(i.description || ''); return m ? +String(m[1]).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)) : 0; };
+async function setIncLost(id) {
+    const i = incidents.find(x => String(x.id) === String(id)); if (!i) return;
+    const v = prompt('تعداد روز استعلاجی (روز از دست رفته) این حادثه؟ (۰ = بدون استعلاجی)', incLost(i) || '');
+    if (v === null) return;
+    const n = Math.max(0, Math.round(Number(String(v).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))) || 0));
+    const d0 = i.description || '', RX = /روز از دست رفته:\s*[\d۰-۹]+/;
+    const desc = RX.test(d0) ? d0.replace(RX, 'روز از دست رفته: ' + n) : (n ? (d0.trim() + '\n[روز از دست رفته: ' + n + ']') : d0);
+    if (desc === d0) return;
+    try { await api('clinic_incidents?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify({ description: desc }) }); await loadIncidents(); }
+    catch (er) { showDebug(er.message); alert('ذخیره نشد: ' + er.message); }
 }
 function editIncident(id) {
     const i = incidents.find(x => String(x.id) === String(id)); if (!i || !IS_MGR()) return;
