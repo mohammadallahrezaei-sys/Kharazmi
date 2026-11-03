@@ -43,12 +43,13 @@
 .sheet.warn .body { height:4.97in; }
 .sheet.reward .body { height:4.97in; }
 .sheet .gap { height:.18in; }
-.sheet .mainTbl tr:nth-child(2) .sig { height:.78in; }
-.sheet .mainTbl tr:nth-child(3) .sig { height:.72in; }
+.sheet .mainTbl tr:nth-child(2) .sig { height:1in; }
+.sheet .mainTbl tr:nth-child(3) .sig { height:.95in; }
 .paper { background:#fff; padding:25.4mm; width:21cm; max-width:100%; margin:0 auto; box-shadow:0 4px 18px rgba(0,0,0,.45); box-sizing:border-box; }
 @media screen { .paper { zoom:.82; } }
-.sheet.warn .main-p { line-height:1.5; text-align:justify; }
-.sheet.reward .main-p { line-height:1.5; text-align:justify; }
+.sheet.warn .main-p, .sheet.reward .main-p { line-height:1.5; text-align:justify; font-size:14pt; }
+.sheet.warn .addr, .sheet.reward .addr { font-size:14pt; }
+.sheet.warn .body li, .sheet.reward .body li { font-size:14pt; }
 
 /* ---------- چاپ ---------- */
 @page { size: A4; margin: 0; }
@@ -844,7 +845,7 @@ function sheetHTML(s) {
             <colgroup><col style="width:${isW ? '50.4%' : '46.6%'}"><col></colgroup>
             <tr><td class="body" colspan="2">${body}</td></tr>
             ${signs}
-            <tr><td class="dist" colspan="2">توزيع نسخ :&nbsp;&nbsp;&nbsp; 1- واحد HSE &nbsp;&nbsp;&nbsp;&nbsp; 2-منابع انسانی &nbsp;&nbsp;&nbsp; 3- واحد مالی</td></tr>
+            <tr><td class="dist" colspan="2">توزيع نسخ :&nbsp;&nbsp;&nbsp; <bdi dir="rtl">1- واحد HSE</bdi> &nbsp;&nbsp;&nbsp;&nbsp; <bdi dir="rtl">2- منابع انسانی</bdi> &nbsp;&nbsp;&nbsp; <bdi dir="rtl">3- واحد مالی</bdi></td></tr>
         </table>
     </div>`;
 }
@@ -964,7 +965,7 @@ async function exportFormExcel() {
     sg(r2, 1, 2, isW ? 'نام و نام خانوادگی و امضاء اخطار گیرنده :' : 'نام و نام خانوادگی و امضاء تشویق شونده :');
     sg(r2, 3, 4, 'نام و نام خانوادگی و تایید مدیریت کارخانه:');
     const r3 = row(22);
-    merged(r3, 1, 4, 'توزيع نسخ :    1- واحد HSE     2-منابع انسانی    3- واحد مالی', f(11), al({ indent: 1 }));
+    merged(r3, 1, 4, 'توزيع نسخ :    \u202B1- واحد HSE\u202C     \u202B2- منابع انسانی\u202C    \u202B3- واحد مالی\u202C', f(11), al({ indent: 1 }));
     box(r3, 1, r3, 4, { top: true, bottom: true, right: true, left: true });
     ws.pageSetup.printArea = 'A1:D' + r3;
 
