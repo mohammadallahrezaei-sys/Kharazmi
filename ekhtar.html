@@ -24,14 +24,14 @@
 .sheet .hdr td { vertical-align:middle; }
 .sheet .c-logo { text-align:center; }
 .sheet .c-logo img { display:inline-block; }
-.sheet .c-title { text-align:center; font-size:14pt; }
-.sheet .c-meta { font-size:11pt; line-height:1.5; }
+.sheet .c-title { text-align:center; font-size:var(--fs-title,14pt); }
+.sheet .c-meta { font-size:var(--fs-meta,11pt); line-height:1.5; }
 .sheet .ltr { direction:ltr; unicode-bidi:isolate; display:inline-block; }
 .sheet .gap { height:.12in; }
 .sheet .body { padding:6px 10px; }
 .sheet .addr { font-weight:400; }
-.sheet .sig { font-size:11pt; padding:4px 8px; }
-.sheet .dist { font-size:11pt; padding:4px 8px; }
+.sheet .sig { font-size:var(--fs-sig,11pt); padding:4px 8px; }
+.sheet .dist { font-size:var(--fs-dist,11pt); padding:4px 8px; }
 .sheet ul { margin:0; padding:0 1.6em 0 0; list-style:disc; }
 .sheet li { margin:0; padding:4pt 0; }
 .sheet .cb { display:inline-block; width:1em; height:1em; border:1.6px solid #000; vertical-align:-.14em; margin:0 .3em; }
@@ -47,9 +47,9 @@
 .sheet .mainTbl tr:nth-child(3) .sig { height:.95in; }
 .paper { background:#fff; padding:25.4mm; width:21cm; max-width:100%; margin:0 auto; box-shadow:0 4px 18px rgba(0,0,0,.45); box-sizing:border-box; }
 @media screen { .paper { zoom:.82; } }
-.sheet.warn .main-p, .sheet.reward .main-p { line-height:1.5; text-align:justify; font-size:14pt; }
-.sheet.warn .addr, .sheet.reward .addr { font-size:14pt; }
-.sheet.warn .body li, .sheet.reward .body li { font-size:14pt; }
+.sheet.warn .main-p, .sheet.reward .main-p { line-height:1.5; text-align:justify; font-size:var(--fs-body,14pt); }
+.sheet.warn .addr, .sheet.reward .addr { font-size:var(--fs-body,14pt); }
+.sheet.warn .body li, .sheet.reward .body li { font-size:var(--fs-body,14pt); }
 
 /* ---------- چاپ ---------- */
 @page { size: A4; margin: 0; }
@@ -264,6 +264,18 @@
                 <div><label class="lbl">کارشناس HSE</label><input id="pfExpert" class="fld"></div>
                 <div><label class="lbl">مدیر HSE</label><input id="pfManager" class="fld"></div>
             </div>
+
+            <details class="bg-slate-900/60 border border-slate-700 rounded-lg p-2">
+                <summary class="cursor-pointer text-[11px] text-slate-300">اندازهٔ فونت هر قسمت (۱۰ تا ۱۵)</summary>
+                <div class="grid grid-cols-3 gap-2 mt-2">
+                    <div><label class="lbl">عنوان فرم</label><input id="pfFs_title" type="number" min="10" max="15" step="0.5" class="fld" dir="ltr"></div>
+                    <div><label class="lbl">تاریخ / شماره</label><input id="pfFs_meta" type="number" min="10" max="15" step="0.5" class="fld" dir="ltr"></div>
+                    <div><label class="lbl">متن نامه و مراحل</label><input id="pfFs_body" type="number" min="10" max="15" step="0.5" class="fld" dir="ltr"></div>
+                    <div><label class="lbl">امضاها</label><input id="pfFs_sig" type="number" min="10" max="15" step="0.5" class="fld" dir="ltr"></div>
+                    <div><label class="lbl">توزیع نسخ</label><input id="pfFs_dist" type="number" min="10" max="15" step="0.5" class="fld" dir="ltr"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">در همین مرورگر ذخیره می‌شود. در چاپ اثر می‌کند؛ خروجی اکسل اندازهٔ ثابت دارد.</p>
+            </details>
 
             <details class="bg-slate-900/60 border border-slate-700 rounded-lg p-2">
                 <summary class="cursor-pointer text-[11px] text-slate-300">تنظیم شماره‌گذاری (آخرین شماره فرم‌های کاغذی قبلی)</summary>
@@ -695,7 +707,7 @@ function openPrint(kind, emp, rec) {
         manager: lsGet('hse_manager', 'محسن هفت لنگی'),
         offW: Number(lsGet('hse_off_warn', '0')) || 0,
         offR: Number(lsGet('hse_off_reward', '0')) || 0,
-        dateFmt: lsGet('hse_datefmt', 'ymd'),
+        dateFmt: lsGet('hse_datefmt', 'ymd'), fs: fsLoad(),
         codeEdited: false, stageEdited: false
     };
     if (rec && P.kind === 'reward') {
@@ -728,6 +740,7 @@ function fillInputs() {
     $('pfKind').value = P.kind;
     $('pfGender').value = P.gender; $('pfName').value = P.name; $('pfUnit').value = P.unit;
     $('pfDateFmt').value = P.dateFmt;
+    Object.keys(FS_DEF).forEach(k => { const e = $('pfFs_' + k); if (e) e.value = fsClamp(P.fs[k]); });
     $('pfDate').value = fmtJ(P.date, P.dateFmt); $('pfVDate').value = fmtJ(P.vdate, P.dateFmt); $('pfCode').value = P.code; $('pfOrd').value = P.ord;
     $('pfStage').value = P.stage; $('pfReason').value = P.reason;
     document.querySelectorAll('.pfR').forEach(c => c.checked = !!P.flags[+c.dataset.i]);
@@ -754,6 +767,7 @@ function readInputs(changedId) {
     P.other = $('pfOther').value;
     P.expert = $('pfExpert').value; P.manager = $('pfManager').value;
     P.offW = Number($('pfOffW').value) || 0; P.offR = Number($('pfOffR').value) || 0;
+    P.fs = P.fs || fsLoad(); Object.keys(FS_DEF).forEach(k => { const e = $('pfFs_' + k); if (e && e.value !== '') P.fs[k] = fsClamp(e.value); }); lsSet('hse_fs', JSON.stringify(P.fs));
     P.ord = Math.max(1, Number($('pfOrd').value) || 1);
     P.stage = Number($('pfStage').value) || 1;
 
@@ -777,6 +791,10 @@ document.querySelectorAll('#printModal input, #printModal select, #printModal te
 
 function cb(on) { return `<span class="cb${on ? ' on' : ''}"></span>`; }
 const dots = '.................................................................';
+const FS_DEF = { title: 14, meta: 11, body: 14, sig: 11, dist: 11 };
+const fsClamp = v => Math.min(15, Math.max(10, Number(v) || 12));
+function fsOf(s) { const o = {}; for (const k in FS_DEF) o[k] = fsClamp((s.fs && s.fs[k] != null) ? s.fs[k] : FS_DEF[k]); return o; }
+function fsLoad() { try { return Object.assign({}, FS_DEF, JSON.parse(lsGet('hse_fs', '{}')) || {}); } catch (e) { return Object.assign({}, FS_DEF); } }
 
 function sheetHTML(s) {
     const isW = s.kind === 'warn';
@@ -839,7 +857,8 @@ function sheetHTML(s) {
             <td class="sig"><p>نام و نام خانوادگی و تایید مدیریت کارخانه:</p></td>
         </tr>`;
 
-    return `<div class="sheet ${isW ? 'warn' : 'reward'}">
+    const FS = fsOf(s);
+    return `<div class="sheet ${isW ? 'warn' : 'reward'}" style="--fs-title:${FS.title}pt;--fs-meta:${FS.meta}pt;--fs-body:${FS.body}pt;--fs-sig:${FS.sig}pt;--fs-dist:${FS.dist}pt">
         ${header}
         <table class="mainTbl" style="table-layout:fixed">
             <colgroup><col style="width:${isW ? '50.4%' : '46.6%'}"><col></colgroup>
