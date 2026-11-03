@@ -1996,6 +1996,8 @@ function statsSlide(logo, n, tot, S, page, pages) {
   return c.toDataURL('image/jpeg', 0.9);
 }
 
+/* کیفیت JPEG اسلایدهای عکس‌دار: وضوح (۱۹۲۰×۱۰۸۰) ثابت، حجم فایل کمتر */
+const JQ = 0.72, realP = a => (a || []).filter(p => !/^no-photo/.test(p)), hasPh = f => realP(f.photos_before).length || realP(f.photos_after).length;
 async function findingSlide(f, n, tot, logo) {
   const [c, x] = mkS();
   frame(x, logo, n, tot, f.module + '-' + f.qid);
@@ -2004,13 +2006,38 @@ async function findingSlide(f, n, tot, logo) {
   qLines.forEach((l, idx) => x.fillText(l, SW - 60, 180 + idx * 46));
   x.font = '400 24px ' + FONT; x.fillStyle = '#64748b';
   x.fillText('محل: ' + f.location + '  |  تاریخ ثبت: ' + fl(f.created_at) + (f.responsible ? '  |  مسئول پیگیری: ' + f.responsible : ''), SW - 60, 180 + qLines.length * 46 + 10);
-  const pw = (SW - 140) / 2, ph = 620, py = 320;
-  const get = a => Promise.all((a || []).slice(0, 4).map(photoImg)).then(r => r.filter(Boolean));
+  const get = a => Promise.all(realP(a).slice(0, 4).map(photoImg)).then(r => r.filter(Boolean));
   const [bp, ap] = await Promise.all([get(f.photos_before), get(f.photos_after)]);
-  panel(x, pw + 80, py, pw, ph, 'وضعیت پیش از اصلاح (عدم‌انطباق)', RED, bp, 'تصویری ثبت نشده است');
-  panel(x, 60, py, pw, ph, 'وضعیت پس از اصلاح و اقدام اصلاحی' + (f.status == 'closed' && f.closed_at ? ' — تاریخ انجام: ' + fl(f.closed_at) : ''), GREEN, ap, 'اقدام اصلاحی انجام نشده است');
+  const TB = 'وضعیت پیش از اصلاح (عدم‌انطباق)', TA = 'وضعیت پس از اصلاح و اقدام اصلاحی' + (f.status == 'closed' && f.closed_at ? ' — تاریخ انجام: ' + fl(f.closed_at) : '');
+  const py = 320;
+  if (bp.length && ap.length) { /* هر دو سمت عکس دارند: قبل و بعد کنار هم */
+    const pw = (SW - 140) / 2, ph = 620;
+    panel(x, pw + 80, py, pw, ph, TB, RED, bp, '');
+    panel(x, 60, py, pw, ph, TA, GREEN, ap, '');
+  } else { /* فقط یک سمت عکس دارد: همان در تمام عرض اسلاید، بدون کادر خالی */
+    const ims = bp.length ? bp : ap;
+    panel(x, 60, py, SW - 120, 660, bp.length ? TB : TA, bp.length ? RED : GREEN, ims, 'تصویر در دسترس نبود');
+  }
   [...bp, ...ap].forEach(b => b.close && b.close());
-  return c.toDataURL('image/jpeg', 0.85);
+  return c.toDataURL('image/jpeg', JQ);
+}
+/* موارد بدون هیچ عکس: چند مورد در هر اسلاید به‌صورت متن ردیفی با توضیحات لازم */
+function findTextSlide(items, pg, pages, n, tot, logo) {
+  const [c, x] = mkS();
+  frame(x, logo, n, tot, 'بدون تصویر');
+  x.fillStyle = NAVY; x.font = '800 38px ' + FONT;
+  x.fillText('موارد بدون تصویر' + (pages > 1 ? ' — ' + fa(pg + 1) + ' از ' + fa(pages) : ''), SW - 60, 160);
+  let y = 235;
+  items.forEach(f => {
+    const cl = f.status == 'closed';
+    x.fillStyle = cl ? GREEN : RED; x.fillRect(SW - 60, y + 4, 8, 112);
+    x.fillStyle = NAVY; x.font = '700 27px ' + FONT;
+    wrapText(x, f.question || '', SW - 160).slice(0, 2).forEach((l, i) => x.fillText(l, SW - 85, y + i * 38));
+    x.fillStyle = '#64748b'; x.font = '400 22px ' + FONT;
+    x.fillText('محل: ' + (f.location || 'نامشخص') + '  |  ثبت: ' + fl(f.created_at) + '  |  ' + (cl ? 'اصلاح‌شده' + (f.closed_at ? ' (انجام: ' + fl(f.closed_at) + ')' : '') : 'باز' + (f.due_date ? ' — مهلت: ' + fl(f.due_date) : '')) + (f.responsible ? '  |  مسئول: ' + f.responsible : '') + (f.severity ? '  |  شدت: ' + fa(f.severity) : ''), SW - 85, y + 84);
+    y += 128;
+  });
+  return c.toDataURL('image/jpeg', JQ);
 }
 
 /* اسلاید اقدام ثبت‌شده در گزارش کارهای روزانه (بدون قبل/بعد: فقط عنوان، شرح و عکس‌های ثبت‌شده) */
@@ -2052,7 +2079,7 @@ async function workSlide(w, k, cnt3, N, n, tot, logo) {
   if (!ims.length) { x.fillStyle = '#94a3b8'; x.font = '400 26px ' + FONT; x.textAlign = 'center'; x.fillText('تصویری ثبت نشده است', SW / 2, ay + ah / 2 - 13); x.textAlign = 'right'; }
   else fitPhotos(ims, 50, ay + 10, SW - 100, ah - 20).forEach(({ r, im }) => { const kk = Math.min(r[2] / im.width, r[3] / im.height), dw = im.width * kk, dh = im.height * kk; x.drawImage(im, r[0] + (r[2] - dw) / 2, r[1] + (r[3] - dh) / 2, dw, dh); });
   ims.forEach(b => b.close && b.close());
-  return c.toDataURL('image/jpeg', 0.88);
+  return c.toDataURL('image/jpeg', JQ);
 }
 
 /* خلاصهٔ کل اقدامات HSE در بازه: اصلاحی، کارهای روزانه، آموزش */
@@ -2106,7 +2133,7 @@ function workTextSlide(items, pg, pages, n, tot, logo) {
 async function buildPptx(imgs) {
   const p = new PptxGenJS(); p.layout = 'LAYOUT_WIDE';
   imgs.forEach(d => p.addSlide().addImage({ data: d.replace(/^data:/, ''), x: 0, y: 0, w: 13.333, h: 7.5 }));
-  return await p.write({ outputType: 'blob' });
+  return await p.write({ outputType: 'blob', compression: true });
 }
 
 async function renderManagementReport() {
@@ -2205,23 +2232,24 @@ async function genSlides(preview) {
     S.months = [...mc.keys()].sort((a, b) => a - b).map(k => ({ y: Math.floor(k / 100), m: k % 100, n: mc.get(k) }));
     S.noDate = P.filter(x => x.status == 'closed' && !x.closed_at).length; S.openN = P.filter(x => x.status == 'open').length;
     const body = [];
+    const addF = arr => { const ph = [], np = []; arr.forEach(f => (hasPh(f) ? ph : np).push(f)); ph.forEach(f => body.push({ t: 'f', f })); const pgs = Math.ceil(np.length / 6); for (let p = 0; p < pgs; p++) body.push({ t: 'n', items: np.slice(p * 6, p * 6 + 6), p, pgs }); };
     if (R.ord == 'done') { /* ماه‌به‌ماه بر اساس تاریخ انجام: اسلاید عنوان ماه، سپس موارد همان ماه به ترتیب انجام */
       const mm = new Map();
       P.filter(x => x.status == 'closed' && x.closed_at).forEach(x => { const [y, m] = jym(x.closed_at), k = y * 100 + m; if (!mm.has(k)) mm.set(k, []); mm.get(k).push(x); });
       [...mm.keys()].sort((a, b) => a - b).forEach(k => {
         const arr = mm.get(k).sort((a, b) => new Date(a.closed_at) - new Date(b.closed_at));
         body.push({ t: 'd', label: jlab(Math.floor(k / 100), k % 100), sub: fa(arr.length) + ' اقدام اصلاحی در این ماه انجام شد', col: GREEN });
-        arr.forEach(f => body.push({ t: 'f', f }));
+        addF(arr);
       });
       const nd = P.filter(x => x.status == 'closed' && !x.closed_at).sort(byCr);
-      if (nd.length) { body.push({ t: 'd', label: 'اصلاح‌شده بدون تاریخ انجام', sub: fa(nd.length) + ' مورد؛ تاریخ انجام در سیستم ثبت نشده است', col: '#f59e0b' }); nd.forEach(f => body.push({ t: 'f', f })); }
+      if (nd.length) { body.push({ t: 'd', label: 'اصلاح‌شده بدون تاریخ انجام', sub: fa(nd.length) + ' مورد؛ تاریخ انجام در سیستم ثبت نشده است', col: '#f59e0b' }); addF(nd); }
       const op = P.filter(x => x.status == 'open').sort((a, b) => sev_(b) - sev_(a) || byCr(b, a));
-      if (op.length) { body.push({ t: 'd', label: 'موارد باز و در دست اقدام', sub: fa(op.length) + ' مورد هنوز اصلاح نشده است', col: RED }); op.forEach(f => body.push({ t: 'f', f })); }
+      if (op.length) { body.push({ t: 'd', label: 'موارد باز و در دست اقدام', sub: fa(op.length) + ' مورد هنوز اصلاح نشده است', col: RED }); addF(op); }
     } else {
       const F = [...P].sort(R.ord == 'date' ? (a, b) => byCr(b, a)
         : R.ord == 'old' ? byCr
         : (a, b) => (a.status == 'open' ? 0 : 1) - (b.status == 'open' ? 0 : 1) || sev_(b) - sev_(a) || byCr(b, a));
-      F.forEach(f => body.push({ t: 'f', f }));
+      addF(F);
     }
     if (WL.length) {
       body.push({ t: 'd', label: 'اقدامات گزارش کارهای روزانه', sub: fa(WL.length) + ' اقدام ثبت‌شده در این بازه؛ تا ۳ عکس هر اقدام در یک اسلاید', col: '#38bdf8' });
@@ -2241,7 +2269,7 @@ async function genSlides(preview) {
       const chunk = chunks[pi], imgs = [], base = preN + chunks.slice(0, pi).reduce((a, c) => a + c.length, 0);
       if (pi == 0) { imgs.push(coverSlide(logo, 'گزارش عملکرد کارخانه', S.bz, S, cl)); imgs.push(summarySlide(logo, 2, tot, S)); imgs.push(hseSlide(logo, 3, tot, { bz: S.bz, cl, wl: WL.length, trN: TR.length, trP: TA.length, cats: cnt(WL, w => w.category || 'سایر').slice(0, 8), trT: Object.entries(trT).sort((a, b) => b[1] - a[1]) })); for (let q = 0; q < nStats; q++) imgs.push(statsSlide(logo, 4 + q, tot, S, q, nStats)); }
       const res = await pool(6, chunk, async (it, i) => {
-        const d = it.t == 'd' ? dividerSlide(logo, it, base + i + 1, tot) : it.t == 'x' ? workTextSlide(it.items, it.p, it.pgs, base + i + 1, tot, logo) : it.t == 'w' ? await workSlide(it.w, it.k, Math.min(3, it.N - it.k), it.N, base + i + 1, tot, logo) : await findingSlide(it.f, base + i + 1, tot, logo);
+        const d = it.t == 'd' ? dividerSlide(logo, it, base + i + 1, tot) : it.t == 'n' ? findTextSlide(it.items, it.p, it.pgs, base + i + 1, tot, logo) : it.t == 'x' ? workTextSlide(it.items, it.p, it.pgs, base + i + 1, tot, logo) : it.t == 'w' ? await workSlide(it.w, it.k, Math.min(3, it.N - it.k), it.N, base + i + 1, tot, logo) : await findingSlide(it.f, base + i + 1, tot, logo);
         done++; gp.value = done;
         const sec = (Date.now() - t0) / 1000, eta = Math.round(sec / done * (body.length - done));
         prog(`در حال تولید اسلایدها... ${fa(done)} از ${fa(body.length)} — فایل ${fa(pi + 1)} از ${fa(parts)} — حدود ${fa(Math.ceil(eta / 60))} دقیقه باقی‌مانده`);
