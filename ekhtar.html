@@ -46,8 +46,11 @@
 .sheet.warn .sig, .sheet.reward .sig { height:1in; }
 .paper { background:#fff; padding:14mm 16mm; width:21cm; max-width:100%; margin:0 auto; box-shadow:0 4px 18px rgba(0,0,0,.45); box-sizing:border-box; }
 @media screen { .paper { zoom:.82; } }
-.sheet.warn .main-p { line-height:1.5; text-align:justify; }
-.sheet.reward .main-p { line-height:1.5; text-align:justify; }
+.sheet.warn .main-p { line-height:2.05; text-align:justify; font-size:14pt; }
+.sheet.reward .main-p { line-height:1.9; text-align:justify; font-size:13.5pt; }
+.sheet.warn .addr, .sheet.reward .addr { font-size:14pt; line-height:1.9; }
+.sheet.warn .body li, .sheet.reward .body li { font-size:13.5pt; padding:7pt 0; line-height:1.7; }
+.sheet.warn .body > p:first-child, .sheet.reward .body > p:first-child { margin-top:4pt; }
 
 /* ---------- چاپ ---------- */
 @page { size: A4; margin: 0; }
