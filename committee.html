@@ -437,29 +437,29 @@ function buildMinutesSheet(wb,name,m,items,workers){
   [2.86,11.29,19.71,17.86,12,11.14,10.43,15.57].forEach((w,i)=>ws.getColumn(i+1).width=w);
   const med={style:'medium'},FILL={type:'pattern',pattern:'solid',fgColor:{argb:'FFF2F2F2'}},WH={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}};
   const col=c=>'ABCDEFGH'.indexOf(c)+1;
-  const put=(a,v,o)=>{const c=ws.getCell(a);c.value=v;c.font={name:o.f||'Nazanin',size:o.s||11,bold:o.b!==false};
+  const put=(a,v,o)=>{const c=ws.getCell(a);c.value=v;c.font={name:o.f||'B Nazanin',size:o.s||11,bold:o.b!==false};
     c.alignment={horizontal:o.h||'center',vertical:o.v||'middle',wrapText:o.w!==false,readingOrder:o.ro||'rtl'};if(o.fill)c.fill=o.fill;return c};
   /* قاب بیرونی یک ناحیه (ادغام‌شده یا تک‌خانه) */
   const box=(r1,c1,r2,c2)=>{if(r1!==r2||c1!==c2)ws.mergeCells(r1,c1,r2,c2);
     for(let r=r1;r<=r2;r++)for(let c=c1;c<=c2;c++){const x=ws.getCell(r,c),b={};if(c===c1)b.left=med;if(c===c2)b.right=med;if(r===r1)b.top=med;if(r===r2)b.bottom=med;x.border={...(x.border||{}),...b}}};
   const rg=(a)=>{const [p,q]=a.split(':'),pa=p.match(/([A-Z])(\d+)/),qa=(q||p).match(/([A-Z])(\d+)/);box(+pa[2],col(pa[1]),+qa[2],col(qa[1]))};
   const H=(r,h)=>ws.getRow(r).height=h;
-  const att=m.att||{},L=en2;
-  ws.mergeCells('B1:H1');put('B1','بسمه تعالی',{f:'Lotus',s:12});H(1,23.25);
-  ws.mergeCells('B2:H2');put('B2','فرم صورتجلسه کمیته حفاظت فنی و بهداشت کار',{f:'Lotus',s:12});H(2,24);
+  const att=m.att||{},L=en2,FN=t=>/^[A-Za-z0-9\/\s.\-]+$/.test(String(t||'').trim())&&String(t||'').trim()?'Arial':'B Nazanin';
+  ws.mergeCells('B1:H1');put('B1','بسمه تعالی',{f:'B Lotus',s:12});H(1,23.25);
+  ws.mergeCells('B2:H2');put('B2','فرم صورتجلسه کمیته حفاظت فنی و بهداشت کار',{f:'B Lotus',s:12});H(2,24);
   put('B3','نام کارگاه :  گسترش فناوری خوارزمی \nکد تامین اجتماعی : 0343290030',{f:'Calibri',h:'right'});rg('B3:C3');
   put('D3','نوع فعالیت : صنعتی',{f:'Calibri'});rg('D3:E3');
   put('F3','تعداد کل کارگران : '+(workers?L(workers)+' نفر':'—'),{f:'Calibri',h:'right'});rg('F3:H3');H(3,47.25);
   put('B4','نشانی : جاده مخصوص کرج - گرمدره - بلوار امیرکبیر - کوهک چهارم - پلاک 46',{f:'Calibri',b:false,h:'right'});rg('B4:H4');H(4,21);
   put('B5','تلفن : 36108122-026      فکس : 36108128-026  ',{f:'Calibri',b:false,h:'right'});rg('B5:D5');
-  put('E5','آدرس ایمیل : info@khwarizmico.com',{f:'Titr',s:10,h:'right'});rg('E5:H5');H(5,23.25);H(6,9);
-  put('B7','شماره جلسه : '+L(m.no_label||m.no),{f:'Lotus',s:12,h:'right',w:false,ro:'ltr'});rg('B7:C7');
-  put('D7','ساعت شروع : '+L(m.t1||'')+'                  ساعت پایان : '+L(m.t2||''),{f:'Lotus',s:12,h:'right',w:false,ro:'ltr'});rg('D7:H7');H(7,24);
+  put('E5','آدرس ایمیل : info@khwarizmico.com',{f:'B Titr',s:10,h:'right'});rg('E5:H5');H(5,23.25);H(6,9);
+  put('B7','شماره جلسه : '+L(m.no_label||m.no),{f:'B Lotus',s:12,h:'right',w:false,ro:'ltr'});rg('B7:C7');
+  put('D7','ساعت شروع : '+L(m.t1||'')+'                  ساعت پایان : '+L(m.t2||''),{f:'B Lotus',s:12,h:'right',w:false,ro:'ltr'});rg('D7:H7');H(7,24);
   put('B8','تاریخ جلسه : '+L(m.jdate),{h:'right'});rg('B8:C8');
-  put('D8','مکان تشکیل جلسه : '+(m.place||''),{f:'Lotus',s:12,w:false,ro:'ltr'});rg('D8:F8');
+  put('D8','مکان تشکیل جلسه : '+(m.place||''),{f:'B Lotus',s:12,w:false,ro:'ltr'});rg('D8:F8');
   const pgCell=put('G8','',{h:'right'});rg('G8:H8');H(8,30.75);H(9,8.25);
   /* سرستون‌ها */
-  const hdr=rw=>{[['B','موضوع'],['C','شرح'],['E','واحد/ شخص اقدام کننده'],['F','واحد/ شخص پیگیری کننده'],['G','مهلت اقدام'],['H','نتیجه']].forEach(([c,t])=>{put(c+rw,t,{f:'Titr',s:10,fill:FILL});rg(c==='C'?'C'+rw+':D'+rw:c+rw)});H(rw,36.75)};hdr(10);
+  const hdr=rw=>{[['B','موضوع'],['C','شرح'],['E','واحد/ شخص اقدام کننده'],['F','واحد/ شخص پیگیری کننده'],['G','مهلت اقدام'],['H','نتیجه']].forEach(([c,t])=>{put(c+rw,t,{f:'B Titr',s:10,fill:FILL});rg(c==='C'?'C'+rw+':D'+rw:c+rw)});H(rw,36.75)};hdr(10);
   /* بندها */
   let r=11,total=0;const rowH=[];
   const hdrH=[23.25,24,47.25,21,23.25,9,24,30.75,8.25,36.75].reduce((a,b)=>a+b,0);
@@ -470,34 +470,34 @@ function buildMinutesSheet(wb,name,m,items,workers){
     rows.forEach((x,i)=>{
       const txt=x?(i+1)+'- '+x.text:'',lines=Math.max(1,Math.ceil(txt.length/34)),h=x?Math.max(65.25,lines*17+24):65.25;
       if(y+h>CAP&&r>11){ /* بند به صفحهٔ بعد می‌رود: موضوعِ بخش قبلی همین‌جا بسته و در صفحهٔ بعد دوباره شروع می‌شود */
-        put('B'+r0,tt,{f:'Titr',s:12,fill:FILL});rg('B'+r0+':B'+(r-1));ws.getRow(r-1).addPageBreak();pages++;hdr(r);r++;r0=r;y=HD}
+        put('B'+r0,tt,{f:'B Titr',s:12,fill:FILL});rg('B'+r0+':B'+(r-1));ws.getRow(r-1).addPageBreak();pages++;hdr(r);r++;r0=r;y=HD}
       if(x){put('C'+r,txt,{h:'right'});rg('C'+r+':D'+r);
-        put('E'+r,x.actor||'',{});rg('E'+r);put('F'+r,x.follower||'',{f:'Arial'});rg('F'+r);
+        put('E'+r,x.actor||'',{f:FN(x.actor)});rg('E'+r);put('F'+r,x.follower||'',{f:FN(x.follower)});rg('F'+r);
         put('G'+r,L(x.deadline||''),{w:true,ro:'ltr'});rg('G'+r);put('H'+r,resOf(x),{fill:WH});rg('H'+r)}
       else{['C','E','F','G','H'].forEach(c=>{const a=c+r;put(a,'',{});rg(c==='C'?'C'+r+':D'+r:a)})}
       H(r,h);rowH.push(h);y+=h;r++});
-    put('B'+r0,tt,{f:'Titr',s:12,fill:FILL});rg('B'+r0+':B'+(r-1))});
+    put('B'+r0,tt,{f:'B Titr',s:12,fill:FILL});rg('B'+r0+':B'+(r-1))});
   const itemsEnd=r-1;
   H(r,16.5);const sigTop=r+1;r=sigTop;
   /* بخش اعضا و امضا (صفحهٔ جدا) */
   const a0=r;
-  put('B'+a0,'اعضای کمیته حفاظت فنی و بهداشت کار',{f:'Titr',fill:FILL});rg('B'+a0+':B'+(a0+5));
-  put('C'+a0,'حاضرین',{f:'Titr',s:10,fill:FILL,ro:'ltr'});rg('C'+a0+':C'+(a0+2));
+  put('B'+a0,'اعضای کمیته حفاظت فنی و بهداشت کار',{f:'B Titr',fill:FILL});rg('B'+a0+':B'+(a0+5));
+  put('C'+a0,'حاضرین',{f:'B Titr',s:10,fill:FILL,ro:'ltr'});rg('C'+a0+':C'+(a0+2));
   ROLES.forEach((ro,i)=>{const c='DEFGH'[i];
-    put(c+a0,ro+' :',{f:'Titr',s:10,fill:FILL});rg(c+a0);
+    put(c+a0,ro+' :',{f:'B Titr',s:10,fill:FILL});rg(c+a0);
     put(c+(a0+1),att[ro]||'',{v:'top',fill:FILL});rg(c+(a0+1)+':'+c+(a0+2))});
-  put('C'+(a0+3),'غایبین و دلایل غیبت',{f:'Titr',s:10,fill:WH});rg('C'+(a0+3)+':C'+(a0+5));
+  put('C'+(a0+3),'غایبین و دلایل غیبت',{f:'B Titr',s:10,fill:WH});rg('C'+(a0+3)+':C'+(a0+5));
   put('D'+(a0+3),m.absent||'',{h:'right',fill:WH});rg('D'+(a0+3)+':H'+(a0+5));
   [98.25,61.5,81.75,10.5,7.5,9.75].forEach((h,i)=>H(a0+i,h));
   /* ردیف‌های ۳ تا ۵ غایبین در فرم اصلی کوتاه است؛ برای متن غیبت کمی بلندتر */
   if((m.absent||'').length>0){[22,22,22].forEach((h,i)=>H(a0+3+i,h))}
   r=a0+6;H(r,9);r++;
-  const free=(lab,val,h)=>{put('B'+r,lab+val,{f:'Titr',s:10,h:'right'});rg('B'+r+':H'+r);const ln=Math.max(1,Math.ceil((lab+val).length/95));H(r,Math.max(h,ln*17+8));r++};
+  const free=(lab,val,h)=>{put('B'+r,lab+val,{f:'B Titr',s:10,h:'right'});rg('B'+r+':H'+r);const ln=Math.max(1,Math.ceil((lab+val).length/95));H(r,Math.max(h,ln*17+8));r++};
   free('مدعوین : ',m.guests||'',23.25);H(r,8.25);r++;
   free('توضیحات : ',m.notes||'',23.25);H(r,10.5);r++;
   put('B'+r,'تاریخ جلسه بعدی :  '+L(m.next_date||''),{f:'Calibri',b:false,h:'right',w:false,ro:'ltr'});rg('B'+r+':H'+r);H(r,24);r++;H(r,12);r++;
-  put('B'+r,'ارزیابی بازرس /بازرسان  کار بررسی کننده : ',{f:'Titr',s:10,h:'right'});H(r,79.5);
-  put('B'+(r+1),'نام و نام خانوادگی بازرس/ بازرسان کار :',{f:'Titr',s:10,b:false,v:'top',w:false,ro:'ltr'});
+  put('B'+r,'ارزیابی بازرس /بازرسان  کار بررسی کننده : ',{f:'B Titr',s:10,h:'right'});H(r,79.5);
+  put('B'+(r+1),'نام و نام خانوادگی بازرس/ بازرسان کار :',{f:'B Titr',s:10,b:false,v:'top',w:false,ro:'ltr'});
   ws.mergeCells('B'+r+':H'+r);ws.mergeCells('B'+(r+1)+':H'+(r+3));
   {const r1=r,r2=r+3;for(let y=r1;y<=r2;y++)for(let c=2;c<=8;c++){const x=ws.getCell(y,c),b={};if(c===2)b.left=med;if(c===8)b.right=med;if(y===r1)b.top=med;if(y===r2)b.bottom=med;x.border=b}}
   H(r+1,12.75);H(r+2,3.75);H(r+3,169.5);
