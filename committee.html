@@ -459,21 +459,23 @@ function buildMinutesSheet(wb,name,m,items,workers){
   put('D8','مکان تشکیل جلسه : '+(m.place||''),{f:'Lotus',s:12,w:false,ro:'ltr'});rg('D8:F8');
   const pgCell=put('G8','',{h:'right'});rg('G8:H8');H(8,30.75);H(9,8.25);
   /* سرستون‌ها */
-  [['B10','موضوع'],['C10','شرح'],['E10','واحد/ شخص اقدام کننده'],['F10','واحد/ شخص پیگیری کننده'],['G10','مهلت اقدام'],['H10','نتیجه']].forEach(([a,t])=>put(a,t,{f:'Titr',s:10,fill:FILL}));
-  ['B10','C10','E10','F10','G10','H10'].forEach(a=>{const r=a==='C10'?'C10:D10':a;rg(r)});H(10,36.75);
+  const hdr=rw=>{[['B','موضوع'],['C','شرح'],['E','واحد/ شخص اقدام کننده'],['F','واحد/ شخص پیگیری کننده'],['G','مهلت اقدام'],['H','نتیجه']].forEach(([c,t])=>{put(c+rw,t,{f:'Titr',s:10,fill:FILL});rg(c==='C'?'C'+rw+':D'+rw:c+rw)});H(rw,36.75)};hdr(10);
   /* بندها */
   let r=11,total=0;const rowH=[];
   const hdrH=[23.25,24,47.25,21,23.25,9,24,30.75,8.25,36.75].reduce((a,b)=>a+b,0);
-  KINDS.forEach(([k,tt])=>{const l=items.filter(x=>x.kind===k),r0=r;
-    const rows=l.length?l:[null];
+  /* شکست صفحهٔ قطعی مثل نسخهٔ چاپی: هر بند کامل در یک صفحه می‌ماند، سرستون در هر صفحه تکرار می‌شود و «موضوع» در ابتدای هر صفحه دوباره نوشته می‌شود */
+  const CAP=(11.69-1.5)*72/0.88*0.96,HD=36.75;let y=hdrH,pages=1;
+  KINDS.forEach(([k,tt])=>{const l=items.filter(x=>x.kind===k);
+    const rows=l.length?l:[null];let r0=r;
     rows.forEach((x,i)=>{
-      if(x){const txt=(i+1)+'- '+x.text;
-        put('C'+r,txt,{h:'right'});rg('C'+r+':D'+r);
+      const txt=x?(i+1)+'- '+x.text:'',lines=Math.max(1,Math.ceil(txt.length/34)),h=x?Math.max(65.25,lines*17+24):65.25;
+      if(y+h>CAP&&r>11){ /* بند به صفحهٔ بعد می‌رود: موضوعِ بخش قبلی همین‌جا بسته و در صفحهٔ بعد دوباره شروع می‌شود */
+        put('B'+r0,tt,{f:'Titr',s:12,fill:FILL});rg('B'+r0+':B'+(r-1));ws.getRow(r-1).addPageBreak();pages++;hdr(r);r++;r0=r;y=HD}
+      if(x){put('C'+r,txt,{h:'right'});rg('C'+r+':D'+r);
         put('E'+r,x.actor||'',{});rg('E'+r);put('F'+r,x.follower||'',{f:'Arial'});rg('F'+r);
-        put('G'+r,L(x.deadline||''),{w:true,ro:'ltr'});rg('G'+r);put('H'+r,resOf(x),{fill:WH});rg('H'+r);
-        const lines=Math.max(1,Math.ceil(txt.length/34));const h=Math.max(65.25,lines*17+24);H(r,h);rowH.push(h)}
-      else{['C','E','F','G','H'].forEach(c=>{const a=c+r;put(a,'',{});rg(c==='C'?'C'+r+':D'+r:a)});H(r,65.25);rowH.push(65.25)}
-      r++});
+        put('G'+r,L(x.deadline||''),{w:true,ro:'ltr'});rg('G'+r);put('H'+r,resOf(x),{fill:WH});rg('H'+r)}
+      else{['C','E','F','G','H'].forEach(c=>{const a=c+r;put(a,'',{});rg(c==='C'?'C'+r+':D'+r:a)})}
+      H(r,h);rowH.push(h);y+=h;r++});
     put('B'+r0,tt,{f:'Titr',s:12,fill:FILL});rg('B'+r0+':B'+(r-1))});
   const itemsEnd=r-1;
   H(r,16.5);const sigTop=r+1;r=sigTop;
@@ -501,7 +503,7 @@ function buildMinutesSheet(wb,name,m,items,workers){
   H(r+1,12.75);H(r+2,3.75);H(r+3,169.5);
   const last=r+3;
   /* شمارهٔ صفحه: بندها در یک یا چند صفحه + صفحهٔ امضا */
-  const pageH=(11.69-1.5)*72/0.88,np=Math.max(1,Math.ceil((hdrH+rowH.reduce((a,b)=>a+b,0)+16.5)/pageH))+1;
+  const np=pages+1;
   pgCell.value='صفحه : 1 از '+np;
   ws.pageSetup={paperSize:9,orientation:'portrait',scale:88,horizontalCentered:true,margins:{left:.447,right:.448,top:.75,bottom:.75,header:.3,footer:.3},printArea:'B1:H'+last};
   ws.getRow(sigTop-1).addPageBreak();
