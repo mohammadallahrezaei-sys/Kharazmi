@@ -19,7 +19,8 @@
 .sheet table { width:100%; border-collapse:collapse; table-layout:fixed; }
 .sheet td { border:2.25pt solid #000; padding:3px 7px; vertical-align:top; }
 .sheet .titr { font-family:'B Titr','BTitr','B Nazanin','Vazirmatn',Tahoma,sans-serif; }
-.sheet u { text-decoration:underline; }
+.sheet u { text-decoration:underline; text-decoration-skip-ink:none; text-decoration-thickness:1px; text-underline-position:under; text-underline-offset:2px; unicode-bidi:isolate; white-space:nowrap; }
+.sheet u.wrap { white-space:normal; }
 .sheet p { margin:0; }
 .sheet .hdr td { vertical-align:middle; }
 .sheet .c-logo { text-align:center; }
@@ -876,7 +877,7 @@ function prevHTML(s) {
 
 function sheetHTML(s) {
     const isW = s.kind === 'warn';
-    const U = t => `<u class="titr">${esc(t)}</u>`;
+    const U = (t, wrap) => `<u class="titr${wrap ? ' wrap' : ''}">${esc(t)}</u>`;
     const header = `
     <table class="hdr"><tr style="height:${isW ? '.84in' : '.97in'}">
         <td class="c-logo" style="width:${isW ? '30.7%' : '38.2%'}"><img src="${isW ? LOGO_W : LOGO_R}" alt=""></td>
@@ -903,7 +904,7 @@ function sheetHTML(s) {
         <p class="addr titr">مدیریت محترم شرکت گسترش فناوری خوارزمی</p>
         <p>&nbsp;</p>
         <p class="main-p">با سلام</p>
-        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ <u class="titr ltr">${esc(fmtJ(s.vdate, s.dateFmt))}</u> ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل ${s.reason.trim() ? U(s.reason.trim()) : '<span class="dots">' + dots + '</span>'} این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه ${U(ordWord(s.ord))} مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.</p>
+        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ <u class="titr ltr">${esc(fmtJ(s.vdate, s.dateFmt))}</u> ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل ${s.reason.trim() ? U(s.reason.trim(), true) : '<span class="dots">' + dots + '</span>'} این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه ${U(ordWord(s.ord))} مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.</p>
         <ul>${stageLines.map((t, i) => `<li>${t} ${cb(s.stage === i + 1)}</li>`).join('')}</ul>
         ${prevHTML(s)}
         ${(s.ord >= 5 || s.stage >= 5) ? `<p class="main-p" style="margin-top:.12in;border:1.5pt solid #000;padding:3px 8px">توجه: این اخطار برای مرتبه ${esc(ordWord(s.ord))} می‌باشد و فرد مشمول مرحله پنجم (قطع همکاری) است. تصمیم نهایی در این خصوص منوط به بررسی و تأیید مدیریت کارخانه می‌باشد.</p>` : ''}`;
@@ -921,7 +922,7 @@ function sheetHTML(s) {
         <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ <u class="titr ltr">${esc(fmtJ(s.vdate, s.dateFmt))}</u> ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل:</p>
         <ul>
             ${REWARD_REASONS.map((t, i) => `<li>${esc(t)} ${cb(s.flags[i])}</li>`).join('')}
-            <li>و ${s.other.trim() ? U(s.other.trim()) : '<span class="dots">' + dots + '</span>'}</li>
+            <li>و ${s.other.trim() ? U(s.other.trim(), true) : '<span class="dots">' + dots + '</span>'}</li>
         </ul>
         ${tiers.map((t, i) => `<p class="main-p">${t} ${cb(tier === i + 1)}</p>`).join('')}`;
     }
