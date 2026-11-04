@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ثبت آفلاین با اکسل</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ok:#059669;--wa:#d97706;--bad:#dc2626;--ac:#0f766e;--acx:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155;--ok:#34d399;--wa:#fbbf24;--bad:#f87171;--ac:#2dd4bf;--acx:#0f172a}}
+*{box-sizing:border-box}body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.9}
+.w{max-width:900px;margin:auto;padding:14px}h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 6px;color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+button,input{font-family:inherit;font-size:14px;padding:10px 16px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx)}
+button.p{background:var(--ac);color:var(--acx);border-color:var(--ac);cursor:pointer;font-weight:700}button:disabled{opacity:.5;cursor:default}
+.mu{color:var(--mu);font-size:12.5px}.ok{color:var(--ok)}.wa{color:var(--wa)}.bad{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:5px 8px;border-bottom:1px solid var(--bd);text-align:right}
+ol{margin:6px 0;padding-inline-start:22px}
+</style>
+</head>
+<body>
+<div class="w">
+ <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px"><h1>📴 ثبت آفلاین با فایل اکسل</h1><a href="index.html" style="color:var(--ac)">← صفحه اصلی</a></div>
+ <div class="card" style="border-color:var(--wa)"><b class="wa">قبل از قطع اینترنت:</b> دکمهٔ «دانلود فایل ثبت» را همین حالا بزنید و فایل را روی گوشی/لپ‌تاپ نگه دارید. دانلود به اینترنت نیاز دارد؛ پر کردن فایل نه.</div>
+
+ <div class="card"><h2>۱) دانلود فایل ثبت (برای پر کردن بدون اینترنت)</h2>
+  <div class="mu">یک فایل اکسل با برگه‌های: راهنما، پرسنل (کد و نام همهٔ پرسنل)، اخطار و تشویق، حوادث، مراجعه بهداری، آموزش، گزارش کار روزانه. هر برگه ردیف‌های خالی آماده دارد.</div>
+  <div style="margin-top:10px"><button class="p" id="bExp">📥 دانلود فایل ثبت</button> <span id="expMsg" class="mu"></span></div></div>
+
+ <div class="card"><h2>۲) بارگذاری فایل پرشده (بعد از وصل شدن اینترنت)</h2>
+  <div class="mu">فایل پرشده را انتخاب کنید. اول فقط بررسی و پیش‌نمایش نشان داده می‌شود؛ چیزی ثبت نمی‌شود تا دکمهٔ ثبت را بزنید. ردیف‌های تکراری (که قبلاً ثبت شده‌اند) دوباره ثبت نمی‌شوند، پس اگر یک فایل را دو بار بارگذاری کنید مشکلی پیش نمی‌آید.</div>
+  <div style="margin-top:10px"><input type="file" id="fi" accept=".xlsx"></div>
+  <div id="prev" style="margin-top:10px"></div>
+  <div style="margin-top:10px"><button class="p" id="bUp" disabled>💾 ثبت در سیستم</button></div>
+  <div id="res" style="margin-top:10px"></div></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SB='https://priopguwfjawybffarhd.supabase.co';
+const ND=s=>String(s==null?'':s).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/ي/g,'ی').replace(/ك/g,'ک');
+function loadExcelJS(){return window.ExcelJS?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';s.onload=ok;s.onerror=()=>no(new Error('کتابخانهٔ اکسل بارگذاری نشد؛ اینترنت لازم است.'));document.head.appendChild(s)})}
+async function api(p,o={}){const r=await fetch(SB+'/rest/v1/'+p,{...o,headers:{'Content-Type':'application/json',...(o.headers||{})}});const t=await r.text();if(!r.ok)throw new Error(t.slice(0,300));return t?JSON.parse(t):null}
+async function getAll(p){const out=[];for(let off=0;;off+=1000){const r=await api(p+(p.includes('?')?'&':'?')+'limit=1000&offset='+off);out.push(...r);if(r.length<1000)return out}}
+
+/* ===== تاریخ شمسی ===== */
+const JF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'});
+const toJ=d=>{const p=JF.formatToParts(d),g=t=>+p.find(x=>x.type===t).value;return[g('year'),g('month'),g('day')]};
+function jToISO(y,m,d){const st=Date.UTC(y+621,2,17);for(let i=0;i<400;i++){const t=new Date(st+i*864e5),j=toJ(t);if(j[0]===y&&j[1]===m&&j[2]===d)return t.toISOString().slice(0,10)}return null}
+/* خروجی: {iso, j} یا null */
+function parseDate(v){
+  if(v==null||v==='')return null;
+  if(v instanceof Date&&!isNaN(v)){const iso=v.toISOString().slice(0,10),j=toJ(new Date(iso+'T00:00:00Z'));return{iso,j:j[0]+'/'+String(j[1]).padStart(2,'0')+'/'+String(j[2]).padStart(2,'0')}}
+  const m=/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(ND(v).trim());if(!m)return null;
+  let y=+m[1],mo=+m[2],d=+m[3];if(mo<1||mo>12||d<1||d>31)return null;
+  if(y>1700){const iso=`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`,j=toJ(new Date(iso+'T00:00:00Z'));return{iso,j:j[0]+'/'+String(j[1]).padStart(2,'0')+'/'+String(j[2]).padStart(2,'0')}}
+  if(y<1380||y>1450)return null;
+  const iso=jToISO(y,mo,d)||(d>29?jToISO(y,mo,29):null);if(!iso)return null;
+  return{iso,j:y+'/'+String(mo).padStart(2,'0')+'/'+String(d).padStart(2,'0')}}
+
+/* ===== تعریف برگه‌ها ===== */
+const SEV=[['جزئی (کمک اولیه)','minor'],['متوسط (درمان پزشکی)','moderate'],['شدید (اتلاف وقت/بستری)','severe'],['فوتی','fatal']];
+const TTYPES=[['بدو استخدام','onboarding'],['دوره‌ای','periodic'],['حین کار','on_job'],['پس از حادثه','post_incident'],['پیمانکاران','contractor'],['جلسه کوتاه ایمنی','safety_talk']];
+const REC=['اخطار کتبی','تذکر شفاهی','تشویق'];
+const CATS=['پیگیری اداره / سازمان (محیط‌زیست، کار، بهداشت)','خوداظهاری و مستندات','شارژ / تعمیر / تحویل تجهیزات ایمنی','هماهنگی و نظارت بر پیمانکار','تصفیه‌خانه و محیط‌زیست','آموزش و جلسه','بازدید و رسیدگی خارج از چک‌لیست','سایر'];
+const WST=[['انجام شد','done'],['در جریان','progress']];
+const YN=['خیر','بله'];
+/* col: [عنوان، عرض، نوع لیست (کلید LISTS) یا '', نام فرمول؟ ] */
+const SHEETS=[
+ {n:'اخطار و تشویق',cols:[['کد پرسنلی *',14,'','code'],['نام (خودکار)',22,'','name'],['نوع *',14,'REC'],['علت / موضوع *',44],['تاریخ * (مثل 1405/08/14)',20],['توضیحات',34]]},
+ {n:'حوادث',cols:[['کد پرسنلی *',14,'','code'],['نام (خودکار)',22,'','name'],['تاریخ * (مثل 1405/08/14)',20],['محل حادثه *',22],['شدت *',22,'SEV'],['عضو آسیب‌دیده',16],['شرح حادثه *',44],['روز استعلاجی (عدد)',14],['اقدام اصلاحی',34],['مسئول اقدام',16],['مهلت اقدام (مثل 1405/09/01)',20]]},
+ {n:'مراجعه بهداری',cols:[['کد پرسنلی *',14,'','code'],['نام (خودکار)',22,'','name'],['تاریخ * (مثل 1405/08/14)',20],['ساعت (مثل 09:30)',10],['علت مراجعه',24],['فشار بالا',9],['فشار پایین',9],['نبض',8],['دما',8],['SpO2',8],['شکایت اصلی',28],['تشخیص',24],['اقدام / درمان',28],['داروهای داده‌شده',28],['روز استراحت پزشکی',12],['ارجاع؟',9,'YN'],['مقصد ارجاع',20]]},
+ {n:'آموزش',cols:[['عنوان دوره *',34],['نوع *',16,'TT'],['تاریخ * (مثل 1405/08/14)',20],['مدت (ساعت)',10],['مدرس',18],['نام پیمانکار',18],['توضیحات',24],['کد پرسنلی شرکت‌کنندگان * (با ویرگول یا فاصله جدا کنید)',50],['سایر نفرات بدون کد (نام‌ها با ویرگول جدا شود)',34]]},
+ {n:'گزارش کار روزانه',cols:[['تاریخ * (مثل 1405/08/14)',20],['دسته *',34,'CAT'],['عنوان کار *',40],['شرح',50],['وضعیت',12,'WS']]}
+];
+const LISTS={REC:REC,SEV:SEV.map(x=>x[0]),TT:TTYPES.map(x=>x[0]),CAT:CATS,YN:YN,WS:WST.map(x=>x[0])};
+const ROWS=300;
+
+/* ===== خروجی ===== */
+$('bExp').onclick=async()=>{
+  const btn=$('bExp');btn.disabled=true;$('expMsg').textContent='در حال آماده‌سازی…';
+  try{
+    await loadExcelJS();
+    const emps=await getAll('employees?select=emp_id,first_name,last_name,department,termination_date&order=emp_id.asc');
+    const wb=new ExcelJS.Workbook();
+    const HF={type:'pattern',pattern:'solid',fgColor:{argb:'FF0F766E'}},bd={style:'thin',color:{argb:'FF94A3B8'}},B={top:bd,left:bd,bottom:bd,right:bd};
+    const fnt=(o)=>Object.assign({name:'Tahoma',size:11,charset:178},o||{});
+    /* راهنما */
+    const g=wb.addWorksheet('راهنما',{views:[{rightToLeft:true,showGridLines:false}]});g.getColumn(1).width=110;
+    const gl=['ثبت آفلاین اطلاعات HSE — راهنما','',
+     'روش کار:','۱) در هر برگه فقط ردیف‌های خالی را پر کنید. ستون‌های دارای * اجباری‌اند. نام فرد خودکار از روی «کد پرسنلی» پر می‌شود (از برگهٔ «پرسنل»).',
+     '۲) تاریخ را شمسی و به شکل 1405/08/14 بنویسید (فارسی یا انگلیسی فرقی ندارد).',
+     '۳) ستون‌هایی که فلش لیستی دارند را از لیست انتخاب کنید؛ متن دلخواه ننویسید.',
+     '۴) در برگهٔ «آموزش» کد پرسنلی شرکت‌کنندگان را در یک خانه بنویسید و با ویرگول یا فاصله جدا کنید (مثلاً 1201, 1305, 1410). افراد بدون کد (پیمانکار) را در ستون آخر با نام بنویسید.',
+     '۵) ردیف عنوان (ردیف اول) و نام برگه‌ها را تغییر ندهید و ستونی اضافه یا حذف نکنید.',
+     '۶) فایل را با همان قالب xlsx ذخیره کنید. وقتی اینترنت وصل شد، به صفحهٔ «ثبت آفلاین» بروید و فایل را در بخش ۲ بارگذاری کنید.',
+     '۷) هر ردیف را فقط یک‌بار وارد کنید؛ ردیف‌هایی که قبلاً در سیستم هست دوباره ثبت نمی‌شود، پس بارگذاری دوبارهٔ همان فایل مشکلی ندارد.','',
+     'توجه: عکس و پیوست در این فایل ثبت نمی‌شود. مراجعات بهداری که از فایل وارد شوند موجودی دارو را کم نمی‌کنند و پیگیری خودکار نمی‌سازند.',
+     'بازرسی چک‌لیستی (عدم‌انطباق) این‌جا نیست؛ آن‌ها را روی کاغذ یادداشت کنید و بعداً در خود نرم‌افزار ثبت کنید.'];
+    gl.forEach((t,i)=>{const c=g.getCell(i+1,1);c.value=t;c.alignment={wrapText:true,vertical:'middle',readingOrder:'rtl'};c.font=fnt({size:i===0?16:12,bold:i===0||t==='روش کار:'||t.startsWith('توجه')});});
+    /* لیست‌ها (مخفی) */
+    const ls=wb.addWorksheet('لیست‌ها',{state:'hidden'});const lref={};let lc=1;
+    for(const k of Object.keys(LISTS)){LISTS[k].forEach((v,i)=>ls.getCell(i+1,lc).value=v);const L=ls.getColumn(lc).letter;lref[k]=`'لیست‌ها'!$${L}$1:$${L}$${LISTS[k].length}`;lc++}
+    /* پرسنل */
+    const pe=wb.addWorksheet('پرسنل',{views:[{rightToLeft:true,state:'frozen',ySplit:1}]});
+    pe.columns=[{width:14},{width:30},{width:22},{width:16}];
+    ['کد پرسنلی','نام و نام خانوادگی','واحد','وضعیت'].forEach((t,i)=>{const c=pe.getCell(1,i+1);c.value=t;c.fill=HF;c.font=fnt({bold:true,color:{argb:'FFFFFFFF'}});c.alignment={horizontal:'center'}});
+    emps.forEach((e,i)=>{const r=i+2;pe.getCell(r,1).value=String(e.emp_id||'');pe.getCell(r,1).numFmt='@';pe.getCell(r,2).value=((e.first_name||'')+' '+(e.last_name||'')).trim();pe.getCell(r,3).value=e.department||'';pe.getCell(r,4).value=e.termination_date?'قطع همکاری':'فعال';[1,2,3,4].forEach(c=>pe.getCell(r,c).font=fnt())});
+    /* برگه‌های ثبت */
+    SHEETS.forEach(S=>{
+      const ws=wb.addWorksheet(S.n,{views:[{rightToLeft:true,state:'frozen',ySplit:1}]});
+      S.cols.forEach((c,i)=>{ws.getColumn(i+1).width=c[1];const h=ws.getCell(1,i+1);h.value=c[0];h.fill=HF;h.font=fnt({bold:true,color:{argb:'FFFFFFFF'}});h.alignment={horizontal:'center',vertical:'middle',wrapText:true,readingOrder:'rtl'};h.border=B});
+      ws.getRow(1).height=44;
+      for(let r=2;r<=ROWS+1;r++){S.cols.forEach((c,i)=>{const cell=ws.getCell(r,i+1);cell.border=B;cell.font=fnt();cell.alignment={vertical:'middle',wrapText:true,readingOrder:'rtl'};
+        if(c[3]==='code'||/تاریخ|ساعت|کد پرسنلی/.test(c[0]))cell.numFmt='@';
+        if(c[3]==='name'){cell.value={formula:`IFERROR(VLOOKUP(A${r},'پرسنل'!$A:$B,2,FALSE),"")`};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF1F5F9'}}}
+        if(c[2]&&c[2]!==''&&lref[c[2]])cell.dataValidation={type:'list',allowBlank:true,formulae:[lref[c[2]]],showErrorMessage:true,errorTitle:'مقدار نامعتبر',error:'از لیست انتخاب کنید.'}})}
+    });
+    const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    const j=toJ(new Date());a.download=`HSE-offline-form-${j[0]}-${String(j[1]).padStart(2,'0')}-${String(j[2]).padStart(2,'0')}.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+    $('expMsg').textContent='✅ دانلود شد ('+emps.length+' نفر در برگهٔ پرسنل)';
+  }catch(e){$('expMsg').innerHTML='<span class="bad">خطا: '+esc(e.message)+'</span>'}
+  btn.disabled=false};
+
+/* ===== بارگذاری ===== */
+let PLAN=null;
+const tv=c=>{let v=c&&c.value;if(v==null)return'';if(v instanceof Date)return v;if(typeof v==='object'){if(v.richText)return v.richText.map(x=>x.text).join('');if('result'in v)return v.result==null?'':v.result;if(v.text)return v.text;return''}return v};
+const tx=c=>{const v=tv(c);return v instanceof Date?'':String(v).trim()};
+const num=c=>{const v=ND(tx(c)).replace(/[^\d.\-]/g,'');return v===''?null:+v};
+$('fi').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;$('bUp').disabled=true;$('res').innerHTML='';$('prev').innerHTML='در حال بررسی…';PLAN=null;
+  try{
+    await loadExcelJS();
+    const wb=new ExcelJS.Workbook();await wb.xlsx.load(await f.arrayBuffer());
+    const emps=await getAll('employees?select=id,emp_id,first_name,last_name');const byCode=new Map(emps.map(x=>[ND(x.emp_id).trim().toLowerCase(),x]));
+    const me=(window.HSEAuth&&HSEAuth.email)||null;
+    const items=[];  /* {tbl, sheet, row, label, body, key, att?, err} */
+    const rowsOf=n=>{const ws=wb.getWorksheet(n);if(!ws)return[];const out=[];ws.eachRow({includeEmpty:false},(r,i)=>{if(i>1)out.push([i,r])});return out};
+    const empOf=c=>{const code=ND(tx(c)).toLowerCase();if(!code)return{err:'کد پرسنلی خالی است'};const e=byCode.get(code);return e?{e}:{err:'کد پرسنلی «'+code+'» در لیست پرسنل نیست'}};
+    const used=(r,n)=>{for(let i=1;i<=n;i++)if(tx(r.getCell(i)))return true;return false};
+    const push=(o,errs)=>items.push(Object.assign(o,errs.length?{err:errs.join('، ')}:{}));
+    /* اخطار و تشویق */
+    rowsOf('اخطار و تشویق').forEach(([i,r])=>{if(!used(r,6)||(!tx(r.getCell(1))&&!tx(r.getCell(4))))return;const er=[],E=empOf(r.getCell(1));if(E.err)er.push(E.err);
+      const t=tx(r.getCell(3));if(!REC.includes(t))er.push('نوع باید یکی از «اخطار کتبی / تذکر شفاهی / تشویق» باشد');const reason=tx(r.getCell(4));if(!reason)er.push('علت خالی است');
+      const d=parseDate(tv(r.getCell(5)));if(!d)er.push('تاریخ نامعتبر');
+      const body={employee_id:E.e&&E.e.id,record_type:t,reason,record_date:d&&d.j,description:tx(r.getCell(6))||null};if(me)body.registered_by=me;
+      push({tbl:'ekhtars',sheet:'اخطار و تشویق',row:i,label:(E.e?E.e.first_name+' '+E.e.last_name:'؟')+' — '+t+' — '+reason,body,key:[body.employee_id,t,body.record_date,reason].join('|')},er)});
+    /* حوادث */
+    rowsOf('حوادث').forEach(([i,r])=>{if(!used(r,11)||(!tx(r.getCell(1))&&!tx(r.getCell(7))))return;const er=[],E=empOf(r.getCell(1));if(E.err)er.push(E.err);
+      const d=parseDate(tv(r.getCell(3)));if(!d)er.push('تاریخ نامعتبر');const loc=tx(r.getCell(4));if(!loc)er.push('محل خالی است');
+      const sv=SEV.find(x=>x[0]===tx(r.getCell(5)));if(!sv)er.push('شدت را از لیست انتخاب کنید');
+      let desc=tx(r.getCell(7));if(!desc)er.push('شرح حادثه خالی است');const lost=num(r.getCell(8));if(lost)desc+='\n[روز از دست رفته: '+lost+']';
+      const due=tv(r.getCell(11))!==''?parseDate(tv(r.getCell(11))):null;if(tv(r.getCell(11))!==''&&!due)er.push('مهلت اقدام نامعتبر');
+      const body={employee_id:E.e&&E.e.id,incident_date:d&&(d.iso+'T09:00:00+03:30'),location:loc,severity:sv&&sv[1],body_part:tx(r.getCell(6))||null,description:desc,corrective_action:tx(r.getCell(9))||null,action_owner:tx(r.getCell(10))||null,action_due_date:due&&due.iso,action_status:'pending'};
+      push({tbl:'clinic_incidents',sheet:'حوادث',row:i,label:(E.e?E.e.first_name+' '+E.e.last_name:'؟')+' — '+(d?d.j:'')+' — '+loc,body,key:[body.employee_id,d&&d.iso,loc].join('|')},er)});
+    /* مراجعه بهداری */
+    rowsOf('مراجعه بهداری').forEach(([i,r])=>{if(!used(r,17)||(!tx(r.getCell(1))&&!tx(r.getCell(5))&&!tx(r.getCell(11))))return;const er=[],E=empOf(r.getCell(1));if(E.err)er.push(E.err);
+      const d=parseDate(tv(r.getCell(3)));if(!d)er.push('تاریخ نامعتبر');let tm=ND(tx(r.getCell(4))).match(/(\d{1,2}):(\d{2})/);const hh=tm?String(Math.min(23,+tm[1])).padStart(2,'0')+':'+tm[2]:'09:00';
+      const sy=num(r.getCell(6)),di=num(r.getCell(7));if((sy&&!di)||(!sy&&di))er.push('فشار بالا و پایین هر دو لازم است');
+      const meds=tx(r.getCell(14)),treat=[tx(r.getCell(13)),meds?'داروها: '+meds:''].filter(Boolean).join(' | ');
+      const ref=tx(r.getCell(16))==='بله',dest=tx(r.getCell(17));if(ref&&!dest)er.push('مقصد ارجاع خالی است');
+      const body={employee_id:E.e&&E.e.id,visit_date:d&&(d.iso+'T'+hh+':00+03:30'),visit_reason:tx(r.getCell(5))||'illness',blood_pressure:sy?sy+'/'+di:null,pulse_rate:num(r.getCell(8)),temperature:num(r.getCell(9)),spo2:num(r.getCell(10)),chief_complaint:tx(r.getCell(11))||null,diagnosis:tx(r.getCell(12))||null,treatments_given:treat||null,medical_leave_days:num(r.getCell(15))||0,is_referred:ref,referral_destination:ref?dest:null};
+      push({tbl:'clinic_visits',sheet:'مراجعه بهداری',row:i,label:(E.e?E.e.first_name+' '+E.e.last_name:'؟')+' — '+(d?d.j:'')+' — '+(body.chief_complaint||body.visit_reason),body,key:[body.employee_id,d&&d.iso,body.chief_complaint||''].join('|')},er)});
+    /* آموزش */
+    rowsOf('آموزش').forEach(([i,r])=>{if(!used(r,9)||(!tx(r.getCell(1))&&!tx(r.getCell(8))))return;const er=[],title=tx(r.getCell(1));if(!title)er.push('عنوان خالی است');
+      const ty=TTYPES.find(x=>x[0]===tx(r.getCell(2)));if(!ty)er.push('نوع را از لیست انتخاب کنید');const d=parseDate(tv(r.getCell(3)));if(!d)er.push('تاریخ نامعتبر');
+      const codes=ND(tx(r.getCell(8))).split(/[\s,،;؛\n\/]+/).map(s=>s.trim().toLowerCase()).filter(Boolean),ids=[],bad=[];codes.forEach(c=>{const e=byCode.get(c);e?ids.push(e.id):bad.push(c)});
+      if(bad.length)er.push('کد(های) ناشناخته: '+bad.join(' '));const names=tx(r.getCell(9)).split(/[,،\n]+/).map(s=>s.trim()).filter(Boolean);
+      if(!ids.length&&!names.length)er.push('هیچ شرکت‌کننده‌ای نیست');
+      const body={training_type:ty&&ty[1],title,training_date:d&&d.iso,duration_hours:num(r.getCell(4))||0,trainer:tx(r.getCell(5))||null,contractor_name:tx(r.getCell(6))||null,notes:tx(r.getCell(7))||null};
+      push({tbl:'trainings',sheet:'آموزش',row:i,label:title+' — '+(d?d.j:'')+' — '+(ids.length+names.length)+' نفر',body,att:{ids:[...new Set(ids)],names},key:[d&&d.iso,title,ty&&ty[1]].join('|')},er)});
+    /* گزارش کار */
+    rowsOf('گزارش کار روزانه').forEach(([i,r])=>{if(!used(r,5)||(!tx(r.getCell(3))&&!tx(r.getCell(4))))return;const er=[],d=parseDate(tv(r.getCell(1)));if(!d)er.push('تاریخ نامعتبر');
+      const cat=tx(r.getCell(2));if(!CATS.includes(cat))er.push('دسته را از لیست انتخاب کنید');const title=tx(r.getCell(3));if(!title)er.push('عنوان خالی است');const st=WST.find(x=>x[0]===tx(r.getCell(5)))||WST[0];
+      const body={work_date:d&&d.iso,category:cat,title,description:tx(r.getCell(4))||null,status:st[1],photos:[]};if(me)body.created_by=me;
+      push({tbl:'work_log',sheet:'گزارش کار روزانه',row:i,label:title+' — '+(d?d.j:''),body,key:[d&&d.iso,title].join('|')},er)});
+    /* تکراری‌ها */
+    const ex={},sel={ekhtars:'employee_id,record_type,record_date,reason',clinic_incidents:'employee_id,incident_date,location',clinic_visits:'employee_id,visit_date,chief_complaint',trainings:'training_date,title,training_type',work_log:'work_date,title'};
+    for(const t of [...new Set(items.map(x=>x.tbl))]){const rows=await getAll(t+'?select='+sel[t]);ex[t]=new Set(rows.map(x=>{
+      if(t==='ekhtars')return[x.employee_id,x.record_type,x.record_date,x.reason].join('|');
+      if(t==='clinic_incidents')return[x.employee_id,String(x.incident_date||'').slice(0,10),x.location].join('|');
+      if(t==='clinic_visits')return[x.employee_id,String(x.visit_date||'').slice(0,10),x.chief_complaint||''].join('|');
+      if(t==='trainings')return[String(x.training_date||'').slice(0,10),x.title,x.training_type].join('|');
+      return[String(x.work_date||'').slice(0,10),x.title].join('|')}))}
+    const seen=new Set();items.forEach(it=>{if(it.err)return;const k=it.tbl+'|'+it.key;if(ex[it.tbl].has(it.key)||seen.has(k))it.dup=true;seen.add(k)});
+    PLAN=items;
+    const sum={};items.forEach(it=>{const s=sum[it.sheet]=sum[it.sheet]||{ok:0,dup:0,err:0,list:[]};if(it.err){s.err++;s.list.push(it)}else if(it.dup)s.dup++;else s.ok++});
+    const okN=items.filter(x=>!x.err&&!x.dup).length;
+    $('prev').innerHTML=Object.keys(sum).length?`<table><tr><th>برگه</th><th>آمادهٔ ثبت</th><th>تکراری (ثبت نمی‌شود)</th><th>دارای خطا</th></tr>${Object.entries(sum).map(([k,s])=>`<tr><td>${esc(k)}</td><td class="ok">${s.ok}</td><td class="wa">${s.dup}</td><td class="${s.err?'bad':''}">${s.err}</td></tr>`).join('')}</table>
+      ${Object.entries(sum).filter(([k,s])=>s.err).map(([k,s])=>`<details open style="margin-top:8px"><summary class="bad">خطاهای برگهٔ «${esc(k)}»</summary><ul class="mu">${s.list.map(it=>`<li>ردیف ${it.row}: ${esc(it.err)}</li>`).join('')}</ul></details>`).join('')}
+      <div class="mu" style="margin-top:6px">ردیف‌های دارای خطا ثبت نمی‌شوند؛ می‌توانید فایل را اصلاح و دوباره بارگذاری کنید (ردیف‌های ثبت‌شده تکراری حساب می‌شوند).</div>`
+      :'<span class="wa">در فایل ردیف پرشده‌ای پیدا نشد (نام برگه‌ها و ردیف عنوان را تغییر نداده باشید).</span>';
+    $('bUp').disabled=!okN;$('bUp').textContent='💾 ثبت '+okN+' مورد در سیستم';
+  }catch(er){$('prev').innerHTML='<span class="bad">خطا در بررسی فایل: '+esc(er.message)+'</span>'}
+};
+$('bUp').onclick=async()=>{
+  if(!PLAN)return;const todo=PLAN.filter(x=>!x.err&&!x.dup);if(!todo.length)return;
+  if(!confirm(todo.length+' مورد در سیستم ثبت شود؟'))return;
+  $('bUp').disabled=true;const res={},fail=[];const bump=(t,k)=>{res[t]=res[t]||{ok:0,fail:0};res[t][k]++};
+  const prog=m=>$('res').innerHTML='<span class="mu">'+m+'</span>';
+  for(const tbl of ['ekhtars','clinic_incidents','clinic_visits','work_log']){
+    const L=todo.filter(x=>x.tbl===tbl);for(let i=0;i<L.length;i+=40){const ch=L.slice(i,i+40);prog('در حال ثبت '+tbl+'… '+Math.min(i+40,L.length)+' از '+L.length);
+      try{await api(tbl,{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(ch.map(x=>x.body))});ch.forEach(()=>bump(tbl,'ok'))}
+      catch(e){for(const x of ch){try{await api(tbl,{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify([x.body])});bump(tbl,'ok')}catch(e2){bump(tbl,'fail');fail.push(x.sheet+' ردیف '+x.row+': '+e2.message.slice(0,120))}}}}}
+  const T=todo.filter(x=>x.tbl==='trainings');
+  for(const x of T){prog('ثبت آموزش‌ها…');let t=null;
+    try{[t]=await api('trainings',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(x.body)});
+      await api('training_attendees',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify([...x.att.ids.map(id=>({training_id:t.id,employee_id:id,person_name:null})),...x.att.names.map(n=>({training_id:t.id,employee_id:null,person_name:n}))])});bump('trainings','ok')}
+    catch(e){if(t)await api('trainings?id=eq.'+t.id,{method:'DELETE'}).catch(()=>{});bump('trainings','fail');fail.push(x.sheet+' ردیف '+x.row+': '+e.message.slice(0,120))}}
+  const N={ekhtars:'اخطار و تشویق',clinic_incidents:'حوادث',clinic_visits:'مراجعه بهداری',trainings:'آموزش',work_log:'گزارش کار روزانه'};
+  $('res').innerHTML='<b class="ok">✅ پایان بارگذاری</b><ul>'+Object.entries(res).map(([t,s])=>`<li>${N[t]}: ${s.ok} ثبت شد${s.fail?` — <span class="bad">${s.fail} ناموفق</span>`:''}</li>`).join('')+'</ul>'+(fail.length?'<div class="bad">خطاها:<ul>'+fail.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul></div>':'');
+  $('prev').innerHTML='';PLAN=null;$('fi').value='';$('bUp').textContent='💾 ثبت در سیستم';
+};
+</script>
+</body>
+</html>
