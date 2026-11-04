@@ -182,6 +182,7 @@
             <div class="flex w-full md:w-auto items-center gap-2">
                 <div class="w-full md:w-80"><input type="text" id="ektSearchBox" class="fld text-xs" placeholder="جستجو بر اساس نام، کد پرسنلی یا علت..."></div>
                 <button type="button" id="ektExcel" class="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold whitespace-nowrap">📥 خروجی اکسل</button>
+                <button type="button" id="ektNonHse" class="px-3 py-2 bg-amber-700 hover:bg-amber-600 text-white rounded-xl text-xs font-bold whitespace-nowrap">🧹 شناسایی موارد غیر HSE</button>
             </div>
         </div>
         <div class="overflow-x-auto border border-slate-700 rounded-xl">
@@ -666,6 +667,56 @@ async function deleteRecord(id) {
         await loadAll();
     } catch (err) { showDebug(err.message); alert('خطا در حذف رکورد: ' + err.message); }
 }
+
+/* ---------- شناسایی اخطارهای غیر HSE (آشپزخانه، خدمات، سرویس ایاب‌وذهاب و ...) و حذف گروهی با تأیید ---------- */
+const NH_KW = 'آشپزخانه،آشپز،غذا،ناهار،صبحانه،شام،کره،پنیر،مربا،نان،چای،سلف،رستوران،ظرف،سفره،پذیرایی،ایاب،اتوبوس،راننده،نظافت،نظافتچی،خدمات،سرایدار،رختشویخانه،لباسشویی،تماس تلفنی،اعتراض،تحویل غذا';
+const NH_HSE = /ایمنی|حفاظت|کلاه|کفش|ماسک|عینک|حریق|خاموش|دستکش|ppe|hse|ارتفاع|مواد شیمیایی|ایمن|گوشی ایمنی|گارد|پوشش/i;
+const nhNorm = t => String(t || '').replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/[\u200c\u200f]/g, ' ').toLowerCase();
+function nhScan(kws) {
+    const list = kws.split(/[،,\n]/).map(x => nhNorm(x).trim()).filter(Boolean);
+    return records.filter(r => r.record_type !== 'تشویق').map(r => {
+        const t = nhNorm((r.reason || '') + ' ' + (r.description || '')), hit = list.filter(k => new RegExp('(^|[\\s،,.:؛()«»"-])' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(t));
+        return hit.length ? { r, hit, hse: NH_HSE.test(t) } : null;
+    }).filter(Boolean);
+}
+function nhOpen() {
+    let box = document.getElementById('nhBox'); if (box) box.remove();
+    box = document.createElement('div'); box.id = 'nhBox';
+    box.className = 'fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 no-print';
+    box.innerHTML = `<div class="bg-slate-900 border border-slate-600 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col">
+      <div class="p-3 border-b border-slate-700 flex justify-between items-center"><b class="text-sm text-white">🧹 موارد احتمالاً غیر HSE</b><button type="button" id="nhX" class="px-2.5 py-1 bg-slate-700 rounded-lg text-[11px]">✕ بستن</button></div>
+      <div class="p-3 space-y-2 overflow-auto">
+        <label class="lbl">کلمات کلیدی (با ویرگول فارسی جدا شود؛ قابل ویرایش)</label>
+        <textarea id="nhKw" rows="2" class="fld text-xs">${esc(NH_KW)}</textarea>
+        <button type="button" id="nhScan" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-[11px]">🔍 جستجوی دوباره</button>
+        <p class="text-[11px] text-amber-300">فقط اخطار و تذکر بررسی می‌شود (تشویق‌ها نه). مواردی که کلمهٔ مرتبط با ایمنی هم دارند به‌صورت پیش‌فرض تیک ندارند. قبل از حذف، فایل پشتیبان (CSV) خودکار دانلود می‌شود.</p>
+        <div id="nhList" class="space-y-1.5"></div>
+      </div>
+      <div class="p-3 border-t border-slate-700 flex gap-2"><button type="button" id="nhDel" class="flex-1 py-2.5 bg-rose-700 hover:bg-rose-600 text-white rounded-xl text-xs font-bold">🗑 حذف موارد تیک‌خورده</button></div></div>`;
+    document.body.appendChild(box);
+    let found = [];
+    const draw = () => {
+        found = nhScan($('nhKw').value);
+        $('nhList').innerHTML = found.length ? found.map((f, i) => { const e = empById(f.r.employee_id);
+            return `<label class="flex gap-2 items-start bg-slate-800 border border-slate-700 rounded-xl p-2 text-[11px]"><input type="checkbox" data-nh="${i}" ${f.hse ? '' : 'checked'} class="mt-1">
+            <span><b class="text-white">${esc(e.id ? empName(e) : 'نامشخص')}</b> <span class="text-slate-400" dir="ltr">${esc(f.r.record_date || '')}</span> <span class="text-rose-300">${esc(f.r.record_type || '')}</span><br><span class="text-slate-200">${esc(f.r.reason || '')}</span>${f.r.description ? '<br><span class="text-slate-400">' + esc(f.r.description) + '</span>' : ''}
+            <br><span class="text-amber-400">کلمه: ${esc(f.hit.join('، '))}</span>${f.hse ? ' <span class="text-emerald-400">⚠ شامل کلمهٔ ایمنی؛ احتمالاً HSE است</span>' : ''}</span></label>`; }).join('')
+            : '<p class="text-center text-slate-400 p-4 text-xs">موردی پیدا نشد.</p>';
+    };
+    $('nhX').onclick = () => box.remove(); $('nhScan').onclick = draw; draw();
+    $('nhDel').onclick = async () => {
+        const sel = [...box.querySelectorAll('[data-nh]:checked')].map(c => found[+c.dataset.nh].r);
+        if (!sel.length) return alert('موردی تیک نخورده است.');
+        if (!confirm(sel.length + ' سابقه حذف شود؟ این کار برگشت‌پذیر نیست (فایل پشتیبان دانلود می‌شود).')) return;
+        const csv = '\ufeffکد پرسنلی,نام,نوع,علت,تاریخ,توضیحات\n' + sel.map(r => { const e = empById(r.employee_id); return [e.emp_id || '', e.id ? empName(e) : 'نامشخص', r.record_type, r.reason, r.record_date, r.description].map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(','); }).join('\n');
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'backup-deleted-ekhtars-' + Date.now() + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+        try {
+            for (let i = 0; i < sel.length; i += 50) await api('ekhtars?id=in.(' + sel.slice(i, i + 50).map(r => encodeURIComponent(r.id)).join(',') + ')', { method: 'DELETE', headers: Object.assign({}, H, { Prefer: 'return=minimal' }) });
+            box.remove(); await loadAll(); alert(sel.length + ' سابقه حذف شد.');
+        } catch (err) { showDebug(err.message); alert('خطا در حذف: ' + err.message); }
+    };
+}
+$('ektNonHse').addEventListener('click', nhOpen);
 
 /* ======================================================================
    فرم چاپی اخطاریه / تشویق  (بدون ذخیره؛ هر بار از روی داده ساخته می‌شود)
