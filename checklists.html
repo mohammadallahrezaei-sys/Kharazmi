@@ -1367,7 +1367,7 @@ function fQuery(skipSt) {
   if (FQ.asg == 'any') q += '&assigned_to=not.is.null'; else if (FQ.asg) q += '&assigned_to=eq.' + encodeURIComponent(FQ.asg == 'me' ? mail : FQ.asg);
   if (FQ.ntc == 'yes') q += '&and=(or(notice_at.not.is.null,notice_code.neq.))'; else if (FQ.ntc == 'no') q += '&and=(notice_at.is.null,or(notice_code.is.null,notice_code.eq.))';
   if (FQ.ph == 'noafter') q += '&photos_after=eq.%7B%7D';
-  else if (FQ.ph == 'phafter') q += '&photos_after=cs.%7Bno-photo-after-placeholder.jpg%7D';
+  else if (FQ.ph == 'phafter') q += '&status=eq.closed&photos_after=cs.%7Bno-photo-after-placeholder.jpg%7D';
   else if (FQ.ph == 'ph') q += '&photos_before=cs.%7Bno-photo-placeholder.jpg%7D';
   const r = fRange();
   if (r.from) q += '&created_at=gte.' + encodeURIComponent(r.from.toISOString());
