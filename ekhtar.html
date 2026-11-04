@@ -49,7 +49,7 @@
 .sheet .prev { margin-top:.05in; font-weight:400; font-size:8pt; line-height:1.35; }
 .sheet .prev .prev-h { font-weight:700; font-size:8pt; }
 .sheet .prev table { width:100%; table-layout:fixed; border-collapse:collapse; }
-.sheet .prev td { border:0; padding:0 0 0 6px; width:50%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:top; font-size:8pt; }
+.sheet .prev td { border:0; padding:0 0 0 6px; width:50%; white-space:normal; vertical-align:top; font-size:8pt; }
 .paper { background:#fff; padding:25.4mm; width:21cm; max-width:100%; margin:0 auto; box-shadow:0 4px 18px rgba(0,0,0,.45); box-sizing:border-box; }
 @media screen { .paper { zoom:.82; } }
 .sheet.warn .main-p, .sheet.reward .main-p { line-height:1.5; text-align:justify; font-size:var(--fs-body,14pt); }
@@ -254,6 +254,7 @@
                         <option value="5">مرحله پنجم - قطع همکاری</option>
                     </select></div>
                 <div><label class="lbl">دلیل صدور اخطار</label><textarea id="pfReason" rows="2" class="fld" placeholder="مثلاً: عدم استفاده از لوازم حفاظت فردی (ماسک)"></textarea></div>
+                <div><label class="lbl">توضیحات (داخل پرانتز جلوی دلیل صدور می‌آید - اختیاری)</label><textarea id="pfDesc" rows="1" class="fld" placeholder="توضیحات..."></textarea></div>
             </div>
 
             <div class="only-reward space-y-1.5">
@@ -757,6 +758,7 @@ function openPrint(kind, emp, rec) {
         date: jalaliToday(),
         vdate: rec ? (rec.record_date || '') : jalaliToday(),
         reason: rec ? (rec.reason || '') : '',
+        desc: rec ? (rec.description || '') : '',
         flags: [false, false, false, false, false],
         other: '',
         expert: lsGet('hse_expert', 'محمد الله رضایی'),
@@ -798,7 +800,7 @@ function fillInputs() {
     $('pfDateFmt').value = P.dateFmt;
     Object.keys(FS_DEF).forEach(k => { const e = $('pfFs_' + k); if (e) e.value = fsClamp(P.fs[k]); });
     $('pfDate').value = fmtJ(P.date, P.dateFmt); $('pfVDate').value = fmtJ(P.vdate, P.dateFmt); $('pfCode').value = P.code; $('pfOrd').value = P.ord;
-    $('pfStage').value = P.stage; $('pfReason').value = P.reason;
+    $('pfStage').value = P.stage; $('pfReason').value = P.reason; $('pfDesc').value = P.desc || '';
     document.querySelectorAll('.pfR').forEach(c => c.checked = !!P.flags[+c.dataset.i]);
     $('pfOther').value = P.other;
     $('pfExpert').value = P.expert; $('pfManager').value = P.manager;
@@ -818,7 +820,7 @@ function readInputs(changedId) {
     const newFmt = $('pfDateFmt').value;
     P.date = $('pfDate').value; P.vdate = $('pfVDate').value;
     if (newFmt !== P.dateFmt) { P.dateFmt = newFmt; lsSet('hse_datefmt', newFmt); $('pfDate').value = fmtJ(P.date, newFmt); $('pfVDate').value = fmtJ(P.vdate, newFmt); }
-    P.reason = $('pfReason').value;
+    P.reason = $('pfReason').value; P.desc = $('pfDesc').value;
     document.querySelectorAll('.pfR').forEach(c => P.flags[+c.dataset.i] = c.checked);
     P.other = $('pfOther').value;
     P.expert = $('pfExpert').value; P.manager = $('pfManager').value;
@@ -860,8 +862,9 @@ function prevWarns(s) {
     return asc;
 }
 const clipTxt = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+const withDesc = (reason, desc) => { reason = String(reason || '').trim(); desc = String(desc || '').trim(); return reason + (desc ? (reason ? ' ' : '') + '(' + desc + ')' : ''); };
 function prevItemTxt(r, i, fmt) {
-    const rs = clipTxt(r.reason, 40);
+    const rs = withDesc(r.reason, r.description);
     return (i + 1) + ') ' + fmtJ(r.record_date, fmt) + ' - ' + (r.record_type || '') + (rs ? ' - ' + rs : '');
 }
 function prevHTML(s) {
@@ -904,7 +907,7 @@ function sheetHTML(s) {
         <p class="addr titr">مدیریت محترم شرکت گسترش فناوری خوارزمی</p>
         <p>&nbsp;</p>
         <p class="main-p">با سلام</p>
-        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ <u class="titr ltr">${esc(fmtJ(s.vdate, s.dateFmt))}</u> ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل ${s.reason.trim() ? U(s.reason.trim(), true) : '<span class="dots">' + dots + '</span>'} این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه ${U(ordWord(s.ord))} مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.</p>
+        <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ <u class="titr ltr">${esc(fmtJ(s.vdate, s.dateFmt))}</u> ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل ${withDesc(s.reason, s.desc) ? U(withDesc(s.reason, s.desc), true) : ''} این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه ${U(ordWord(s.ord))} مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.</p>
         <ul>${stageLines.map((t, i) => `<li>${t} ${cb(s.stage === i + 1)}</li>`).join('')}</ul>
         ${prevHTML(s)}
         ${(s.ord >= 5 || s.stage >= 5) ? `<p class="main-p" style="margin-top:.12in;border:1.5pt solid #000;padding:3px 8px">توجه: این اخطار برای مرتبه ${esc(ordWord(s.ord))} می‌باشد و فرد مشمول مرحله پنجم (قطع همکاری) است. تصمیم نهایی در این خصوص منوط به بررسی و تأیید مدیریت کارخانه می‌باشد.</p>` : ''}`;
@@ -1020,7 +1023,7 @@ async function exportFormExcel() {
     let mainParts;
     if (isW) {
         mainParts = [['احتراما، در بازدیدها و پایش های انجام شده در مورخ '], [fm(s.vdate), U], [' ' + s.gender + ' '], [s.name, U], [' که در واحد '], [s.unit, U], [' مشغول به انجام وظیفه می باشند به دليل '],
-            [s.reason.trim() ? s.reason.trim() : '.................................', s.reason.trim() ? U : null], [' این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه '], [ordWord(s.ord), U], [' مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.']];
+            [withDesc(s.reason, s.desc), withDesc(s.reason, s.desc) ? U : null], [' این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه '], [ordWord(s.ord), U], [' مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.']];
     } else {
         mainParts = [['احتراما، در بازدیدها و پایش های انجام شده در مورخ '], [fm(s.vdate), U], [' ' + s.gender + ' '], [s.name, U], [' که در واحد '], [s.unit, U], [' مشغول به انجام وظیفه می باشند به دليل:']];
     }
@@ -1035,9 +1038,11 @@ async function exportFormExcel() {
             const sm = (bold) => f(8, { bold: !!bold });
             add(13, 'اخطارهای قبلی:', sm(true), al({ indent: 2, wrapText: false }));
             for (let i = 0; i < pw.length; i += 2) {
-                const r = row(12); used += 12;
-                merged(r, 1, 2, prevItemTxt(pw[i], i, s.dateFmt), sm(false), al({ indent: 2, wrapText: false }));
-                merged(r, 3, 4, i + 1 < pw.length ? prevItemTxt(pw[i + 1], i + 1, s.dateFmt) : '', sm(false), al({ indent: 1, wrapText: false }));
+                const t1 = prevItemTxt(pw[i], i, s.dateFmt), t2 = i + 1 < pw.length ? prevItemTxt(pw[i + 1], i + 1, s.dateFmt) : '';
+                const h = 12 * Math.max(lines(t1.length, 55), lines(t2.length, 55));
+                const r = row(h); used += h;
+                merged(r, 1, 2, t1, sm(false), al({ indent: 2, vertical: 'top' }));
+                merged(r, 3, 4, t2, sm(false), al({ indent: 1, vertical: 'top' }));
             }
         }
         if (s.ord >= 5 || s.stage >= 5) {
