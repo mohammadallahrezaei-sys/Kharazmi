@@ -45,10 +45,10 @@
 .sheet .gap { height:.18in; }
 .sheet .mainTbl tr:nth-child(2) .sig { height:1in; }
 .sheet .mainTbl tr:nth-child(3) .sig { height:.95in; }
-.sheet .prev { margin-top:.05in; font-weight:400; font-size:7pt; line-height:1.35; }
-.sheet .prev .prev-h { font-weight:700; font-size:7pt; }
+.sheet .prev { margin-top:.05in; font-weight:400; font-size:8pt; line-height:1.35; }
+.sheet .prev .prev-h { font-weight:700; font-size:8pt; }
 .sheet .prev table { width:100%; table-layout:fixed; border-collapse:collapse; }
-.sheet .prev td { border:0; padding:0 0 0 6px; width:50%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:top; font-size:7pt; }
+.sheet .prev td { border:0; padding:0 0 0 6px; width:50%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:top; font-size:8pt; }
 .paper { background:#fff; padding:25.4mm; width:21cm; max-width:100%; margin:0 auto; box-shadow:0 4px 18px rgba(0,0,0,.45); box-sizing:border-box; }
 @media screen { .paper { zoom:.82; } }
 .sheet.warn .main-p, .sheet.reward .main-p { line-height:1.5; text-align:justify; font-size:var(--fs-body,14pt); }
@@ -1031,10 +1031,10 @@ async function exportFormExcel() {
         st.forEach((t, i) => add(24, { richText: [{ text: '•  ' + t + '  ', font: f(12) }, { text: BOX(s.stage === i + 1), font: f(16) }] }, f(12), al({ indent: 2 })));
         const pw = prevWarns(s);
         if (pw.length) {
-            const sm = (bold) => f(7, { bold: !!bold });
-            add(12, 'اخطارهای قبلی:', sm(true), al({ indent: 2, wrapText: false }));
+            const sm = (bold) => f(8, { bold: !!bold });
+            add(13, 'اخطارهای قبلی:', sm(true), al({ indent: 2, wrapText: false }));
             for (let i = 0; i < pw.length; i += 2) {
-                const r = row(11); used += 11;
+                const r = row(12); used += 12;
                 merged(r, 1, 2, prevItemTxt(pw[i], i, s.dateFmt), sm(false), al({ indent: 2, wrapText: false }));
                 merged(r, 3, 4, i + 1 < pw.length ? prevItemTxt(pw[i + 1], i + 1, s.dateFmt) : '', sm(false), al({ indent: 1, wrapText: false }));
             }
