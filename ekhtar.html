@@ -45,6 +45,10 @@
 .sheet .gap { height:.18in; }
 .sheet .mainTbl tr:nth-child(2) .sig { height:1in; }
 .sheet .mainTbl tr:nth-child(3) .sig { height:.95in; }
+.sheet .prev { margin-top:.05in; font-weight:400; font-size:7pt; line-height:1.35; }
+.sheet .prev .prev-h { font-weight:700; font-size:7pt; }
+.sheet .prev table { width:100%; table-layout:fixed; border-collapse:collapse; }
+.sheet .prev td { border:0; padding:0 0 0 6px; width:50%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:top; font-size:7pt; }
 .paper { background:#fff; padding:25.4mm; width:21cm; max-width:100%; margin:0 auto; box-shadow:0 4px 18px rgba(0,0,0,.45); box-sizing:border-box; }
 @media screen { .paper { zoom:.82; } }
 .sheet.warn .main-p, .sheet.reward .main-p { line-height:1.5; text-align:justify; font-size:var(--fs-body,14pt); }
@@ -847,6 +851,29 @@ const fsClamp = v => Math.min(15, Math.max(10, Number(v) || 12));
 function fsOf(s) { const o = {}; for (const k in FS_DEF) o[k] = fsClamp((s.fs && s.fs[k] != null) ? s.fs[k] : FS_DEF[k]); return o; }
 function fsLoad() { try { return Object.assign({}, FS_DEF, JSON.parse(lsGet('hse_fs', '{}')) || {}); } catch (e) { return Object.assign({}, FS_DEF); } }
 
+/* اخطارهای قبلی همین فرد (قبل از سابقه‌ی جاری) - برای نمایش ریز زیر مرحله پنجم */
+function prevWarns(s) {
+    if (!s || !s.emp) return [];
+    const asc = recordsAsc().filter(r => kindOf(r) === 'warn' && String(r.employee_id) === String(s.emp.id));
+    if (s.rec) { const i = asc.findIndex(r => String(r.id) === String(s.rec.id)); return i < 0 ? asc : asc.slice(0, i); }
+    return asc;
+}
+const clipTxt = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+function prevItemTxt(r, i, fmt) {
+    const rs = clipTxt(r.reason, 40);
+    return (i + 1) + ') ' + fmtJ(r.record_date, fmt) + ' - ' + (r.record_type || '') + (rs ? ' - ' + rs : '');
+}
+function prevHTML(s) {
+    const list = prevWarns(s);
+    if (!list.length) return '';
+    let rows = '';
+    for (let i = 0; i < list.length; i += 2) {
+        const c = j => j < list.length ? `<td>${esc(prevItemTxt(list[j], j, s.dateFmt).replace(/\d{4}\/\d{2}\/\d{2}|\d{2}\/\d{2}\/\d{4}/, '\u2066$&\u2069'))}</td>` : '<td></td>';
+        rows += `<tr>${c(i)}${c(i + 1)}</tr>`;
+    }
+    return `<div class="prev"><div class="prev-h">اخطارهای قبلی:</div><table>${rows}</table></div>`;
+}
+
 function sheetHTML(s) {
     const isW = s.kind === 'warn';
     const U = t => `<u class="titr">${esc(t)}</u>`;
@@ -878,6 +905,7 @@ function sheetHTML(s) {
         <p class="main-p">با سلام</p>
         <p class="main-p">احتراما، در بازدیدها و پایش های انجام شده در مورخ <u class="titr ltr">${esc(fmtJ(s.vdate, s.dateFmt))}</u> ${esc(s.gender)} ${U(s.name)} که در واحد ${U(s.unit)} مشغول به انجام وظیفه می باشند به دليل ${s.reason.trim() ? U(s.reason.trim()) : '<span class="dots">' + dots + '</span>'} این اخطاریه برای ایشان صادر گردیده و چون برای مرتبه ${U(ordWord(s.ord))} مورد اخطار قرار مي گيرند، مشمول مرحله زیر می گردد.</p>
         <ul>${stageLines.map((t, i) => `<li>${t} ${cb(s.stage === i + 1)}</li>`).join('')}</ul>
+        ${prevHTML(s)}
         ${(s.ord >= 5 || s.stage >= 5) ? `<p class="main-p" style="margin-top:.12in;border:1.5pt solid #000;padding:3px 8px">توجه: این اخطار برای مرتبه ${esc(ordWord(s.ord))} می‌باشد و فرد مشمول مرحله پنجم (قطع همکاری) است. تصمیم نهایی در این خصوص منوط به بررسی و تأیید مدیریت کارخانه می‌باشد.</p>` : ''}`;
     } else {
         const tier = Math.min(s.ord, 3);
@@ -1001,6 +1029,16 @@ async function exportFormExcel() {
     if (isW) {
         const st = ['مرحله اول -   تذکر شفاهی', 'مرحله دوم-  اخطار کتبی و درج در پرونده پرسنلی', 'مرحله سوم -  جریمه به مبلغ 2,000,000 ریال و درج در پرونده پرسنلی', 'مرحله چهارم -   جریمه به مبلغ 4,000,000 ریال و درج در پرونده پرسنلی', 'مرحله پنجم –قطع همکاری'];
         st.forEach((t, i) => add(24, { richText: [{ text: '•  ' + t + '  ', font: f(12) }, { text: BOX(s.stage === i + 1), font: f(16) }] }, f(12), al({ indent: 2 })));
+        const pw = prevWarns(s);
+        if (pw.length) {
+            const sm = (bold) => f(7, { bold: !!bold });
+            add(12, 'اخطارهای قبلی:', sm(true), al({ indent: 2, wrapText: false }));
+            for (let i = 0; i < pw.length; i += 2) {
+                const r = row(11); used += 11;
+                merged(r, 1, 2, prevItemTxt(pw[i], i, s.dateFmt), sm(false), al({ indent: 2, wrapText: false }));
+                merged(r, 3, 4, i + 1 < pw.length ? prevItemTxt(pw[i + 1], i + 1, s.dateFmt) : '', sm(false), al({ indent: 1, wrapText: false }));
+            }
+        }
         if (s.ord >= 5 || s.stage >= 5) {
             add(8, '', f(12), al());
             const r = add(lines(('توجه: این اخطار برای مرتبه ' + ordWord(s.ord) + ' می‌باشد و فرد مشمول مرحله پنجم (قطع همکاری) است. تصمیم نهایی در این خصوص منوط به بررسی و تأیید مدیریت کارخانه می‌باشد.').length, 85) * 22 + 6,
