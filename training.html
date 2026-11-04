@@ -37,7 +37,7 @@
    <div id="fChips" class="flex flex-wrap gap-1 text-[11px]"></div>
    <textarea id="fExtra" rows="2" class="fld" placeholder="شرکت‌کنندگان خارج از بانک پرسنل (پیمانکاران) - هر نفر در یک خط"></textarea>
    <input id="fNotes" class="fld" placeholder="توضیحات (اختیاری)">
-   <details class="text-xs"><summary class="cursor-pointer text-slate-300">📘 طرح درس (برای پر شدن خودکار فرم چاپی)</summary>
+   <details id="lpBox" class="text-xs"><summary class="cursor-pointer text-emerald-300 font-bold">📘 طرح درس (برای پر شدن خودکار فرم چاپی)</summary>
     <div class="space-y-1.5 mt-1.5">
      <div class="grid grid-cols-2 gap-1.5"><input id="lpPlace" class="fld" placeholder="محل آموزش"><input id="lpGroup" class="fld" placeholder="گروه هدف"></div>
      <textarea id="lpGoal" rows="2" class="fld" placeholder="هدف اصلی"></textarea>
@@ -84,7 +84,7 @@ function render(){
 $('flt').innerHTML='<option value="all">همه انواع آموزش</option>'+Object.entries(T).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
 $('flt').onchange=render;
 $('fType').innerHTML=Object.entries(T).map(([k,v])=>`<option value="${k}">آموزش ${v}</option>`).join('');
-$('fType').onchange=()=>{$('fContr').classList.toggle('hidden',$('fType').value!=='contractor');$('fInc').classList.toggle('hidden',$('fType').value!=='post_incident')};
+$('fType').onchange=()=>{$('fContr').classList.toggle('hidden',$('fType').value!=='contractor');$('fInc').classList.toggle('hidden',$('fType').value!=='post_incident');const lb=$('lpBox');if(lb&&($('fType').value==='periodic'||lpGet()))lb.open=true};
 function chips(){$('fChips').innerHTML=[...sel.values()].map(e=>`<span class="bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 rounded-full px-2 py-0.5">${esc(name(e))} ✕</span>`).join('');[...$('fChips').children].forEach((c,i)=>c.onclick=()=>{sel.delete([...sel.keys()][i]);chips();pick()})}
 function pick(){const q=$('fSearch').value.trim().toLowerCase();$('fPick').innerHTML=emps.filter(e=>(HSEP.isActive(e)||$('fTermOn').checked)&&(!q||(name(e)+' '+e.emp_id).toLowerCase().includes(q))).slice(0,40).map(e=>`<div data-p="${e.id}" class="px-3 py-1.5 cursor-pointer hover:bg-slate-700 ${sel.has(e.id)?'text-emerald-400':''}">${sel.has(e.id)?'✓ ':''}${esc(name(e))} <span class="text-slate-500">(${esc(e.emp_id)})</span>${HSEP.isActive(e)?'':' <span class="text-amber-400 text-xs">قطع همکاری</span>'}</div>`).join('')}
 $('fSearch').oninput=pick;
