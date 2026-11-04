@@ -464,11 +464,11 @@ function buildMinutesSheet(wb,name,m,items,workers){
   let r=11,total=0;const rowH=[];
   const hdrH=[23.25,24,47.25,21,23.25,9,24,30.75,8.25,36.75].reduce((a,b)=>a+b,0);
   /* شکست صفحهٔ قطعی مثل نسخهٔ چاپی: هر بند کامل در یک صفحه می‌ماند، سرستون در هر صفحه تکرار می‌شود و «موضوع» در ابتدای هر صفحه دوباره نوشته می‌شود */
-  const CAP=(11.69-1.5)*72/0.88*0.96,HD=36.75;let y=hdrH,pages=1;
+  const CAP=(11.69-1.5)*72/0.88*0.98,HD=0;let y=hdrH,pages=1;
   KINDS.forEach(([k,tt])=>{const l=items.filter(x=>x.kind===k);
     const rows=l.length?l:[null];let r0=r;
     rows.forEach((x,i)=>{
-      const txt=x?(i+1)+'- '+x.text:'',lines=Math.max(1,Math.ceil(txt.length/34)),h=x?Math.max(65.25,lines*17+24):65.25;
+      const txt=x?(i+1)+'- '+x.text:'',lines=Math.max(1,Math.ceil(txt.length/40)),h=x?Math.max(65.25,lines*15.5+14):65.25;
       if(y+h>CAP&&r>11){ /* بند به صفحهٔ بعد می‌رود: موضوعِ بخش قبلی همین‌جا بسته و در صفحهٔ بعد دوباره شروع می‌شود */
         put('B'+r0,tt,{f:'B Titr',s:12,fill:FILL});rg('B'+r0+':B'+(r-1));ws.getRow(r-1).addPageBreak();pages++;r0=r;y=0}
       if(x){put('C'+r,txt,{h:'right'});rg('C'+r+':D'+r);
