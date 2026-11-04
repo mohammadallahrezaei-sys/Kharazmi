@@ -68,18 +68,19 @@ const std=[['نام و نام خانوادگی',p=>p.name],['کد پرسنلی',
 
 /* ---- ۱) طرح درس + لیست امضا (آموزش دوره‌ای) ---- */
 function tL(){
-  const rows=Array.from({length:7},()=>`<tr><td>${blk('',24)}</td><td>${blk('',24)}</td><td>${blk('',24)}</td><td>${blk('',24)}</td></tr>`).join('');
+  const LP=S.lesson||{},T=Array.isArray(LP.topics)?LP.topics:[],SG=Array.isArray(LP.sub)?LP.sub:[];
+  const rows=Array.from({length:Math.max(7,T.length)},(_,i)=>{const t=T[i]||{};return `<tr><td>${blk(t.t||'',24)}</td><td>${blk(t.m||'',24)}</td><td>${blk(t.d||'',24)}</td><td>${blk(t.a||'',24)}</td></tr>`}).join('');
   return `<div class="pg">${head('فرم طرح درس آموزش HSE','واحد بهداشت، ایمنی و محیط زیست')}
   <div style="text-align:left;font-size:11px">تاریخ: <b>${fd(S.training_date)}</b></div>
   <table>
-   ${metaRow(['موضوع آموزشی',esc(S.title)],['محل آموزش',ed('',120)])}
-   ${metaRow(['گروه هدف',ed('',120)],['مدت آموزش',fa(S.duration_hours||'')+' ساعت'])}
+   ${metaRow(['موضوع آموزشی',esc(S.title)],['محل آموزش',ed(LP.place||'',120)])}
+   ${metaRow(['گروه هدف',ed(LP.group||'',120)],['مدت آموزش',fa(S.duration_hours||'')+' ساعت'])}
    ${metaRow(['تعداد فراگیران',fa(P.length)+' نفر'],['آموزش‌دهنده',esc(S.trainer||'')])}
-   <tr><td colspan="2"><b>هدف اصلی:</b>${blk('',44)}</td></tr>
-   <tr><td colspan="2"><b>اهداف فرعی:</b>${blk('',70)}</td></tr>
+   <tr><td colspan="2"><b>هدف اصلی:</b>${blk(LP.goal||'',44)}</td></tr>
+   <tr><td colspan="2"><b>اهداف فرعی:</b>${blk(SG.map(x=>'- '+x).join('\n'),70)}</td></tr>
   </table>
   <table><tr><th>عناوین آموزشی</th><th style="width:22%">روش آموزش</th><th style="width:12%">مدت (دقیقه)</th><th style="width:22%">وسایل آموزشی</th></tr>${rows}</table>
-  <table><tr><td><b>تکالیف فراگیران:</b>${blk('',34)}</td></tr><tr><td><b>ارزشیابی:</b>${blk('',34)}</td></tr></table>
+  <table><tr><td><b>تکالیف فراگیران:</b>${blk(LP.homework||'',34)}</td></tr><tr><td><b>ارزشیابی:</b>${blk(LP.eval||'',34)}</td></tr></table>
   ${S.notes?`<div class="cm">توضیحات: ${esc(S.notes)}</div>`:''}
   </div>
   <div class="pg">${head('لیست اسامی و امضای فراگیران',esc(S.title))}
