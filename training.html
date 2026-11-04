@@ -37,6 +37,14 @@
    <div id="fChips" class="flex flex-wrap gap-1 text-[11px]"></div>
    <textarea id="fExtra" rows="2" class="fld" placeholder="شرکت‌کنندگان خارج از بانک پرسنل (پیمانکاران) - هر نفر در یک خط"></textarea>
    <input id="fNotes" class="fld" placeholder="توضیحات (اختیاری)">
+   <details class="text-xs"><summary class="cursor-pointer text-slate-300">📘 طرح درس (برای پر شدن خودکار فرم چاپی)</summary>
+    <div class="space-y-1.5 mt-1.5">
+     <div class="grid grid-cols-2 gap-1.5"><input id="lpPlace" class="fld" placeholder="محل آموزش"><input id="lpGroup" class="fld" placeholder="گروه هدف"></div>
+     <textarea id="lpGoal" rows="2" class="fld" placeholder="هدف اصلی"></textarea>
+     <textarea id="lpSub" rows="3" class="fld" placeholder="اهداف فرعی (هر خط یک مورد)"></textarea>
+     <textarea id="lpTop" rows="4" class="fld" placeholder="عناوین آموزشی (هر خط: عنوان | روش | مدت | وسایل)"></textarea>
+     <input id="lpHw" class="fld" placeholder="تکالیف فراگیران"><input id="lpEv" class="fld" placeholder="ارزشیابی">
+    </div></details>
   </div>
   <div class="flex gap-2 mt-3"><button id="fSave" class="flex-1 py-2 bg-emerald-600 text-slate-950 font-bold rounded-xl text-sm">ثبت</button><button id="fCancel" class="px-4 py-2 bg-slate-700 rounded-xl text-sm">انصراف</button></div>
  </div>
@@ -92,7 +100,7 @@ function setDate(iso){const [y,m,d]=toJ(new Date(iso+'T00:00:00Z')),ty=toJ(new D
   $('dM').innerHTML=JM.map((n,i)=>`<option value="${i+1}">${n}</option>`).join('');
   $('dD').innerHTML=Array.from({length:31},(_,i)=>`<option value="${i+1}">${fa(i+1)}</option>`).join('');
   $('dY').value=y;$('dM').value=m;$('dD').value=d}
-$('btnNew').onclick=()=>{EDIT=null;$('mTitle').textContent='ثبت جلسه آموزشی';$('fSave').textContent='ثبت';$('fType').value='onboarding';$('fType').onchange();$('fHours').value='';sel.clear();chips();pick();setDate(HSEToday());
+$('btnNew').onclick=()=>{EDIT=null;lpSet(null);$('mTitle').textContent='ثبت جلسه آموزشی';$('fSave').textContent='ثبت';$('fType').value='onboarding';$('fType').onchange();$('fHours').value='';sel.clear();chips();pick();setDate(HSEToday());
   $('fInc').innerHTML='<option value="">حادثه مرتبط (اختیاری)</option>'+incs.map(i=>`<option value="${i.id}">${fday((i.incident_date||'').slice(0,10))} - ${esc(i.location)}</option>`).join('');
   $('modal').classList.remove('hidden');$('modal').classList.add('flex')};
 $('fCancel').onclick=()=>{EDIT=null;$('modal').classList.add('hidden');$('modal').classList.remove('flex')};
@@ -102,6 +110,7 @@ $('fSave').onclick=async()=>{
   const ty=$('fType').value;
   try{
     const body={training_type:ty,title,training_date:getDate(),duration_hours:+$('fHours').value||0,trainer:$('fTrainer').value.trim()||null,contractor_name:ty==='contractor'?($('fContr').value.trim()||null):null,incident_id:ty==='post_incident'?($('fInc').value||null):null,notes:$('fNotes').value.trim()||null};
+    {const L=lpGet();if(L)body.lesson=L}
     let t,old=[];
     if(EDIT){t={id:EDIT};old=att.filter(x=>x.training_id===EDIT&&x.id!=null).map(x=>x.id);await api('trainings?id=eq.'+EDIT,{method:'PATCH',headers:{...JH,Prefer:'return=minimal'},body:JSON.stringify(body)})}
     else [t]=await api('trainings',{method:'POST',headers:{...JH,Prefer:'return=representation'},body:JSON.stringify(body)});
@@ -112,12 +121,16 @@ $('fSave').onclick=async()=>{
     EDIT=null;$('fCancel').onclick();['fTitle','fTrainer','fContr','fExtra','fNotes'].forEach(i=>$(i).value='');load();
   }catch(e){alert('خطا در ثبت: '+e.message)}
 };
+function lpGet(){const g=i=>$(i).value.trim(),L={place:g('lpPlace'),group:g('lpGroup'),goal:g('lpGoal'),sub:g('lpSub').split('\n').map(x=>x.trim()).filter(Boolean),
+  topics:g('lpTop').split('\n').map(x=>x.trim()).filter(Boolean).map(l=>{const p=l.split('|').map(x=>x.trim());return{t:p[0]||'',m:p[1]||'',d:p[2]||'',a:p[3]||''}}),homework:g('lpHw'),eval:g('lpEv')};
+  return(L.place||L.group||L.goal||L.sub.length||L.topics.length||L.homework||L.eval)?L:null}
+function lpSet(L){L=L||{};const v=(i,x)=>$(i).value=x||'';v('lpPlace',L.place);v('lpGroup',L.group);v('lpGoal',L.goal);v('lpSub',(L.sub||[]).join('\n'));v('lpTop',(L.topics||[]).map(x=>[x.t,x.m,x.d,x.a].join(' | ')).join('\n'));v('lpHw',L.homework);v('lpEv',L.eval)}
 function editTr(id){
   const t=trs.find(x=>String(x.id)===String(id));if(!t)return;EDIT=t.id;
   sel.clear();att.filter(a=>a.training_id===t.id&&a.employee_id).forEach(a=>{const e=emps.find(x=>x.id===a.employee_id);if(e)sel.set(e.id,e)});
   $('fExtra').value=att.filter(a=>a.training_id===t.id&&!a.employee_id&&a.person_name).map(a=>a.person_name).join('\n');
   $('fType').value=t.training_type;$('fTitle').value=t.title||'';$('fHours').value=t.duration_hours||'';$('fTrainer').value=t.trainer||'';$('fContr').value=t.contractor_name||'';$('fNotes').value=t.notes||'';
-  $('fType').onchange();setDate(String(t.training_date).slice(0,10));
+  lpSet(t.lesson);$('fType').onchange();setDate(String(t.training_date).slice(0,10));
   $('fInc').innerHTML='<option value="">حادثه مرتبط (اختیاری)</option>'+incs.map(i=>`<option value="${i.id}">${fday((i.incident_date||'').slice(0,10))} - ${esc(i.location)}</option>`).join('');$('fInc').value=t.incident_id||'';
   chips();pick();$('mTitle').textContent='ویرایش جلسه آموزشی';$('fSave').textContent='ذخیرهٔ ویرایش';
   $('modal').classList.remove('hidden');$('modal').classList.add('flex');
