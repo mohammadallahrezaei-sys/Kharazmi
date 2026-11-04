@@ -437,7 +437,7 @@ function buildMinutesSheet(wb,name,m,items,workers){
   [2.86,11.29,19.71,17.86,12,11.14,10.43,15.57].forEach((w,i)=>ws.getColumn(i+1).width=w);
   const med={style:'medium'},FILL={type:'pattern',pattern:'solid',fgColor:{argb:'FFF2F2F2'}},WH={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}};
   const col=c=>'ABCDEFGH'.indexOf(c)+1;
-  const put=(a,v,o)=>{const c=ws.getCell(a);c.value=v;c.font={name:o.f||'B Nazanin',size:o.s||11,bold:o.b!==false};
+  const put=(a,v,o)=>{const c=ws.getCell(a);c.value=v;c.font={name:o.f||'B Nazanin',size:o.s||11,bold:o.b!==false,charset:178,color:{theme:1}};  /* charset=178 (عربی/فارسی) مثل فایل اصلی؛ بدون آن اکسل شکل حروف فونت‌های B را درست نشان نمی‌دهد */
     c.alignment={horizontal:o.h||'center',vertical:o.v||'middle',wrapText:o.w!==false,readingOrder:o.ro||'rtl'};if(o.fill)c.fill=o.fill;return c};
   /* قاب بیرونی یک ناحیه (ادغام‌شده یا تک‌خانه) */
   const box=(r1,c1,r2,c2)=>{if(r1!==r2||c1!==c2)ws.mergeCells(r1,c1,r2,c2);
