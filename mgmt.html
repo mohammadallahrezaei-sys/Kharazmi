@@ -25,6 +25,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px 8px;b
 ul{margin:6px 0;padding-inline-start:20px}li{margin:4px 0}
 textarea{width:100%;font-family:inherit;font-size:15px;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);min-height:120px}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:14px}
+.cmp{margin:10px 0;padding:8px 12px;border:1px dashed #475569;border-radius:10px;font-size:13px}.sw li{margin:9px 0}.sw small{font-size:12px}
 .note{font-size:12px;color:var(--mu);margin-top:10px}
 .pn{position:absolute;bottom:10px;left:16px;font-size:12px;color:var(--mu)}
 @page{size:A4 landscape;margin:8mm}
@@ -33,7 +34,7 @@ textarea{width:100%;font-family:inherit;font-size:15px;padding:10px;border-radiu
 </head>
 <body>
 <div class="w">
- <div class="np"><b>گزارش مدیریتی یکپارچه</b><select id="per"></select><button class="p" onclick="print()">چاپ / ذخیره PDF</button><a class="b" href="report.html">گزارش دوره‌ای</a><a class="b" href="checklists.html#rep">اسلایدهای قبل/بعد</a><a class="b" href="indices.html">شاخص حوادث</a><span class="mu" id="st">در حال دریافت اطلاعات...</span></div>
+ <div class="np"><b>گزارش مدیریتی یکپارچه</b><select id="per"></select><select id="cmp"><option value="prev">مقایسه با: دورهٔ قبل هم‌طول</option><option value="ly">مقایسه با: همین بازه در سال قبل</option></select><button class="p" onclick="print()">چاپ / ذخیره PDF</button><a class="b" href="report.html">گزارش دوره‌ای</a><a class="b" href="checklists.html#rep">اسلایدهای قبل/بعد</a><a class="b" href="indices.html">شاخص حوادث</a><span class="mu" id="st">در حال دریافت اطلاعات...</span></div>
  <div id="out"></div>
 </div>
 <script>
@@ -41,7 +42,7 @@ const URL_='https://priopguwfjawybffarhd.supabase.co',KEY='sb_publishable_fKFQeP
 const H={apikey:KEY,Authorization:`Bearer ${KEY}`};
 const getAll=t=>HSEDB.getAll(t,H).catch(()=>null);
 const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
-const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]).replace(/(۰-۹)\.(?=[۰-۹])/g,'$1٫').replace(/([۰-۹])\.([۰-۹])/g,'$1٫$2');
 const nd=s=>String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',timeZone:'Asia/Tehran'});
@@ -93,20 +94,39 @@ function statLine(s,fmt){
 const TDUR={onboarding:.5,periodic:2},TN={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران',safety_talk:'جلسه کوتاه ایمنی'};
 let D={};
 async function load(){
-  const [fin,ins,inc,ek,tr,ta,cm,ci,wl,cd]=await Promise.all([
+  const [fin,ins,inc,ek,tr,ta,cm,ci,wl,cd,mh,lg,vs,em]=await Promise.all([
     getAll('findings?select=status,module,created_at,closed_at,severity,due_date'),
     getAll('inspections?select=module,ok,nc,created_at,inspector'),
-    getAll('clinic_incidents?select=incident_date,severity,description'),
+    getAll('clinic_incidents?select=id,incident_date,employee_id,severity,description'),
     getAll('ekhtars?select=record_type,record_date'),
     getAll('trainings?select=id,training_type,training_date,duration_hours'),
     getAll('training_attendees?select=training_id'),
     getAll('committee_meetings?select=id,no,jdate'),
     getAll('committee_items?select=meeting_id,kind'),
     getAll('work_log?select=work_date,photos'),
-    getAll('hse_cards?select=card_date')]);
-  D={fin:(fin||[]).filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ins:(ins||[]).filter(r=>r.module!=='Q'),inc:inc||[],ek:ek||[],tr:tr||[],ta:ta||[],cm:cm||[],ci:ci||[],wl:wl||[],cd:cd||[],miss:[['findings',fin],['inspections',ins],['clinic_incidents',inc],['ekhtars',ek],['trainings',tr],['committee_meetings',cm],['work_log',wl],['hse_cards',cd]].filter(x=>x[1]==null).map(x=>x[0])};
+    getAll('hse_cards?select=card_date'),
+    getAll('hse_manhours?select=month_key,base_hours,ot_hours'),
+    getAll('hse_lost_incidents?select=jdate,month_key,emp_code,lost_days'),
+    getAll('clinic_visits?select=employee_id,visit_date,medical_leave_days&medical_leave_days=gt.0'),
+    getAll('employees?select=id,emp_id')]);
+  const ECODE=new Map((em||[]).map(e=>[e.id,String(e.emp_id??'').trim()]));
+  /* همان منطق صفحهٔ «شاخص حوادث»: استعلاجی = فایل حوادث + حوادث بهداری با روز از دست‌رفته یا استعلاجی همان فرد تا ۷ روز بعد */
+  const VIS=vs||[],LOG=lg||[],D0=s=>new Date(String(s).slice(0,10)+'T00:00:00').getTime();
+  const lostVis=i=>{if(!i.employee_id)return 0;const d0=D0(i.incident_date);return VIS.filter(v=>v.employee_id===i.employee_id&&D0(v.visit_date)>=d0&&D0(v.visit_date)<=d0+7*864e5).reduce((a,v)=>a+(+v.medical_leave_days||0),0)};
+  const JF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric',timeZone:'Asia/Tehran'});
+  const jfull=iso=>{const p=JF.formatToParts(new Date(iso)),g=t=>+p.find(x=>x.type===t).value;return g('year')+'/'+String(g('month')).padStart(2,'0')+'/'+String(g('day')).padStart(2,'0')};
+  const seen=new Set(LOG.map(r=>String(r.emp_code||'').trim()+'|'+r.jdate));
+  const nb=iso=>[-1,0,1].map(o=>jfull(new Date(new Date(iso).getTime()+o*864e5).toISOString()));
+  const I=[];
+  LOG.forEach(r=>I.push({k:r.month_key,lost:+r.lost_days||0,sev:'lost'}));
+  (inc||[]).forEach(i=>{const iso=String(i.incident_date).slice(0,10)+'T12:00:00',code=ECODE.get(i.employee_id)||'';if(code&&nb(iso).some(d=>seen.has(code+'|'+d)))return;
+    I.push({k:jk(iso),lost:lostOf(i.description)||lostVis(i),sev:i.severity||'minor'})});
+  const first=[...(fin||[]).map(f=>jk(f.created_at)),...(ins||[]).map(r=>jk(r.created_at)),...(tr||[]).map(t=>jk(t.training_date))].filter(Boolean).sort()[0]||null;
+  D={fin:(fin||[]).filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ins:(ins||[]).filter(r=>r.module!=='Q'),I,MH:mh||[],hasMH:mh!=null,ek:ek||[],tr:tr||[],ta:ta||[],cm:cm||[],ci:ci||[],wl:wl||[],cd:cd||[],first,
+   miss:[['findings',fin],['inspections',ins],['clinic_incidents',inc],['ekhtars',ek],['trainings',tr],['committee_meetings',cm],['work_log',wl],['hse_cards',cd],['hse_manhours',mh]].filter(x=>x[1]==null).map(x=>x[0])};
 }
 const lostOf=d=>{const m=/\[روز از دست رفته:\s*([0-9۰-۹]+)\]/.exec(String(d||''));return m?+nd(m[1]):0};
+const r1=v=>Math.round(v*10)/10,r2=v=>Math.round(v*100)/100;
 function calc(a,b){
   const c={},fin=D.fin;
   c.fNew=fin.filter(f=>inR(jk(f.created_at),a,b)).length;
@@ -116,62 +136,129 @@ function calc(a,b){
   c.fOver=fin.filter(f=>f.status==='open'&&f.due_date&&String(f.due_date).slice(0,10)<todayISO).length;
   const ins=D.ins.filter(r=>inR(jk(r.created_at),a,b)),ok=ins.reduce((s,x)=>s+(+x.ok||0),0),nc=ins.reduce((s,x)=>s+(+x.nc||0),0);
   c.rounds=new Set(ins.map(r=>(r.inspector||'?')+'|'+new Date(r.created_at).toLocaleDateString('en-CA'))).size;c.checks=ok+nc;c.comp=ok+nc?Math.round(ok/(ok+nc)*100):null;
-  const inc=D.inc.filter(x=>inR(jk(x.incident_date),a,b)),lo=inc.map(x=>lostOf(x.description));
-  c.inc=inc.length;c.incLost=inc.filter((x,i)=>lo[i]>0).length;c.fatal=lo.filter(v=>v>=6000).length;c.lost=lo.filter(v=>v<6000).reduce((s,v)=>s+v,0);c.sev=inc.filter(x=>x.severity==='severe'||x.severity==='fatal').length;
+  /* حوادث */
+  const I=D.I.filter(x=>inR(x.k,a,b)),L=I.filter(x=>x.lost>0),N=I.filter(x=>!(x.lost>0));
+  c.lt=L.length;c.fatal=L.filter(x=>x.lost>=6000).length;c.days=L.reduce((s,x)=>s+x.lost,0);
+  c.nl=N.length;c.nlMin=N.filter(x=>x.sev==='minor').length;c.nlMod=N.filter(x=>x.sev==='moderate').length;c.nlSev=N.filter(x=>x.sev==='severe'||x.sev==='fatal').length;
+  const ks=[];for(let k=a;k<=b;k=addM(k,1))ks.push(k);
+  const mh=D.MH.filter(r=>inR(r.month_key,a,b));c.H=mh.reduce((s,r)=>s+(+r.base_hours||0)+(+r.ot_hours||0),0);c.hMiss=ks.length-mh.length;
+  c.afr=c.H?c.lt*1e6/c.H:null;c.asr=c.H?c.days*1000/c.H:null;c.fsi=c.afr!=null&&c.lt?Math.sqrt(c.afr*c.asr/1000):(c.H?0:null);
+  c.mir=c.H?c.nl*1e6/c.H:null;c.ratio=c.lt?c.nl/c.lt:null;
   const tr=D.tr.filter(t=>inR(jk(t.training_date),a,b)),ids=new Set(tr.map(t=>t.id)),cnt={};D.ta.forEach(x=>{if(ids.has(x.training_id))cnt[x.training_id]=(cnt[x.training_id]||0)+1});
-  c.trN=tr.length;c.byT={};tr.forEach(t=>{const o=c.byT[t.training_type]||(c.byT[t.training_type]={n:0,p:0,h:0}),p=cnt[t.id]||0;o.n++;o.p+=p;o.h+=p*(TDUR[t.training_type]??.25)});
+  c.trN=tr.length;c.byT={};tr.forEach(t=>{const o=c.byT[t.training_type]||(c.byT[t.training_type]={n:0,p:0,h:0}),p=cnt[t.id]||0;o.n++;o.p+=p;o.h+=p*(t.duration_hours>0?+t.duration_hours:(TDUR[t.training_type]??.25))});
   c.trP=Object.values(c.byT).reduce((s,o)=>s+o.p,0);c.trH=Object.values(c.byT).reduce((s,o)=>s+o.h,0);
   const ms=D.cm.filter(m=>inR(jk(m.jdate),a,b)),mid=new Set(ms.map(m=>m.id)),it=D.ci.filter(x=>mid.has(x.meeting_id));
   c.cmN=ms.length;c.ciDone=it.filter(x=>x.kind==='done').length;c.ciOn=it.filter(x=>x.kind==='ongoing').length;c.ciNew=it.filter(x=>x.kind==='new').length;
   const ek=D.ek.filter(x=>inR(jk(x.record_date),a,b));c.rw=ek.filter(x=>x.record_type==='تشویق').length;c.wr=ek.filter(x=>x.record_type!=='تشویق').length;
   c.cards=D.cd.filter(x=>inR(jk(x.card_date),a,b)).length;const wl=D.wl.filter(x=>inR(jk(x.work_date),a,b));c.wl=wl.length;c.wlPh=wl.filter(x=>(x.photos||[]).length).length;
+  c.months=ks.length;
   return c}
-const dl=(v,p,good)=>{if(p==null||v==null)return'';const d=v-p;if(!d)return'<small class="mu">■ بدون تغییر نسبت به دورهٔ قبل</small>';const g=(d>0)===(good!=='down');return`<small class="${g?'ok':'bad'}">${d>0?'▲':'▼'} ${fa(Math.abs(Math.round(d*10)/10))} نسبت به دورهٔ قبل (${fa(Math.round(p*10)/10)})</small>`};
+const f1=v=>v==null?'—':fa(r2(v));
+const dl=(v,p,good)=>{if(p==null||v==null)return'';const d=v-p;if(Math.abs(d)<1e-9)return`<small class="mu">■ بدون تغییر (قبلی: ${fa(r1(p))})</small>`;const g=(d>0)===(good!=='down');return`<small class="${g?'ok':'bad'}">${d>0?'▲':'▼'} ${fa(r1(Math.abs(d)))} ${d>0?'بیشتر':'کمتر'} از دورهٔ قبل (قبلی: ${fa(r1(p))})</small>`};
 const kp=(v,l,x)=>`<div class="kp"><b>${v}</b><span>${l}</span>${x||''}</div>`;
 let TICKS=0;const sl=(cls,inner)=>`<section class="slide ${cls||''}">${inner}<div class="pn">${fa(++TICKS)}</div></section>`;
 const LS=k=>{try{return localStorage.getItem('mgmt_'+k)||''}catch(e){return''}},SV=(k,v)=>{try{localStorage.setItem('mgmt_'+k,v)}catch(e){}};
+const perL=(a,b)=>a===b?lab(a):lab(a)+' تا '+lab(b);
+/* نقاط قوت و ضعف: قاعده‌محور و فقط بر پایهٔ داده‌های ثبت‌شده */
+function swot(c,p,hasP,nm){
+  const S=[],W=[],pc=f=>hasP?p[f]:null,cl=c.fNew?c.fClosed/c.fNew:null;
+  if(c.fNew||c.fClosed){
+    if(c.fClosed>=c.fNew&&c.fClosed>0)S.push([`اصلاحات از موارد جدید جلو افتاد: ${fa(c.fClosed)} مورد بسته شد در برابر ${fa(c.fNew)} مورد جدید`,'پشتوانهٔ عدم‌انطباق در حال کاهش است.']);
+    else if(c.fNew>c.fClosed)W.push([`عدم‌انطباق‌های جدید (${fa(c.fNew)}) بیشتر از بسته‌شده‌ها (${fa(c.fClosed)}) است و پشتوانه رشد کرده`,'تخصیص نیروی اجرایی/بودجه برای اصلاحات و تعیین مسئول برای هر مورد.'])}
+  if(c.fOver>0)W.push([`${fa(c.fOver)} عدم‌انطباق باز از مهلت اصلاح گذشته (از ${fa(c.fOpen)} مورد باز)`,'تعیین تکلیف مهلت‌ها در جلسهٔ کمیته؛ موارد بدون مسئول به واحد مربوط ارجاع شود.']);
+  else if(c.fOpen>0)S.push([`هیچ‌کدام از ${fa(c.fOpen)} عدم‌انطباق باز از مهلت نگذشته است`,'']);
+  if(c.fHigh>0)W.push([`${fa(c.fHigh)} عدم‌انطباق باز با شدت بالا وجود دارد`,'اولویت اول اصلاحات؛ گزارش پیشرفت هفتگی.']);
+  if(c.comp!=null){
+    if(c.comp>=90)S.push([`نرخ انطباق بازرسی‌ها ${fa(c.comp)}٪ است (بالای ۹۰٪)`,'']);
+    else if(c.comp<85)W.push([`نرخ انطباق بازرسی‌ها ${fa(c.comp)}٪ است (کمتر از ۸۵٪)`,'تمرکز بازرسی روی واحدهای کم‌امتیاز و پیگیری علل تکرارشونده.']);
+    if(hasP&&p.comp!=null&&c.comp-p.comp>=3)S.push([`نرخ انطباق ${fa(c.comp-p.comp)} درصد نسبت به دورهٔ قبل بهتر شده`,'']);
+    if(hasP&&p.comp!=null&&p.comp-c.comp>=3)W.push([`نرخ انطباق ${fa(p.comp-c.comp)} درصد نسبت به دورهٔ قبل افت کرده`,'بررسی علت افت (واحد/موضوع) در بازرسی بعدی.'])}
+  if(!c.rounds)W.push(['در این دوره گشت بازرسی ثبت نشده است','برنامهٔ بازرسی دوره‌ای تعریف و ثبت شود.']);
+  else if(hasP&&p.rounds&&c.rounds>p.rounds)S.push([`تعداد گشت‌های بازرسی از ${fa(p.rounds)} به ${fa(c.rounds)} رسیده`,'']);
+  /* حوادث */
+  if(c.lt===0&&c.H)S.push([`حادثهٔ استعلاجی (واردشونده در شاخص) نداشتیم؛ AFR = ۰`,'']);
+  else if(c.lt>0){if(hasP&&p.lt!=null&&c.lt<p.lt)S.push([`حوادث استعلاجی از ${fa(p.lt)} به ${fa(c.lt)} کاهش یافته`,'']);
+    else W.push([`${fa(c.lt)} حادثهٔ استعلاجی با ${fa(c.days)} روز کاری از دست‌رفته${hasP&&p.lt!=null?` (دورهٔ قبل: ${fa(p.lt)} حادثه)`:''}`,'بررسی علت ریشه‌ای هر حادثه و ثبت اقدام اصلاحی در صورتجلسه.'])}
+  if(c.fatal)W.push([`${fa(c.fatal)} حادثهٔ منجر به فوت ثبت شده`,'گزارش و پیگیری قانونی/اصلاحی فوری.']);
+  if(c.lt>0&&c.nl===0)W.push(['حوادث بدون استعلاجی ثبت نشده در حالی که حادثهٔ استعلاجی داریم؛ احتمال گزارش‌نشدن حوادث جزئی','ترویج گزارش‌دهی حوادث جزئی و شبه‌حادثه (کارت خطر).']);
+  if(c.nl>0&&c.lt>0&&c.nl/c.lt>=3)S.push([`نسبت گزارش حوادث جزئی به استعلاجی ${fa(r1(c.nl/c.lt))} به ۱ است؛ فرهنگ گزارش‌دهی فعال است`,'']);
+  if(c.nlSev>0)W.push([`${fa(c.nlSev)} حادثهٔ شدید بدون استعلاجی (احتمال شدت بالقوه)`,'بررسی مانند حادثهٔ استعلاجی انجام شود.']);
+  /* آموزش */
+  if(!c.trN)W.push(['در این دوره هیچ آموزشی ثبت نشده','برنامهٔ آموزشی سالانه و اجرای دوره‌های اولویت‌دار.']);
+  else{S.push([`${fa(c.trN)} جلسهٔ آموزشی با ${fa(c.trP)} نفر حضور (${fa(r1(c.trH))} نفر-ساعت)`,'']);
+    if(!c.byT.periodic)W.push(['آموزش دوره‌ای (ایمنی عمومی/ارتقای آگاهی) ثبت نشده','دورهٔ آموزشی دوره‌ای برای پرسنل خط تولید برنامه‌ریزی شود.']);
+    if(!c.byT.contractor&&nm>=3)W.push(['آموزش پیمانکاران در این دوره ثبت نشده','آموزش ورود پیمانکاران الزامی و ثبت شود.']);
+    if(hasP&&p.trH>0&&c.trH<p.trH*0.7)W.push([`نفر-ساعت آموزش ${fa(Math.round((1-c.trH/p.trH)*100))}٪ کمتر از دورهٔ قبل است`,'']);
+    if(hasP&&c.trH>p.trH*1.3&&p.trH>0)S.push([`نفر-ساعت آموزش ${fa(Math.round((c.trH/p.trH-1)*100))}٪ بیشتر از دورهٔ قبل است`,''])}
+  /* کمیته */
+  if(!c.cmN&&nm>=2)W.push(['در این دوره جلسهٔ کمیتهٔ حفاظت فنی برگزار/ثبت نشده','برگزاری جلسه با دستور مشخص و ثبت صورتجلسه.']);
+  else if(c.cmN)S.push([`${fa(c.cmN)} جلسهٔ کمیته برگزار و مصوبات پیگیری شد (${fa(c.ciDone)} اقدام انجام‌شده)`,'']);
+  /* فرهنگ */
+  if(c.rw>c.wr&&c.rw>0)S.push([`تشویق‌ها (${fa(c.rw)}) بیشتر از اخطارها (${fa(c.wr)}) است؛ تقویت رفتار ایمن`,'']);
+  else if(c.wr>c.rw&&c.wr>=3)W.push([`اخطار/تذکرها (${fa(c.wr)}) بیشتر از تشویق‌ها (${fa(c.rw)}) است`,'تقویت تشویق رفتار ایمن در کنار برخورد با تخلفات.']);
+  if(c.cards>0)S.push([`${fa(c.cards)} کارت خطر/شبه‌حادثه توسط پرسنل ثبت شد`,'']);
+  else if(nm>=2)W.push(['کارت خطر/شبه‌حادثه‌ای ثبت نشده؛ مشارکت پرسنل در شناسایی خطر پایین است','راه‌اندازی و تبلیغ کارت خطر در سوله‌ها.']);
+  return{S,W}}
+function dataNotes(c,nm){const n=[];if(!D.hasMH)n.push('جدول ساعت کارکرد (hse_manhours) در دسترس نیست؛ شاخص‌های AFR/ASR/MIR محاسبه نشد.');else if(c.hMiss>0)n.push(`ساعت کارکرد ${fa(c.hMiss)} ماه از ${fa(c.months)} ماه این دوره ثبت نشده؛ شاخص‌های نرخ‌محور ناقص است.`);if(D.miss.length)n.push('دریافت این جدول‌ها ناموفق بود: '+D.miss.join('، '));return n}
 function render(){
-  TICKS=0;const P=PRESETS().find(x=>x[0]===$('per').value)||PRESETS()[0],[,pl,a,b]=P,nm=nMonths(a,b),pb=addM(a,-1),pa=addM(a,-nm),c=calc(a,b),p=calc(pa,pb),hasP=nm<=12;
-  const pv=f=>hasP?p[f]:null;
+  TICKS=0;const P=PRESETS().find(x=>x[0]===$('per').value)||PRESETS()[0],[,pl,a,b]=P,nm=nMonths(a,b),cmp=$('cmp').value;
+  let pa,pb;if(cmp==='ly'){pa=addM(a,-12);pb=addM(b,-12)}else{pb=addM(a,-1);pa=addM(a,-nm)}
+  const c=calc(a,b),p=calc(pa,pb),hasP=!D.first||pb>=D.first,partial=D.first&&pa<D.first&&hasP;
+  const pv=f=>hasP?p[f]:null,PL=perL(pa,pb),CL=perL(a,b);
+  const cmpTxt=hasP?`<div class="cmp">مقایسه با: <b>${cmp==='ly'?'همین بازه در سال قبل':'دورهٔ قبل هم‌طول'}</b> (${PL})${partial?` — توجه: ثبت داده در سامانه از ${lab(D.first)} شروع شده و دورهٔ قبل ناقص است`:''}</div>`:`<div class="cmp">برای دورهٔ قبل (${PL}) داده‌ای در سامانه ثبت نشده؛ مقایسه نمایش داده نمی‌شود.</div>`;
   const M=[];for(let i=11;i>=0;i--)M.push(addM(nowK,-i));
   const L=M.map(k=>MN[+k.slice(5)-1]),SB=M.map(k=>fa(k.slice(0,4)));
   const sNew=M.map(k=>D.fin.filter(f=>jk(f.created_at)===k).length),sCl=M.map(k=>D.fin.filter(f=>f.status==='closed'&&jk(f.closed_at)===k).length);
-  const sInc=M.map(k=>D.inc.filter(x=>jk(x.incident_date)===k).length);
-  const closeRate=c.fNew?Math.round(c.fClosed/c.fNew*100):null;
+  const sLT=M.map(k=>D.I.filter(x=>x.k===k&&x.lost>0).length),sNL=M.map(k=>D.I.filter(x=>x.k===k&&!(x.lost>0)).length);
+  const closeRate=c.fNew?Math.round(c.fClosed/c.fNew*100):null,sw=swot(c,p,hasP,nm),notes=dataNotes(c,nm);
   let h='';
-  h+=sl('cover',`<div class="sub">گسترش فناوری خوارزمی · واحد HSE</div><h1>گزارش عملکرد HSE</h1><div class="sub">دوره: ${esc(pl)} (${lab(a)} تا ${lab(b)})</div>
-   <div class="kg">${kp(fa(c.inc),'حادثه ثبت‌شده',dl(c.inc,pv('inc'),'down'))}${kp(fa(c.fClosed),'عدم‌انطباق اصلاح‌شده',dl(c.fClosed,pv('fClosed'),'up'))}${kp(fa(Math.round(c.trH*10)/10),'نفر-ساعت آموزش',dl(c.trH,pv('trH'),'up'))}${kp(fa(c.cmN),'جلسهٔ کمیتهٔ حفاظت فنی',dl(c.cmN,pv('cmN'),'up'))}</div>`);
-  h+=sl('',`<h2>ایمنی و حوادث</h2><div class="sub">حوادث ثبت‌شده در بهداری و تأثیر آن‌ها بر روز کاری</div>
-   <div class="kg">${kp(fa(c.inc),'کل حوادث',dl(c.inc,pv('inc'),'down'))}${kp(fa(c.incLost),'حادثه با استعلاجی',dl(c.incLost,pv('incLost'),'down'))}${kp(fa(c.lost),'روز کاری از دست‌رفته',dl(c.lost,pv('lost'),'down'))}${kp(fa(c.sev),'حادثهٔ شدید',dl(c.sev,pv('sev'),'down'))}</div>
-   ${svgChart(L,[{name:'حادثه',c:'var(--bad)',v:sInc,bar:1,good:'down'}],{sub:SB,stat:1})}<div class="note">شاخص‌های AFR / ASR / FSI و هدف ۱۴۰۵ در صفحهٔ «شاخص حوادث» محاسبه می‌شود. ${c.fatal?`در این دوره ${fa(c.fatal)} حادثهٔ منجر به فوت ثبت شده است (در روز از دست‌رفته نیامده).`:''}</div>`);
+  h+=sl('cover',`<div class="sub">گسترش فناوری خوارزمی · واحد HSE</div><h1>گزارش عملکرد HSE</h1><div class="sub">دورهٔ گزارش: <b>${CL}</b> (${fa(nm)} ماه)</div>${cmpTxt}
+   <div class="kg">${kp(fa(c.lt),'حادثهٔ استعلاجی (در شاخص)',dl(c.lt,pv('lt'),'down'))}${kp(fa(c.nl),'حادثهٔ بدون استعلاجی',dl(c.nl,pv('nl'),'down'))}${kp(fa(c.fClosed),'عدم‌انطباق اصلاح‌شده',dl(c.fClosed,pv('fClosed'),'up'))}${kp(fa(r1(c.trH)),'نفر-ساعت آموزش',dl(c.trH,pv('trH'),'up'))}</div>`);
+  h+=sl('',`<h2>نقاط قوت و ضعف این دوره</h2><div class="sub">فقط از روی داده‌های ثبت‌شده در سامانه برای ${CL} استخراج شده؛ بدون تعدیل</div>
+   <div class="two"><div><b class="ok">✔ نقاط قوت (${fa(sw.S.length)})</b><ul class="sw">${sw.S.map(x=>`<li>${x[0]}</li>`).join('')||'<li class="mu">موردی که با داده تأیید شود یافت نشد.</li>'}</ul></div>
+   <div><b class="bad">✖ نقاط ضعف و اقدام لازم (${fa(sw.W.length)})</b><ul class="sw">${sw.W.map(x=>`<li>${x[0]}${x[1]?`<br><small class="mu">← ${x[1]}</small>`:''}</li>`).join('')||'<li class="mu">ضعفی با قواعد این گزارش یافت نشد.</li>'}</ul></div></div>
+   ${notes.length?`<div class="note bad">محدودیت داده: ${notes.join(' · ')}</div>`:''}`);
+  h+=sl('',`<h2>حجم کار انجام‌شده HSE</h2><div class="sub">همهٔ ورودی‌های ثبت‌شده در سامانه، ${CL} در برابر ${hasP?PL:'دورهٔ قبل (بدون داده)'}</div>
+   <table><tr><th>فعالیت</th><th>این دوره</th><th>دورهٔ قبل</th></tr>${[['گشت بازرسی میدانی','rounds'],['مورد کنترل‌شده در بازرسی‌ها','checks'],['عدم‌انطباق جدید ثبت‌شده','fNew'],['عدم‌انطباق اصلاح‌شده و بسته‌شده','fClosed'],['جلسهٔ آموزشی','trN'],['نفر آموزش‌دیده (حضور)','trP'],['جلسهٔ کمیتهٔ حفاظت فنی','cmN'],['اقدام روزانه در گزارش کار HSE','wl'],['تشویق','rw'],['اخطار/تذکر','wr'],['کارت خطر/شبه‌حادثه','cards']].map(([n,f])=>`<tr><td>${n}</td><td><b>${fa(c[f])}</b></td><td class="mu">${hasP?fa(p[f]):'—'}</td></tr>`).join('')}</table>`);
+  const nlTbl=`<table><tr><th>گروه حادثه</th><th>تعداد</th><th>قبلی</th></tr>
+   <tr><td><b>استعلاجی</b> (واردشونده در AFR/ASR/FSI)</td><td><b>${fa(c.lt)}</b></td><td class="mu">${hasP?fa(p.lt):'—'}</td></tr>
+   <tr><td>بدون استعلاجی — جزئی</td><td>${fa(c.nlMin)}</td><td class="mu">${hasP?fa(p.nlMin):'—'}</td></tr>
+   <tr><td>بدون استعلاجی — متوسط</td><td>${fa(c.nlMod)}</td><td class="mu">${hasP?fa(p.nlMod):'—'}</td></tr>
+   <tr><td>بدون استعلاجی — شدید/فوتی (شدت بالقوه)</td><td class="${c.nlSev?'bad':''}">${fa(c.nlSev)}</td><td class="mu">${hasP?fa(p.nlSev):'—'}</td></tr></table>`;
+  h+=sl('',`<h2>حوادث؛ ۱) استعلاجی (در شاخص)</h2><div class="sub">حوادثی که روز کاری از دست رفته؛ مبنای AFR، ASR و FSI در صفحهٔ شاخص حوادث</div>
+   <div class="kg">${kp(fa(c.lt),'حادثهٔ استعلاجی',dl(c.lt,pv('lt'),'down'))}${kp(fa(c.days),'روز کاری از دست‌رفته',dl(c.days,pv('days'),'down'))}${kp(f1(c.afr),'AFR (به ازای یک میلیون ساعت)',dl(c.afr,pv('afr'),'down'))}${kp(f1(c.asr),'ASR (روز از دست‌رفته به ازای هزار ساعت)',dl(c.asr,pv('asr'),'down'))}${kp(f1(c.fsi),'FSI (شاخص ترکیبی)',dl(c.fsi,pv('fsi'),'down'))}</div>
+   <div class="note">ساعت کارکرد این دوره: ${c.H?fa(Math.round(c.H).toLocaleString('en-US')):'ثبت نشده'}${c.hMiss?` (ساعت ${fa(c.hMiss)} ماه ثبت نشده)`:''}. ${c.fatal?`شامل ${fa(c.fatal)} حادثهٔ فوتی.`:''}</div>
+   <div style="margin-top:8px"><b>روند ۱۲ ماه اخیر: استعلاجی در برابر بدون استعلاجی</b></div>${svgChart(L,[{name:'استعلاجی',c:'var(--bad)',v:sLT,bar:1,good:'down'},{name:'بدون استعلاجی',c:'var(--wa)',v:sNL,bar:1,good:'down'}],{sub:SB})}`);
+  h+=sl('',`<h2>حوادث؛ ۲) بدون استعلاجی (شاخص جدید)</h2><div class="sub">حوادثی که در AFR نمی‌آیند ولی نشان‌دهندهٔ ریسک و سلامت گزارش‌دهی‌اند</div>
+   <div class="kg">${kp(fa(c.nl),'حادثهٔ بدون استعلاجی',dl(c.nl,pv('nl'),'down'))}${kp(f1(c.mir),'MIR: نرخ حوادث بدون استعلاجی (به ازای یک میلیون ساعت)',dl(c.mir,pv('mir'),'down'))}${kp(c.ratio==null?'—':fa(r1(c.ratio))+' به ۱','نسبت جزئی به استعلاجی',hasP&&p.ratio!=null?`<small class="mu">قبلی: ${fa(r1(p.ratio))} به ۱</small>`:'')}</div>
+   ${nlTbl}
+   <div class="note"><b>تعریف شاخص‌ها:</b> MIR = (حوادث بدون استعلاجی × ۱٬۰۰۰٬۰۰۰) ÷ ساعت کارکرد، با همان مبنای AFR. نسبت جزئی به استعلاجی = تعداد حوادث بدون استعلاجی ÷ حوادث استعلاجی. <b>چطور بخوانیم:</b> نسبت بالاتر یعنی حوادث جزئی گزارش می‌شوند و فرصت پیشگیری از حوادث بزرگ‌تر وجود دارد (هرم هاینریش)؛ نسبت نزدیک صفر با وجود حادثهٔ استعلاجی، نشانهٔ گزارش‌نشدن است نه ایمنی. MIR باید در کنار AFR دیده شود، نه جایگزین آن.</div>`);
   h+=sl('',`<h2>عدم‌انطباق‌ها و پیگیری اصلاحات</h2><div class="sub">هر عدم‌انطباق با محل، مسئول و مهلت ثبت و تا بسته‌شدن پیگیری می‌شود</div>
    <div class="kg">${kp(fa(c.fNew),'جدید در دوره',dl(c.fNew,pv('fNew'),'down'))}${kp(fa(c.fClosed),'بسته‌شده در دوره',dl(c.fClosed,pv('fClosed'),'up'))}${kp(closeRate==null?'—':fa(closeRate)+'٪','نسبت بسته‌شده به جدید')}${kp(fa(c.fOpen),'پشتوانهٔ باز تا امروز',`<small class="${c.fOver?'bad':'ok'}">${fa(c.fOver)} مورد از مهلت گذشته · ${fa(c.fHigh)} مورد شدت بالا</small>`)}</div>
    ${svgChart(L,[{name:'جدید',c:'var(--wa)',v:sNew,bar:1,good:'down'},{name:'بسته‌شده',c:'var(--ok)',v:sCl,bar:1,good:'up'}],{sub:SB})}`);
   h+=sl('',`<h2>بازرسی و انطباق</h2><div class="sub">بازرسی‌های میدانی HSE و نرخ انطباق چک‌لیست‌ها</div>
    <div class="kg">${kp(fa(c.rounds),'گشت بازرسی',dl(c.rounds,pv('rounds'),'up'))}${kp(fa(c.checks),'مورد کنترل‌شده',dl(c.checks,pv('checks'),'up'))}${kp(c.comp==null?'—':fa(c.comp)+'٪','نرخ انطباق',dl(c.comp,pv('comp'),'up'))}</div>
-   <div class="note">نرخ انطباق = موارد منطبق ÷ (منطبق + عدم‌انطباق). جزئیات هر ماه در گزارش دوره‌ای HSE.</div>`);
-  const trRows=Object.entries(c.byT).sort((x,y)=>y[1].p-x[1].p).map(([k,o])=>`<tr><td>${TN[k]||k}</td><td>${fa(o.n)}</td><td>${fa(o.p)}</td><td>${fa(Math.round(o.h*10)/10)}</td></tr>`).join('');
-  h+=sl('',`<h2>آموزش</h2><div class="sub">آموزش به تفکیک نوع؛ نفر-ساعت = تعداد فراگیر × مدت استاندارد (بدو استخدام ۰٫۵، دوره‌ای ۲، سایر ۰٫۲۵ ساعت)</div>
-   <div class="kg">${kp(fa(c.trN),'جلسهٔ آموزشی',dl(c.trN,pv('trN'),'up'))}${kp(fa(c.trP),'نفر آموزش‌دیده (حضور)',dl(c.trP,pv('trP'),'up'))}${kp(fa(Math.round(c.trH*10)/10),'نفر-ساعت',dl(c.trH,pv('trH'),'up'))}</div>
+   <div class="note">نرخ انطباق = موارد منطبق ÷ (منطبق + عدم‌انطباق).</div>`);
+  const trRows=Object.entries(c.byT).sort((x,y)=>y[1].p-x[1].p).map(([k,o])=>`<tr><td>${TN[k]||k}</td><td>${fa(o.n)}</td><td>${fa(o.p)}</td><td>${fa(r1(o.h))}</td></tr>`).join('');
+  h+=sl('',`<h2>آموزش</h2><div class="sub">نفر-ساعت = تعداد فراگیر × مدت ثبت‌شدهٔ جلسه (در نبود مدت: بدو استخدام ۰٫۵، دوره‌ای ۲، سایر ۰٫۲۵ ساعت)</div>
+   <div class="kg">${kp(fa(c.trN),'جلسهٔ آموزشی',dl(c.trN,pv('trN'),'up'))}${kp(fa(c.trP),'نفر آموزش‌دیده (حضور)',dl(c.trP,pv('trP'),'up'))}${kp(fa(r1(c.trH)),'نفر-ساعت',dl(c.trH,pv('trH'),'up'))}</div>
    <table><tr><th>نوع آموزش</th><th>جلسه</th><th>نفر</th><th>نفر-ساعت</th></tr>${trRows||'<tr><td colspan="4" class="mu">آموزشی در این دوره ثبت نشده است</td></tr>'}</table>`);
-  h+=sl('',`<h2>کمیتهٔ حفاظت فنی و بهداشت کار و مستندات</h2><div class="sub">برگزاری جلسات، پیگیری مصوبات و ارسال صورتجلسه به مراجع</div>
-   <div class="kg">${kp(fa(c.cmN),'جلسه',dl(c.cmN,pv('cmN'),'up'))}${kp(fa(c.ciDone),'اقدام انجام‌شده',dl(c.ciDone,pv('ciDone'),'up'))}${kp(fa(c.ciOn),'در دست اقدام')}${kp(fa(c.ciNew),'مصوبهٔ جدید')}</div>
-   <div class="note">صورتجلسه‌ها با قالب رسمی چاپ و اکسل ساخته و برای اداره کار و مرکز بهداشت ارسال و بایگانی می‌شوند.</div>`);
-  h+=sl('',`<h2>فرهنگ ایمنی و مشارکت</h2><div class="sub">تشویق و اخطار، کارت‌های خطر و اقدامات روزانهٔ HSE</div>
-   <div class="kg">${kp(fa(c.rw),'تشویق',dl(c.rw,pv('rw'),'up'))}${kp(fa(c.wr),'اخطار/تذکر',dl(c.wr,pv('wr'),'down'))}${kp(fa(c.cards),'کارت خطر / شبه‌حادثه',dl(c.cards,pv('cards'),'up'))}${kp(fa(c.wl),'اقدام ثبت‌شده در گزارش روزانه',`<small class="mu">${fa(c.wlPh)} مورد همراه با عکس</small>`)}</div>`);
-  const tot=[['مورد عدم‌انطباق',D.fin.length],['بازرسی',D.ins.length],['حادثه',D.inc.length],['جلسهٔ آموزشی',D.tr.length],['حضور آموزشی',D.ta.length],['بند صورتجلسه',D.ci.length],['اقدام روزانه',D.wl.length],['سابقهٔ اخطار/تشویق',D.ek.length]];
+  h+=sl('',`<h2>کمیتهٔ حفاظت فنی و فرهنگ ایمنی</h2><div class="sub">پیگیری مصوبات، تشویق و اخطار، کارت‌های خطر</div>
+   <div class="kg">${kp(fa(c.cmN),'جلسهٔ کمیته',dl(c.cmN,pv('cmN'),'up'))}${kp(fa(c.ciDone),'اقدام انجام‌شده',dl(c.ciDone,pv('ciDone'),'up'))}${kp(fa(c.ciOn),'در دست اقدام')}${kp(fa(c.ciNew),'مصوبهٔ جدید')}</div>
+   <div class="kg">${kp(fa(c.rw),'تشویق',dl(c.rw,pv('rw'),'up'))}${kp(fa(c.wr),'اخطار/تذکر',dl(c.wr,pv('wr'),'down'))}${kp(fa(c.cards),'کارت خطر / شبه‌حادثه',dl(c.cards,pv('cards'),'up'))}${kp(fa(c.wl),'اقدام روزانهٔ ثبت‌شده',`<small class="mu">${fa(c.wlPh)} مورد همراه عکس</small>`)}</div>`);
+  const tot=[['مورد عدم‌انطباق',D.fin.length],['بازرسی',D.ins.length],['حادثه (استعلاجی و بدون استعلاجی)',D.I.length],['جلسهٔ آموزشی',D.tr.length],['حضور آموزشی',D.ta.length],['بند صورتجلسه',D.ci.length],['اقدام روزانه',D.wl.length],['سابقهٔ اخطار/تشویق',D.ek.length]];
   h+=sl('',`<h2>نرم‌افزار جامع HSE خوارزمی</h2><div class="sub">همهٔ کار HSE در یک سامانه: ثبت، پیگیری، هشدار و گزارش خودکار</div>
    <div class="two"><div><b>ماژول‌ها</b><ul><li>چک‌لیست‌های بازرسی و پیگیری عدم‌انطباق با عکس قبل/بعد</li><li>میز کار روزانه، تقویم و وظایف دوره‌ای</li><li>بهداری، حوادث و شاخص‌های AFR / ASR / FSI</li><li>آموزش و فرم‌های چاپی (طرح درس، لیست امضا، پس از حادثه، پیمانکار)</li><li>صورتجلسهٔ کمیته با چاپ و اکسل همان فرم رسمی</li><li>اخطار و تشویق با فرم چاپی و هشدار تکرار</li><li>کارت خطر، ارزیابی واحدها و فرهنگ ایمنی</li><li>گزارش دوره‌ای، اسلایدهای قبل/بعد و گزارش واحدها</li></ul></div>
    <div><b>داده‌های ثبت‌شده در سامانه</b><table>${tot.map(([k,v])=>`<tr><td>${k}</td><td><b>${fa(v)}</b></td></tr>`).join('')}</table></div></div>`);
   h+=sl('',`<h2>پیام کلیدی و تصمیم‌های لازم از مدیریت</h2><div class="sub">این دو کادر را قبل از ارائه تکمیل کنید (فقط در همین مرورگر ذخیره می‌شود)</div>
    <b>پیام کلیدی</b><textarea id="msg" data-k="msg" placeholder="مثلاً: روند اصلاحات رو به بهبود است ولی پشتوانهٔ باز و آموزش پرسنل خط تولید نیازمند حمایت است.">${esc(LS('msg'))}</textarea>
-   <b style="display:block;margin-top:12px">تصمیم‌ها و منابع مورد نیاز (هر خط یک مورد)</b><textarea id="ask" data-k="ask" placeholder="مثلاً: بودجهٔ تعویض سقف سولهٔ ۵&#10;تخصیص نیروی اجرایی برای ۳۷۰ مورد عدم‌انطباق باز&#10;تعیین نمایندهٔ ایمنی در هر سوله">${esc(LS('ask'))}</textarea>`);
+   <b style="display:block;margin-top:12px">تصمیم‌ها و منابع مورد نیاز (هر خط یک مورد)</b><textarea id="ask" data-k="ask" placeholder="مثلاً: بودجهٔ تعویض سقف سولهٔ ۵&#10;تخصیص نیروی اجرایی برای عدم‌انطباق‌های باز&#10;تعیین نمایندهٔ ایمنی در هر سوله">${esc(LS('ask'))}</textarea>`);
   $('out').innerHTML=h;
   $('st').textContent=D.miss.length?'⚠ دریافت این جدول‌ها ناموفق بود: '+D.miss.join('، '):'';
-  document.querySelectorAll('textarea[data-k]').forEach(t=>t.oninput=()=>{SV(t.dataset.k,t.value);const l=document.getElementById('lst');if(l)l.remove()})
+  document.querySelectorAll('textarea[data-k]').forEach(t=>t.oninput=()=>SV(t.dataset.k,t.value))
 }
 const $=id=>document.getElementById(id);
-(async()=>{await load();const ps=PRESETS();$('per').innerHTML=ps.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');$('per').onchange=render;render()})();
+(async()=>{await load();const ps=PRESETS();$('per').innerHTML=ps.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');$('per').onchange=render;$('cmp').onchange=render;render()})();
 </script>
 </body>
 </html>
