@@ -220,7 +220,8 @@ async function save(approve){
   try{if(editId)await req('risks?id=eq.'+editId,'PATCH',b,'return=minimal');else{b.status=approve?'approved':'draft';b.created_by=HSEAuth.email;await req('risks','POST',b,'return=minimal')}
     $('modal').classList.remove('on');load()}catch(e){alert('خطا در ذخیره: '+e.message)}}
 $('mSave').onclick=()=>save(false);$('mApprove').onclick=()=>save(true);
-load().then(()=>{if(location.hash==='#new')openM(null)});
+load().then(()=>{if(location.hash==='#new')openM(null);
+  else if(/^#risk=/.test(location.hash)){const id=decodeURIComponent(location.hash.slice(6)),r=R.find(x=>String(x.id)===id);if(r)openM(r);else alert('این ریسک پیدا نشد (ممکن است بایگانی یا حذف شده باشد).')}});
 </script>
 </body>
 </html>

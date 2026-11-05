@@ -1492,7 +1492,7 @@ function renderIncidents() {
         const sevColor = i.severity === 'severe' || i.severity === 'fatal' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30';
         const capaDone = i.action_status === 'done';
         return `
-        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl space-y-2">
+        <div data-inc="${i.id}" class="bg-slate-800 border border-slate-700 p-4 rounded-xl space-y-2">
             <div class="flex justify-between items-start gap-2 flex-wrap">
                 <div>
                     <p class="font-bold text-sm text-white">${esc(e.first_name)} ${esc(e.last_name)} <span class="text-xs text-slate-400 font-normal">(کد ${esc(e.emp_id)} - ${esc(e.department || 'نامشخص')})</span></p>
@@ -1754,7 +1754,7 @@ function renderFollow() {
         else if (s === 'cancelled') badge = '<span class="text-[10px] border px-2 py-0.5 rounded-full bg-slate-700/50 border-slate-600 text-slate-400">لغوشده</span>';
 
         return `
-        <div class="bg-slate-800 border ${s === 'overdue' ? 'border-rose-500/50' : 'border-slate-700'} p-4 rounded-xl space-y-2">
+        <div data-fu="${f.id}" class="bg-slate-800 border ${s === 'overdue' ? 'border-rose-500/50' : 'border-slate-700'} p-4 rounded-xl space-y-2">
             <div class="flex justify-between items-start gap-2 flex-wrap">
                 <div>
                     <p class="font-bold text-sm text-white">${esc(e.first_name)} ${esc(e.last_name)} <span class="text-xs text-slate-400 font-normal">(کد ${esc(e.emp_id)} - ${esc(e.department || 'نامشخص')})</span></p>
@@ -2015,8 +2015,24 @@ async function fixIncidents() {
     await loadIncidents();
 }
 
+// لینک مستقیم از میز کار: clinic.html#inc=ID (حادثه) یا #fu=ID (پیگیری طب کار)
+function deepLink() {
+    const m = /^#(inc|fu)=(.+)$/.exec(location.hash); if (!m) return;
+    const id = decodeURIComponent(m[2]), isInc = m[1] === 'inc';
+    const tabBtn = document.querySelector('[data-tab="' + (isInc ? 'incident' : 'follow') + '"]'); if (!tabBtn) return;
+    if (isInc) { if ($('incSearch')) $('incSearch').value = ''; }
+    else {
+        if ($('fuFStatus')) $('fuFStatus').value = 'all';
+        if ($('fuSearch')) $('fuSearch').value = '';
+        if ($('fuFKind') && [...$('fuFKind').options].some(o => o.value === '')) $('fuFKind').value = '';
+    }
+    tabBtn.click();
+    const el = [...document.querySelectorAll(isInc ? '[data-inc]' : '[data-fu]')].find(d => String(isInc ? d.dataset.inc : d.dataset.fu) === id);
+    if (!el) { alert('این مورد در فهرست پیدا نشد (ممکن است حذف یا لغو شده باشد).'); return; }
+    el.scrollIntoView({ block: 'center' }); el.style.outline = '2px solid #14b8a6'; setTimeout(() => { el.style.outline = ''; }, 2500);
+}
 // بارگذاری اولیه کل داده‌ها
-loadAll();
+loadAll().then(deepLink);
 </script>
 </body>
 </html>
