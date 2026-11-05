@@ -990,6 +990,13 @@ const monthsAgo = d => Math.floor((Date.now() - new Date(d + 'T00:00:00').getTim
 const addDaysTo = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return dstr(d); };
 const sdate = d => { try { return new Date(d + 'T00:00:00').toLocaleDateString('fa-IR', { year: 'numeric', month: 'numeric', day: 'numeric' }); } catch (e) { return d; } };
 function jdSet(id, iso) { const ss = $(id).querySelectorAll('select'), j = toJal(new Date(iso + 'T00:00:00Z')); ss[0].value = j[2]; ss[1].value = j[1]; ss[2].value = j[0]; }
+/* انتخاب تاریخ شمسی + ساعت برای فرم‌های ویرایش: dtHTML(کلید، برچسب) ← dtInit(کلید، مقدار فعلی) ← dtRead(کلید، اثرانگشت اولیه) */
+const dtFp = d => dstr(d) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+const dtHTML = (k, label) => `<div class="block text-xs text-slate-300">${label}<div class="flex gap-2 mt-1 items-center"><div id="dt_${k}" class="jd" data-back="6" style="display:flex;gap:4px;flex:1"><select class="fld" style="flex:0 0 28%;min-width:0"></select><select class="fld" style="flex:1;min-width:0"></select><select class="fld" style="flex:0 0 32%;min-width:0"></select></div><input id="dtt_${k}" type="time" class="fld" style="flex:0 0 110px" dir="ltr"></div></div>`;
+function dtInit(k, val) { jdInit($('dt_' + k)); const d = new Date(val); if (isNaN(d)) return ''; try { jdSet('dt_' + k, dstr(d)); } catch (_) { } $('dtt_' + k).value = pad(d.getHours()) + ':' + pad(d.getMinutes()); return dtFp(d); }
+/* تاریخ جدید را (Date) برمی‌گرداند؛ اگر دست نخورده یا ناقص باشد null تا مقدار قبلی دست‌نخورده بماند */
+function dtRead(k, fp0) { const day = jdGet('dt_' + k), tm = $('dtt_' + k).value || '00:00'; if (!day || fp0 === day + ' ' + tm) return null; const d = new Date(day + 'T' + tm); return isNaN(d) ? null : d; }
+const dtFuture = d => d.getTime() > Date.now() + 10 * 60000;
 
 const EX_SYS = [['eye_r', 'چشم راست'], ['eye_l', 'چشم چپ'], ['ear_r', 'گوش راست'], ['ear_l', 'گوش چپ'], ['nose', 'بینی و حلق'], ['lung', 'ریه و دستگاه تنفس'], ['heart', 'قلب و عروق'], ['abd', 'شکم و گوارش'], ['msk', 'ستون فقرات و مفاصل'], ['skin', 'پوست'], ['neuro', 'اعصاب'], ['psych', 'وضعیت روانی']];
 const HIST = [['htn', 'فشار خون بالا'], ['dm', 'دیابت'], ['cardiac', 'بیماری قلبی'], ['lung', 'آسم / بیماری مزمن ریوی'], ['kidney', 'بیماری کلیه'], ['liver', 'بیماری کبد'], ['ulcer', 'زخم معده / گوارشی'], ['epilepsy', 'صرع / تشنج'], ['glaucoma', 'گلوکوم'], ['pregnancy', 'بارداری / شیردهی']];
@@ -1882,20 +1889,20 @@ function editVisit(id) {
     const v = visits.find(x => String(x.id) === String(id)); if (!v) return;
     const e = empById(v.employee_id) || {};
     const bp = (v.blood_pressure || '').split('/');
-    const dt = (() => { const d = new Date(v.visit_date); if (isNaN(d)) return ''; const z = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + 'T' + z(d.getHours()) + ':' + z(d.getMinutes()); })();
     const f = (i, l, val, ty) => `<label class="block text-xs text-slate-300">${l}<input id="ev_${i}" type="${ty || 'text'}" value="${esc(val == null ? '' : val)}" class="w-full mt-1 p-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm"></label>`;
     const ta = (i, l, val) => `<label class="block text-xs text-slate-300">${l}<textarea id="ev_${i}" rows="2" class="w-full mt-1 p-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm">${esc(val || '')}</textarea></label>`;
     const o = document.createElement('div');
     o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);overflow:auto;padding:12px';
     o.innerHTML = `<div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 max-w-lg mx-auto space-y-2" dir="rtl">
       <h3 class="font-bold text-white text-sm">✏️ ویرایش مراجعه: ${esc((e.first_name || '') + ' ' + (e.last_name || ''))}</h3>
-      ${f('date', 'تاریخ و ساعت مراجعه', dt, 'datetime-local')}${f('reason', 'علت مراجعه', v.visit_reason)}
+      ${dtHTML('v', 'تاریخ و ساعت مراجعه (شمسی)')}${f('reason', 'علت مراجعه', v.visit_reason)}
       ${ta('complaint', 'شکایت / علائم', v.chief_complaint)}${ta('diagnosis', 'ارزیابی / نتیجه', v.diagnosis)}${ta('treatments', 'اقدامات / توصیه‌ها', v.treatments_given)}
       <div class="grid grid-cols-2 gap-2">${f('sys', 'فشار بالا', bp[0], 'number')}${f('dia', 'فشار پایین', bp[1], 'number')}${f('pulse', 'ضربان', v.pulse_rate, 'number')}${f('temp', 'دما', v.temperature, 'number')}${f('spo2', 'SpO2', v.spo2, 'number')}${f('leave', 'روز استعلاجی', v.medical_leave_days || 0, 'number')}</div>
       <label class="text-xs text-slate-300 flex gap-2 items-center"><input id="ev_ref" type="checkbox" ${v.is_referred ? 'checked' : ''}> اعزام شد</label>${f('dest', 'محل اعزام', v.referral_destination)}
       <p class="text-[11px] text-slate-500">داروهای تحویلی در ویرایش تغییر نمی‌کنند؛ برای تغییر دارو، مراجعه را حذف و دوباره ثبت کنید.</p>
       <div class="flex gap-2 pt-1"><button id="ev_save" class="flex-1 bg-emerald-600 text-white rounded-lg py-2 text-sm font-bold">ذخیره</button><button id="ev_cancel" class="flex-1 bg-slate-700 text-white rounded-lg py-2 text-sm">انصراف</button></div></div>`;
     document.body.appendChild(o);
+    const fp0 = dtInit('v', v.visit_date);
     const g = i => o.querySelector('#ev_' + i), num = i => g(i).value === '' ? null : Number(g(i).value);
     g('cancel').onclick = () => o.remove();
     g('save').onclick = async () => {
@@ -1905,7 +1912,7 @@ function editVisit(id) {
         if (g('ref').checked && !g('dest').value.trim()) { alert('محل اعزام را وارد کنید.'); return; }
         const body = { visit_reason: g('reason').value.trim() || 'illness', chief_complaint: g('complaint').value.trim() || null, diagnosis: g('diagnosis').value.trim() || null, treatments_given: g('treatments').value.trim() || null,
             blood_pressure: sys ? sys + '/' + dia : null, pulse_rate: num('pulse'), temperature: num('temp'), spo2: num('spo2'), medical_leave_days: num('leave') || 0, is_referred: g('ref').checked, referral_destination: g('ref').checked ? g('dest').value.trim() : null };
-        if (g('date').value) body.visit_date = new Date(g('date').value).toISOString();
+        const nd = dtRead('v', fp0); if (nd) { if (dtFuture(nd)) { alert('تاریخ و ساعت مراجعه نمی‌تواند در آینده باشد.'); return; } body.visit_date = nd.toISOString(); }
         g('save').disabled = true; g('save').textContent = 'در حال ذخیره...';
         try { await api('clinic_visits?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: Object.assign({}, JH, { Prefer: 'return=minimal' }), body: JSON.stringify(body) }); o.remove(); await loadVisits(); }
         catch (er) { showDebug(er.message); alert('ذخیره نشد: ' + er.message); g('save').disabled = false; g('save').textContent = 'ذخیره'; }
@@ -1996,6 +2003,7 @@ function editIncident(id) {
     o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);overflow:auto;padding:12px';
     o.innerHTML = `<div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 max-w-lg mx-auto space-y-2" dir="rtl">
       <h3 class="font-bold text-white text-sm">✏️ ویرایش حادثه: ${esc((e.first_name || '') + ' ' + (e.last_name || ''))} <span class="text-slate-400 font-normal">(${fdate(i.incident_date)})</span></h3>
+      ${dtHTML('i', 'تاریخ و ساعت حادثه (شمسی)')}
       ${f('loc', 'محل حادثه', i.location)}
       <label class="block text-xs text-slate-300">شدت حادثه<select id="ei_sev" class="w-full mt-1 p-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm"><option value="">— انتخاب کنید —</option>${Object.entries(SEV_TXT).map(([k, v]) => `<option value="${k}" ${sev === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
       ${f('cause', 'علت حادثه', i.accident_cause || (!sev && i.severity) || '')}
@@ -2006,14 +2014,18 @@ function editIncident(id) {
       ${f('ssb', 'شعبه تامین اجتماعی', i.ss_branch)}${f('ssd', 'تاریخ ارسال گزارش', i.ss_report_date)}
       <div class="flex gap-2 pt-1"><button id="ei_save" class="flex-1 bg-emerald-600 text-white rounded-lg py-2 text-sm font-bold">ذخیره (تایید مدیر)</button><button id="ei_cancel" class="flex-1 bg-slate-700 text-white rounded-lg py-2 text-sm">انصراف</button></div></div>`;
     document.body.appendChild(o);
+    const fp0 = dtInit('i', i.incident_date);
     const g = k => o.querySelector('#ei_' + k);
     g('cancel').onclick = () => o.remove();
     g('save').onclick = async () => {
         if (!g('sev').value) { alert('شدت حادثه را انتخاب کنید.'); return; }
-        if (!confirm('تغییرات این حادثه ثبت شود؟')) return;
+        const nd = dtRead('i', fp0);
+        if (nd && dtFuture(nd)) { alert('تاریخ و ساعت حادثه نمی‌تواند در آینده باشد.'); return; }
+        if (!confirm(nd ? 'تاریخ و ساعت حادثه تغییر می‌کند و در آمار ماهانه و شاخص‌ها (AFR/ASR) اثر دارد. تغییرات ثبت شود؟' : 'تغییرات این حادثه ثبت شود؟')) return;
         const body = { location: g('loc').value.trim(), severity: g('sev').value, accident_cause: g('cause').value.trim() || null, body_part: g('body').value.trim() || null, description: g('desc').value.trim(),
             unsafe_act: g('act').value.trim() || null, unsafe_condition: g('cond').value.trim() || null, referral_place: g('ref').value.trim() || null,
             social_security_reported: g('ss').checked, ss_branch: g('ss').checked ? (g('ssb').value.trim() || null) : null, ss_report_date: g('ss').checked ? (g('ssd').value.trim() || null) : null };
+        if (nd) body.incident_date = nd.toISOString();
         g('save').disabled = true; g('save').textContent = 'در حال ذخیره...';
         try { await patchInc(id, body); o.remove(); if (window._incColMissing) alert('ستون‌های محل اعزام/علت هنوز ساخته نشده‌اند؛ فایل hse_incident_edit.sql را اجرا کنید. بقیهٔ تغییرات ذخیره شد.'); await loadIncidents(); }
         catch (er) { showDebug(er.message); alert('ذخیره نشد: ' + er.message); g('save').disabled = false; g('save').textContent = 'ذخیره (تایید مدیر)'; }
