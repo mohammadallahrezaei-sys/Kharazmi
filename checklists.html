@@ -1664,7 +1664,7 @@ async function techCompare(file) {
     if (!T.length) { out.innerHTML = '<div class="q bad">ردیفی با اولویت «HSE» در فایل پیدا نشد (ستون‌های «اولویت» و «شماره» لازم است).</div>'; return; }
     const tk = st => /خاتمه|انجام شده/.test(st) ? 'closed' : /باطل/.test(st) ? 'cancelled' : 'open';
     T.forEach(t => t.k = tk(t.st));
-    let rows = []; for (let o = 0; o < 40000; o += 1000) { const r = await api('findings?select=id,module,question,note,location,status,notice_code&order=id.asc&limit=1000&offset=' + o); rows = rows.concat(r || []); if (!r || r.length < 1000) break; }
+    let rows = []; for (let o = 0; o < 40000; o += 1000) { const r = await api('findings?select=id,module,question,note,location,status,notice_code,created_at,closed_at&order=id.asc&limit=1000&offset=' + o); rows = rows.concat(r || []); if (!r || r.length < 1000) break; }
     rows = rows.filter(x => x.module != 'MED');
     const appBy = {}; rows.forEach(x => { const d = dig(x.notice_code); if (d) (appBy[d] = appBy[d] || []).push(x); });
     const techBy = {}; T.forEach(t => techBy[t.no] = t);
@@ -1677,6 +1677,10 @@ async function techCompare(file) {
     const notInTech = rows.filter(x => dig(x.notice_code) && !techBy[dig(x.notice_code)]);
     const mism = []; T.forEach(t => (appBy[t.no] || []).forEach(x => { if (x.status != t.k) mism.push({ t, x }); }));
     const dupNo = Object.entries(appBy).filter(([n, L]) => L.length > 1 && techBy[n]); dupNo.forEach(([n, L]) => L.sort((a, b) => a.id - b.id));
+    /* تاریخ ثبت اشتباه (مثلاً ایمپورت یک‌جا در یک ماه): تاریخ واقعی = «تاریخ ایجاد» اعلان در فایل فنی */
+    const tDay = iso => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Tehran' });
+    const dfix = []; rows.forEach(x => { const t = allBy[dig(x.notice_code)]; if (!t || !x.created_at) return; const m = String(t.date).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).match(/(1[34]\d\d)[\/\-](\d{1,2})[\/\-](\d{1,2})/); if (!m) return; const g = j2g(+m[1], +m[2], +m[3]), iso = g[0] + '-' + String(g[1]).padStart(2, '0') + '-' + String(g[2]).padStart(2, '0'); if (iso === tDay(x.created_at)) return; dfix.push({ id: x.id, no: t.no, jd: t.date, iso, old: tDay(x.created_at), cl: x.status == 'closed' && x.closed_at && tDay(x.closed_at) === tDay(x.created_at) }); });
+    window._dfix = dfix;
     const stA = { open: 'باز', closed: 'اصلاح‌شده', cancelled: 'لغو' }, stT = { open: 'در جریان', closed: 'بسته', cancelled: 'باطل' };
     const DELB = x => window.HSEAuth && HSEAuth.role === 'manager' ? `<br><button class="l" data-a="fdel" data-id="${x.id}" style="margin-top:4px; color:var(--bad); min-height:32px;">🗑 حذف این مورد از برنامه</button>` : '';
     const lim = (a, f) => a.slice(0, 80).map(f).join('') + (a.length > 80 ? `<small>و ${fa(a.length - 80)} مورد دیگر...</small>` : '');
@@ -1693,6 +1697,11 @@ async function techCompare(file) {
       ${sec('۲) وضعیت متفاوت بین فنی و برنامه', mism.length, lim(mism, m => li(`<b>#${esc(m.t.no)}</b> فنی: ${stT[m.t.k]} (${esc(m.t.st)}) ↔ برنامه: ${stA[m.x.status] || esc(m.x.status)} (مورد #${esc(m.x.id)})<br>${esc(m.t.txt)}`)))}
       ${sec('۳) مورد برنامه که کد اعلانش در فایل فنی (HSE) نیست', notInTech.length, lim(notInTech, x => { const o = allBy[dig(x.notice_code)]; return `<div data-dr>${li(`مورد #${esc(x.id)} · کد «${esc(x.notice_code)}» · ${esc(x.question || '')}<br><small style="color:var(--wa)">${o ? 'این شماره در فایل فنی هست ولی اولویتش «' + esc(o.pr || 'بدون اولویت') + '» و گزارش‌دهنده «' + esc(o.by) + '» است — جزو ۶۳۴ نیست' : 'این شماره اصلاً در فایل فنی نیست (احتمالاً اشتباه تایپی)'}</small>` + DELB(x))}</div>`; }))}
       ${sec('۵) موارد برنامه بدون کد اعلان (هنوز در فنی ثبت نشده، یا تکراری)', freeAll.length, lim(freeAll, x => `<div data-dr>${li(`مورد #${esc(x.id)} · ${esc(stA[x.status] || x.status)} · ${esc(x.location || '')}<br>${esc(x.question || '')}` + DELB(x))}</div>`))}
+      <details class="q" style="margin-top:8px; border-color:var(--warn);" ${dfix.length ? 'open' : ''}><summary style="cursor:pointer; font-weight:700;">۶) تاریخ ثبت با تاریخ واقعی اعلان فنی نمی‌خواند — ${fa(dfix.length)} مورد</summary>
+        ${dfix.length ? `<small>تاریخ ثبت این موارد (احتمالاً بر اثر ایمپورت یک‌جا) با «تاریخ ایجاد» اعلان در فایل فنی جایگزین می‌شود. از این‌ها ${fa(dfix.filter(d => d.cl).length)} مورد بسته‌شده هستند که تاریخ بسته‌شدنشان همان روز ثبت قدیمی است (در فایل فنی تاریخ بسته‌شدن نیست).</small>
+        <label class="fx" style="display:block; margin:6px 0;"><input type="checkbox" id="dfixcl" checked> تاریخ بسته‌شدنِ نامعلوم این موارد خالی شود (در گزارش‌های ماهانه حساب نشوند، نه اینکه مهرماه محسوب شوند)</label>
+        ${lim(dfix, d => li(`مورد #${esc(d.id)} · اعلان ${esc(d.no)} · ثبت فعلی ${esc(d.old)} ← ${esc(d.jd)}${d.cl ? ' · (بسته؛ تاریخ بسته‌شدن مشکوک)' : ''}`))}
+        <button class="l" data-a="datefix" style="margin-top:6px;">✅ اصلاح تاریخ ${fa(dfix.length)} مورد</button><div id="dfixout" style="font-size:13px; margin-top:4px;"></div>` : '<small>همهٔ موارد دارای کد اعلان با تاریخ فنی یکسان‌اند ✅</small>'}</details>
       ${sec('۴) یک اعلان فنی که چند بار در برنامه ثبت شده (تکراری)', dupNo.length, lim(dupNo, ([n, L]) => li(`<b>اعلان #${esc(n)}</b> در ${fa(L.length)} مورد برنامه — یکی را نگه دارید و بقیه را حذف کنید<br><small>${esc(techBy[n].txt)}</small>` + L.map((x, i) => `<div data-dr style="margin-top:6px; padding:4px 0; border-top:1px dashed var(--bd);">${i == 0 ? '✅ نگه‌داشتن (قدیمی‌ترین) ' : '⚠️ تکراری '}#${esc(x.id)} · ${esc(stA[x.status] || x.status)} · ${esc(x.question || '')}${i ? DELB(x) : ''}</div>`).join(''))))}`;
   } catch (e) { out.innerHTML = '<div class="q bad">خطا: ' + esc(e.message) + '</div>'; }
 }
@@ -2433,6 +2442,13 @@ document.onclick = async e => {
   else if (a == 'send') send();
   else if (a == 'finds') finds();
   else if (a == 'recon') recon();
+  else if (a == 'datefix') {
+    const L = window._dfix || [], nul = $('#dfixcl') && $('#dfixcl').checked, o = $('#dfixout'); if (!L.length) return;
+    if (!confirm('تاریخ ثبت ' + L.length + ' مورد اصلاح شود؟ (قابل بازگشت نیست)')) return;
+    let ok = 0, bad = 0; t.disabled = true;
+    for (let i = 0; i < L.length; i += 8) { await Promise.all(L.slice(i, i + 8).map(async d => { try { const b = { created_at: d.iso + 'T08:00:00+03:30', notice_at: d.iso + 'T08:00:00+03:30' }; if (nul && d.cl) b.closed_at = null; await api('findings?id=eq.' + d.id, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(b) }); ok++; } catch (e) { bad++; } })); if (o) o.textContent = 'در حال اصلاح... ' + fa(ok + bad) + ' از ' + fa(L.length); }
+    if (o) o.innerHTML = '<b>' + fa(ok) + '</b> مورد اصلاح شد' + (bad ? ' — <b style="color:var(--bad)">' + fa(bad) + '</b> خطا' : '') + '. برای دیدن نتیجه دوباره فایل را انتخاب کنید.'; t.disabled = false;
+  }
   else if (a == 'ttcopy') { navigator.clipboard.writeText(window._ttxt || '').then(() => alert('کپی شد'), () => prompt('کپی کنید:', window._ttxt || '')); }
   else if (a == 'dups') dups(t.dataset.k == 'all');
   else if (a == 'dcopy') { navigator.clipboard.writeText(window._dtxt || '').then(() => alert('لیست کپی شد'), () => prompt('کپی کنید:', window._dtxt || '')); }
