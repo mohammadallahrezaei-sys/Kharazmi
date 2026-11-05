@@ -34,7 +34,7 @@ textarea{width:100%;font-family:inherit;font-size:15px;padding:10px;border-radiu
 </head>
 <body>
 <div class="w">
- <div class="np"><b>گزارش مدیریتی یکپارچه</b><select id="per"></select><select id="cmp"><option value="prev">مقایسه با: دورهٔ قبل هم‌طول</option><option value="ly">مقایسه با: همین بازه در سال قبل</option></select><button class="p" onclick="print()">چاپ / ذخیره PDF</button><a class="b" href="report.html">گزارش دوره‌ای</a><a class="b" href="checklists.html#rep">اسلایدهای قبل/بعد</a><a class="b" href="indices.html">شاخص حوادث</a><span class="mu" id="st">در حال دریافت اطلاعات...</span></div>
+ <div class="np"><b>گزارش مدیریتی یکپارچه</b><select id="per"></select><button class="p" onclick="print()">چاپ / ذخیره PDF</button><a class="b" href="report.html">گزارش دوره‌ای</a><a class="b" href="checklists.html#rep">اسلایدهای قبل/بعد</a><a class="b" href="indices.html">شاخص حوادث</a><span class="mu" id="st">در حال دریافت اطلاعات...</span></div>
  <div id="out"></div>
 </div>
 <script>
@@ -154,7 +154,7 @@ function calc(a,b){
   c.months=ks.length;
   return c}
 const f1=v=>v==null?'—':fa(r2(v));
-const dl=(v,p,good)=>{if(p==null||v==null)return'';const d=v-p;if(Math.abs(d)<1e-9)return`<small class="mu">■ بدون تغییر (قبلی: ${fa(r1(p))})</small>`;const g=(d>0)===(good!=='down');return`<small class="${g?'ok':'bad'}">${d>0?'▲':'▼'} ${fa(r1(Math.abs(d)))} ${d>0?'بیشتر':'کمتر'} از دورهٔ قبل (قبلی: ${fa(r1(p))})</small>`};
+const dl=(v,p,good)=>{if(p==null||v==null)return'';const d=v-p;if(Math.abs(d)<1e-9)return`<small class="mu">■ بدون تغییر نسبت به سال قبل (قبلی: ${fa(r1(p))})</small>`;const g=(d>0)===(good!=='down');return`<small class="${g?'ok':'bad'}">${d>0?'▲':'▼'} ${fa(r1(Math.abs(d)))} ${d>0?'بیشتر':'کمتر'} از سال قبل (قبلی: ${fa(r1(p))})</small>`};
 const kp=(v,l,x)=>`<div class="kp"><b>${v}</b><span>${l}</span>${x||''}</div>`;
 let TICKS=0;const sl=(cls,inner)=>`<section class="slide ${cls||''}">${inner}<div class="pn">${fa(++TICKS)}</div></section>`;
 const LS=k=>{try{return localStorage.getItem('mgmt_'+k)||''}catch(e){return''}},SV=(k,v)=>{try{localStorage.setItem('mgmt_'+k,v)}catch(e){}};
@@ -171,14 +171,14 @@ function swot(c,p,hasP,nm){
   if(c.comp!=null){
     if(c.comp>=90)S.push([`نرخ انطباق بازرسی‌ها ${fa(c.comp)}٪ است (بالای ۹۰٪)`,'']);
     else if(c.comp<85)W.push([`نرخ انطباق بازرسی‌ها ${fa(c.comp)}٪ است (کمتر از ۸۵٪)`,'تمرکز بازرسی روی واحدهای کم‌امتیاز و پیگیری علل تکرارشونده.']);
-    if(hasP&&p.comp!=null&&c.comp-p.comp>=3)S.push([`نرخ انطباق ${fa(c.comp-p.comp)} درصد نسبت به دورهٔ قبل بهتر شده`,'']);
-    if(hasP&&p.comp!=null&&p.comp-c.comp>=3)W.push([`نرخ انطباق ${fa(p.comp-c.comp)} درصد نسبت به دورهٔ قبل افت کرده`,'بررسی علت افت (واحد/موضوع) در بازرسی بعدی.'])}
+    if(hasP&&p.comp!=null&&c.comp-p.comp>=3)S.push([`نرخ انطباق ${fa(c.comp-p.comp)} درصد نسبت به سال قبل بهتر شده`,'']);
+    if(hasP&&p.comp!=null&&p.comp-c.comp>=3)W.push([`نرخ انطباق ${fa(p.comp-c.comp)} درصد نسبت به سال قبل افت کرده`,'بررسی علت افت (واحد/موضوع) در بازرسی بعدی.'])}
   if(!c.rounds)W.push(['در این دوره گشت بازرسی ثبت نشده است','برنامهٔ بازرسی دوره‌ای تعریف و ثبت شود.']);
   else if(hasP&&p.rounds&&c.rounds>p.rounds)S.push([`تعداد گشت‌های بازرسی از ${fa(p.rounds)} به ${fa(c.rounds)} رسیده`,'']);
   /* حوادث */
   if(c.lt===0&&c.H)S.push([`حادثهٔ استعلاجی (واردشونده در شاخص) نداشتیم؛ AFR = ۰`,'']);
   else if(c.lt>0){if(hasP&&p.lt!=null&&c.lt<p.lt)S.push([`حوادث استعلاجی از ${fa(p.lt)} به ${fa(c.lt)} کاهش یافته`,'']);
-    else W.push([`${fa(c.lt)} حادثهٔ استعلاجی با ${fa(c.days)} روز کاری از دست‌رفته${hasP&&p.lt!=null?` (دورهٔ قبل: ${fa(p.lt)} حادثه)`:''}`,'بررسی علت ریشه‌ای هر حادثه و ثبت اقدام اصلاحی در صورتجلسه.'])}
+    else W.push([`${fa(c.lt)} حادثهٔ استعلاجی با ${fa(c.days)} روز کاری از دست‌رفته${hasP&&p.lt!=null?` (سال قبل: ${fa(p.lt)} حادثه)`:''}`,'بررسی علت ریشه‌ای هر حادثه و ثبت اقدام اصلاحی در صورتجلسه.'])}
   if(c.fatal)W.push([`${fa(c.fatal)} حادثهٔ منجر به فوت ثبت شده`,'گزارش و پیگیری قانونی/اصلاحی فوری.']);
   if(c.lt>0&&c.nl===0)W.push(['حوادث بدون استعلاجی ثبت نشده در حالی که حادثهٔ استعلاجی داریم؛ احتمال گزارش‌نشدن حوادث جزئی','ترویج گزارش‌دهی حوادث جزئی و شبه‌حادثه (کارت خطر).']);
   if(c.nl>0&&c.lt>0&&c.nl/c.lt>=3)S.push([`نسبت گزارش حوادث جزئی به استعلاجی ${fa(r1(c.nl/c.lt))} به ۱ است؛ فرهنگ گزارش‌دهی فعال است`,'']);
@@ -188,8 +188,8 @@ function swot(c,p,hasP,nm){
   else{S.push([`${fa(c.trN)} جلسهٔ آموزشی با ${fa(c.trP)} نفر حضور (${fa(r1(c.trH))} نفر-ساعت)`,'']);
     if(!c.byT.periodic)W.push(['آموزش دوره‌ای (ایمنی عمومی/ارتقای آگاهی) ثبت نشده','دورهٔ آموزشی دوره‌ای برای پرسنل خط تولید برنامه‌ریزی شود.']);
     if(!c.byT.contractor&&nm>=3)W.push(['آموزش پیمانکاران در این دوره ثبت نشده','آموزش ورود پیمانکاران الزامی و ثبت شود.']);
-    if(hasP&&p.trH>0&&c.trH<p.trH*0.7)W.push([`نفر-ساعت آموزش ${fa(Math.round((1-c.trH/p.trH)*100))}٪ کمتر از دورهٔ قبل است`,'']);
-    if(hasP&&c.trH>p.trH*1.3&&p.trH>0)S.push([`نفر-ساعت آموزش ${fa(Math.round((c.trH/p.trH-1)*100))}٪ بیشتر از دورهٔ قبل است`,''])}
+    if(hasP&&p.trH>0&&c.trH<p.trH*0.7)W.push([`نفر-ساعت آموزش ${fa(Math.round((1-c.trH/p.trH)*100))}٪ کمتر از سال قبل است`,'']);
+    if(hasP&&c.trH>p.trH*1.3&&p.trH>0)S.push([`نفر-ساعت آموزش ${fa(Math.round((c.trH/p.trH-1)*100))}٪ بیشتر از سال قبل است`,''])}
   /* کمیته */
   if(!c.cmN&&nm>=2)W.push(['در این دوره جلسهٔ کمیتهٔ حفاظت فنی برگزار/ثبت نشده','برگزاری جلسه با دستور مشخص و ثبت صورتجلسه.']);
   else if(c.cmN)S.push([`${fa(c.cmN)} جلسهٔ کمیته برگزار و مصوبات پیگیری شد (${fa(c.ciDone)} اقدام انجام‌شده)`,'']);
@@ -201,15 +201,16 @@ function swot(c,p,hasP,nm){
   return{S,W}}
 function dataNotes(c,nm){const n=[];if(!D.hasMH)n.push('جدول ساعت کارکرد (hse_manhours) در دسترس نیست؛ شاخص‌های AFR/ASR/MIR محاسبه نشد.');else if(c.hMiss>0)n.push(`ساعت کارکرد ${fa(c.hMiss)} ماه از ${fa(c.months)} ماه این دوره ثبت نشده؛ شاخص‌های نرخ‌محور ناقص است.`);if(D.miss.length)n.push('دریافت این جدول‌ها ناموفق بود: '+D.miss.join('، '));return n}
 function render(){
-  TICKS=0;const P=PRESETS().find(x=>x[0]===$('per').value)||PRESETS()[0],[,pl,a,b]=P,nm=nMonths(a,b),cmp=$('cmp').value;
-  let pa,pb;if(cmp==='ly'){pa=addM(a,-12);pb=addM(b,-12)}else{pb=addM(a,-1);pa=addM(a,-nm)}
+  TICKS=0;const P=PRESETS().find(x=>x[0]===$('per').value)||PRESETS()[0],[,pl,a,b]=P,nm=nMonths(a,b);
+  const pa=addM(a,-12),pb=addM(b,-12);
   const c=calc(a,b),p=calc(pa,pb),hasP=!D.first||pb>=D.first,partial=D.first&&pa<D.first&&hasP;
   const pv=f=>hasP?p[f]:null,PL=perL(pa,pb),CL=perL(a,b);
-  const cmpTxt=hasP?`<div class="cmp">مقایسه با: <b>${cmp==='ly'?'همین بازه در سال قبل':'دورهٔ قبل هم‌طول'}</b> (${PL})${partial?` — توجه: ثبت داده در سامانه از ${lab(D.first)} شروع شده و دورهٔ قبل ناقص است`:''}</div>`:`<div class="cmp">برای دورهٔ قبل (${PL}) داده‌ای در سامانه ثبت نشده؛ مقایسه نمایش داده نمی‌شود.</div>`;
-  const M=[];for(let i=11;i>=0;i--)M.push(addM(nowK,-i));
-  const L=M.map(k=>MN[+k.slice(5)-1]),SB=M.map(k=>fa(k.slice(0,4)));
-  const sNew=M.map(k=>D.fin.filter(f=>jk(f.created_at)===k).length),sCl=M.map(k=>D.fin.filter(f=>f.status==='closed'&&jk(f.closed_at)===k).length);
-  const sLT=M.map(k=>D.I.filter(x=>x.k===k&&x.lost>0).length),sNL=M.map(k=>D.I.filter(x=>x.k===k&&!(x.lost>0)).length);
+  const cmpTxt=hasP?`<div class="cmp">مقایسه با: <b>همین ماه‌ها در سال قبل</b> (${PL})${partial?` — توجه: ثبت داده در سامانه از ${lab(D.first)} شروع شده و سال قبل ناقص است`:''}</div>`:`<div class="cmp">برای همین ماه‌ها در سال قبل (${PL}) داده‌ای در سامانه ثبت نشده؛ مقایسه نمایش داده نمی‌شود.</div>`;
+  const M=[];for(let k=a;k<=b;k=addM(k,1))M.push(k);
+  const L=M.map(k=>MN[+k.slice(5)-1]),SB=M.map(k=>fa(k.slice(0,4))),MP=M.map(k=>addM(k,-12));
+  const mc=M.map(k=>calc(k,k)),mp=MP.map(k=>calc(k,k)),pre=D.first&&MP.some(k=>k<D.first);
+  const PR=(f,o)=>[{name:'این دوره',c:'var(--ac)',v:mc.map(x=>x[f]),bar:1,good:o},{name:'همین ماه در سال قبل',c:'#94a3b8',v:mp.map(x=>x[f]),bar:1,good:o}];
+  const mnote=`<div class="note">هر ماه با همان ماه سال قبل مقایسه شده (ستون روشن = امسال، ستون خاکستری = سال قبل). ${pre?'ماه‌هایی از سال قبل که پیش از شروع ثبت در سامانه‌اند صفر دیده می‌شوند و مقایسهٔ معتبر ندارند.':''}</div>`;
   const closeRate=c.fNew?Math.round(c.fClosed/c.fNew*100):null,sw=swot(c,p,hasP,nm),notes=dataNotes(c,nm);
   let h='';
   h+=sl('cover',`<div class="sub">گسترش فناوری خوارزمی · واحد HSE</div><h1>گزارش عملکرد HSE</h1><div class="sub">دورهٔ گزارش: <b>${CL}</b> (${fa(nm)} ماه)</div>${cmpTxt}
@@ -218,8 +219,8 @@ function render(){
    <div class="two"><div><b class="ok">✔ نقاط قوت (${fa(sw.S.length)})</b><ul class="sw">${sw.S.map(x=>`<li>${x[0]}</li>`).join('')||'<li class="mu">موردی که با داده تأیید شود یافت نشد.</li>'}</ul></div>
    <div><b class="bad">✖ نقاط ضعف و اقدام لازم (${fa(sw.W.length)})</b><ul class="sw">${sw.W.map(x=>`<li>${x[0]}${x[1]?`<br><small class="mu">← ${x[1]}</small>`:''}</li>`).join('')||'<li class="mu">ضعفی با قواعد این گزارش یافت نشد.</li>'}</ul></div></div>
    ${notes.length?`<div class="note bad">محدودیت داده: ${notes.join(' · ')}</div>`:''}`);
-  h+=sl('',`<h2>حجم کار انجام‌شده HSE</h2><div class="sub">همهٔ ورودی‌های ثبت‌شده در سامانه، ${CL} در برابر ${hasP?PL:'دورهٔ قبل (بدون داده)'}</div>
-   <table><tr><th>فعالیت</th><th>این دوره</th><th>دورهٔ قبل</th></tr>${[['گشت بازرسی میدانی','rounds'],['مورد کنترل‌شده در بازرسی‌ها','checks'],['عدم‌انطباق جدید ثبت‌شده','fNew'],['عدم‌انطباق اصلاح‌شده و بسته‌شده','fClosed'],['جلسهٔ آموزشی','trN'],['نفر آموزش‌دیده (حضور)','trP'],['جلسهٔ کمیتهٔ حفاظت فنی','cmN'],['اقدام روزانه در گزارش کار HSE','wl'],['تشویق','rw'],['اخطار/تذکر','wr'],['کارت خطر/شبه‌حادثه','cards']].map(([n,f])=>`<tr><td>${n}</td><td><b>${fa(c[f])}</b></td><td class="mu">${hasP?fa(p[f]):'—'}</td></tr>`).join('')}</table>`);
+  h+=sl('',`<h2>حجم کار انجام‌شده HSE</h2><div class="sub">همهٔ ورودی‌های ثبت‌شده در سامانه، ${CL} در برابر ${hasP?PL:'سال قبل (بدون داده)'}</div>
+   <table><tr><th>فعالیت</th><th>این دوره</th><th>سال قبل</th></tr>${[['گشت بازرسی میدانی','rounds'],['مورد کنترل‌شده در بازرسی‌ها','checks'],['عدم‌انطباق جدید ثبت‌شده','fNew'],['عدم‌انطباق اصلاح‌شده و بسته‌شده','fClosed'],['جلسهٔ آموزشی','trN'],['نفر آموزش‌دیده (حضور)','trP'],['جلسهٔ کمیتهٔ حفاظت فنی','cmN'],['اقدام روزانه در گزارش کار HSE','wl'],['تشویق','rw'],['اخطار/تذکر','wr'],['کارت خطر/شبه‌حادثه','cards']].map(([n,f])=>`<tr><td>${n}</td><td><b>${fa(c[f])}</b></td><td class="mu">${hasP?fa(p[f]):'—'}</td></tr>`).join('')}</table>`);
   const nlTbl=`<table><tr><th>گروه حادثه</th><th>تعداد</th><th>قبلی</th></tr>
    <tr><td><b>استعلاجی</b> (واردشونده در AFR/ASR/FSI)</td><td><b>${fa(c.lt)}</b></td><td class="mu">${hasP?fa(p.lt):'—'}</td></tr>
    <tr><td>بدون استعلاجی — جزئی</td><td>${fa(c.nlMin)}</td><td class="mu">${hasP?fa(p.nlMin):'—'}</td></tr>
@@ -228,21 +229,22 @@ function render(){
   h+=sl('',`<h2>حوادث؛ ۱) استعلاجی (در شاخص)</h2><div class="sub">حوادثی که روز کاری از دست رفته؛ مبنای AFR، ASR و FSI در صفحهٔ شاخص حوادث</div>
    <div class="kg">${kp(fa(c.lt),'حادثهٔ استعلاجی',dl(c.lt,pv('lt'),'down'))}${kp(fa(c.days),'روز کاری از دست‌رفته',dl(c.days,pv('days'),'down'))}${kp(f1(c.afr),'AFR (به ازای یک میلیون ساعت)',dl(c.afr,pv('afr'),'down'))}${kp(f1(c.asr),'ASR (روز از دست‌رفته به ازای هزار ساعت)',dl(c.asr,pv('asr'),'down'))}${kp(f1(c.fsi),'FSI (شاخص ترکیبی)',dl(c.fsi,pv('fsi'),'down'))}</div>
    <div class="note">ساعت کارکرد این دوره: ${c.H?fa(Math.round(c.H).toLocaleString('en-US')):'ثبت نشده'}${c.hMiss?` (ساعت ${fa(c.hMiss)} ماه ثبت نشده)`:''}. ${c.fatal?`شامل ${fa(c.fatal)} حادثهٔ فوتی.`:''}</div>
-   <div style="margin-top:8px"><b>روند ۱۲ ماه اخیر: استعلاجی در برابر بدون استعلاجی</b></div>${svgChart(L,[{name:'استعلاجی',c:'var(--bad)',v:sLT,bar:1,good:'down'},{name:'بدون استعلاجی',c:'var(--wa)',v:sNL,bar:1,good:'down'}],{sub:SB})}`);
+   <div style="margin-top:8px"><b>حوادث استعلاجی در هر ماه: امسال در برابر سال قبل</b></div>${svgChart(L,PR('lt','down'),{sub:SB})}${mnote}`);
   h+=sl('',`<h2>حوادث؛ ۲) بدون استعلاجی (شاخص جدید)</h2><div class="sub">حوادثی که در AFR نمی‌آیند ولی نشان‌دهندهٔ ریسک و سلامت گزارش‌دهی‌اند</div>
    <div class="kg">${kp(fa(c.nl),'حادثهٔ بدون استعلاجی',dl(c.nl,pv('nl'),'down'))}${kp(f1(c.mir),'MIR: نرخ حوادث بدون استعلاجی (به ازای یک میلیون ساعت)',dl(c.mir,pv('mir'),'down'))}${kp(c.ratio==null?'—':fa(r1(c.ratio))+' به ۱','نسبت جزئی به استعلاجی',hasP&&p.ratio!=null?`<small class="mu">قبلی: ${fa(r1(p.ratio))} به ۱</small>`:'')}</div>
    ${nlTbl}
+   <div style="margin-top:8px"><b>حوادث بدون استعلاجی در هر ماه: امسال در برابر سال قبل</b></div>${svgChart(L,PR('nl','down'),{sub:SB})}
    <div class="note"><b>تعریف شاخص‌ها:</b> MIR = (حوادث بدون استعلاجی × ۱٬۰۰۰٬۰۰۰) ÷ ساعت کارکرد، با همان مبنای AFR. نسبت جزئی به استعلاجی = تعداد حوادث بدون استعلاجی ÷ حوادث استعلاجی. <b>چطور بخوانیم:</b> نسبت بالاتر یعنی حوادث جزئی گزارش می‌شوند و فرصت پیشگیری از حوادث بزرگ‌تر وجود دارد (هرم هاینریش)؛ نسبت نزدیک صفر با وجود حادثهٔ استعلاجی، نشانهٔ گزارش‌نشدن است نه ایمنی. MIR باید در کنار AFR دیده شود، نه جایگزین آن.</div>`);
   h+=sl('',`<h2>عدم‌انطباق‌ها و پیگیری اصلاحات</h2><div class="sub">هر عدم‌انطباق با محل، مسئول و مهلت ثبت و تا بسته‌شدن پیگیری می‌شود</div>
    <div class="kg">${kp(fa(c.fNew),'جدید در دوره',dl(c.fNew,pv('fNew'),'down'))}${kp(fa(c.fClosed),'بسته‌شده در دوره',dl(c.fClosed,pv('fClosed'),'up'))}${kp(closeRate==null?'—':fa(closeRate)+'٪','نسبت بسته‌شده به جدید')}${kp(fa(c.fOpen),'پشتوانهٔ باز تا امروز',`<small class="${c.fOver?'bad':'ok'}">${fa(c.fOver)} مورد از مهلت گذشته · ${fa(c.fHigh)} مورد شدت بالا</small>`)}</div>
-   ${svgChart(L,[{name:'جدید',c:'var(--wa)',v:sNew,bar:1,good:'down'},{name:'بسته‌شده',c:'var(--ok)',v:sCl,bar:1,good:'up'}],{sub:SB})}`);
+   <div class="two"><div><b>عدم‌انطباق جدید در هر ماه</b>${svgChart(L,PR('fNew','down'),{sub:SB})}</div><div><b>عدم‌انطباق بسته‌شده در هر ماه</b>${svgChart(L,PR('fClosed','up'),{sub:SB})}</div></div>${mnote}`);
   h+=sl('',`<h2>بازرسی و انطباق</h2><div class="sub">بازرسی‌های میدانی HSE و نرخ انطباق چک‌لیست‌ها</div>
    <div class="kg">${kp(fa(c.rounds),'گشت بازرسی',dl(c.rounds,pv('rounds'),'up'))}${kp(fa(c.checks),'مورد کنترل‌شده',dl(c.checks,pv('checks'),'up'))}${kp(c.comp==null?'—':fa(c.comp)+'٪','نرخ انطباق',dl(c.comp,pv('comp'),'up'))}</div>
-   <div class="note">نرخ انطباق = موارد منطبق ÷ (منطبق + عدم‌انطباق).</div>`);
+   <b>نرخ انطباق ماهانه (٪)</b>${svgChart(L,PR('comp','up'),{max:100,min:50,sub:SB})}<div class="note">نرخ انطباق = موارد منطبق ÷ (منطبق + عدم‌انطباق).</div>${mnote}`);
   const trRows=Object.entries(c.byT).sort((x,y)=>y[1].p-x[1].p).map(([k,o])=>`<tr><td>${TN[k]||k}</td><td>${fa(o.n)}</td><td>${fa(o.p)}</td><td>${fa(r1(o.h))}</td></tr>`).join('');
   h+=sl('',`<h2>آموزش</h2><div class="sub">نفر-ساعت = تعداد فراگیر × مدت ثبت‌شدهٔ جلسه (در نبود مدت: بدو استخدام ۰٫۵، دوره‌ای ۲، سایر ۰٫۲۵ ساعت)</div>
    <div class="kg">${kp(fa(c.trN),'جلسهٔ آموزشی',dl(c.trN,pv('trN'),'up'))}${kp(fa(c.trP),'نفر آموزش‌دیده (حضور)',dl(c.trP,pv('trP'),'up'))}${kp(fa(r1(c.trH)),'نفر-ساعت',dl(c.trH,pv('trH'),'up'))}</div>
-   <table><tr><th>نوع آموزش</th><th>جلسه</th><th>نفر</th><th>نفر-ساعت</th></tr>${trRows||'<tr><td colspan="4" class="mu">آموزشی در این دوره ثبت نشده است</td></tr>'}</table>`);
+   <b>نفر-ساعت آموزش در هر ماه</b>${svgChart(L,PR('trH','up'),{sub:SB})}<table><tr><th>نوع آموزش</th><th>جلسه</th><th>نفر</th><th>نفر-ساعت</th></tr>${trRows||'<tr><td colspan="4" class="mu">آموزشی در این دوره ثبت نشده است</td></tr>'}</table>`);
   h+=sl('',`<h2>کمیتهٔ حفاظت فنی و فرهنگ ایمنی</h2><div class="sub">پیگیری مصوبات، تشویق و اخطار، کارت‌های خطر</div>
    <div class="kg">${kp(fa(c.cmN),'جلسهٔ کمیته',dl(c.cmN,pv('cmN'),'up'))}${kp(fa(c.ciDone),'اقدام انجام‌شده',dl(c.ciDone,pv('ciDone'),'up'))}${kp(fa(c.ciOn),'در دست اقدام')}${kp(fa(c.ciNew),'مصوبهٔ جدید')}</div>
    <div class="kg">${kp(fa(c.rw),'تشویق',dl(c.rw,pv('rw'),'up'))}${kp(fa(c.wr),'اخطار/تذکر',dl(c.wr,pv('wr'),'down'))}${kp(fa(c.cards),'کارت خطر / شبه‌حادثه',dl(c.cards,pv('cards'),'up'))}${kp(fa(c.wl),'اقدام روزانهٔ ثبت‌شده',`<small class="mu">${fa(c.wlPh)} مورد همراه عکس</small>`)}</div>`);
@@ -258,7 +260,7 @@ function render(){
   document.querySelectorAll('textarea[data-k]').forEach(t=>t.oninput=()=>SV(t.dataset.k,t.value))
 }
 const $=id=>document.getElementById(id);
-(async()=>{await load();const ps=PRESETS();$('per').innerHTML=ps.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');$('per').onchange=render;$('cmp').onchange=render;render()})();
+(async()=>{await load();const ps=PRESETS();$('per').innerHTML=ps.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');$('per').onchange=render;render()})();
 </script>
 </body>
 </html>
