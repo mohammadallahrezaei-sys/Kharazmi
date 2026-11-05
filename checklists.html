@@ -666,6 +666,24 @@ async function api(p, o = {}) {
 }
 
 
+/* ===== پیمانکار: نام فقط از فهرست «ثبت ورود پیمانکار» انتخاب می‌شود (تایپ دستی ممنوع) =====
+   محل چک‌لیست پیمانکار همان نام ثبت‌شده است تا تقویم/ارزیابی همیشه تطبیق بدهند. فهرست برای حالت آفلاین در localStorage نگه‌داری می‌شود. */
+let CTRS = (() => { try { return JSON.parse(localStorage.ctr_list || 'null'); } catch (_) { return null; } })(), CTR_LINK = '';
+async function ctrLoad() {
+  try { const r = await api('contractors?select=name,contract_no,status&status=eq.active&order=name'); if (Array.isArray(r)) { CTRS = r; try { localStorage.ctr_list = JSON.stringify(r); } catch (_) { } } }
+  catch (_) { if (CTRS === null) CTRS = []; }
+}
+const ctrList = () => { const a = (CTRS || []).slice(); if (CTR_LINK && !a.some(c => c.name === CTR_LINK)) a.push({ name: CTR_LINK, contract_no: (D.extra && D.extra.contract_no) || '' }); return a; };
+const ctrBlock = () => {
+  const cl = ctrList(), cur_ = (D.extra && D.extra.contractor_name) || '';
+  return `<div style="grid-column:1/-1;">
+    <label style="font-size:12px; font-weight:700;">شرکت پیمانکار (الزامی — فقط از فهرست پیمانکاران ثبت‌ورودشده انتخاب کنید):</label>
+    <select id="ctrsel"><option value="">انتخاب کنید...</option>${cl.map(c => `<option value="${esc(c.name)}" ${cur_ == c.name ? 'selected' : ''}>${esc(c.name)}${c.contract_no ? ' — ' + esc(c.contract_no) : ''}</option>`).join('')}</select>
+    ${cl.length ? '' : '<small style="display:block;color:var(--bad);margin-top:4px">پیمانکار فعالی ثبت نشده است. ابتدا از صفحهٔ <a href="contractors.html">پیمانکاران</a> «ثبت ورود» انجام دهید.</small>'}
+    ${cur_ && D.extra.contract_no ? `<small style="display:block;margin-top:4px">شماره قرارداد: ${esc(D.extra.contract_no)}</small>` : ''}
+  </div>`;
+};
+
 /* ===== سررسید بازدید تجهیزات: هر دستگاه با دوره‌ی خودش (به‌جای موعد ثابت ماهانه) ===== */
 /* اگر sched.js بارگذاری نشود (مسیر یا نام فایل اشتباه / کنار این صفحه نیست)، چک‌لیست‌ها کار می‌کنند و فقط سررسید تجهیزات غیرفعال می‌شود */
 const SCHED = (typeof HSE_SCHED !== 'undefined' && HSE_SCHED) || null, SCHED_OK = !!(SCHED && SCHED.EQC);
@@ -911,7 +929,8 @@ function ncFields(id, qtext, rd, n) {
 }
 
 function form() {
-  const m = cur, extras = m[5] || [], rd = m[0] == 'D';
+  const m = cur, extras = m[5] || [], rd = m[0] == 'D', ct = m[0] == 'CT';
+  if (ct && CTRS === null) ctrLoad().then(() => { if (cur && cur[0] == 'CT') form(); });
   if (rd) D.loc = ROUND_LOC;
   D.shift = D.shift || SHIFTS[0];
   const ls = LOCS.includes(D.loc) ? D.loc : (D.loc || D.oth ? '__o' : '');
@@ -925,7 +944,7 @@ function form() {
     ${rd ? '<small style="display:block; margin-top:6px; color:var(--ac);">گشت روزانه کل کارخانه: سؤال‌ها را یک‌بار برای کل گشت پاسخ دهید. فقط برای مورد دارای عدم‌انطباق، محل (سوله/بخش) را بنویسید.</small>' : ''}
 
     <div class="meta-box">
-      <div ${rd ? 'hidden' : ''}>
+      <div ${rd || ct ? 'hidden' : ''}>
         <label style="font-size:12px; font-weight:700;">محل / سالن / بخش (الزامی):</label>
         <select id="ls"><option value="">انتخاب کنید...</option>${LOCS.map(l => `<option ${ls == l ? 'selected' : ''}>${l}</option>`).join('')}<option value="__o" ${ls == '__o' ? 'selected' : ''}>سایر (تایپ کنید)</option></select>
         <input id="loc" placeholder="نام محل را بنویسید" value="${esc(D.loc)}" ${ls == '__o' ? '' : 'hidden'}>
@@ -934,7 +953,8 @@ function form() {
         <label style="font-size:12px; font-weight:700;">شیفت کاری:</label>
         <select id="sh">${SHIFTS.map(h => `<option ${D.shift == h ? 'selected' : ''}>${h}</option>`).join('')}</select>
       </div>
-      ${extras.map(ex => ex.key == 'eq_code' && EQ_OK ? `
+      ${ct ? ctrBlock() : ''}
+      ${extras.filter(ex => !(ct && (ex.key == 'contractor_name' || ex.key == 'contract_no'))).map(ex => ex.key == 'eq_code' && EQ_OK ? `
         <div style="grid-column:1/-1;">
           <label style="font-size:12px; font-weight:700;">${ex.ph.replace('(الزامی)', '')}: (از فهرست اعلان‌ها انتخاب کنید)</label>
           ${D.eq ? `<div class="chip on">🔧 <span dir="ltr">${esc(D.eq.code)}</span> — ${esc(D.eq.title || '')} <b data-a="eqclear" data-id="__insp">✕</b></div>` : ''}
@@ -969,8 +989,9 @@ function form() {
 }
 
 async function send() {
-  const m = cur, rd = m[0] == 'D', loc = rd ? ROUND_LOC : D.loc.trim(), extras = m[5] || [], Q = m[6], ids = Q.map(q => m[0] + '-' + q.id);
-  if (!loc) return alert('لطفاً محل بازدید را مشخص کنید.');
+  const m = cur, rd = m[0] == 'D', loc = rd ? ROUND_LOC : (m[0] == 'CT' ? ((D.extra || {}).contractor_name || '').trim() : D.loc.trim()), extras = m[5] || [], Q = m[6], ids = Q.map(q => m[0] + '-' + q.id);
+  if (!loc) return alert(m[0] == 'CT' ? 'لطفاً شرکت پیمانکار را از فهرست انتخاب کنید.' : 'لطفاً محل بازدید را مشخص کنید.');
+  if (m[0] == 'CT') { if (!ctrList().some(c => c.name === loc)) return alert('نام پیمانکار باید از فهرست پیمانکاران ثبت‌ورودشده انتخاب شود (تایپ دستی ممکن نیست).'); if (!(D.extra.contract_no || '').trim()) D.extra.contract_no = 'ندارد'; D.loc = loc; }
   for (const ex of extras) {
     if (ex.key == 'eq_code' && EQ_OK) { if (!D.eq) return alert('لطفاً تجهیز را از فهرست انتخاب کنید.'); D.extra.eq_code = D.eq.code + ' ' + (D.eq.title || ''); continue; }
     if (!(D.extra[ex.key] || '').trim()) return alert(`لطفاً فیلد «${ex.ph}» را تکمیل کنید.`);
@@ -2409,7 +2430,7 @@ async function printFinds(_a, kind) {
 async function startVisit(k, code, title, hall) {
   cur = M.find(m => m[0] == k); if (!cur) return;
   A = {}; N = {}; SV = {}; RS = {}; LC = {}; EX = {}; D.loc = hall || ''; D.extra = {}; D.shift = ''; D.oth = false; EQP = {}; LNK = {}; D.eq = code ? { code, title: title || '' } : null;
-  Object.keys(PH).forEach(k => delete PH[k]); await eqInit(); form(); scrollTo(0, 0);
+  Object.keys(PH).forEach(k => delete PH[k]); if (k == 'CT') { CTR_LINK = ''; await ctrLoad(); } await eqInit(); form(); scrollTo(0, 0);
 }
 document.onclick = async e => {
   const t = e.target.closest('[data-a]'); if (!t) return;
@@ -2633,6 +2654,7 @@ document.oninput = async e => {
   }
   if (t.dataset.code) { t.nextElementSibling.hidden = !t.value.trim(); return; }
   if (t.id == 'ls') { D.oth = t.value == '__o'; D.loc = D.oth ? '' : t.value; save(); form(); scrollTo(0, y); return; }
+  if (t.id == 'ctrsel') { const c = (ctrList().find(x => x.name === t.value)) || null; D.extra = D.extra || {}; D.extra.contractor_name = c ? c.name : ''; D.extra.contract_no = c ? (c.contract_no || 'ندارد') : ''; D.loc = c ? c.name : ''; save(); form(); scrollTo(0, y); return; }
   if (t.id == 'sh') { D.shift = t.value; save(); return; }
   if (t.dataset.sv) { SV[t.dataset.sv] = +t.value; save(); form(); scrollTo(0, y); return; }
   if (t.dataset.rc) {
@@ -2652,7 +2674,7 @@ home().then(() => {
   if (location.hash == '#rep') renderManagementReport();
   else if (location.hash == '#cycle') { FQ.one = ''; FQ.st = 'open'; FQ.per = 'all'; finds(); }
   else if (/^#fu=/.test(location.hash)) { const id = decodeURIComponent(location.hash.slice(4)); FQ.one = id; FQ.st = ''; FQ.per = 'all'; finds().then(() => setTimeout(() => { if (document.querySelector('[data-a=fufu][data-id="' + id + '"]')) fuDialog(id); }, 400)); }
-  else if (/^#visit=/.test(location.hash)) { const q = new URLSearchParams(location.hash.slice(1)), k = q.get('visit'); if (k == 'MED') medHome(); else startVisit(k, q.get('code'), q.get('title'), q.get('hall')).then(() => { if (k == 'CT' && q.get('ctr')) { D.extra.contractor_name = q.get('ctr'); D.extra.contract_no = q.get('cno') || 'ندارد'; D.loc = D.loc || q.get('ctr'); form(); } }); }
+  else if (/^#visit=/.test(location.hash)) { const q = new URLSearchParams(location.hash.slice(1)), k = q.get('visit'); if (k == 'MED') medHome(); else startVisit(k, q.get('code'), q.get('title'), q.get('hall')).then(() => { if (k == 'CT' && q.get('ctr')) { D.extra.contractor_name = q.get('ctr'); D.extra.contract_no = q.get('cno') || 'ندارد'; D.loc = q.get('ctr'); CTR_LINK = q.get('ctr'); form(); } }); }
 });
 </script>
 </body>
