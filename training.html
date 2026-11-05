@@ -27,7 +27,7 @@
   <div class="space-y-2">
    <select id="fType" class="fld"></select>
    <input id="fTitle" class="fld" placeholder="عنوان دوره (مثلاً کار در ارتفاع)">
-   <div class="grid grid-cols-2 gap-2"><div id="fDate" style="display:flex;gap:4px"><select id="dD" class="fld" style="width:30%"></select><select id="dM" class="fld"></select><select id="dY" class="fld" style="width:34%"></select></div><input id="fHours" type="number" min="0" step="0.5" value="1" class="fld" placeholder="مدت (ساعت)"></div>
+   <div class="grid grid-cols-2 gap-2"><div id="fDate" style="display:flex;gap:4px"><select id="dD" class="fld" style="width:30%"></select><select id="dM" class="fld"></select><select id="dY" class="fld" style="width:34%"></select></div><input id="fHours" type="number" min="0" step="5" value="60" class="fld" placeholder="مدت (دقیقه)"></div>
    <input id="fTrainer" class="fld" placeholder="مدرس / برگزارکننده">
    <input id="fContr" class="fld hidden" placeholder="نام شرکت پیمانکار">
    <select id="fInc" class="fld hidden"></select>
@@ -84,7 +84,7 @@ function render(){
   $('gapList').innerHTML=miss.slice(0,300).map(e=>`${esc(name(e))} (${esc(e.emp_id)}${e.department?' · '+esc(e.department):''})`).join('')||'همه پرسنل آموزش دیده‌اند.';
   const L=trs.filter(t=>ft==='all'||t.training_type===ft);
   $('list').innerHTML=L.length?L.map(t=>{const A=att.filter(a=>a.training_id===t.id),names=A.map(a=>{const e=emps.find(x=>x.id===a.employee_id);return e?name(e):a.person_name}).filter(Boolean);
-   return `<details class="bg-slate-800 border border-slate-700 rounded-xl"><summary class="p-3 cursor-pointer flex justify-between gap-2"><div><p class="font-bold text-sm">${esc(t.title)}</p><p class="text-[11px] text-slate-400">${fday(t.training_date)} · ${fa(t.duration_hours||0)} ساعت${t.trainer?' · مدرس: '+esc(t.trainer):''}${t.contractor_name?' · پیمانکار: '+esc(t.contractor_name):''}</p></div><div class="text-left shrink-0"><span class="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">${T[t.training_type]}</span><div class="text-[11px] text-slate-400 mt-1">${fa(A.length)} نفر</div></div></summary>
+   return `<details class="bg-slate-800 border border-slate-700 rounded-xl"><summary class="p-3 cursor-pointer flex justify-between gap-2"><div><p class="font-bold text-sm">${esc(t.title)}</p><p class="text-[11px] text-slate-400">${fday(t.training_date)} · ${fa(Math.round((t.duration_hours||0)*60))} دقیقه${t.trainer?' · مدرس: '+esc(t.trainer):''}${t.contractor_name?' · پیمانکار: '+esc(t.contractor_name):''}</p></div><div class="text-left shrink-0"><span class="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">${T[t.training_type]}</span><div class="text-[11px] text-slate-400 mt-1">${fa(A.length)} نفر</div></div></summary>
    <div class="px-3 pb-3 text-xs text-slate-300 border-t border-slate-700 pt-2">${names.map(esc).join('، ')||'—'}${t.notes?`<p class="text-slate-400 mt-1">${esc(t.notes)}</p>`:''}<div class="mt-2 flex gap-4 items-center"><a href="training_print.html?id=${t.id}" target="_blank" class="text-emerald-400 text-[11px] font-bold">🖨 فرم چاپی (امضا)</a><button data-edit="${t.id}" class="text-sky-400 text-[11px] font-bold">✏️ ویرایش</button><button data-del="${t.id}" class="text-rose-400 text-[11px]">حذف جلسه</button></div></div></details>`}).join(''):'<p class="text-center text-slate-500 text-sm py-6">جلسه‌ای ثبت نشده.</p>';
 }
 $('flt').innerHTML='<option value="all">همه انواع آموزش</option>'+Object.entries(T).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
@@ -115,7 +115,7 @@ $('fSave').onclick=async()=>{
   if(!title||!getDate()||(!sel.size&&!extra.length)){alert('عنوان، تاریخ و حداقل یک شرکت‌کننده لازم است.');return}
   const ty=$('fType').value;
   try{
-    const body={training_type:ty,title,training_date:getDate(),duration_hours:+$('fHours').value||0,trainer:$('fTrainer').value.trim()||null,contractor_name:ty==='contractor'?($('fContr').value.trim()||null):null,incident_id:ty==='post_incident'?($('fInc').value||null):null,notes:$('fNotes').value.trim()||null};
+    const body={training_type:ty,title,training_date:getDate(),duration_hours:Math.round((+$('fHours').value||0))/60,trainer:$('fTrainer').value.trim()||null,contractor_name:ty==='contractor'?($('fContr').value.trim()||null):null,incident_id:ty==='post_incident'?($('fInc').value||null):null,notes:$('fNotes').value.trim()||null};
     {const L=lpGet();if(L)body.lesson=L}
     let t,old=[];
     if(EDIT){t={id:EDIT};old=att.filter(x=>x.training_id===EDIT&&x.id!=null).map(x=>x.id);await api('trainings?id=eq.'+EDIT,{method:'PATCH',headers:{...JH,Prefer:'return=minimal'},body:JSON.stringify(body)})}
@@ -148,7 +148,7 @@ function editTr(id){
   const t=trs.find(x=>String(x.id)===String(id));if(!t)return;EDIT=t.id;
   sel.clear();att.filter(a=>a.training_id===t.id&&a.employee_id).forEach(a=>{const e=emps.find(x=>x.id===a.employee_id);if(e)sel.set(e.id,e)});
   $('fExtra').value=att.filter(a=>a.training_id===t.id&&!a.employee_id&&a.person_name).map(a=>a.person_name).join('\n');
-  $('fType').value=t.training_type;$('fTitle').value=t.title||'';$('fHours').value=t.duration_hours||'';$('fTrainer').value=t.trainer||'';$('fContr').value=t.contractor_name||'';$('fNotes').value=t.notes||'';
+  $('fType').value=t.training_type;$('fTitle').value=t.title||'';$('fHours').value=t.duration_hours?Math.round(t.duration_hours*60):'';$('fTrainer').value=t.trainer||'';$('fContr').value=t.contractor_name||'';$('fNotes').value=t.notes||'';
   lpSet(t.lesson);$('fType').onchange();setDate(String(t.training_date).slice(0,10));
   $('fInc').innerHTML='<option value="">حادثه مرتبط (اختیاری)</option>'+incs.map(i=>`<option value="${i.id}">${fday((i.incident_date||'').slice(0,10))} - ${esc(i.location)}</option>`).join('');$('fInc').value=t.incident_id||'';
   chips();pick();$('mTitle').textContent='ویرایش جلسه آموزشی';$('fSave').textContent='ذخیرهٔ ویرایش';

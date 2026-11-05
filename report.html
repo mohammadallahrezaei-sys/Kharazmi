@@ -229,7 +229,7 @@ function achievements(R,c,pw){
   if(wl.length){const bc={};wl.forEach(x=>{const k=x.category||'سایر';bc[k]=(bc[k]||0)+1});L.push(`ثبت <b>${fa(wl.length)}</b> کار روزانهٔ HSE${wlPh?` (${fa(wlPh)} مورد با مستندات عکس)`:''}: ${Object.entries(bc).map(([k,n])=>esc(k)+' ('+fa(n)+')').join('، ')}`);
     wl.slice(0,12).forEach(x=>L.push('&nbsp;&nbsp;• '+esc(x.title)))}
   Object.entries(byCat).sort((a,b)=>b[1].length-a[1].length).forEach(([k,l])=>L.push(`رفع <b>${fa(l.length)}</b> مورد عدم‌انطباق حوزهٔ «${k}» (نمونه: ${esc(String(l[0].note&&l[0].note.length>5?l[0].note:l[0].question).split('|')[0].trim().slice(0,90))})`));
-  if(cls.length)L.push(`برگزاری ${fa(cls.length)} دورهٔ آموزشی (${fa(Math.round(hrs*10)/10)} ساعت): ${[...new Set(cls.map(x=>esc(x.title)))].slice(0,5).join('، ')}`);
+  if(cls.length)L.push(`برگزاری ${fa(cls.length)} دورهٔ آموزشی (${fa(Math.round(hrs*60))} دقیقه): ${[...new Set(cls.map(x=>esc(x.title)))].slice(0,5).join('، ')}`);
   if(talk.length)L.push(`برگزاری ${fa(talk.length)} جلسهٔ کوتاه ایمنی در محل کار`);
   if(eq.length)L.push(`انجام و ثبت تاییدیهٔ فنی ${fa(eq.length)} تجهیز${eqBad?` (${fa(eqBad)} مورد عدم تایید و در حال پیگیری)`:''}`);
   if(mt.length)L.push(`تدوین و ثبت ${fa(mt.length)} صورتجلسهٔ کمیتهٔ حفاظت فنی و بهداشت کار (جلسهٔ ${mt.map(m=>fa(m.no_label||m.no)).join('، ')})`);
