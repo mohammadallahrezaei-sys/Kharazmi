@@ -383,7 +383,7 @@ async function loadMyTodo() {
   const btn = document.getElementById('myBtn'), dlg = document.getElementById('myDlg'), nb = T.filter(x => x.sev === 'bad').length;
   btn.style.display = ''; btn.className = nb ? 'bad' : T.length ? 'wa' : 'ok';
   btn.innerHTML = (asMgr ? '👁 کارهای باز کارشناس ' + esc_(A.EXPERTS[ex]) : '📝 کارهای باز و تقویم من') + `<span class="n">${T.length ? fa(T.length) : '✓'}</span>` + (nb ? ` <small style="font-weight:400">· ${fa(nb)} مورد فوری</small>` : '');
-  btn.onclick = () => { const f = document.getElementById('myFr'); if (!f.getAttribute('src')) f.src = 'calendar.html?embed=1'; dlg.showModal(); };
+  btn.onclick = () => { const f = document.getElementById('myFr'); if (!f.getAttribute('src')) f.src = 'calendar.html?embed=1' + (asMgr ? '&as=expert' : ''); dlg.showModal(); };
   document.getElementById('myX').onclick = () => dlg.close();
   box.innerHTML = `<div class="wi ${T.length ? 'wa' : 'ok'}" style="display:block;margin-bottom:10px"><b>${asMgr ? '👁 کارشناس ' + esc_(A.EXPERTS[ex]) + ': ' + (T.length ? 'کارهای باز و امتیازِ در خطر' : 'کار بازِ کم‌کنندهٔ امتیاز ندارد') : T.length ? '📝 کارهای باز شما و امتیازِ در خطر' : '✓ کار بازِ کم‌کنندهٔ امتیاز ندارید'}</b>
     ${T.map(x => `<a href="${x.href}" style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--bd);color:inherit;text-decoration:none"><span>${x.sev === 'bad' ? '🔴' : '🟠'} ${x.txt}</span><small style="color:var(--mu)">${x.cost} ←</small></a>`).join('')}
