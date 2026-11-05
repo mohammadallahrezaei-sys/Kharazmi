@@ -76,7 +76,7 @@ function tL(){
   <div style="text-align:left;font-size:11px">تاریخ: <b>${fd(S.training_date)}</b></div>
   <table>
    ${metaRow(['موضوع آموزشی',esc(S.title)],['محل آموزش',ed(LP.place||'',120)])}
-   ${metaRow(['گروه هدف',ed(LP.group||'',120)],['مدت آموزش',fa(S.duration_hours||'')+' ساعت'])}
+   ${metaRow(['گروه هدف',ed(LP.group||'',120)],['مدت آموزش',fa(S.duration_hours?Math.round(S.duration_hours*60):'')+' دقیقه'])}
    ${metaRow(['تعداد فراگیران',fa(P.length)+' نفر'],['آموزش‌دهنده',esc(S.trainer||'')])}
    <tr><td colspan="2"><b>هدف اصلی:</b>${blk(LP.goal||'',44)}</td></tr>
    <tr><td colspan="2"><b>اهداف فرعی:</b>${blk(SG.map(x=>'- '+x).join('\n'),70)}</td></tr>
@@ -95,7 +95,7 @@ function tS(){
   const LP=S.lesson||{};
   return `<div class="pg">${head('فرم آموزش و لیست حضور و امضا','آموزش '+T[S.training_type])}
   <table>${metaRow(['موضوع آموزش',esc(S.title)],['تاریخ',fd(S.training_date)])}
-  ${metaRow(['محل آموزش',ed(LP.place||'',120)],['مدت',fa(S.duration_hours||'')+' ساعت'])}
+  ${metaRow(['محل آموزش',ed(LP.place||'',120)],['مدت',fa(S.duration_hours?Math.round(S.duration_hours*60):'')+' دقیقه'])}
   <tr><td colspan="2"><b>مدرس / برگزارکننده:</b> ${esc(S.trainer||'')}${S.contractor_name?` &nbsp;|&nbsp; <b>پیمانکار:</b> ${esc(S.contractor_name)}`:''}</td></tr>
   <tr><td colspan="2"><b>عناوین آموزش داده‌شده:</b>${blk(S.notes||'',48)}</td></tr></table>
   ${sigTable([['نام و نام خانوادگی',p=>p.name],['کد پرسنلی',p=>p.emp_id],['واحد / عنوان شغلی',p=>[p.dept,p.job].filter(Boolean).join(' / ')]],14)}
@@ -110,7 +110,7 @@ function tO(){
   return (P.length?P:[{}]).map(p=>`<div class="pg">${head('فرم آموزش توجیهی HSE','بدو استخدام / حین انتقال / پس از حادثه / پیمانکار')}
   <table>
    <tr><td class="sec" rowspan="1" style="width:90px">الف) مشخصات فردی</td><td><b>نام و نام خانوادگی:</b> ${esc(p.name||'')}</td><td><b>شماره پرسنلی:</b> ${esc(p.emp_id||'')}</td><td><b>واحد/قسمت:</b> ${esc(p.dept||'')}</td></tr>
-   <tr><td class="sec">ب) مشخصات دوره آموزشی</td><td><b>تاریخ آموزش:</b> ${fd(S.training_date)}</td><td><b>مدت آموزش:</b> ${fa(S.duration_hours||'')} ساعت</td><td><b>محل برگزاری:</b> ${ed(LP.place||'',90)}</td></tr>
+   <tr><td class="sec">ب) مشخصات دوره آموزشی</td><td><b>تاریخ آموزش:</b> ${fd(S.training_date)}</td><td><b>مدت آموزش:</b> ${fa(S.duration_hours?Math.round(S.duration_hours*60):'')} دقیقه</td><td><b>محل برگزاری:</b> ${ed(LP.place||'',90)}</td></tr>
   </table>
   <table><tr><td class="sec" colspan="2">ج) محتوای آموزشی (موارد آموزش داده‌شده را علامت بزنید)</td></tr>${crow}
    <tr><td colspan="2"><b>آموزش حین کار</b> — تاریخ: ${ed('',70)} محل آموزش: ${ed('',90)}<br>عناوین آموزش داده‌شده: ${ed('',320)}</td></tr></table>
@@ -133,7 +133,7 @@ function tP(){
    <tr><td colspan="3"><b>اقدام اصلاحی:</b>${blk(i.corrective_action||'',28)}</td></tr></table>
   <table><tr><td class="sec" colspan="2">ب) مشخصات آموزش</td></tr>
    ${metaRow(['موضوع',esc(S.title)],['تاریخ آموزش',fd(S.training_date)])}
-   ${metaRow(['مدت',fa(S.duration_hours||'')+' ساعت'],['محل برگزاری',ed(LP.place||'',100)])}
+   ${metaRow(['مدت',fa(S.duration_hours?Math.round(S.duration_hours*60):'')+' دقیقه'],['محل برگزاری',ed(LP.place||'',100)])}
    <tr><td colspan="2"><b>مدرس:</b> ${esc(S.trainer||'')}</td></tr></table>
   <table><tr><td class="sec">ج) محورهای آموزش (علامت بزنید)</td></tr>${PI.map((x,k)=>`<tr><td>${mk(LP,k)}${x}</td></tr>`).join('')}
    <tr><td><span class="ck">${LP.other?'☑':'☐'}</span> سایر: ${ed(LP.other||'',300)}</td></tr></table>
@@ -148,7 +148,7 @@ function tC(){
   const LP=S.lesson||{};
   return `<div class="pg">${head('فرم آموزش ایمنی پیمانکاران','واحد بهداشت، ایمنی و محیط زیست')}
   <table>${metaRow(['شرکت پیمانکار',esc(S.contractor_name||'')||ed('',120)],['تاریخ آموزش',fd(S.training_date)])}
-  ${metaRow(['محدوده کار / پروژه',ed(LP.scope||'',150)],['مدت آموزش',fa(S.duration_hours||'')+' ساعت'])}
+  ${metaRow(['محدوده کار / پروژه',ed(LP.scope||'',150)],['مدت آموزش',fa(S.duration_hours?Math.round(S.duration_hours*60):'')+' دقیقه'])}
   ${metaRow(['محل برگزاری',ed(LP.place||'',120)],['مدرس',esc(S.trainer||'')])}</table>
   <table><tr><td class="sec" colspan="2">محتوای آموزشی (علامت بزنید)</td></tr>
   ${Array.from({length:CT.length/2},(_,k)=>`<tr><td>${mk(LP,k)}${CT[k]}</td><td>${mk(LP,k+CT.length/2)}${CT[k+CT.length/2]}</td></tr>`).join('')}</table>

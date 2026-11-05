@@ -382,7 +382,7 @@ async function buildSuggest(){
    const parts=Object.entries(cnt).map(([k,n])=>`${TN[k]||k}: ${fa(n)} نفر`);
    if(parts.length)out.push({type:'آموزش',kind:'done',t:{done:`به‌منظور ارتقای آگاهی و صلاحیت ایمنی پرسنل، آموزش‌های ماه برگزار شد (${parts.join('، ')}).`},actor:'منابع انسانی/HSE',ref:'tsum:'+K,n:1})}
   tr.filter(x=>!used.has('t:'+x.id)).forEach(x=>{const n=ta.filter(a=>a.training_id===x.id).length;
-    out.push({type:'آموزش',kind:'done',t:{done:`برگزاری دورهٔ آموزشی «${clean(x.title)}»${x.duration_hours?' به‌مدت '+fa(x.duration_hours)+' ساعت':''}${n?' با شرکت '+fa(n)+' نفر از پرسنل':''}${x.training_type==='contractor'?' (پرسنل پیمانکار)':''}.`},actor:'منابع انسانی/HSE',ref:'t:'+x.id,n:1})});
+    out.push({type:'آموزش',kind:'done',t:{done:`برگزاری دورهٔ آموزشی «${clean(x.title)}»${x.duration_hours?' به‌مدت '+fa(Math.round(x.duration_hours*60))+' دقیقه':''}${n?' با شرکت '+fa(n)+' نفر از پرسنل':''}${x.training_type==='contractor'?' (پرسنل پیمانکار)':''}.`},actor:'منابع انسانی/HSE',ref:'t:'+x.id,n:1})});
   /* ۶) تاییدیه‌های فنی تجهیزات */
   const cat=new Map(eq.map(e=>[e.code,e.category])),byC=new Map();eqi.forEach(i=>{const c=cat.get(i.equipment_code)||'تجهیزات';if(!byC.has(c))byC.set(c,[]);byC.get(c).push(i)});
   byC.forEach((l,c)=>{const ref='e:'+K+'|'+c;if(used.has(ref))return;const bad=l.filter(x=>x.result==='عدم تایید').length;

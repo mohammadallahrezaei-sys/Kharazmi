@@ -72,7 +72,7 @@ const SHEETS=[
  {n:'اخطار و تشویق',cols:[['کد پرسنلی *',14,'','code'],['نام (خودکار)',22,'','name'],['نوع *',14,'REC'],['علت / موضوع *',44],['تاریخ * (مثل 1405/08/14)',20],['توضیحات',34]]},
  {n:'حوادث',cols:[['کد پرسنلی *',14,'','code'],['نام (خودکار)',22,'','name'],['تاریخ * (مثل 1405/08/14)',20],['محل حادثه *',22],['شدت *',22,'SEV'],['عضو آسیب‌دیده',16],['شرح حادثه *',44],['روز استعلاجی (عدد)',14],['اقدام اصلاحی',34],['مسئول اقدام',16],['مهلت اقدام (مثل 1405/09/01)',20]]},
  {n:'مراجعه بهداری',cols:[['کد پرسنلی *',14,'','code'],['نام (خودکار)',22,'','name'],['تاریخ * (مثل 1405/08/14)',20],['ساعت (مثل 09:30)',10],['علت مراجعه',24],['فشار بالا',9],['فشار پایین',9],['نبض',8],['دما',8],['SpO2',8],['شکایت اصلی',28],['تشخیص',24],['اقدام / درمان',28],['داروهای داده‌شده',28],['روز استراحت پزشکی',12],['ارجاع؟',9,'YN'],['مقصد ارجاع',20]]},
- {n:'آموزش',cols:[['عنوان دوره *',34],['نوع *',16,'TT'],['تاریخ * (مثل 1405/08/14)',20],['مدت (ساعت)',10],['مدرس',18],['نام پیمانکار',18],['توضیحات',24],['کد پرسنلی شرکت‌کنندگان * (با ویرگول یا فاصله جدا کنید)',50],['سایر نفرات بدون کد (نام‌ها با ویرگول جدا شود)',34]]},
+ {n:'آموزش',cols:[['عنوان دوره *',34],['نوع *',16,'TT'],['تاریخ * (مثل 1405/08/14)',20],['مدت (دقیقه)',10],['مدرس',18],['نام پیمانکار',18],['توضیحات',24],['کد پرسنلی شرکت‌کنندگان * (با ویرگول یا فاصله جدا کنید)',50],['سایر نفرات بدون کد (نام‌ها با ویرگول جدا شود)',34]]},
  {n:'گزارش کار روزانه',cols:[['تاریخ * (مثل 1405/08/14)',20],['دسته *',34,'CAT'],['عنوان کار *',40],['شرح',50],['وضعیت',12,'WS']]}
 ];
 const LISTS={REC:REC,SEV:SEV.map(x=>x[0]),TT:TTYPES.map(x=>x[0]),CAT:CATS,YN:YN,WS:WST.map(x=>x[0])};
@@ -170,7 +170,7 @@ $('fi').onchange=async e=>{
       const codes=ND(tx(r.getCell(8))).split(/[\s,،;؛\n\/]+/).map(s=>s.trim().toLowerCase()).filter(Boolean),ids=[],bad=[];codes.forEach(c=>{const e=byCode.get(c);e?ids.push(e.id):bad.push(c)});
       if(bad.length)er.push('کد(های) ناشناخته: '+bad.join(' '));const names=tx(r.getCell(9)).split(/[,،\n]+/).map(s=>s.trim()).filter(Boolean);
       if(!ids.length&&!names.length)er.push('هیچ شرکت‌کننده‌ای نیست');
-      const body={training_type:ty&&ty[1],title,training_date:d&&d.iso,duration_hours:num(r.getCell(4))||0,trainer:tx(r.getCell(5))||null,contractor_name:tx(r.getCell(6))||null,notes:tx(r.getCell(7))||null};
+      const body={training_type:ty&&ty[1],title,training_date:d&&d.iso,duration_hours:(num(r.getCell(4))||0)/60,trainer:tx(r.getCell(5))||null,contractor_name:tx(r.getCell(6))||null,notes:tx(r.getCell(7))||null};
       push({tbl:'trainings',sheet:'آموزش',row:i,label:title+' — '+(d?d.j:'')+' — '+(ids.length+names.length)+' نفر',body,att:{ids:[...new Set(ids)],names},key:[d&&d.iso,title,ty&&ty[1]].join('|')},er)});
     /* گزارش کار */
     rowsOf('گزارش کار روزانه').forEach(([i,r])=>{if(!used(r,5)||(!tx(r.getCell(3))&&!tx(r.getCell(4))))return;const er=[],d=parseDate(tv(r.getCell(1)));if(!d)er.push('تاریخ نامعتبر');
