@@ -278,7 +278,7 @@ function render(){
       ? `<span class="badge-excellent">⭐ ۲ امتیاز</span>` 
       : (c.status !== 'rejected' ? `<span class="badge-normal">۱ امتیاز</span>` : '');
     
-    return `<details class="card"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:8px"><span>${weightBadge}<b>${esc(c.reporter_name||'—')}</b> <span class="mu">· ${esc(c.unit||'بدون واحد')} · ${fday(c.card_date)}${c.reg_no?' · '+esc(c.reg_no):''}</span>${esc((c.description||'').slice(0,90))}</span><span style="text-align:left"><span class="tag">${TY[c.card_type]}</span><span class="tag ${STC[c.status]}">${ST[c.status]}</span></span></summary>
+    return `<details class="card" data-card="${c.id}"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:8px"><span>${weightBadge}<b>${esc(c.reporter_name||'—')}</b> <span class="mu">· ${esc(c.unit||'بدون واحد')} · ${fday(c.card_date)}${c.reg_no?' · '+esc(c.reg_no):''}</span>${esc((c.description||'').slice(0,90))}</span><span style="text-align:left"><span class="tag">${TY[c.card_type]}</span><span class="tag ${STC[c.status]}">${ST[c.status]}</span></span></summary>
    <div style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px">
    <div>${esc(c.description||'')}</div>${c.suggestion?`<div class="mu">پیشنهاد: ${esc(c.suggestion)}</div>`:''}
    <div class="mu">${c.equipment_code?'دستگاه: '+esc(c.equipment_code)+' · ':''}${c.location_detail?'محل: '+esc(c.location_detail):''}</div>
@@ -388,7 +388,18 @@ $('bPrint').onclick=()=>{
   w.document.write(`<html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>چاپ کارت‌ها</title><style>body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;font-size:10.5px;line-height:2}.p{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;width:210mm;height:297mm;page-break-after:always}.c{border:1px dashed #555;padding:5mm;overflow:hidden}.t{font-weight:800;font-size:12.5px;color:#0b3d6b;border-bottom:2px solid #0b3d6b;margin-bottom:2px}.m{font-size:9px;color:#444}.r{display:flex;justify-content:space-between;gap:6px}.h{border:1px solid #0b3d6b;padding:2mm;margin-top:3px}@page{size:A4;margin:0}</style></head><body><div class="p">${one.repeat(4)}</div><div class="p">${one.repeat(4)}</div><script>setTimeout(()=>print(),400)<\/script></body></html>`);w.document.close()
 };
 
-load().then(()=>{if(location.hash==='#new')$('bNew').click()});
+/* لینک مستقیم از میز کار: cards.html#card=ID ← ماه همان کارت را انتخاب، فیلترها را پاک و کارت را باز می‌کند */
+function goCard(){
+  const m=/^#card=(.+)$/.exec(location.hash);if(!m)return;
+  const id=decodeURIComponent(m[1]),c=cards.find(x=>String(x.id)===id);
+  if(!c){alert('این کارت پیدا نشد (ممکن است حذف شده باشد).');return}
+  const k=jk(c.card_date),f=$('fM');
+  if(![...f.options].some(o=>o.value===k))f.insertAdjacentHTML('beforeend',`<option value="${k}">${monthLabel(k)}</option>`);
+  f.value=k;$('fT').value='';$('fS').value='';render();
+  const el=[...document.querySelectorAll('#list details[data-card]')].find(d=>d.dataset.card===id);
+  if(el){el.open=true;el.scrollIntoView({block:'center'});el.style.outline='2px solid var(--ac)';setTimeout(()=>{el.style.outline=''},2500)}
+}
+load().then(()=>{if(location.hash==='#new')$('bNew').click();else goCard()});
 </script>
 </body>
 </html>

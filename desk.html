@@ -14,6 +14,7 @@
 .tile.r{border-right-color:var(--bad)}.tile.y{border-right-color:var(--wa)}.tile.g{border-right-color:var(--ok)}
 .it{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd)}
 .it:last-child{border-bottom:0}.it small{display:block;color:var(--mu);font-size:11px}
+a.it{color:inherit;text-decoration:none}a.it:hover{background:var(--soft)}a.it .go{color:var(--mu);align-self:center;font-size:16px;line-height:1}
 .bd{font-size:11px;padding:1px 8px;border-radius:99px;white-space:nowrap;align-self:flex-start;border:1px solid}
 .bd.r{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 55%,transparent)}.bd.y{color:var(--wa);border-color:color-mix(in srgb,var(--wa) 55%,transparent)}.bd.g{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 55%,transparent)}
 .hero .bad{color:var(--bad)}.hero .wa{color:var(--wa)}.hero .ok,.clean .wa{color:var(--ok)}.clean .wa{color:var(--wa)}
@@ -69,42 +70,43 @@ const T=new Date(),TODAY_JDN=g2d(T.getFullYear(),T.getMonth()+1,T.getDate());
 /* ---- ساخت بخش‌ها ---- */
 const SECS=[];
 function sec(id,title,link,items,note){SECS.push({id,title,link,items,note})}
-const row=(t,sub,badge,cls)=>`<div class="it"><div>${t}<small>${sub||''}</small></div><span class="bd ${cls}">${badge}</span></div>`;
+const row=(t,sub,badge,cls,href)=>href?`<a class="it" href="${href}"><div>${t}<small>${sub||''}</small></div><span class="bd ${cls}">${badge}</span><span class="go" aria-hidden="true">‹</span></a>`:`<div class="it"><div>${t}<small>${sub||''}</small></div><span class="bd ${cls}">${badge}</span></div>`;
+const lk=(p,id)=>p+encodeURIComponent(id);
 async function load(){
   SECS.length=0;$('secs').innerHTML='<div class="card">در حال بارگذاری...</div>';
   const [fin,inc,fu,emp,eq,ins,cards,units,mon,cul,rk]=await Promise.all([
     getAll('findings?select=id,status,created_at,due_date,location,question,severity,module,risk_id'),
-    getAll('clinic_incidents?select=incident_date,body_part,corrective_action,action_status,action_due_date,location'),
+    getAll('clinic_incidents?select=id,incident_date,body_part,corrective_action,action_status,action_due_date,location'),
     getAll('clinic_followups?select=*'),getAll('employees?select=id,emp_id,first_name,last_name,department,termination_date'),
     getAll('equipment?select=code,category,title,hall,location,active,requires_inspection,interval_months'),
     getAll('equipment_inspections?select=equipment_code,inspected_on,result,next_due,defects'),
-    getAll('hse_cards?select=card_type,card_date,status,unit,description,reporter_name'),
+    getAll('hse_cards?select=id,card_type,card_date,status,unit,description,reporter_name'),
     getAll('hse_units?select=id,name,active,aliases,manager'),getAll('hse_unit_monthly?select=unit_id,month_key'),
     getAll('culture_assessments?select=assessed_at'),getAll('risks?select=*&status=neq.archived')]);
   const RM={};(rk||[]).forEach(r=>RM[r.id]=r);
   // ۰) ریسک‌های نیازمند اقدام
   if(rk){
     const L=[];rk.forEach(r=>{const t=esc(r.hazard),sub=esc(r.unit)+' · امتیاز '+fa(r.score);
-      if(r.status==='draft')L.push({k:r.high?'r':'y',s:r.score,h:row(t,sub,'در انتظار تأیید',r.high?'r':'y')});
-      if(r.review_date&&r.review_date<TODAY)L.push({k:'r',s:r.score,h:row(t,sub,'بازبینی معوق','r')});
-      if(r.high&&r.method!=='reba'&&r.method!=='rula'&&!(r.existing_controls||'').trim())L.push({k:'r',s:r.score,h:row(t,sub,'بدون کنترل فعلی','r')})});
+      if(r.status==='draft')L.push({k:r.high?'r':'y',s:r.score,h:row(t,sub,'در انتظار تأیید',r.high?'r':'y',lk('risks.html#risk=',r.id))});
+      if(r.review_date&&r.review_date<TODAY)L.push({k:'r',s:r.score,h:row(t,sub,'بازبینی معوق','r',lk('risks.html#risk=',r.id))});
+      if(r.high&&r.method!=='reba'&&r.method!=='rula'&&!(r.existing_controls||'').trim())L.push({k:'r',s:r.score,h:row(t,sub,'بدون کنترل فعلی','r',lk('risks.html#risk=',r.id))})});
     L.sort((a,b)=>b.s-a.s);sec('rk','ریسک‌های نیازمند اقدام','risks.html',L);
   } else sec('rk','ریسک‌های نیازمند اقدام','risks.html',null);
   // ۱) عدم‌انطباق‌های باز
   if(fin){
     const L=fin.filter(x=>x.status==='open'&&x.module!=='MED').map(x=>{const over=x.due_date?dd(TODAY,x.due_date):dd(TODAY,x.created_at.slice(0,10))-14;return{x,over}}).sort((a,b)=>((RM[b.x.risk_id]||{}).high?1:0)-((RM[a.x.risk_id]||{}).high?1:0)||b.over-a.over||(b.x.severity||0)-(a.x.severity||0));
-    sec('fin','عدم‌انطباق‌های باز','checklists.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(x.question||'—'),`${esc(x.location||'')} · ثبت: ${fday(x.created_at)}${x.severity?' · شدت '+fa(x.severity):''}${RM[x.risk_id]?' · ریسک '+fa(RM[x.risk_id].score):''}`,over>0?fa(over)+' روز معوق':(x.due_date?'تا '+fday(x.due_date):'در مهلت'),over>0?'r':'y')})),'پیگیری در «پیگیری عدم‌انطباق‌ها»');
+    sec('fin','عدم‌انطباق‌های باز','checklists.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(x.question||'—'),`${esc(x.location||'')} · ثبت: ${fday(x.created_at)}${x.severity?' · شدت '+fa(x.severity):''}${RM[x.risk_id]?' · ریسک '+fa(RM[x.risk_id].score):''}`,over>0?fa(over)+' روز معوق':(x.due_date?'تا '+fday(x.due_date):'در مهلت'),over>0?'r':'y',lk('checklists.html#fu=',x.id))})),'پیگیری در «پیگیری عدم‌انطباق‌ها»');
   } else sec('fin','عدم‌انطباق‌های باز','checklists.html',null);
   // ۲) اقدام اصلاحی حوادث
   if(inc){
     const L=inc.filter(x=>x.corrective_action&&x.action_status!=='done').map(x=>({x,over:x.action_due_date?dd(TODAY,x.action_due_date):0})).sort((a,b)=>b.over-a.over);
-    sec('inc','اقدام اصلاحی حوادث (باز)','clinic.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(String(x.corrective_action).slice(0,90)),`حادثه ${fday(x.incident_date)}${x.body_part?' · '+esc(x.body_part):''}${x.location?' · '+esc(x.location):''}`,over>0?fa(over)+' روز معوق':(x.action_due_date?'تا '+fday(x.action_due_date):'بدون مهلت'),over>0?'r':'y')})));
+    sec('inc','اقدام اصلاحی حوادث (باز)','clinic.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(String(x.corrective_action).slice(0,90)),`حادثه ${fday(x.incident_date)}${x.body_part?' · '+esc(x.body_part):''}${x.location?' · '+esc(x.location):''}`,over>0?fa(over)+' روز معوق':(x.action_due_date?'تا '+fday(x.action_due_date):'بدون مهلت'),over>0?'r':'y',lk('clinic.html#inc=',x.id))})));
   } else sec('inc','اقدام اصلاحی حوادث (باز)','clinic.html',null);
   // ۳) پیگیری طب کار
   if(fu){
     const nm={};(emp||[]).forEach(e=>nm[e.id]=`${e.first_name||''} ${e.last_name||''}`.trim());const gone=new Set((emp||[]).filter(e=>!HSEP.isActive(e)).map(e=>e.id));
     const L=fu.filter(x=>['pending','overdue'].includes(x.status)&&!gone.has(x.employee_id)).map(x=>({x,over:x.due_date?dd(TODAY,x.due_date):(x.status==='overdue'?1:0)})).sort((a,b)=>b.over-a.over);
-    sec('fu','پیگیری‌های طب کار (باز)','clinic.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc((nm[x.employee_id]||x.employee_name||'—')),esc(x.reason||x.kind||''),over>0?fa(over)+' روز معوق':(x.due_date?'تا '+fday(x.due_date):'باز'),over>0?'r':'y')})));
+    sec('fu','پیگیری‌های طب کار (باز)','clinic.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc((nm[x.employee_id]||x.employee_name||'—')),esc(x.reason||x.kind||''),over>0?fa(over)+' روز معوق':(x.due_date?'تا '+fday(x.due_date):'باز'),over>0?'r':'y',lk('clinic.html#fu=',x.id))})));
   } else sec('fu','پیگیری‌های طب کار (باز)','clinic.html',null);
   // ۴) تجهیزات
   if(eq&&ins){
@@ -116,18 +118,18 @@ async function load(){
       if(last.result==='عدم تایید')L.push({e,st:'rejected',days,pr:0,due});else if(days!=null&&days<0)L.push({e,st:'overdue',days,pr:1,due});else if(days!=null&&days<=30)L.push({e,st:'soon',days,pr:2,due})});
     L.sort((a,b)=>a.pr-b.pr||(a.days??9999)-(b.days??9999));
     const lbl={rejected:['عدم تایید','r'],overdue:null,soon:null,none:['بدون بازرسی','y']};
-    sec('eq','تجهیزات: عدم تایید، سررسید گذشته یا نزدیک','equipment.html',L.map(x=>{const s=x.st==='overdue'?[fa(-x.days)+' روز معوق','r']:x.st==='soon'?['تا '+fa(x.days)+' روز دیگر','y']:lbl[x.st];return{k:s[1],h:row(esc(x.e.title||x.e.code),`${esc(x.e.code)} · ${esc(x.e.hall||x.e.location||'')}${x.due?' · سررسید '+esc(x.due):''}`,s[0],s[1])}}));
+    sec('eq','تجهیزات: عدم تایید، سررسید گذشته یا نزدیک','equipment.html',L.map(x=>{const s=x.st==='overdue'?[fa(-x.days)+' روز معوق','r']:x.st==='soon'?['تا '+fa(x.days)+' روز دیگر','y']:lbl[x.st];return{k:s[1],h:row(esc(x.e.title||x.e.code),`${esc(x.e.code)} · ${esc(x.e.hall||x.e.location||'')}${x.due?' · سررسید '+esc(x.due):''}`,s[0],s[1],lk('equipment.html?code=',x.e.code))}}));
   } else sec('eq','تجهیزات','equipment.html',null);
   // ۵) کارت‌های بی‌پاسخ
   if(cards){
     const L=cards.filter(c=>c.status==='pending').map(c=>({c,age:dd(TODAY,c.card_date)})).sort((a,b)=>b.age-a.age);
     const TY={hazard:'خطر',health_hazard:'خطر بهداشتی',near_miss:'شبه‌حادثه',suggestion:'پیشنهاد'};
-    sec('cd','کارت‌های گزارش بدون نتیجه','cards.html',L.map(({c,age})=>({k:age>7?'r':'y',h:row(esc(String(c.description||'').slice(0,90)),`${TY[c.card_type]} · ${esc(c.unit||'بدون واحد')} · ${esc(c.reporter_name||'')}`,fa(age)+' روز پیش',age>7?'r':'y')})));
+    sec('cd','کارت‌های گزارش بدون نتیجه','cards.html',L.map(({c,age})=>({k:age>7?'r':'y',h:row(esc(String(c.description||'').slice(0,90)),`${TY[c.card_type]} · ${esc(c.unit||'بدون واحد')} · ${esc(c.reporter_name||'')}`,fa(age)+' روز پیش',age>7?'r':'y',lk('cards.html#card=',c.id))})));
   } else sec('cd','کارت‌های گزارش بدون نتیجه','cards.html',null);
   // ۵.۵) داروی کمد کمک‌های اولیه (کمبود / انقضا)
   if(fin){
     const L=fin.filter(x=>x.status==='open'&&x.module==='MED').map(x=>({x,over:x.due_date?dd(TODAY,x.due_date):0})).sort((a,b)=>b.over-a.over);
-    sec('med','داروی کمد: کمبود یا انقضا','checklists.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(x.question||'—'),esc(x.location||''),over>0?fa(over)+' روز معوق':'باز',over>0?'r':'y')})));
+    sec('med','داروی کمد: کمبود یا انقضا','checklists.html',L.map(({x,over})=>({k:over>0?'r':'y',h:row(esc(x.question||'—'),esc(x.location||''),over>0?fa(over)+' روز معوق':'باز',over>0?'r':'y','checklists.html#visit=MED')})));
   } else sec('med','داروی کمد: کمبود یا انقضا','checklists.html',null);
   // ۵.۸) سلامت داده: مواردی که ارتباط بین بخش‌ها را قطع می‌کنند و باعث ناقص‌شدن گزارش‌ها می‌شوند
   {
