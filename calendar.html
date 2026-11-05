@@ -39,6 +39,10 @@
 .ct a.cgo{border:1px solid var(--ac);color:var(--ac);border-radius:10px;padding:3px 12px;font-size:13px;white-space:nowrap}
 .ctag{font-size:11px;border-radius:99px;padding:0 7px;margin-inline-start:6px;background:var(--nabg);color:var(--mu)}
 .ctag.bad{background:var(--badbg);color:var(--bad)}
+.ct .cx small.hw{color:var(--tx);margin-top:2px}.ct .cx small.sc{font-size:11px}
+.ct a.cgo.p{background:var(--ac);color:var(--acx);font-weight:700}
+#focus .fh{display:flex;align-items:center;gap:6px;margin:12px 0 4px;font-size:14px;font-weight:700}#focus .fh.bad{color:var(--bad)}
+#focus details>summary{cursor:pointer;color:var(--mu);margin:8px 0 2px;font-size:13px}
 .cerr{background:var(--warnbg);border:1px solid var(--wa);border-radius:10px;padding:8px 10px;margin:8px 0;color:var(--tx)}
 html.emb .w>div:first-child,html.emb footer{display:none}html.emb .w{padding:4px}html.emb body{background:transparent}
 @media(max-width:560px){.cd{min-height:52px}.cd .cc{font-size:10px;padding:0 4px}}
@@ -53,6 +57,7 @@ html.emb .w>div:first-child,html.emb footer{display:none}html.emb .w{padding:4px
   <div class="nav"><button id="pv">‹ ماه قبل</button><b id="mt"></b><button id="nx">ماه بعد ›</button><button id="td">امروز</button></div>
   <div id="warn"></div>
   <div class="sum" id="sum"></div>
+  <div id="focus"></div>
   <div class="grid" id="grid"></div>
   <div id="day" style="margin-top:14px"></div>
   <div id="late"></div>
@@ -185,10 +190,52 @@ function build(K){
   return T;
 }
 function href(x){if(x.go)return x.go;return 'checklists.html#visit='+encodeURIComponent(x.mk)+(x.code?'&code='+encodeURIComponent(x.code)+'&title='+encodeURIComponent(x.title||'')+'&hall='+encodeURIComponent(x.hall||''):'')}
+/* «چیکار کنم؟»: یک جمله‌ی ساده برای هر نوع کار (نوع از پیشوند شناسه یا kind می‌آید) */
+function how(x){const id=String(x.id||'');
+  if(id.startsWith('HRT'))return 'افراد پرریسک را آموزش دهید؛ روزی که آموزش دادید تیک بزنید.';
+  if(id.startsWith('OB'))return 'تعهد دوره‌ای را انجام دهید و در صفحه‌ی تعهدات ثبت کنید.';
+  if(id.startsWith('CL'))return 'سیستم کلرزنی را روشن کنید و تیک بزنید.';
+  if(id.startsWith('CT'))return 'چک‌لیست ایمنی این پیمانکار را برای امروز ثبت کنید.';
+  if(id.startsWith('TK'))return 'یک جلسه آموزش کوتاه ایمنی در محل برگزار و در ماژول آموزش ثبت کنید.';
+  if(id.startsWith('EK'))return /تشویق/.test(x.t)?'یک تشویق برای پرسنل ثبت کنید.':'یک اخطار یا تذکر ایمنی ثبت کنید.';
+  if(id.startsWith('IN'))return 'نظر کارشناسی خود را درباره‌ی این حادثه ثبت کنید.';
+  if(id.startsWith('FU'))return 'عدم‌انطباق‌های باز را با واحد فنی پیگیری کنید.';
+  if(id.startsWith('AS'))return 'مدیر این مورد را به شما ارجاع داده؛ پیگیری کنید و ببندید.';
+  if(id.startsWith('FN'))return 'این عدم‌انطباق را تا مهلت پیگیری کنید و ببندید.';
+  if(x.kind==='equip')return 'دستگاه را بازدید کنید و فرم بازرسی را ثبت کنید.';
+  if(/^D\d/.test(id))return 'گشت کل کارخانه را بزنید و چک‌لیست بازدید روزانه را ثبت کنید.';
+  if(/^K\d/.test(id))return 'رستوران و آشپزخانه را بازدید کنید و چک‌لیست را ثبت کنید.';
+  if(id.startsWith('M'))return 'چک‌لیست این مورد را تا مهلت ثبت کنید.';
+  return ''}
+function cta(x){const id=String(x.id||'');
+  if(/^(CT|M)/.test(id)||/^[DK]\d/.test(id))return 'ثبت چک‌لیست';
+  if(x.kind==='equip')return 'ثبت بازدید';
+  if(id.startsWith('IN'))return 'ثبت نظر';
+  if(id.startsWith('FU'))return 'شروع پیگیری';
+  if(id.startsWith('TK'))return 'ثبت آموزش';
+  if(/^(EK|OB)/.test(id))return 'ثبت';
+  if(/^(AS|FN)/.test(id))return 'باز کردن';
+  return 'شروع'}
 function taskHTML(x){
+  const sc=/^شاخص «([^»]+)»(?:\s*·\s*)?/.exec(x.sub||''),sub=sc?(x.sub||'').slice(sc[0].length):(x.sub||''),hw=x.done?'':how(x),dn=x.done&&x.doneAt?' · انجام شد '+lbl(x.doneAt):'';
   return `<div class="ct ${x.done?'done':''} ${x.late?'late':''}"><div class="ctk">${x.done?'✓':''}</div>
-   <div class="cx"><b>${esc(x.t)}</b>${x.late?'<span class="ctag bad">عقب‌افتاده</span>':''}<small>${esc(x.sub||'')}${x.done&&x.doneAt?' · انجام شد '+lbl(x.doneAt):''}</small></div>
-   ${x.tick?(()=>{const tb=`<button class="cgo" style="background:${x.done?'transparent':'var(--ac)'};color:${x.done?'var(--mu)':'var(--acx)'};cursor:pointer" data-tick="${x.date}" data-key="${x.tick}">${x.done?'↩ لغو':'✔ انجام شد'}</button>`;return x.go?`<a class="cgo" href="${x.go}">ثبت آموزش</a><details class="cmn"><summary>⋯</summary>${tb}</details>`:tb})():x.done?'':`<a class="cgo" href="${href(x)}">شروع</a>`}</div>`}
+   <div class="cx"><b>${esc(x.t)}</b>${x.late?'<span class="ctag bad">عقب‌افتاده</span>':''}${hw?`<small class="hw">${esc(hw)}</small>`:''}${sub||dn?`<small>${esc(sub)}${dn}</small>`:''}${sc?`<small class="sc">⭐ اثر روی امتیاز: ${esc(sc[1])}</small>`:''}</div>
+   ${x.tick?(()=>{const tb=`<button class="cgo" style="background:${x.done?'transparent':'var(--ac)'};color:${x.done?'var(--mu)':'var(--acx)'};cursor:pointer" data-tick="${x.date}" data-key="${x.tick}">${x.done?'↩ لغو':'✔ انجام شد'}</button>`;return x.go?`<a class="cgo" href="${x.go}">ثبت آموزش</a><details class="cmn"><summary>⋯</summary>${tb}</details>`:tb})():x.done?'':`<a class="cgo p" href="${href(x)}">${cta(x)}</a>`}</div>`}
+/* پنل «امروز چه کنم؟»: عقب‌افتاده‌ها (قدیمی‌ترین اول) + کارهای امروز؛ فقط وقتی ماه جاری باز است */
+const FO={late:false,done:false};
+document.addEventListener('toggle',e=>{const d=e.target;if(d&&d.dataset&&d.dataset.fk)FO[d.dataset.fk]=d.open},true);
+function focusHTML(){
+  const ord=(p,q)=>(p.kind<q.kind?-1:p.kind>q.kind?1:0),tdy=TASKS.filter(x=>x.date===today),
+    todo=tdy.filter(x=>!x.done).sort(ord),done=tdy.filter(x=>x.done),
+    late=TASKS.filter(x=>x.late&&x.date!==today).sort((p,q)=>p.date<q.date?-1:p.date>q.date?1:0),
+    lateSub=x=>({...x,sub:(x.sub||'')+' · برنامه: '+lbl(x.date)}),
+    head=`<h2>🎯 امروز چه کنم؟ <span class="ctag">${WD[(dowOf(today)+1)%7]} ${lbl(today)}</span></h2>`,
+    left=todo.length+late.length;
+  let h=`<div class="card" style="margin-bottom:12px">${head}<div class="mu" style="color:var(--mu)">${left?`${fa(todo.length)} کار برای امروز${late.length?` · ${fa(late.length)} عقب‌افتاده`:''}`:(isWork(today)||tdy.length?'✓ همه‌ی کارهای امروز انجام شده است.':'امروز تعطیل است (پنجشنبه یا جمعه) و کار عقب‌افتاده‌ای نیست.')}</div>`;
+  if(late.length)h+=`<div class="fh bad">⚠ عقب‌افتاده (${fa(late.length)})</div>${late.slice(0,6).map(x=>taskHTML(lateSub(x))).join('')}${late.length>6?`<details data-fk="late" ${FO.late?'open':''}><summary>${fa(late.length-6)} مورد عقب‌افتاده‌ی دیگر</summary>${late.slice(6).map(x=>taskHTML(lateSub(x))).join('')}</details>`:''}`;
+  if(todo.length)h+=`<div class="fh">📋 برای امروز (${fa(todo.length)})</div>${todo.map(taskHTML).join('')}`;
+  if(done.length)h+=`<details data-fk="done" ${FO.done?'open':''}><summary>✓ انجام‌شده‌ی امروز (${fa(done.length)})</summary>${done.map(taskHTML).join('')}</details>`;
+  return h+'</div>'}
 function render(){
   TASKS=build(K);const days=monthDays(K);
   $('mt').textContent=MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
@@ -201,9 +248,10 @@ function render(){
     h+=`<button class="cd ${work?'':'off'} ${d.iso===today?'today':''} ${d.iso===SEL?'sel':''}" data-d="${d.iso}"><span class="cn">${fa(d.j)}</span>${L.length?`<span class="cc ${cl}">${fa(done)}/${fa(L.length)}</span>`:''}</button>`});
   $('grid').innerHTML=h;
   const L=by[SEL]||[];
-  $('day').innerHTML=`<div class="card"><h2>${WD[(dowOf(SEL)+1)%7]} ${lbl(SEL)}${SEL===today?' <span class="ctag">امروز</span>':''}</h2>${L.length?[...L].sort((p,q)=>(p.done-q.done)||(p.kind<q.kind?-1:1)).map(taskHTML).join(''):`<div class="mu" style="color:var(--mu)">${isWork(SEL)?'کاری برای این روز برنامه‌ریزی نشده است.':'روز تعطیل (پنجشنبه یا جمعه).'}</div>`}</div>`;
+  $('focus').innerHTML=K===nowK?focusHTML():'';
+  $('day').innerHTML=(K===nowK&&SEL===today)?'':`<div class="card"><h2>${WD[(dowOf(SEL)+1)%7]} ${lbl(SEL)}${SEL===today?' <span class="ctag">امروز</span>':''}</h2>${L.length?[...L].sort((p,q)=>(p.done-q.done)||(p.kind<q.kind?-1:1)).map(taskHTML).join(''):`<div class="mu" style="color:var(--mu)">${isWork(SEL)?'کاری برای این روز برنامه‌ریزی نشده است.':'روز تعطیل (پنجشنبه یا جمعه).'}</div>`}</div>`;
   const LT=TASKS.filter(x=>x.late&&x.date!==SEL).sort((p,q)=>p.date<q.date?-1:1);
-  $('late').innerHTML=LT.length?`<div class="card" style="margin-top:12px"><h2 style="color:var(--bad)">عقب‌افتاده‌های این ماه (${fa(LT.length)})</h2>${LT.slice(0,40).map(x=>taskHTML({...x,sub:(x.sub||'')+' · برنامه: '+lbl(x.date)})).join('')}${LT.length>40?`<div class="mu" style="color:var(--mu)">و ${fa(LT.length-40)} مورد دیگر</div>`:''}</div>`:'';
+  $('late').innerHTML=(LT.length&&K!==nowK)?`<div class="card" style="margin-top:12px"><h2 style="color:var(--bad)">عقب‌افتاده‌های این ماه (${fa(LT.length)})</h2>${LT.slice(0,40).map(x=>taskHTML({...x,sub:(x.sub||'')+' · برنامه: '+lbl(x.date)})).join('')}${LT.length>40?`<div class="mu" style="color:var(--mu)">و ${fa(LT.length-40)} مورد دیگر</div>`:''}</div>`:'';
 }
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-tick]');if(!b)return;const d=b.dataset.tick,kk=b.dataset.key||'chlorination',SET=kk==='hrtrain'?HTK:TICKS;b.disabled=true;
   try{const h=await hd();h['Content-Type']='application/json';
