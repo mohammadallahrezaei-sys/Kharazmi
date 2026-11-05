@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<script src="auth.js" data-roles="manager"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>گزارش مدیریتی یکپارچه - گسترش فناوری خوارزمی</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ok:#059669;--wa:#d97706;--bad:#dc2626;--ac:#0f766e;--nv:#0f172a}
+@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155;--ok:#34d399;--wa:#fbbf24;--bad:#f87171;--ac:#2dd4bf;--nv:#020617}}
+*{box-sizing:border-box}body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:var(--bg);color:var(--tx);font-size:15px;line-height:1.8}
+.w{max-width:1100px;margin:auto;padding:14px}
+.np{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+select,button,a.b{font-family:inherit;font-size:13px;padding:7px 14px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer;text-decoration:none}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.slide{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:26px 30px;margin-bottom:16px;min-height:520px;position:relative;break-after:page;page-break-after:always}
+.slide h2{font-size:24px;margin:0 0 4px;color:var(--ac)}.slide .sub{color:var(--mu);font-size:13px;margin-bottom:16px}
+.slide.cover{background:var(--nv);color:#fff;display:flex;flex-direction:column;justify-content:center}.slide.cover h1{font-size:34px;margin:0 0 6px}.slide.cover .sub{color:#94a3b8}
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0}
+.kp{border:1px solid var(--bd);border-radius:14px;padding:14px 16px}.cover .kp{border-color:#334155;background:#1e293b}
+.kp b{display:block;font-size:34px;line-height:1.2}.kp span{font-size:13px;color:var(--mu)}.cover .kp span{color:#94a3b8}.kp small{display:block;font-size:12px;margin-top:2px}
+.ok{color:var(--ok)}.wa{color:var(--wa)}.bad{color:var(--bad)}.mu{color:var(--mu)}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:right}th{color:var(--mu);font-weight:600}
+ul{margin:6px 0;padding-inline-start:20px}li{margin:4px 0}
+textarea{width:100%;font-family:inherit;font-size:15px;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);min-height:120px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:14px}
+.note{font-size:12px;color:var(--mu);margin-top:10px}
+.pn{position:absolute;bottom:10px;left:16px;font-size:12px;color:var(--mu)}
+@page{size:A4 landscape;margin:8mm}
+@media print{body{background:#fff;color:#000}.np{display:none}.w{padding:0;max-width:none}.slide{border:0;border-radius:0;min-height:0;height:190mm;padding:8mm 10mm;margin:0;overflow:hidden}textarea{border:0;resize:none}.slide.cover{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="w">
+ <div class="np"><b>گزارش مدیریتی یکپارچه</b><select id="per"></select><button class="p" onclick="print()">چاپ / ذخیره PDF</button><a class="b" href="report.html">گزارش دوره‌ای</a><a class="b" href="checklists.html#rep">اسلایدهای قبل/بعد</a><a class="b" href="indices.html">شاخص حوادث</a><span class="mu" id="st">در حال دریافت اطلاعات...</span></div>
+ <div id="out"></div>
+</div>
+<script>
+const URL_='https://priopguwfjawybffarhd.supabase.co',KEY='sb_publishable_fKFQePO9qiFhj4qU3Vq4lQ_OAFi7rfu';
+const H={apikey:KEY,Authorization:`Bearer ${KEY}`};
+const getAll=t=>HSEDB.getAll(t,H).catch(()=>null);
+const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const nd=s=>String(s||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',timeZone:'Asia/Tehran'});
+const PFU=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',timeZone:'UTC'});
+const key=p=>p.find(x=>x.type==='year').value+'-'+String(+p.find(x=>x.type==='month').value).padStart(2,'0');
+function jk(v){if(!v)return null;const s=nd(v).trim(),m=s.match(/^(1[34]\d\d)[\/\-](\d{1,2})/);if(m)return m[1]+'-'+String(+m[2]).padStart(2,'0');const d=new Date(s);return isNaN(d)?null:key(PF.formatToParts(d))}
+const nowK=jk(new Date().toISOString());
+const addM=(K,d)=>{let y=+K.slice(0,4),m=+K.slice(5)+d;while(m<1){m+=12;y--}while(m>12){m-=12;y++}return y+'-'+String(m).padStart(2,'0')};
+const lab=K=>MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
+const todayISO=new Date().toISOString().slice(0,10);
+const PRESETS=()=>{const y=+nowK.slice(0,4),cm=+nowK.slice(5);return[
+  ['ytd','از ابتدای سال '+fa(y)+' تا امروز',y+'-01',nowK],
+  ['6','۶ ماه اخیر',addM(nowK,-5),nowK],
+  ['12','۱۲ ماه اخیر',addM(nowK,-11),nowK],
+  ['py','سال '+fa(y-1)+' (کامل)',(y-1)+'-01',(y-1)+'-12'],
+  ['m','فقط ماه جاری',nowK,nowK]]};
+const inR=(K,a,b)=>K&&K>=a&&K<=b;
+const nMonths=(a,b)=>(+b.slice(0,4)-+a.slice(0,4))*12+(+b.slice(5)-+a.slice(5))+1;
+function svgChart(labels,series,o={}){
+  /* نمودار خوانا: ۱۲ ماه با نام کامل کوتاه‌شده + سال، عدد روی هر ستون/نقطه، شبکهٔ ۴ بخشی با اعداد صحیح */
+  const Wd=640,Ht=270,pl=44,pr=12,pt=26,pb=46,n=labels.length,vals=series.flatMap(s=>s.v.filter(v=>v!=null));
+  let max=o.max!=null?o.max:Math.max(1,...vals);const min=o.min||0;
+  if(o.max==null){const st=Math.max(1,Math.ceil(max/4));max=st*4}
+  const iw=Wd-pl-pr,ih=Ht-pt-pb,X=i=>Wd-pr-iw/n*(i+0.5)+0,Y=v=>pt+ih-(v-min)/((max-min)||1)*ih;
+  const nb=series.filter(s=>s.bar).length||1,bw=Math.max(8,Math.min(26,iw/n*0.7/nb));
+  let g='';
+  for(let k=0;k<=4;k++){const v=min+(max-min)*k/4,yy=Y(v);g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${yy}" y2="${yy}" stroke="var(--bd)" stroke-width="1"/><text x="${pl-6}" y="${yy+4}" font-size="12" text-anchor="end" fill="var(--mu)">${fa(Math.round(v*10)/10)}</text>`}
+  (o.lines||[]).forEach(l=>{g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${Y(l.y)}" y2="${Y(l.y)}" stroke="${l.c||'var(--ok)'}" stroke-dasharray="6 4" stroke-width="1.5"/><text x="${pl+4}" y="${Y(l.y)-4}" font-size="11" font-weight="700" fill="${l.c||'var(--ok)'}">${l.t||''}</text>`});
+  labels.forEach((l,i)=>{const sub=o.sub&&(i===0||o.sub[i]!==o.sub[i-1])?o.sub[i]:'';
+    g+=`<text x="${X(i)}" y="${Ht-pb+16}" font-size="11" text-anchor="middle" fill="var(--tx)">${l}</text>`+(sub?`<text x="${X(i)}" y="${Ht-pb+31}" font-size="11" text-anchor="middle" fill="var(--mu)">${sub}</text>`:'')});
+  const hasBar=series.some(s=>s.bar);let bi=0;
+  series.forEach(s=>{
+    if(s.bar){const off=(bi-(nb-1)/2)*bw;bi++;s.v.forEach((v,i)=>{if(v==null)return;const y=Y(v),x=X(i)-bw/2+off;g+=`<rect x="${x}" y="${y}" width="${bw}" height="${Math.max(0,Y(min)-y)}" fill="${s.c}" rx="2"><title>${labels[i]} · ${s.name}: ${fa(v)}</title></rect>`+(v?`<text x="${x+bw/2}" y="${y-4}" font-size="${nb>1?10:12}" font-weight="700" text-anchor="middle" fill="${s.c}">${fa(Math.round(v*10)/10)}</text>`:'')})}
+    else{let d='',pen=false;s.v.forEach((v,i)=>{if(v==null){pen=false;return}d+=(pen?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)+' ';pen=true});
+      g+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+      s.v.forEach((v,i)=>{if(v==null)return;g+=`<circle cx="${X(i)}" cy="${Y(v)}" r="4" fill="${s.c}" stroke="var(--card)" stroke-width="1.5"><title>${labels[i]} · ${s.name}: ${fa(v)}</title></circle>`;
+        if(!hasBar||true)g+=`<text x="${X(i)}" y="${Y(v)-9}" font-size="11" font-weight="700" text-anchor="middle" fill="${s.c}">${fa(Math.round(v*10)/10)}</text>`})}});
+  const st=o.stat?statLine(series[o.stat-1<0?0:o.stat-1],o.fmt):'';
+  return`<svg viewBox="0 0 ${Wd} ${Ht}" width="100%" style="direction:ltr" role="img">${g}</svg><div class="mu" style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px">${series.map(s=>`<span><i style="display:inline-block;width:11px;height:11px;border-radius:2px;background:${s.c};margin-inline-end:4px"></i>${s.name}</span>`).join('')}</div>${st}<div class="mu" style="font-size:10px">ماه‌ها از راست (قدیمی‌تر) به چپ (جدیدتر)</div>`}
+/* خلاصهٔ قابل تحلیل زیر هر نمودار: آخرین ماه، ماه قبل، میانگین و جهت روند */
+function statLine(s,fmt){
+  const f=fmt||(v=>fa(Math.round(v*10)/10)),a=s.v.map((v,i)=>[v,i]).filter(x=>x[0]!=null);if(a.length<2)return'';
+  const last=a[a.length-1][0],prev=a[a.length-2][0],avg=a.reduce((x,y)=>x+y[0],0)/a.length,d=last-prev,good=s.good||'up';
+  const col=d===0?'var(--mu)':((d>0)===(good==='up')?'var(--ok)':'var(--bad)'),ar=d>0?'▲':d<0?'▼':'■';
+  return`<div style="font-size:12px;margin-top:4px">آخرین ماه: <b>${f(last)}</b> · ماه قبل: ${f(prev)} · میانگین: ${f(avg)} · <b style="color:${col}">${ar} ${f(Math.abs(d))}</b></div>`}
+
+const TDUR={onboarding:.5,periodic:2},TN={onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران',safety_talk:'جلسه کوتاه ایمنی'};
+let D={};
+async function load(){
+  const [fin,ins,inc,ek,tr,ta,cm,ci,wl,cd]=await Promise.all([
+    getAll('findings?select=status,module,created_at,closed_at,severity,due_date'),
+    getAll('inspections?select=module,ok,nc,created_at,inspector'),
+    getAll('clinic_incidents?select=incident_date,severity,description'),
+    getAll('ekhtars?select=record_type,record_date'),
+    getAll('trainings?select=id,training_type,training_date,duration_hours'),
+    getAll('training_attendees?select=training_id'),
+    getAll('committee_meetings?select=id,no,jdate'),
+    getAll('committee_items?select=meeting_id,kind'),
+    getAll('work_log?select=work_date,photos'),
+    getAll('hse_cards?select=card_date')]);
+  D={fin:(fin||[]).filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ins:(ins||[]).filter(r=>r.module!=='Q'),inc:inc||[],ek:ek||[],tr:tr||[],ta:ta||[],cm:cm||[],ci:ci||[],wl:wl||[],cd:cd||[],miss:[['findings',fin],['inspections',ins],['clinic_incidents',inc],['ekhtars',ek],['trainings',tr],['committee_meetings',cm],['work_log',wl],['hse_cards',cd]].filter(x=>x[1]==null).map(x=>x[0])};
+}
+const lostOf=d=>{const m=/\[روز از دست رفته:\s*([0-9۰-۹]+)\]/.exec(String(d||''));return m?+nd(m[1]):0};
+function calc(a,b){
+  const c={},fin=D.fin;
+  c.fNew=fin.filter(f=>inR(jk(f.created_at),a,b)).length;
+  c.fClosed=fin.filter(f=>f.status==='closed'&&inR(jk(f.closed_at),a,b)).length;
+  c.fOpen=fin.filter(f=>f.status==='open').length;
+  c.fHigh=fin.filter(f=>f.status==='open'&&+f.severity>=3).length;
+  c.fOver=fin.filter(f=>f.status==='open'&&f.due_date&&String(f.due_date).slice(0,10)<todayISO).length;
+  const ins=D.ins.filter(r=>inR(jk(r.created_at),a,b)),ok=ins.reduce((s,x)=>s+(+x.ok||0),0),nc=ins.reduce((s,x)=>s+(+x.nc||0),0);
+  c.rounds=new Set(ins.map(r=>(r.inspector||'?')+'|'+new Date(r.created_at).toLocaleDateString('en-CA'))).size;c.checks=ok+nc;c.comp=ok+nc?Math.round(ok/(ok+nc)*100):null;
+  const inc=D.inc.filter(x=>inR(jk(x.incident_date),a,b)),lo=inc.map(x=>lostOf(x.description));
+  c.inc=inc.length;c.incLost=inc.filter((x,i)=>lo[i]>0).length;c.fatal=lo.filter(v=>v>=6000).length;c.lost=lo.filter(v=>v<6000).reduce((s,v)=>s+v,0);c.sev=inc.filter(x=>x.severity==='severe'||x.severity==='fatal').length;
+  const tr=D.tr.filter(t=>inR(jk(t.training_date),a,b)),ids=new Set(tr.map(t=>t.id)),cnt={};D.ta.forEach(x=>{if(ids.has(x.training_id))cnt[x.training_id]=(cnt[x.training_id]||0)+1});
+  c.trN=tr.length;c.byT={};tr.forEach(t=>{const o=c.byT[t.training_type]||(c.byT[t.training_type]={n:0,p:0,h:0}),p=cnt[t.id]||0;o.n++;o.p+=p;o.h+=p*(TDUR[t.training_type]??.25)});
+  c.trP=Object.values(c.byT).reduce((s,o)=>s+o.p,0);c.trH=Object.values(c.byT).reduce((s,o)=>s+o.h,0);
+  const ms=D.cm.filter(m=>inR(jk(m.jdate),a,b)),mid=new Set(ms.map(m=>m.id)),it=D.ci.filter(x=>mid.has(x.meeting_id));
+  c.cmN=ms.length;c.ciDone=it.filter(x=>x.kind==='done').length;c.ciOn=it.filter(x=>x.kind==='ongoing').length;c.ciNew=it.filter(x=>x.kind==='new').length;
+  const ek=D.ek.filter(x=>inR(jk(x.record_date),a,b));c.rw=ek.filter(x=>x.record_type==='تشویق').length;c.wr=ek.filter(x=>x.record_type!=='تشویق').length;
+  c.cards=D.cd.filter(x=>inR(jk(x.card_date),a,b)).length;const wl=D.wl.filter(x=>inR(jk(x.work_date),a,b));c.wl=wl.length;c.wlPh=wl.filter(x=>(x.photos||[]).length).length;
+  return c}
+const dl=(v,p,good)=>{if(p==null||v==null)return'';const d=v-p;if(!d)return'<small class="mu">■ بدون تغییر نسبت به دورهٔ قبل</small>';const g=(d>0)===(good!=='down');return`<small class="${g?'ok':'bad'}">${d>0?'▲':'▼'} ${fa(Math.abs(Math.round(d*10)/10))} نسبت به دورهٔ قبل (${fa(Math.round(p*10)/10)})</small>`};
+const kp=(v,l,x)=>`<div class="kp"><b>${v}</b><span>${l}</span>${x||''}</div>`;
+let TICKS=0;const sl=(cls,inner)=>`<section class="slide ${cls||''}">${inner}<div class="pn">${fa(++TICKS)}</div></section>`;
+const LS=k=>{try{return localStorage.getItem('mgmt_'+k)||''}catch(e){return''}},SV=(k,v)=>{try{localStorage.setItem('mgmt_'+k,v)}catch(e){}};
+function render(){
+  TICKS=0;const P=PRESETS().find(x=>x[0]===$('per').value)||PRESETS()[0],[,pl,a,b]=P,nm=nMonths(a,b),pb=addM(a,-1),pa=addM(a,-nm),c=calc(a,b),p=calc(pa,pb),hasP=nm<=12;
+  const pv=f=>hasP?p[f]:null;
+  const M=[];for(let i=11;i>=0;i--)M.push(addM(nowK,-i));
+  const L=M.map(k=>MN[+k.slice(5)-1]),SB=M.map(k=>fa(k.slice(0,4)));
+  const sNew=M.map(k=>D.fin.filter(f=>jk(f.created_at)===k).length),sCl=M.map(k=>D.fin.filter(f=>f.status==='closed'&&jk(f.closed_at)===k).length);
+  const sInc=M.map(k=>D.inc.filter(x=>jk(x.incident_date)===k).length);
+  const closeRate=c.fNew?Math.round(c.fClosed/c.fNew*100):null;
+  let h='';
+  h+=sl('cover',`<div class="sub">گسترش فناوری خوارزمی · واحد HSE</div><h1>گزارش عملکرد HSE</h1><div class="sub">دوره: ${esc(pl)} (${lab(a)} تا ${lab(b)})</div>
+   <div class="kg">${kp(fa(c.inc),'حادثه ثبت‌شده',dl(c.inc,pv('inc'),'down'))}${kp(fa(c.fClosed),'عدم‌انطباق اصلاح‌شده',dl(c.fClosed,pv('fClosed'),'up'))}${kp(fa(Math.round(c.trH*10)/10),'نفر-ساعت آموزش',dl(c.trH,pv('trH'),'up'))}${kp(fa(c.cmN),'جلسهٔ کمیتهٔ حفاظت فنی',dl(c.cmN,pv('cmN'),'up'))}</div>`);
+  h+=sl('',`<h2>ایمنی و حوادث</h2><div class="sub">حوادث ثبت‌شده در بهداری و تأثیر آن‌ها بر روز کاری</div>
+   <div class="kg">${kp(fa(c.inc),'کل حوادث',dl(c.inc,pv('inc'),'down'))}${kp(fa(c.incLost),'حادثه با استعلاجی',dl(c.incLost,pv('incLost'),'down'))}${kp(fa(c.lost),'روز کاری از دست‌رفته',dl(c.lost,pv('lost'),'down'))}${kp(fa(c.sev),'حادثهٔ شدید',dl(c.sev,pv('sev'),'down'))}</div>
+   ${svgChart(L,[{name:'حادثه',c:'var(--bad)',v:sInc,bar:1,good:'down'}],{sub:SB,stat:1})}<div class="note">شاخص‌های AFR / ASR / FSI و هدف ۱۴۰۵ در صفحهٔ «شاخص حوادث» محاسبه می‌شود. ${c.fatal?`در این دوره ${fa(c.fatal)} حادثهٔ منجر به فوت ثبت شده است (در روز از دست‌رفته نیامده).`:''}</div>`);
+  h+=sl('',`<h2>عدم‌انطباق‌ها و پیگیری اصلاحات</h2><div class="sub">هر عدم‌انطباق با محل، مسئول و مهلت ثبت و تا بسته‌شدن پیگیری می‌شود</div>
+   <div class="kg">${kp(fa(c.fNew),'جدید در دوره',dl(c.fNew,pv('fNew'),'down'))}${kp(fa(c.fClosed),'بسته‌شده در دوره',dl(c.fClosed,pv('fClosed'),'up'))}${kp(closeRate==null?'—':fa(closeRate)+'٪','نسبت بسته‌شده به جدید')}${kp(fa(c.fOpen),'پشتوانهٔ باز تا امروز',`<small class="${c.fOver?'bad':'ok'}">${fa(c.fOver)} مورد از مهلت گذشته · ${fa(c.fHigh)} مورد شدت بالا</small>`)}</div>
+   ${svgChart(L,[{name:'جدید',c:'var(--wa)',v:sNew,bar:1,good:'down'},{name:'بسته‌شده',c:'var(--ok)',v:sCl,bar:1,good:'up'}],{sub:SB})}`);
+  h+=sl('',`<h2>بازرسی و انطباق</h2><div class="sub">بازرسی‌های میدانی HSE و نرخ انطباق چک‌لیست‌ها</div>
+   <div class="kg">${kp(fa(c.rounds),'گشت بازرسی',dl(c.rounds,pv('rounds'),'up'))}${kp(fa(c.checks),'مورد کنترل‌شده',dl(c.checks,pv('checks'),'up'))}${kp(c.comp==null?'—':fa(c.comp)+'٪','نرخ انطباق',dl(c.comp,pv('comp'),'up'))}</div>
+   <div class="note">نرخ انطباق = موارد منطبق ÷ (منطبق + عدم‌انطباق). جزئیات هر ماه در گزارش دوره‌ای HSE.</div>`);
+  const trRows=Object.entries(c.byT).sort((x,y)=>y[1].p-x[1].p).map(([k,o])=>`<tr><td>${TN[k]||k}</td><td>${fa(o.n)}</td><td>${fa(o.p)}</td><td>${fa(Math.round(o.h*10)/10)}</td></tr>`).join('');
+  h+=sl('',`<h2>آموزش</h2><div class="sub">آموزش به تفکیک نوع؛ نفر-ساعت = تعداد فراگیر × مدت استاندارد (بدو استخدام ۰٫۵، دوره‌ای ۲، سایر ۰٫۲۵ ساعت)</div>
+   <div class="kg">${kp(fa(c.trN),'جلسهٔ آموزشی',dl(c.trN,pv('trN'),'up'))}${kp(fa(c.trP),'نفر آموزش‌دیده (حضور)',dl(c.trP,pv('trP'),'up'))}${kp(fa(Math.round(c.trH*10)/10),'نفر-ساعت',dl(c.trH,pv('trH'),'up'))}</div>
+   <table><tr><th>نوع آموزش</th><th>جلسه</th><th>نفر</th><th>نفر-ساعت</th></tr>${trRows||'<tr><td colspan="4" class="mu">آموزشی در این دوره ثبت نشده است</td></tr>'}</table>`);
+  h+=sl('',`<h2>کمیتهٔ حفاظت فنی و بهداشت کار و مستندات</h2><div class="sub">برگزاری جلسات، پیگیری مصوبات و ارسال صورتجلسه به مراجع</div>
+   <div class="kg">${kp(fa(c.cmN),'جلسه',dl(c.cmN,pv('cmN'),'up'))}${kp(fa(c.ciDone),'اقدام انجام‌شده',dl(c.ciDone,pv('ciDone'),'up'))}${kp(fa(c.ciOn),'در دست اقدام')}${kp(fa(c.ciNew),'مصوبهٔ جدید')}</div>
+   <div class="note">صورتجلسه‌ها با قالب رسمی چاپ و اکسل ساخته و برای اداره کار و مرکز بهداشت ارسال و بایگانی می‌شوند.</div>`);
+  h+=sl('',`<h2>فرهنگ ایمنی و مشارکت</h2><div class="sub">تشویق و اخطار، کارت‌های خطر و اقدامات روزانهٔ HSE</div>
+   <div class="kg">${kp(fa(c.rw),'تشویق',dl(c.rw,pv('rw'),'up'))}${kp(fa(c.wr),'اخطار/تذکر',dl(c.wr,pv('wr'),'down'))}${kp(fa(c.cards),'کارت خطر / شبه‌حادثه',dl(c.cards,pv('cards'),'up'))}${kp(fa(c.wl),'اقدام ثبت‌شده در گزارش روزانه',`<small class="mu">${fa(c.wlPh)} مورد همراه با عکس</small>`)}</div>`);
+  const tot=[['مورد عدم‌انطباق',D.fin.length],['بازرسی',D.ins.length],['حادثه',D.inc.length],['جلسهٔ آموزشی',D.tr.length],['حضور آموزشی',D.ta.length],['بند صورتجلسه',D.ci.length],['اقدام روزانه',D.wl.length],['سابقهٔ اخطار/تشویق',D.ek.length]];
+  h+=sl('',`<h2>نرم‌افزار جامع HSE خوارزمی</h2><div class="sub">همهٔ کار HSE در یک سامانه: ثبت، پیگیری، هشدار و گزارش خودکار</div>
+   <div class="two"><div><b>ماژول‌ها</b><ul><li>چک‌لیست‌های بازرسی و پیگیری عدم‌انطباق با عکس قبل/بعد</li><li>میز کار روزانه، تقویم و وظایف دوره‌ای</li><li>بهداری، حوادث و شاخص‌های AFR / ASR / FSI</li><li>آموزش و فرم‌های چاپی (طرح درس، لیست امضا، پس از حادثه، پیمانکار)</li><li>صورتجلسهٔ کمیته با چاپ و اکسل همان فرم رسمی</li><li>اخطار و تشویق با فرم چاپی و هشدار تکرار</li><li>کارت خطر، ارزیابی واحدها و فرهنگ ایمنی</li><li>گزارش دوره‌ای، اسلایدهای قبل/بعد و گزارش واحدها</li></ul></div>
+   <div><b>داده‌های ثبت‌شده در سامانه</b><table>${tot.map(([k,v])=>`<tr><td>${k}</td><td><b>${fa(v)}</b></td></tr>`).join('')}</table></div></div>`);
+  h+=sl('',`<h2>پیام کلیدی و تصمیم‌های لازم از مدیریت</h2><div class="sub">این دو کادر را قبل از ارائه تکمیل کنید (فقط در همین مرورگر ذخیره می‌شود)</div>
+   <b>پیام کلیدی</b><textarea id="msg" data-k="msg" placeholder="مثلاً: روند اصلاحات رو به بهبود است ولی پشتوانهٔ باز و آموزش پرسنل خط تولید نیازمند حمایت است.">${esc(LS('msg'))}</textarea>
+   <b style="display:block;margin-top:12px">تصمیم‌ها و منابع مورد نیاز (هر خط یک مورد)</b><textarea id="ask" data-k="ask" placeholder="مثلاً: بودجهٔ تعویض سقف سولهٔ ۵&#10;تخصیص نیروی اجرایی برای ۳۷۰ مورد عدم‌انطباق باز&#10;تعیین نمایندهٔ ایمنی در هر سوله">${esc(LS('ask'))}</textarea>`);
+  $('out').innerHTML=h;
+  $('st').textContent=D.miss.length?'⚠ دریافت این جدول‌ها ناموفق بود: '+D.miss.join('، '):'';
+  document.querySelectorAll('textarea[data-k]').forEach(t=>t.oninput=()=>{SV(t.dataset.k,t.value);const l=document.getElementById('lst');if(l)l.remove()})
+}
+const $=id=>document.getElementById(id);
+(async()=>{await load();const ps=PRESETS();$('per').innerHTML=ps.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');$('per').onchange=render;render()})();
+</script>
+</body>
+</html>
