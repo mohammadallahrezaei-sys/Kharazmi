@@ -2,6 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <script src="auth.js"></script>
+    <script src="contractor_match.js"></script>
     <script src="hse_nav.js" defer></script>
     <script src="sched.js"></script>
     <script src="cycle.js"></script>
@@ -96,7 +97,7 @@ async function start(){
   const [tr,ta,emp,inc,fu]=await Promise.all(['trainings?select=id,training_date,title,training_type,trainer','training_attendees?select=training_id,employee_id','employees?select=*',
     'clinic_incidents?select=corrective_action,action_status,action_due_date,incident_date,expert_opinion,expert_opinion_by','clinic_followups?select=status,due_date'].map(getAll));
   const ffl=await getAll('finding_followups?select=finding_id,followed_at,followed_by,next_due&order=followed_at.asc')||[];
-  const ctrs=await getAll('contractors?select=name,start_date,end_date,status')||[];
+  const ctrs=await getAll('contractors?select=name,contact_name,start_date,end_date,status')||[];
   const vr=await getAll('verify_rounds?select=expert,week_start,result,location,note')||[];
   const inc2=inc||await getAll('clinic_incidents?select=corrective_action,action_status,action_due_date,incident_date');
   let hrt=null;try{const R=await computeHR();hrt=R?R.list.filter(p=>p.actions.some(a=>a.startsWith('آموزش'))):null}catch(e){}
@@ -239,8 +240,8 @@ function calc_(email,K){
   const incM=D.inc.filter(x=>x.incident_date&&inR(d10(x.incident_date))),incOk=incM.filter(x=>x.expert_opinion&&eqm(x.expert_opinion_by,email)).length;
   /* چک‌لیست روزانهٔ پیمانکاران: هر روز کاریِ حضور پیمانکار در کارخانه یک چک‌لیست (ماژول CT) با نام همان شرکت */
   const CW=workdays(R),ctrDays=[];
-  (D.ctrs||[]).forEach(c=>{const s0=c.start_date,e0=c.end_date||(c.status==='finished'?c.start_date:R.b);CW.filter(d=>d>=s0&&d<=e0).forEach(d=>ctrDays.push({c:c.name,d}))});
-  const ctrDone=ctrDays.filter(x=>D.ins.some(r=>r.module==='CT'&&eqm(r.inspector,email)&&new Date(r.created_at).toLocaleDateString('en-CA')===x.d&&String(r.location||'').includes(x.c))),
+  (D.ctrs||[]).forEach(c=>{const s0=c.start_date,e0=c.end_date||(c.status==='finished'?c.start_date:R.b);CW.filter(d=>d>=s0&&d<=e0).forEach(d=>ctrDays.push({c:c.name,d,o:c}))});
+  const ctrDone=ctrDays.filter(x=>D.ins.some(r=>r.module==='CT'&&eqm(r.inspector,email)&&new Date(r.created_at).toLocaleDateString('en-CA')===x.d&&(window.HSECtr?HSECtr.match(r.location,x.o,(D.ctrs||[]).filter(o=>o.start_date<=x.d&&x.d<=(o.end_date||(o.status==='finished'?o.start_date:R.b)))):String(r.location||'').includes(x.c)))),
     ctrMiss=ctrDays.filter(x=>!ctrDone.includes(x));
   const s={ctr:ctrDays.length?ctrDone.length/ctrDays.length:null,sched,inc:incM.length?incOk/incM.length:null,fq:mineF.length?fqOk/mineF.length:null,verify:missed.length||ekMiss.length||VR.length?Math.max(0,1-CFG.MISS_PEN*missW):null,ffu:FS.s,
     recog:Math.min(1,rw/CFG.MIN_RW),talk:Math.min(1,tkWeeks/CFG.TALK_WEEKS),warn:Math.min(1,wn/CFG.MIN_WARN),

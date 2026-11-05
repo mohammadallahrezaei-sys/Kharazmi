@@ -2,6 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
 <script src="auth.js"></script>
+<script src="contractor_match.js"></script>
 <script src="hse_nav.js" defer></script>
 <script src="sched.js"></script>
 <script src="cycle.js"></script>
@@ -102,7 +103,7 @@ async function load(){
   INS=ins.map(x=>({m:x.module,loc:x.location||'',code:x.equipment_code||null,d:new Date(x.created_at).toLocaleDateString('en-CA')}));
   HTK=new Set((await getAll("daily_ticks?select=tick_date&key=eq.hrtrain").catch(()=>null)||[]).map(x=>String(x.tick_date).slice(0,10)));
   TICKS=new Set((await getAll("daily_ticks?select=tick_date&key=eq.chlorination").catch(()=>null)||[]).map(x=>String(x.tick_date).slice(0,10)));
-  CTR=(await getAll('contractors?select=id,name,contract_no,scope,start_date,end_date,status').catch(()=>null)||[]).filter(c=>c.start_date);
+  CTR=(await getAll('contractors?select=id,name,contact_name,contract_no,scope,start_date,end_date,status').catch(()=>null)||[]).filter(c=>c.start_date);
   try{const R=await computeHR();HRT=R?R.list.filter(p=>p.actions.some(a=>a.startsWith('آموزش'))):[]}catch(e){HRT=null}
   OBL=(await getAll('hse_obligations?select=id,title,next_due,active').catch(()=>null)||[]).filter(o=>o.active!==false&&o.next_due);
   const cats=[...new Set(Object.values(EQC).flatMap(v=>v[0]))];
@@ -156,7 +157,10 @@ function build(K){
   if(HSEAuth.role&&days)days.filter(d=>isWork(d.iso)&&d.iso>=TICK_START).forEach(d=>T.push({id:'CL'+d.iso,date:d.iso,due:d.iso,t:'روشن کردن سیستم کلرزنی تصفیه‌خانه',sub:'روزانه · فقط تیک بزنید',done:TICKS.has(d.iso),kind:'daily',tick:'chlorination'}));
   /* ۳-ب) چک‌لیست روزانهٔ پیمانکاران حاضر در کارخانه (از روز ورود تا ثبت پایان کار) */
   CTR.forEach(c=>{const s=c.start_date,e=c.end_date||(c.status==='finished'?s:b);
-    days.filter(d=>isWork(d.iso)&&d.iso>=s&&d.iso<=e).forEach(d=>T.push({id:'CT'+c.id+d.iso,date:d.iso,due:d.iso,t:'چک‌لیست ایمنی پیمانکار — '+c.name,sub:'روزانه · '+(c.scope||'').slice(0,50),mk:'CT',done:INS.some(x=>x.m==='CT'&&x.d===d.iso&&x.loc.includes(c.name)),kind:'daily',go:'checklists.html#visit=CT&ctr='+encodeURIComponent(c.name)+'&cno='+encodeURIComponent(c.contract_no||'')}))});
+    days.filter(d=>isWork(d.iso)&&d.iso>=s&&d.iso<=e).forEach(d=>{
+      /* تطبیق نرم نام (فامیلی/نام کوتاه روی چک‌لیست) با پیمانکاران حاضر در همان روز؛ contractor_match.js */
+      const pool=CTR.filter(o=>o.start_date<=d.iso&&d.iso<=(o.end_date||(o.status==='finished'?o.start_date:b)));
+      T.push({id:'CT'+c.id+d.iso,date:d.iso,due:d.iso,t:'چک‌لیست ایمنی پیمانکار — '+c.name,sub:'روزانه · '+(c.scope||'').slice(0,50),mk:'CT',done:INS.some(x=>x.m==='CT'&&x.d===d.iso&&(window.HSECtr?HSECtr.match(x.loc,c,pool):x.loc.includes(c.name))),kind:'daily',go:'checklists.html#visit=CT&ctr='+encodeURIComponent(c.name)+'&cno='+encodeURIComponent(c.contract_no||'')})})});
   /* ۴) کارهای مؤثر بر امتیاز: آموزش کوتاه هفتگی، اخطار/تشویق، نظر حادثه، عدم‌انطباق و ارجاع‌ها */
   if(X.on){
     const wk=iso=>addDays(iso,-((dowOf(iso)+1)%7)),pre=K.replace('-','/')+'/',nz=s=>String(s||'').replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c));
