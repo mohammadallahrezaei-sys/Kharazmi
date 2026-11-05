@@ -1636,6 +1636,7 @@ async function recon() {
     <div class="q" style="margin-top:12px;"><b>📎 مقایسهٔ دقیق با فایل اکسل اعلان‌های فنی</b>
       <small style="display:block; margin:4px 0;">فایل خروجی فنی را انتخاب کنید (فقط ردیف‌های اولویت HSE خوانده می‌شود). فایل در همین مرورگر پردازش می‌شود و جایی ارسال نمی‌شود.</small>
       <input type="file" id="techf" accept=".xlsx,.xls">
+      <div style="margin-top:6px;"><small>اختیاری برای اصلاح تاریخ بسته‌شدن: اکسل «دستورکار» فنی (ستون‌های number، date، تاریخ خاتمه)</small><br><input type="file" id="wof" accept=".xlsx,.xls"> <span id="wost" style="font-size:12px;"></span></div>
       <label style="display:block; margin-top:8px; font-size:13px;"><input type="checkbox" id="tqinc"> شامل اعلان‌هایی که این شخص ثبت کرده و موضوعشان مرتبط با HSE است (حتی اگر اولویت «HSE» نخورده)</label>
       <input id="tqrep" value="هفت لنگی" placeholder="بخشی از نام گزارش‌دهنده"></div>
     <div id="techout"></div>
@@ -1679,7 +1680,11 @@ async function techCompare(file) {
     const dupNo = Object.entries(appBy).filter(([n, L]) => L.length > 1 && techBy[n]); dupNo.forEach(([n, L]) => L.sort((a, b) => a.id - b.id));
     /* تاریخ ثبت اشتباه (مثلاً ایمپورت یک‌جا در یک ماه): تاریخ واقعی = «تاریخ ایجاد» اعلان در فایل فنی */
     const tDay = iso => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Tehran' });
-    const dfix = []; rows.forEach(x => { const t = allBy[dig(x.notice_code)]; if (!t || !x.created_at) return; const m = String(t.date).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).match(/(1[34]\d\d)[\/\-](\d{1,2})[\/\-](\d{1,2})/); if (!m) return; const g = j2g(+m[1], +m[2], +m[3]), iso = g[0] + '-' + String(g[1]).padStart(2, '0') + '-' + String(g[2]).padStart(2, '0'); if (iso === tDay(x.created_at)) return; dfix.push({ id: x.id, no: t.no, jd: t.date, iso, old: tDay(x.created_at), cl: x.status == 'closed' && x.closed_at && tDay(x.closed_at) === tDay(x.created_at) }); });
+    const WO = window._wo || {}, toIso = str => { const m = String(str || '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).match(/(1[34]\d\d)[\/\-](\d{1,2})[\/\-](\d{1,2})/); if (!m) return null; const g = j2g(+m[1], +m[2], +m[3]); return g[0] + '-' + String(g[1]).padStart(2, '0') + '-' + String(g[2]).padStart(2, '0'); };
+    const dfix = []; rows.forEach(x => { const no = dig(x.notice_code), t = allBy[no], w = WO[no]; if (!no || !x.created_at || (!t && !w)) return; const ci = toIso(t ? t.date : w.d), oldC = tDay(x.created_at), newC = ci && ci !== oldC ? ci : null, base = newC || oldC;
+      let newE = null; if (x.status == 'closed' && w && w.e && w.e >= base && x.closed_at && tDay(x.closed_at) !== w.e) newE = w.e;
+      const susp = x.status == 'closed' && x.closed_at && tDay(x.closed_at) === oldC && !newE && !(w && w.e); if (!newC && !newE && !susp) return;
+      dfix.push({ id: x.id, no, jd: t ? t.date : w.d, iso: newC, old: oldC, e: newE, oldE: x.closed_at ? tDay(x.closed_at) : '', cl: susp }); });
     window._dfix = dfix;
     const stA = { open: 'باز', closed: 'اصلاح‌شده', cancelled: 'لغو' }, stT = { open: 'در جریان', closed: 'بسته', cancelled: 'باطل' };
     const DELB = x => window.HSEAuth && HSEAuth.role === 'manager' ? `<br><button class="l" data-a="fdel" data-id="${x.id}" style="margin-top:4px; color:var(--bad); min-height:32px;">🗑 حذف این مورد از برنامه</button>` : '';
@@ -1698,14 +1703,27 @@ async function techCompare(file) {
       ${sec('۳) مورد برنامه که کد اعلانش در فایل فنی (HSE) نیست', notInTech.length, lim(notInTech, x => { const o = allBy[dig(x.notice_code)]; return `<div data-dr>${li(`مورد #${esc(x.id)} · کد «${esc(x.notice_code)}» · ${esc(x.question || '')}<br><small style="color:var(--wa)">${o ? 'این شماره در فایل فنی هست ولی اولویتش «' + esc(o.pr || 'بدون اولویت') + '» و گزارش‌دهنده «' + esc(o.by) + '» است — جزو ۶۳۴ نیست' : 'این شماره اصلاً در فایل فنی نیست (احتمالاً اشتباه تایپی)'}</small>` + DELB(x))}</div>`; }))}
       ${sec('۵) موارد برنامه بدون کد اعلان (هنوز در فنی ثبت نشده، یا تکراری)', freeAll.length, lim(freeAll, x => `<div data-dr>${li(`مورد #${esc(x.id)} · ${esc(stA[x.status] || x.status)} · ${esc(x.location || '')}<br>${esc(x.question || '')}` + DELB(x))}</div>`))}
       <details class="q" style="margin-top:8px; border-color:var(--warn);" ${dfix.length ? 'open' : ''}><summary style="cursor:pointer; font-weight:700;">۶) تاریخ ثبت با تاریخ واقعی اعلان فنی نمی‌خواند — ${fa(dfix.length)} مورد</summary>
-        ${dfix.length ? `<small>تاریخ ثبت این موارد (احتمالاً بر اثر ایمپورت یک‌جا) با «تاریخ ایجاد» اعلان در فایل فنی جایگزین می‌شود. از این‌ها ${fa(dfix.filter(d => d.cl).length)} مورد بسته‌شده هستند که تاریخ بسته‌شدنشان همان روز ثبت قدیمی است (در فایل فنی تاریخ بسته‌شدن نیست).</small>
-        <label class="fx" style="display:block; margin:6px 0;"><input type="checkbox" id="dfixcl" checked> تاریخ بسته‌شدنِ نامعلوم این موارد خالی شود (در گزارش‌های ماهانه حساب نشوند، نه اینکه مهرماه محسوب شوند)</label>
-        ${lim(dfix, d => li(`مورد #${esc(d.id)} · اعلان ${esc(d.no)} · ثبت فعلی ${esc(d.old)} ← ${esc(d.jd)}${d.cl ? ' · (بسته؛ تاریخ بسته‌شدن مشکوک)' : ''}`))}
+        ${dfix.length ? `<small>تاریخ ثبت این موارد (احتمالاً بر اثر ایمپورت یک‌جا) با «تاریخ ایجاد» اعلان در فایل فنی جایگزین می‌شود. از این‌ها ${fa(dfix.filter(d => d.e).length)} مورد تاریخ بسته‌شدن از اکسل دستورکار می‌گیرند و ${fa(dfix.filter(d => d.cl).length)} مورد بسته‌شده تاریخ بسته‌شدنشان همان روز ثبت قدیمی است ولی تاریخ واقعی در فایل‌ها نیست.</small>
+        <label class="fx" style="display:block; margin:6px 0;"><input type="checkbox" id="dfixcl" checked> تاریخ بسته‌شدنِ نامعلوم (بدون تاریخ در فایل دستورکار) خالی شود (در گزارش‌های ماهانه حساب نشوند، نه اینکه مهرماه محسوب شوند)</label>
+        ${lim(dfix, d => li(`مورد #${esc(d.id)} · اعلان ${esc(d.no)}${d.iso ? ` · ثبت ${esc(d.old)} ← ${esc(d.iso)}` : ''}${d.e ? ` · بسته‌شدن ${esc(d.oldE)} ← ${esc(d.e)}` : ''}${d.cl ? ' · (بسته؛ تاریخ بسته‌شدن مشکوک ← خالی)' : ''}`))}
         <button class="l" data-a="datefix" style="margin-top:6px;">✅ اصلاح تاریخ ${fa(dfix.length)} مورد</button><div id="dfixout" style="font-size:13px; margin-top:4px;"></div>` : '<small>همهٔ موارد دارای کد اعلان با تاریخ فنی یکسان‌اند ✅</small>'}</details>
       ${sec('۴) یک اعلان فنی که چند بار در برنامه ثبت شده (تکراری)', dupNo.length, lim(dupNo, ([n, L]) => li(`<b>اعلان #${esc(n)}</b> در ${fa(L.length)} مورد برنامه — یکی را نگه دارید و بقیه را حذف کنید<br><small>${esc(techBy[n].txt)}</small>` + L.map((x, i) => `<div data-dr style="margin-top:6px; padding:4px 0; border-top:1px dashed var(--bd);">${i == 0 ? '✅ نگه‌داشتن (قدیمی‌ترین) ' : '⚠️ تکراری '}#${esc(x.id)} · ${esc(stA[x.status] || x.status)} · ${esc(x.question || '')}${i ? DELB(x) : ''}</div>`).join(''))))}`;
   } catch (e) { out.innerHTML = '<div class="q bad">خطا: ' + esc(e.message) + '</div>'; }
 }
-document.addEventListener('change', e => { if (!e.target) return; if (e.target.id == 'techf' && e.target.files[0]) techCompare(e.target.files[0]); else if (e.target.id == 'tqinc' || e.target.id == 'tqrep') techCompare(null); });
+async function woLoad(file) {
+  const st = $('#wost'); st.textContent = 'در حال خواندن (فایل بزرگ است، چند ثانیه صبر کنید)...';
+  try {
+    if (!window.XLSX) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('بارگذاری کتابخانهٔ اکسل ممکن نشد.')); document.head.appendChild(sc); });
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' }), rws = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: false });
+    const cl = v => String(v == null ? '' : v).replace(/[\u200e\u200f\u202a-\u202e]/g, '').trim(), dg = v => cl(v).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/\D/g, '');
+    const M = {}; let n = 0, skip = 0;
+    rws.forEach(r => { const no = dg(r['number']); if (!no) return; const m = M[no] || (M[no] = { d: cl(r['date']), e: null }); const st = cl(r['وضعیت دستورکار']), e = cl(r['تاریخ خاتمه']);
+      if (/باطل/.test(st)) return; const pm = e.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).match(/(1[34]\d\d)[\/\-](\d{1,2})[\/\-](\d{1,2})/); if (!pm) return;
+      const g = j2g(+pm[1], +pm[2], +pm[3]), iso = g[0] + '-' + String(g[1]).padStart(2, '0') + '-' + String(g[2]).padStart(2, '0'); if (!m.e || iso > m.e) m.e = iso; });
+    window._wo = M; st.textContent = '✔ ' + fa(Object.keys(M).length) + ' اعلان خوانده شد'; if (window._traw) techCompare(null);
+  } catch (e) { st.textContent = 'خطا: ' + e.message; }
+}
+document.addEventListener('change', e => { if (!e.target) return; if (e.target.id == 'wof' && e.target.files[0]) return woLoad(e.target.files[0]); if (e.target.id == 'techf' && e.target.files[0]) techCompare(e.target.files[0]); else if (e.target.id == 'tqinc' || e.target.id == 'tqrep') techCompare(null); });
 async function finds(iid) {
   if (iid !== undefined) { FI = iid; EDIT = null; }
   view('<p style="text-align:center; padding:40px;">در حال بارگذاری عدم‌انطباق‌ها...</p>');
@@ -2446,7 +2464,7 @@ document.onclick = async e => {
     const L = window._dfix || [], nul = $('#dfixcl') && $('#dfixcl').checked, o = $('#dfixout'); if (!L.length) return;
     if (!confirm('تاریخ ثبت ' + L.length + ' مورد اصلاح شود؟ (قابل بازگشت نیست)')) return;
     let ok = 0, bad = 0; t.disabled = true;
-    for (let i = 0; i < L.length; i += 8) { await Promise.all(L.slice(i, i + 8).map(async d => { try { const b = { created_at: d.iso + 'T08:00:00+03:30', notice_at: d.iso + 'T08:00:00+03:30' }; if (nul && d.cl) b.closed_at = null; await api('findings?id=eq.' + d.id, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(b) }); ok++; } catch (e) { bad++; } })); if (o) o.textContent = 'در حال اصلاح... ' + fa(ok + bad) + ' از ' + fa(L.length); }
+    for (let i = 0; i < L.length; i += 8) { await Promise.all(L.slice(i, i + 8).map(async d => { try { const b = {}; if (d.iso) { b.created_at = d.iso + 'T08:00:00+03:30'; b.notice_at = b.created_at; } if (d.e) b.closed_at = d.e + 'T09:00:00+03:30'; else if (nul && d.cl) b.closed_at = null; if (!Object.keys(b).length) return; await api('findings?id=eq.' + d.id, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(b) }); ok++; } catch (e) { bad++; } })); if (o) o.textContent = 'در حال اصلاح... ' + fa(ok + bad) + ' از ' + fa(L.length); }
     if (o) o.innerHTML = '<b>' + fa(ok) + '</b> مورد اصلاح شد' + (bad ? ' — <b style="color:var(--bad)">' + fa(bad) + '</b> خطا' : '') + '. برای دیدن نتیجه دوباره فایل را انتخاب کنید.'; t.disabled = false;
   }
   else if (a == 'ttcopy') { navigator.clipboard.writeText(window._ttxt || '').then(() => alert('کپی شد'), () => prompt('کپی کنید:', window._ttxt || '')); }
