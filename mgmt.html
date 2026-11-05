@@ -95,7 +95,7 @@ const TDUR={onboarding:.5,periodic:2},TN={onboarding:'بدو استخدام',per
 let D={};
 async function load(){
   const [fin,ins,inc,ek,tr,ta,cm,ci,wl,cd,mh,lg,vs,em]=await Promise.all([
-    getAll('findings?select=status,module,created_at,closed_at,severity,due_date'),
+    getAll('findings?select=status,module,created_at,closed_at,severity,due_date,inspector'),
     getAll('inspections?select=module,ok,nc,created_at,inspector'),
     getAll('clinic_incidents?select=id,incident_date,employee_id,severity,description'),
     getAll('ekhtars?select=record_type,record_date'),
@@ -132,6 +132,8 @@ const r1=v=>Math.round(v*10)/10,r2=v=>Math.round(v*100)/100;
 function calc(a,b){
   const c={},fin=D.fin;
   c.fNew=fin.filter(f=>inR(jk(f.created_at),a,b)).length;
+  const FN=fin.filter(f=>inR(jk(f.created_at),a,b)),dayOf=f=>new Date(f.created_at).toLocaleDateString('en-CA',{timeZone:'Asia/Tehran'});
+  c.fDays=new Set(FN.map(dayOf)).size;c.fInsp=new Set(FN.map(f=>(f.inspector||'?')+'|'+dayOf(f))).size;
   c.fClosed=fin.filter(f=>f.status==='closed'&&inR(jk(f.closed_at),a,b)).length;
   c.fOpen=fin.filter(f=>f.status==='open').length;
   c.fHigh=fin.filter(f=>f.status==='open'&&+f.severity>=3).length;
@@ -163,7 +165,7 @@ const LS=k=>{try{return localStorage.getItem('mgmt_'+k)||''}catch(e){return''}},
 const perL=(a,b)=>a===b?lab(a):lab(a)+' تا '+lab(b);
 /* نقاط قوت و ضعف: قاعده‌محور و فقط بر پایهٔ داده‌های ثبت‌شده */
 const DN={fin:'عدم‌انطباق‌ها',ins:'بازرسی‌ها',tr:'آموزش',inc:'حوادث',cm:'کمیتهٔ حفاظت فنی',ek:'اخطار و تشویق',cd:'کارت خطر',wl:'گزارش کار روزانه'};
-const DOM={fNew:'fin',fClosed:'fin',fOpen:'fin',rounds:'ins',checks:'ins',comp:'ins',lt:'inc',days:'inc',afr:'inc',asr:'inc',fsi:'inc',nl:'inc',mir:'inc',ratio:'inc',nlMin:'inc',nlMod:'inc',nlSev:'inc',trN:'tr',trP:'tr',trH:'tr',cmN:'cm',ciDone:'cm',ciOn:'cm',ciNew:'cm',rw:'ek',wr:'ek',cards:'cd',wl:'wl'};
+const DOM={fNew:'fin',fDays:'fin',fInsp:'fin',fClosed:'fin',fOpen:'fin',rounds:'ins',checks:'ins',comp:'ins',lt:'inc',days:'inc',afr:'inc',asr:'inc',fsi:'inc',nl:'inc',mir:'inc',ratio:'inc',nlMin:'inc',nlMod:'inc',nlSev:'inc',trN:'tr',trP:'tr',trH:'tr',cmN:'cm',ciDone:'cm',ciOn:'cm',ciNew:'cm',rw:'ek',wr:'ek',cards:'cd',wl:'wl'};
 /* پوشش داده هر بخش در یک بازه: none = هیچ داده‌ای نیست، part = ثبت از وسط بازه شروع شده، full = کل بازه پوشش دارد */
 function covOf(dom,a,b){const f=D.cov[dom];if(!f||f>b)return'none';return f<=a?'full':'part'}
 function swot(c,p,CV,PV,nm){
@@ -235,7 +237,7 @@ function render(){
    <div><b class="bad">✖ نقاط ضعف و اقدام لازم (${fa(sw.W.length)})</b><ul class="sw">${sw.W.map(x=>`<li>${x[0]}${x[1]?`<br><small class="mu">← ${x[1]}</small>`:''}</li>`).join('')||'<li class="mu">ضعفی با قواعد این گزارش یافت نشد.</li>'}</ul></div></div>
    ${notes.length?`<div class="note bad">محدودیت داده: ${notes.join(' · ')}</div>`:''}`);
   h+=sl('',`<h2>حجم کار انجام‌شده HSE</h2><div class="sub">همهٔ ورودی‌های ثبت‌شده در سامانه، ${CL} در برابر ${PL}</div>
-   <table><tr><th>فعالیت</th><th>این دوره</th><th>سال قبل</th></tr>${[['گشت بازرسی میدانی','rounds'],['مورد کنترل‌شده در بازرسی‌ها','checks'],['عدم‌انطباق جدید ثبت‌شده','fNew'],['عدم‌انطباق اصلاح‌شده و بسته‌شده','fClosed'],['جلسهٔ آموزشی','trN'],['نفر آموزش‌دیده (حضور)','trP'],['جلسهٔ کمیتهٔ حفاظت فنی','cmN'],['اقدام روزانه در گزارش کار HSE','wl'],['تشویق','rw'],['اخطار/تذکر','wr'],['کارت خطر/شبه‌حادثه','cards']].filter(([n,f])=>CV[DOM[f]]!=='none').map(([n,f])=>`<tr><td>${n}</td><td><b>${fa(c[f])}</b></td><td class="mu">${pvt(f)}</td></tr>`).join('')}</table>`);
+   <table><tr><th>فعالیت</th><th>این دوره</th><th>سال قبل</th></tr>${[['گشت بازرسی میدانی (ثبت‌شده در چک‌لیست)','rounds'],['روز بازرسی دارای عدم‌انطباق (برآورد حداقلی)','fDays'],['مورد کنترل‌شده در بازرسی‌ها','checks'],['عدم‌انطباق جدید ثبت‌شده','fNew'],['عدم‌انطباق اصلاح‌شده و بسته‌شده','fClosed'],['جلسهٔ آموزشی','trN'],['نفر آموزش‌دیده (حضور)','trP'],['جلسهٔ کمیتهٔ حفاظت فنی','cmN'],['اقدام روزانه در گزارش کار HSE','wl'],['تشویق','rw'],['اخطار/تذکر','wr'],['کارت خطر/شبه‌حادثه','cards']].filter(([n,f])=>CV[DOM[f]]!=='none').map(([n,f])=>`<tr><td>${n}</td><td><b>${fa(c[f])}</b></td><td class="mu">${pvt(f)}</td></tr>`).join('')}</table>`);
   const nlTbl=`<table><tr><th>گروه حادثه</th><th>تعداد</th><th>قبلی</th></tr>
    <tr><td><b>استعلاجی</b> (واردشونده در AFR/ASR/FSI)</td><td><b>${fa(c.lt)}</b></td><td class="mu">${pvt('lt')}</td></tr>
    <tr><td>بدون استعلاجی — جزئی</td><td>${fa(c.nlMin)}</td><td class="mu">${pvt('nlMin')}</td></tr>
@@ -253,9 +255,14 @@ function render(){
   h+=slIf('fin',`<h2>عدم‌انطباق‌ها و پیگیری اصلاحات</h2><div class="sub">هر عدم‌انطباق با محل، مسئول و مهلت ثبت و تا بسته‌شدن پیگیری می‌شود</div>
    <div class="kg">${kp(fa(c.fNew),'جدید در دوره',dl(c.fNew,pv('fNew'),'down'))}${kp(fa(c.fClosed),'بسته‌شده در دوره',dl(c.fClosed,pv('fClosed'),'up'))}${kp(closeRate==null?'—':fa(closeRate)+'٪','نسبت بسته‌شده به جدید')}${kp(fa(c.fOpen),'پشتوانهٔ باز تا امروز',`<small class="${c.fOver?'bad':'ok'}">${fa(c.fOver)} مورد از مهلت گذشته · ${fa(c.fHigh)} مورد شدت بالا</small>`)}</div>
    <div class="two"><div><b>عدم‌انطباق جدید در هر ماه</b>${svgChart(L,PR('fNew','down'),{sub:SB})}</div><div><b>عدم‌انطباق بسته‌شده در هر ماه</b>${svgChart(L,PR('fClosed','up'),{sub:SB})}</div></div>${mnote('fin')}`);
-  h+=slIf('ins',`<h2>بازرسی و انطباق</h2><div class="sub">بازرسی‌های میدانی HSE و نرخ انطباق چک‌لیست‌ها</div>
-   <div class="kg">${kp(fa(c.rounds),'گشت بازرسی',dl(c.rounds,pv('rounds'),'up'))}${kp(fa(c.checks),'مورد کنترل‌شده',dl(c.checks,pv('checks'),'up'))}${kp(c.comp==null?'—':fa(c.comp)+'٪','نرخ انطباق',dl(c.comp,pv('comp'),'up'))}</div>
-   <b>نرخ انطباق ماهانه (٪)</b>${svgChart(L,PR('comp','up'),{max:100,min:50,sub:SB})}<div class="note">نرخ انطباق = موارد منطبق ÷ (منطبق + عدم‌انطباق).</div>${mnote('ins')}`);
+  const insReal=CV.ins!=='none';
+  h+=slIf(['ins','fin'],`<h2>بازرسی و انطباق</h2><div class="sub">بازرسی‌های میدانی HSE${insReal?' و نرخ انطباق چک‌لیست‌ها':' (برآورد از روی عدم‌انطباق‌های ثبت‌شده)'}</div>
+   ${insReal?`<div class="kg">${kp(fa(c.rounds),'گشت بازرسی',dl(c.rounds,pv('rounds'),'up'))}${kp(fa(c.checks),'مورد کنترل‌شده',dl(c.checks,pv('checks'),'up'))}${kp(c.comp==null?'—':fa(c.comp)+'٪','نرخ انطباق',dl(c.comp,pv('comp'),'up'))}</div>
+   <b>نرخ انطباق ماهانه (٪)</b>${svgChart(L,PR('comp','up'),{max:100,min:50,sub:SB})}<div class="note">نرخ انطباق = موارد منطبق ÷ (منطبق + عدم‌انطباق).</div>${mnote('ins')}`:''}
+   ${CV.fin!=='none'?`<div style="margin-top:10px;padding:10px 12px;border:1px dashed var(--mu);border-radius:12px"><b>برآورد حداقلی فعالیت بازرسی از روی ثبت عدم‌انطباق</b>
+   <div class="kg">${kp(fa(c.fDays),'روز بازرسی دارای عدم‌انطباق (حداقل)',dl(c.fDays,pv('fDays'),'up'))}${kp(fa(c.fInsp),'گشت بازرسی (بازرس × روز، حداقل)',dl(c.fInsp,pv('fInsp'),'up'))}</div>
+   ${svgChart(L,PR('fDays','up'),{sub:SB})}${mnote('fin')}
+   <div class="note"><b>روش و محدودیت:</b> هر روزی که حداقل یک عدم‌انطباق ثبت شده یعنی در آن روز دست‌کم یک بازرسی انجام شده؛ پس عدد واقعی گشت‌ها <b>برابر یا بیشتر</b> است. روزهایی که بازرسی بدون یافته بوده شمرده نمی‌شود. این‌ها <b>برآورد</b> هستند، نه آمار ثبت‌شدهٔ بازرسی، و برای ماه‌های پیش از راه‌اندازی نرم‌افزار (که چک‌لیست ثبت نشده) فقط به‌عنوان شاخص حداقلی و قابل مقایسه با همان ماه‌های سال قبل به کار می‌رود. نرخ انطباق از روی عدم‌انطباق‌ها قابل برآورد نیست و ${insReal?'فقط برای ماه‌های دارای ثبت چک‌لیست':'برای این دوره'} محاسبه می‌شود.</div></div>`:''}`);
   const trRows=Object.entries(c.byT).sort((x,y)=>y[1].p-x[1].p).map(([k,o])=>`<tr><td>${TN[k]||k}</td><td>${fa(o.n)}</td><td>${fa(o.p)}</td><td>${fa(r1(o.h))}</td></tr>`).join('');
   h+=slIf('tr',`<h2>آموزش</h2><div class="sub">نفر-ساعت = تعداد فراگیر × مدت ثبت‌شدهٔ جلسه (در نبود مدت: بدو استخدام ۰٫۵، دوره‌ای ۲، سایر ۰٫۲۵ ساعت)</div>
    <div class="kg">${kp(fa(c.trN),'جلسهٔ آموزشی',dl(c.trN,pv('trN'),'up'))}${kp(fa(c.trP),'نفر آموزش‌دیده (حضور)',dl(c.trP,pv('trP'),'up'))}${kp(fa(r1(c.trH)),'نفر-ساعت',dl(c.trH,pv('trH'),'up'))}</div>
