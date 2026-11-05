@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
      <script src="auth.js"></script>
-<script src="sched.js"></script><script src="cycle.js"></script><script src="hr_risk.js"></script>
+<script src="train_lists.js"></script><script src="sched.js"></script><script src="cycle.js"></script><script src="hr_risk.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ماژول آموزش - نرم‌افزار جامع HSE</title>
@@ -37,13 +37,19 @@
    <div id="fChips" class="flex flex-wrap gap-1 text-[11px]"></div>
    <textarea id="fExtra" rows="2" class="fld" placeholder="شرکت‌کنندگان خارج از بانک پرسنل (پیمانکاران) - هر نفر در یک خط"></textarea>
    <input id="fNotes" class="fld" placeholder="توضیحات (اختیاری)">
-   <details id="lpBox" class="text-xs"><summary class="cursor-pointer text-emerald-300 font-bold">📘 طرح درس (برای پر شدن خودکار فرم چاپی)</summary>
+   <details id="lpBox" class="text-xs"><summary class="cursor-pointer text-emerald-300 font-bold" id="lpSum">📘 اطلاعات تکمیلی فرم چاپی</summary>
     <div class="space-y-1.5 mt-1.5">
-     <div class="grid grid-cols-2 gap-1.5"><input id="lpPlace" class="fld" placeholder="محل آموزش"><input id="lpGroup" class="fld" placeholder="گروه هدف"></div>
-     <textarea id="lpGoal" rows="2" class="fld" placeholder="هدف اصلی"></textarea>
-     <textarea id="lpSub" rows="3" class="fld" placeholder="اهداف فرعی (هر خط یک مورد)"></textarea>
-     <textarea id="lpTop" rows="4" class="fld" placeholder="عناوین آموزشی (هر خط: عنوان | روش | مدت | وسایل)"></textarea>
-     <input id="lpHw" class="fld" placeholder="تکالیف فراگیران"><input id="lpEv" class="fld" placeholder="ارزشیابی">
+     <input id="lpPlace" class="fld" placeholder="محل آموزش / برگزاری">
+     <div id="lpPer" class="space-y-1.5 hidden">
+      <input id="lpGroup" class="fld" placeholder="گروه هدف">
+      <textarea id="lpGoal" rows="2" class="fld" placeholder="هدف اصلی"></textarea>
+      <textarea id="lpSub" rows="3" class="fld" placeholder="اهداف فرعی (هر خط یک مورد)"></textarea>
+      <textarea id="lpTop" rows="4" class="fld" placeholder="عناوین آموزشی (هر خط: عنوان | روش | مدت | وسایل)"></textarea>
+      <input id="lpHw" class="fld" placeholder="تکالیف فراگیران"><input id="lpEv" class="fld" placeholder="ارزشیابی">
+     </div>
+     <input id="lpScope" class="fld hidden" placeholder="محدوده کار / پروژه (پیمانکار)">
+     <div id="lpInc" class="space-y-1.5 hidden"><textarea id="lpRoot" rows="2" class="fld" placeholder="علت ریشه‌ای حادثه"></textarea><input id="lpOther" class="fld" placeholder="سایر محورهای آموزش"></div>
+     <div id="lpChk" class="space-y-1"></div>
     </div></details>
   </div>
   <div class="flex gap-2 mt-3"><button id="fSave" class="flex-1 py-2 bg-emerald-600 text-slate-950 font-bold rounded-xl text-sm">ثبت</button><button id="fCancel" class="px-4 py-2 bg-slate-700 rounded-xl text-sm">انصراف</button></div>
@@ -84,7 +90,7 @@ function render(){
 $('flt').innerHTML='<option value="all">همه انواع آموزش</option>'+Object.entries(T).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
 $('flt').onchange=render;
 $('fType').innerHTML=Object.entries(T).map(([k,v])=>`<option value="${k}">آموزش ${v}</option>`).join('');
-$('fType').onchange=()=>{$('fContr').classList.toggle('hidden',$('fType').value!=='contractor');$('fInc').classList.toggle('hidden',$('fType').value!=='post_incident');const lb=$('lpBox');if(lb&&($('fType').value==='periodic'||lpGet()))lb.open=true};
+$('fType').onchange=()=>{$('fContr').classList.toggle('hidden',$('fType').value!=='contractor');$('fInc').classList.toggle('hidden',$('fType').value!=='post_incident');if(lpTy()!==lpType){LPC=new Set();lpType=lpTy()}lpRender()};
 function chips(){$('fChips').innerHTML=[...sel.values()].map(e=>`<span class="bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 rounded-full px-2 py-0.5">${esc(name(e))} ✕</span>`).join('');[...$('fChips').children].forEach((c,i)=>c.onclick=()=>{sel.delete([...sel.keys()][i]);chips();pick()})}
 function pick(){const q=$('fSearch').value.trim().toLowerCase();$('fPick').innerHTML=emps.filter(e=>(HSEP.isActive(e)||$('fTermOn').checked)&&(!q||(name(e)+' '+e.emp_id).toLowerCase().includes(q))).slice(0,40).map(e=>`<div data-p="${e.id}" class="px-3 py-1.5 cursor-pointer hover:bg-slate-700 ${sel.has(e.id)?'text-emerald-400':''}">${sel.has(e.id)?'✓ ':''}${esc(name(e))} <span class="text-slate-500">(${esc(e.emp_id)})</span>${HSEP.isActive(e)?'':' <span class="text-amber-400 text-xs">قطع همکاری</span>'}</div>`).join('')}
 $('fSearch').oninput=pick;
@@ -121,10 +127,23 @@ $('fSave').onclick=async()=>{
     EDIT=null;$('fCancel').onclick();['fTitle','fTrainer','fContr','fExtra','fNotes'].forEach(i=>$(i).value='');load();
   }catch(e){alert('خطا در ثبت: '+e.message)}
 };
-function lpGet(){const g=i=>$(i).value.trim(),L={place:g('lpPlace'),group:g('lpGroup'),goal:g('lpGoal'),sub:g('lpSub').split('\n').map(x=>x.trim()).filter(Boolean),
-  topics:g('lpTop').split('\n').map(x=>x.trim()).filter(Boolean).map(l=>{const p=l.split('|').map(x=>x.trim());return{t:p[0]||'',m:p[1]||'',d:p[2]||'',a:p[3]||''}}),homework:g('lpHw'),eval:g('lpEv')};
-  return(L.place||L.group||L.goal||L.sub.length||L.topics.length||L.homework||L.eval)?L:null}
-function lpSet(L){L=L||{};const v=(i,x)=>$(i).value=x||'';v('lpPlace',L.place);v('lpGroup',L.group);v('lpGoal',L.goal);v('lpSub',(L.sub||[]).join('\n'));v('lpTop',(L.topics||[]).map(x=>[x.t,x.m,x.d,x.a].join(' | ')).join('\n'));v('lpHw',L.homework);v('lpEv',L.eval)}
+let LPC=new Set(),lpType='';
+const lpTy=()=>$('fType').value;
+function lpRender(){const ty=lpTy(),L=(window.TL||{})[ty]||[];
+  $('lpPer').classList.toggle('hidden',ty!=='periodic');$('lpScope').classList.toggle('hidden',ty!=='contractor');$('lpInc').classList.toggle('hidden',ty!=='post_incident');
+  $('lpChk').innerHTML=L.length?'<p class="text-slate-400 mt-1">محتوای آموزشی (تیک‌خورده‌ها در فرم چاپی علامت می‌خورند)</p>'+L.map((x,i)=>`<label class="flex gap-1.5 items-start"><input type="checkbox" data-lc="${i}" ${LPC.has(i)?'checked':''}> <span>${esc(x)}</span></label>`).join(''):'';
+  $('lpSum').textContent=ty==='periodic'?'📘 طرح درس (اهداف و عناوین آموزشی)':'📘 اطلاعات تکمیلی فرم چاپی';
+  if(ty==='periodic')$('lpBox').open=true}
+document.addEventListener('change',e=>{const c=e.target.closest&&e.target.closest('[data-lc]');if(c){const i=+c.dataset.lc;c.checked?LPC.add(i):LPC.delete(i)}});
+function lpGet(){const ty=lpTy(),g=i=>$(i).value.trim(),L={place:g('lpPlace')};
+  if(ty==='periodic'){Object.assign(L,{group:g('lpGroup'),goal:g('lpGoal'),sub:g('lpSub').split('\n').map(x=>x.trim()).filter(Boolean),
+    topics:g('lpTop').split('\n').map(x=>x.trim()).filter(Boolean).map(l=>{const p=l.split('|').map(x=>x.trim());return{t:p[0]||'',m:p[1]||'',d:p[2]||'',a:p[3]||''}}),homework:g('lpHw'),eval:g('lpEv')})}
+  if(ty==='contractor')L.scope=g('lpScope');
+  if(ty==='post_incident'){L.root=g('lpRoot');L.other=g('lpOther')}
+  if((window.TL||{})[ty]&&LPC.size)L.checks=[...LPC].sort((a,b)=>a-b);
+  return Object.entries(L).some(([k,v])=>Array.isArray(v)?v.length:v)?L:null}
+function lpSet(L){L=L||{};lpType=lpTy();const v=(i,x)=>$(i).value=x||'';v('lpPlace',L.place);v('lpGroup',L.group);v('lpGoal',L.goal);v('lpSub',(L.sub||[]).join('\n'));
+  v('lpTop',(L.topics||[]).map(x=>[x.t,x.m,x.d,x.a].join(' | ')).join('\n'));v('lpHw',L.homework);v('lpEv',L.eval);v('lpScope',L.scope);v('lpRoot',L.root);v('lpOther',L.other);LPC=new Set(L.checks||[])}
 function editTr(id){
   const t=trs.find(x=>String(x.id)===String(id));if(!t)return;EDIT=t.id;
   sel.clear();att.filter(a=>a.training_id===t.id&&a.employee_id).forEach(a=>{const e=emps.find(x=>x.id===a.employee_id);if(e)sel.set(e.id,e)});
