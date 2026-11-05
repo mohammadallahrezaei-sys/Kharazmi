@@ -299,8 +299,10 @@ function svgChart(labels,series,o={}){
   let g='';
   for(let k=0;k<=4;k++){const v=min+(max-min)*k/4,yy=Y(v);g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${yy}" y2="${yy}" stroke="var(--bd)" stroke-width="1"/><text x="${pl-6}" y="${yy+4}" font-size="12" text-anchor="end" fill="var(--mu)">${fa(Math.round(v*10)/10)}</text>`}
   (o.lines||[]).forEach(l=>{g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${Y(l.y)}" y2="${Y(l.y)}" stroke="${l.c||'var(--ok)'}" stroke-dasharray="6 4" stroke-width="1.5"/><text x="${pl+4}" y="${Y(l.y)-4}" font-size="11" font-weight="700" fill="${l.c||'var(--ok)'}">${l.t||''}</text>`});
-  labels.forEach((l,i)=>{const sub=o.sub&&(i===0||o.sub[i]!==o.sub[i-1])?o.sub[i]:'';
-    g+=`<text x="${X(i)}" y="${Ht-pb+16}" font-size="11" text-anchor="middle" fill="var(--tx)">${l}</text>`+(sub?`<text x="${X(i)}" y="${Ht-pb+31}" font-size="11" text-anchor="middle" fill="var(--mu)">${sub}</text>`:'')});
+  labels.forEach((l,i)=>{const sub=o.sub?o.sub[i]:'';
+    if(o.sub&&i>0&&o.sub[i]!==o.sub[i-1]){const xm=(X(i)+X(i-1))/2;g+=`<line x1="${xm}" x2="${xm}" y1="${pt-6}" y2="${Ht-8}" stroke="var(--mu)" stroke-dasharray="3 3" opacity=".6"/>`}
+    g+=`<text x="${X(i)}" y="${Ht-pb+16}" font-size="11" text-anchor="middle" fill="var(--tx)">${l}</text>`+(sub?`<text x="${X(i)}" y="${Ht-pb+31}" font-size="11" font-weight="700" text-anchor="middle" fill="var(--mu)">${sub}</text>`:'')});
+  g+=`<text x="${Wd-pr}" y="${Ht-3}" font-size="10" text-anchor="end" fill="var(--mu)">شروع (قدیمی‌ترین)</text><text x="${pl}" y="${Ht-3}" font-size="10" text-anchor="start" fill="var(--mu)">جدیدترین</text>`;
   const hasBar=series.some(s=>s.bar);let bi=0;
   series.forEach(s=>{
     if(s.bar){const off=(bi-(nb-1)/2)*bw;bi++;s.v.forEach((v,i)=>{if(v==null)return;const y=Y(v),x=X(i)-bw/2+off;g+=`<rect x="${x}" y="${y}" width="${bw}" height="${Math.max(0,Y(min)-y)}" fill="${s.c}" rx="2"><title>${labels[i]} · ${s.name}: ${fa(v)}</title></rect>`+(v?`<text x="${x+bw/2}" y="${y-4}" font-size="${nb>1?10:12}" font-weight="700" text-anchor="middle" fill="${s.c}">${fa(Math.round(v*10)/10)}</text>`:'')})}
