@@ -4,9 +4,17 @@
 
 ## فایل‌های SQL (یک‌بار در Supabase → SQL Editor؛ همه تکراری‌قابل‌اجرا هستند)
 `hse_schema_check.sql` را اول اجرا کنید (ستون‌های کم را می‌سازد)، سپس هر فایل `hse_*.sql` که هنوز اجرا نکرده‌اید:
-indexes · findings_cancel · findings_missed · findings_closed_dates · finding_followups و finding_followups2 · inspections_equipment · equipment_inactive · employee_termination · incident_edit · incident_review · ekhtar_missed · weekly_verify · contractors · worklog · committee* · phonebook · cards_health · unit_obs · **obligations** (تعهدات دوره‌ای).
+indexes · findings_cancel · findings_missed · findings_closed_dates · finding_followups و finding_followups2 · inspections_equipment · equipment_inactive · employee_termination · incident_edit · incident_review · ekhtar_missed · weekly_verify · contractors · worklog · committee* · phonebook · cards_health · unit_obs · **obligations** (تعهدات دوره‌ای) · **incident_rca** (علت‌یابی ریشه‌ای حادثه؛ بعد از incident_review اجرا شود).
 
 ## قواعد فنی
 - خواندن جدول‌های بزرگ فقط با `HSEDB.getAll(...)` (سقف ۱۰۰۰ ردیف Supabase را دور می‌زند). `limit=` بزرگ‌تر از ۱۰۰۰ بی‌اثر است.
 - تاریخ «امروز» همیشه با `HSEToday()` (وقت تهران) گرفته شود؛ `new Date().toISOString()` بین ۰۰:۰۰ تا ۰۳:۳۰ بامداد تاریخ دیروز می‌دهد.
 - چرخهٔ پیگیری عدم‌انطباق: `cycle.js` (۱ و ۱۵ شمسی).
+
+## علت‌یابی ریشه‌ای حوادث (`incident_rca.js`)
+نظر کارشناس برای هر حادثه فقط از مسیر RCA ثبت می‌شود و تا رسیدن به ریشهٔ سیستمی، دکمهٔ «ثبت نهایی» غیرفعال است:
+۱) واقعیت‌ها و شواهد ← ۲) تحلیل موانع (حذف/جایگزینی/مهندسی/اداری/PPE) ← ۳) زنجیرهٔ «چرا» (حداقل ۴ مرحله، دسته‌بندی، شاهد برای هر مرحله، آزمون‌های اعتبار ریشه) ← ۴) اقدام اصلاحی با سطح کنترل و راستی‌آزمایی ← ۵) مرور و ثبت نهایی.
+- ریشه باید از دستهٔ سیستمی باشد (رویه، آموزش، نظارت، نگهداری، ارزیابی ریسک، سازمان)؛ عبارت‌هایی مثل «بی‌احتیاطی/سهل‌انگاری/خطای انسانی» به‌عنوان ریشه پذیرفته نمی‌شوند.
+- همین قواعد در تریگر دیتابیس (`hse_rca_guard` در `hse_incident_rca.sql`) هم اعمال می‌شود؛ گزارش نهایی قفل است و فقط مدیر می‌تواند با ذکر دلیل آن را به کارشناس برگرداند.
+- با ثبت نهایی: `expert_opinion` از خلاصهٔ RCA پر می‌شود (سایر صفحه‌ها بدون تغییر کار می‌کنند) و برای هر اقدام اصلاحی یک پیگیری `incident_capa` ساخته می‌شود.
+- حوادث قدیمیِ دارای نظر کارشناس دست‌نخورده می‌مانند.
