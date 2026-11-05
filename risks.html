@@ -62,6 +62,7 @@
 </div></div>
 
 <script src="eval_core.js"></script>
+<script src="risk_plan.js"></script>
 <script>
 const {esc,fa,getAll,req,jdInit,jdGet,jdSet,jdHTML,toJal}=HSE;
 const $=id=>document.getElementById(id);
@@ -71,13 +72,7 @@ const OCC10=['','فقط در شرایط نادر','هر ۱۰ تا ۱۵ سال','
 const DET10=['','حتماً قابل شناسایی','احتمال بسیار بالا','احتمال بالا','معمولاً شناسایی می‌شود','پنجاه‌پنجاه','شانس کم','شانس ناچیز','شانس بسیار ناچیز','شانس بعید','غیرقابل شناسایی'];
 const SEV5=['','ناچیز','جزئی','متوسط','شدید','فاجعه‌بار'],LIK5=['','بسیار نادر','نادر','ممکن','محتمل','تقریباً حتمی'];
 const MN={fmea:'FMEA',hazop:'HAZOP',reba:'REBA',rula:'RULA'};
-const CATS=[
-['ایمنی',['مکانیکی (ماشین‌آلات، قطعات متحرک)','برق و برق‌گرفتگی','سقوط از ارتفاع و لغزش','آتش‌سوزی و انفجار','حمل‌ونقل داخلی و لیفتراک','جرثقیل و بالابری','فضای بسته','کار گرم و جوشکاری','فشار (مخزن، بویلر، کمپرسور)','ابزار دستی و تجهیزات']],
-['بهداشت شغلی',['شیمیایی (اسید، گاز سمی، آمونیاک، گرد و غبار)','فیزیکی: صدا','فیزیکی: گرما و سرما','فیزیکی: روشنایی و ارتعاش','فیزیکی: پرتو','بیولوژیک','روانی-اجتماعی (استرس، شیفت، خستگی)']],
-['ارگونومی',['حمل دستی بار','وضعیت بدنی نامناسب','حرکات تکراری','طراحی ایستگاه کار']],
-['محیط زیست',['پساب و آلودگی آب','انتشار هوا و گاز','پسماند','نشت و ریزش مواد','مصرف انرژی و منابع','سر و صدای محیطی']],
-['اضطراری',['نشت گاز یا مواد سمی','آتش‌سوزی گسترده','زلزله و بلایای طبیعی','قطع برق و خدمات','تخلیه و کمک‌های اولیه']],
-['سایر',['امنیت و ورود غیرمجاز','پیمانکاران','قانونی و الزامات','سایر']]];
+const CATS=HSERiskPlan.CATS; /* مرجع واحد دسته‌ها: risk_plan.js */
 const GRP=c=>(CATS.find(g=>g[1].includes(c))||[])[0]||'بدون دسته';
 /* ---- سطح ریسک بر اساس روش ---- */
 const RED='#f87171',ORG='#fb923c',YEL='#fbbf24',GRN='#34d399';
@@ -94,7 +89,7 @@ function lvl(r){
 const calc=(m,s,o,d)=>m==='fmea'?s*o*(d||1):s*o;
 const TODAY=HSEToday();
 const fday=d=>{try{return new Date(String(d).slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
-let R=[],F=[],I=[],C=[],CH=[],units=[],editId=null;
+let R=[],F=[],I=[],C=[],CH=[],units=[],editId=null,PLAN=null; /* PLAN: ورود از برنامهٔ تقویم {unit, group} */
 const isMgr=()=>window.HSEAuth&&HSEAuth.role==='manager';
 const opts=(arr,v)=>arr.map((t,i)=>i?`<option value="${i}" ${v==i?'selected':''}>${fa(i)} — ${t}</option>`:'').join('');
 const catOpts=f=>`<option value="">${f}</option>`+CATS.map(g=>`<optgroup label="${g[0]}">${g[1].map(c=>`<option>${c}</option>`).join('')}</optgroup>`).join('');
@@ -189,20 +184,23 @@ function sc(){const m=$('mM').value;
 $('mM').onchange=()=>{fillScales($('mM').value,{});applyMethod()};
 $('mSc').oninput=sc;
 function openM(r){editId=r?r.id:null;$('mT').textContent=r?'ویرایش ریسک':'ریسک جدید';
-  const m=r?r.method:'fmea';$('mM').value=m;$('mM').disabled=!!r;
+  const pg=!r&&PLAN&&PLAN.group?HSERiskPlan.GROUPS[PLAN.group]:null; /* از برنامهٔ تقویم: فقط دسته‌های همان حوزه و انتخاب دسته الزامی */
+  $('mK').innerHTML=pg?`<option value="">— انتخاب دسته (${pg.name}) —</option>`+pg.cats.map(c=>`<option>${c}</option>`).join(''):catOpts('— انتخاب دسته —');
+  const m=r?r.method:(pg&&PLAN.group==='ergo'?'reba':'fmea');$('mM').value=m;$('mM').disabled=!!r;
   fillScales(m,r?{s:r.severity,o:r.likelihood,d:r.detection,rs:r.residual_severity,ro:r.residual_likelihood,rd:r.residual_detection}:{});
   const v=(id,x)=>$(id).value=x==null?'':x;
-  v('mU',r?r.unit:$('fU').value);v('mCh',r&&r.chemical_id);v('mK',r&&r.category);v('mPr',r&&r.process);v('mA',r&&r.activity);v('mH',r&&r.hazard);v('mC',r&&r.consequence);v('mCa',r&&r.causes);v('mE',r&&r.existing_controls);
+  v('mU',r?r.unit:(PLAN&&PLAN.unit)||$('fU').value);v('mCh',r&&r.chemical_id);v('mK',r&&r.category);v('mPr',r&&r.process);v('mA',r&&r.activity);v('mH',r&&r.hazard);v('mC',r&&r.consequence);v('mCa',r&&r.causes);v('mE',r&&r.existing_controls);
   v('mLg',r&&r.legal_ref);$('mGap').checked=!!(r&&r.legal_gap);v('mSc',r&&r.manual_score);v('mAT',r&&r.action_type);v('mO',r&&r.owner);v('mP',r&&r.planned_controls);
   const p=toJal(new Date());v('mAs',r?r.assessed_on:`${p[0]}/${String(p[1]).padStart(2,'0')}/${String(p[2]).padStart(2,'0')}`);
   const ss=$('mD').querySelectorAll('select');if(r&&r.review_date)jdSet($('mD'),r.review_date);else ss.forEach(s=>s.value='');
   $('mApprove').style.display=isMgr()?'':'none';
-  $('mNote').textContent=isMgr()?'':'ریسک ثبت‌شده توسط کارشناس «در انتظار تأیید» می‌ماند تا مدیر تأیید کند. ویرایش ریسک تأییدشده هم آن را به این حالت برمی‌گرداند.';
+  $('mNote').textContent=(isMgr()?'':'ریسک ثبت‌شده توسط کارشناس «در انتظار تأیید» می‌ماند تا مدیر تأیید کند. ویرایش ریسک تأییدشده هم آن را به این حالت برمی‌گرداند.')+(pg?' این ریسک برای برنامهٔ ارزیابی «'+pg.name+'» سوله «'+PLAN.unit+'» ثبت می‌شود؛ پس از ثبت، آن سوله از برنامهٔ تقویم خارج می‌شود.':'');
   applyMethod();$('modal').classList.add('on')}
-$('bNew').onclick=()=>openM(null);$('mCancel').onclick=()=>$('modal').classList.remove('on');
+$('bNew').onclick=()=>{PLAN=null;openM(null)};$('mCancel').onclick=()=>{PLAN=null;$('modal').classList.remove('on')};
 async function save(approve){
   const m=$('mM').value,sod=m==='fmea'||m==='hazop',unit=$('mU').value.trim(),hz=$('mH').value.trim();
   if(!unit||!hz){alert('سوله و '+(sod?'خطر':'نام وظیفه')+' الزامی است.');return}
+  if(!editId&&PLAN&&PLAN.group&&!$('mK').value){alert('دستهٔ ریسک را انتخاب کنید؛ برای ثبت انجام ارزیابی این سوله در برنامهٔ تقویم الزامی است.');return}
   const t=x=>$(x).value.trim()||null,n=x=>$(x).value?+$(x).value:null;
   const b={unit,category:$('mK').value||null,process:t('mPr'),activity:t('mA'),hazard:hz,owner:t('mO'),action_type:t('mAT'),planned_controls:t('mP'),assessed_on:t('mAs'),review_date:jdGet($('mD'))};
   if(!editId)b.method=m;
@@ -218,9 +216,10 @@ async function save(approve){
   }
   if(approve)b.status='approved';
   try{if(editId)await req('risks?id=eq.'+editId,'PATCH',b,'return=minimal');else{b.status=approve?'approved':'draft';b.created_by=HSEAuth.email;await req('risks','POST',b,'return=minimal')}
-    $('modal').classList.remove('on');load()}catch(e){alert('خطا در ذخیره: '+e.message)}}
+    PLAN=null;$('modal').classList.remove('on');load()}catch(e){alert('خطا در ذخیره: '+e.message)}}
 $('mSave').onclick=()=>save(false);$('mApprove').onclick=()=>save(true);
-load().then(()=>{if(location.hash==='#new')openM(null);
+load().then(()=>{const hm=/^#new(?:&(.*))?$/.exec(location.hash);
+  if(hm){const q=new URLSearchParams(hm[1]||''),g=q.get('group');PLAN={unit:q.get('unit')||'',group:HSERiskPlan.GROUPS[g]?g:''};openM(null)}
   else if(/^#risk=/.test(location.hash)){const id=decodeURIComponent(location.hash.slice(6)),r=R.find(x=>String(x.id)===id);if(r)openM(r);else alert('این ریسک پیدا نشد (ممکن است بایگانی یا حذف شده باشد).')}});
 </script>
 </body>
