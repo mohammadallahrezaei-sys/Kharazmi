@@ -289,21 +289,35 @@ function scoreCard(c,R){
 }
 /* ---- نمودارهای SVG سبک (بدون کتابخانه) ---- */
 function svgChart(labels,series,o={}){
-  const Wd=340,Ht=150,pl=30,pr=8,pt=10,pb=26,n=labels.length,max=o.max!=null?o.max:Math.max(1,...series.flatMap(s=>s.v.filter(v=>v!=null))),min=o.min||0,iw=Wd-pl-pr,ih=Ht-pt-pb;
-  const X=i=>Wd-pr-(n>1?i*iw/(n-1):iw/2),Y=v=>pt+ih-(v-min)/((max-min)||1)*ih;   /* راست به چپ: قدیمی‌ترین سمت راست */
-  const bw=Math.max(4,iw/n*0.6/(series.filter(s=>s.bar).length||1));
+  /* نمودار خوانا: ۱۲ ماه با نام کامل کوتاه‌شده + سال، عدد روی هر ستون/نقطه، شبکهٔ ۴ بخشی با اعداد صحیح */
+  const Wd=640,Ht=270,pl=44,pr=12,pt=26,pb=46,n=labels.length,vals=series.flatMap(s=>s.v.filter(v=>v!=null));
+  let max=o.max!=null?o.max:Math.max(1,...vals);const min=o.min||0;
+  if(o.max==null){const st=Math.max(1,Math.ceil(max/4));max=st*4}
+  const iw=Wd-pl-pr,ih=Ht-pt-pb,X=i=>Wd-pr-iw/n*(i+0.5)+0,Y=v=>pt+ih-(v-min)/((max-min)||1)*ih;
+  const nb=series.filter(s=>s.bar).length||1,bw=Math.max(8,Math.min(26,iw/n*0.7/nb));
   let g='';
-  [0,0.5,1].forEach(f=>{const v=min+(max-min)*f;g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--bd)" stroke-width="1"/><text x="${pl-4}" y="${Y(v)+3}" font-size="9" text-anchor="end" fill="var(--mu)">${fa(Math.round(v))}</text>`});
-  (o.lines||[]).forEach(l=>{g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${Y(l.y)}" y2="${Y(l.y)}" stroke="${l.c||'var(--ok)'}" stroke-dasharray="4 3" stroke-width="1"/><text x="${pl+2}" y="${Y(l.y)-2}" font-size="8" fill="${l.c||'var(--ok)'}">${l.t||''}</text>`});
-  labels.forEach((l,i)=>{if(n<=7||i%2===(n%2?0:1))g+=`<text x="${X(i)}" y="${Ht-10}" font-size="8" text-anchor="middle" fill="var(--mu)">${l}</text>`});
-  let bi=0;series.forEach(s=>{
-    if(s.bar){const off=(bi-(series.filter(z=>z.bar).length-1)/2)*bw;bi++;s.v.forEach((v,i)=>{if(v==null)return;const y=Y(v);g+=`<rect x="${X(i)-bw/2+off}" y="${y}" width="${bw}" height="${Math.max(0,Y(min)-y)}" fill="${s.c}" rx="1.5"><title>${s.name}: ${fa(v)}</title></rect>`})}
+  for(let k=0;k<=4;k++){const v=min+(max-min)*k/4,yy=Y(v);g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${yy}" y2="${yy}" stroke="var(--bd)" stroke-width="1"/><text x="${pl-6}" y="${yy+4}" font-size="12" text-anchor="end" fill="var(--mu)">${fa(Math.round(v*10)/10)}</text>`}
+  (o.lines||[]).forEach(l=>{g+=`<line x1="${pl}" x2="${Wd-pr}" y1="${Y(l.y)}" y2="${Y(l.y)}" stroke="${l.c||'var(--ok)'}" stroke-dasharray="6 4" stroke-width="1.5"/><text x="${pl+4}" y="${Y(l.y)-4}" font-size="11" font-weight="700" fill="${l.c||'var(--ok)'}">${l.t||''}</text>`});
+  labels.forEach((l,i)=>{const sub=o.sub&&(i===0||o.sub[i]!==o.sub[i-1])?o.sub[i]:'';
+    g+=`<text x="${X(i)}" y="${Ht-pb+16}" font-size="11" text-anchor="middle" fill="var(--tx)">${l}</text>`+(sub?`<text x="${X(i)}" y="${Ht-pb+31}" font-size="11" text-anchor="middle" fill="var(--mu)">${sub}</text>`:'')});
+  const hasBar=series.some(s=>s.bar);let bi=0;
+  series.forEach(s=>{
+    if(s.bar){const off=(bi-(nb-1)/2)*bw;bi++;s.v.forEach((v,i)=>{if(v==null)return;const y=Y(v),x=X(i)-bw/2+off;g+=`<rect x="${x}" y="${y}" width="${bw}" height="${Math.max(0,Y(min)-y)}" fill="${s.c}" rx="2"><title>${labels[i]} · ${s.name}: ${fa(v)}</title></rect>`+(v?`<text x="${x+bw/2}" y="${y-4}" font-size="${nb>1?10:12}" font-weight="700" text-anchor="middle" fill="${s.c}">${fa(Math.round(v*10)/10)}</text>`:'')})}
     else{let d='',pen=false;s.v.forEach((v,i)=>{if(v==null){pen=false;return}d+=(pen?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)+' ';pen=true});
-      g+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round"/>`;s.v.forEach((v,i)=>{if(v!=null)g+=`<circle cx="${X(i)}" cy="${Y(v)}" r="2.5" fill="${s.c}"><title>${labels[i]} · ${s.name}: ${fa(v)}</title></circle>`})}});
-  return`<svg viewBox="0 0 ${Wd} ${Ht}" width="100%" style="direction:ltr;max-height:180px" role="img">${g}</svg><div class="mu" style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px">${series.map(s=>`<span><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${s.c};margin-inline-end:3px"></i>${s.name}</span>`).join('')}</div>`}
+      g+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+      s.v.forEach((v,i)=>{if(v==null)return;g+=`<circle cx="${X(i)}" cy="${Y(v)}" r="4" fill="${s.c}" stroke="var(--card)" stroke-width="1.5"><title>${labels[i]} · ${s.name}: ${fa(v)}</title></circle>`;
+        if(!hasBar||true)g+=`<text x="${X(i)}" y="${Y(v)-9}" font-size="11" font-weight="700" text-anchor="middle" fill="${s.c}">${fa(Math.round(v*10)/10)}</text>`})}});
+  const st=o.stat?statLine(series[o.stat-1<0?0:o.stat-1],o.fmt):'';
+  return`<svg viewBox="0 0 ${Wd} ${Ht}" width="100%" style="direction:ltr" role="img">${g}</svg><div class="mu" style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px">${series.map(s=>`<span><i style="display:inline-block;width:11px;height:11px;border-radius:2px;background:${s.c};margin-inline-end:4px"></i>${s.name}</span>`).join('')}</div>${st}<div class="mu" style="font-size:10px">ماه‌ها از راست (قدیمی‌تر) به چپ (جدیدتر)</div>`}
+/* خلاصهٔ قابل تحلیل زیر هر نمودار: آخرین ماه، ماه قبل، میانگین و جهت روند */
+function statLine(s,fmt){
+  const f=fmt||(v=>fa(Math.round(v*10)/10)),a=s.v.map((v,i)=>[v,i]).filter(x=>x[0]!=null);if(a.length<2)return'';
+  const last=a[a.length-1][0],prev=a[a.length-2][0],avg=a.reduce((x,y)=>x+y[0],0)/a.length,d=last-prev,good=s.good||'up';
+  const col=d===0?'var(--mu)':((d>0)===(good==='up')?'var(--ok)':'var(--bad)'),ar=d>0?'▲':d<0?'▼':'■';
+  return`<div style="font-size:12px;margin-top:4px">آخرین ماه: <b>${f(last)}</b> · ماه قبل: ${f(prev)} · میانگین: ${f(avg)} · <b style="color:${col}">${ar} ${f(Math.abs(d))}</b></div>`}
 function monthSeries(type,y,n){
   const ek=endMonthOf(type,y,n),out=[];let yy=+ek.slice(0,4),mm=+ek.slice(5);
-  for(let i=0;i<12;i++){const K=yy+'-'+String(mm).padStart(2,'0'),R=monthRange(K);if(R.a){const c=metricsRange(R.a,R.b);out.unshift({K,label:MN[mm-1].slice(0,4),c,sc:scoreCard(c,R)})}if(--mm<1){mm=12;yy--}}
+  for(let i=0;i<12;i++){const K=yy+'-'+String(mm).padStart(2,'0'),R=monthRange(K);if(R.a){const c=metricsRange(R.a,R.b);out.unshift({K,label:MN[mm-1],yr:fa(yy),c,sc:scoreCard(c,R)})}if(--mm<1){mm=12;yy--}}
   return out;
 }
 function excellenceHtml(c,R,type,y,n){
@@ -328,15 +342,18 @@ function excellenceHtml(c,R,type,y,n){
   </div>`;
 }
 function chartsHtml(type,y,n){
-  const M=monthSeries(type,y,n);if(M.length<2)return'';const L=M.map(m=>m.label),V=f=>M.map(m=>f(m));
-  const card=(t,h,note)=>`<div class="card" style="margin:0"><b style="font-size:13px">${t}</b>${h}${note?`<div class="mu" style="font-size:11px">${note}</div>`:''}</div>`;
-  return`<div class="card"><h2>📈 روند ۱۲ ماه اخیر</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px">
-   ${card('امتیاز کلی HSE',svgChart(L,[{name:'امتیاز',c:'var(--ac)',v:V(m=>m.sc.overall)}],{max:100,lines:[{y:85,t:'نمونه'},{y:70,t:'پیشرو',c:'var(--wa)'}]}),'خط سبز: سطح نمونه کشوری')}
-   ${card('نرخ انطباق چک‌لیست‌ها (٪)',svgChart(L,[{name:'انطباق',c:'var(--ok)',v:V(m=>m.c.comp)}],{max:100,min:50,lines:[{y:90,t:'هدف ۹۰'}]}))}
-   ${card('عدم‌انطباق‌ها',svgChart(L,[{name:'جدید',c:'var(--wa)',v:V(m=>m.c.fNew),bar:1},{name:'بسته‌شده',c:'var(--ok)',v:V(m=>m.c.fClosed),bar:1},{name:'باز (پشتوانه)',c:'var(--bad)',v:V(m=>m.c.fOpen)}]),'اگر «بسته‌شده» همیشه زیر «جدید» باشد، پشتوانه رشد می‌کند')}
-   ${card('حوادث',svgChart(L,[{name:'حادثه',c:'var(--bad)',v:V(m=>m.c.inc),bar:1},{name:'روز کاری از دست‌رفته',c:'var(--wa)',v:V(m=>m.c.lost)}]))}
-   ${card('فرهنگ: تشویق در برابر اخطار/تذکر',svgChart(L,[{name:'تشویق',c:'var(--ok)',v:V(m=>m.c.rw),bar:1},{name:'تذکر/اخطار',c:'var(--bad)',v:V(m=>m.c.wr),bar:1}]),'هدف: تشویق ≥ اخطار')}
-   ${card('پوشش آموزش پرسنل (٪)',svgChart(L,[{name:'پوشش ۱۲ ماه',c:'var(--ac)',v:V(m=>m.c.covP)}],{max:100,lines:[{y:90,t:'هدف ۹۰'}]}))}
+  const M=monthSeries(type,y,n);if(M.length<2)return'';const L=M.map(m=>m.label),SB=M.map(m=>m.yr),V=f=>M.map(m=>f(m));
+  const card=(t,h,note)=>`<div class="card" style="margin:0"><b style="font-size:14px">${t}</b>${h}${note?`<div class="mu" style="font-size:12px">${note}</div>`:''}</div>`;
+  const pc=v=>fa(Math.round(v*10)/10)+'٪';
+  return`<div class="card"><h2>📈 روند ۱۲ ماه اخیر</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:12px">
+   ${card('امتیاز کلی HSE',svgChart(L,[{name:'امتیاز',c:'var(--ac)',v:V(m=>m.sc.overall),good:'up'}],{max:100,sub:SB,stat:1,lines:[{y:85,t:'نمونه کشوری ۸۵'},{y:70,t:'پیشرو ۷۰',c:'var(--wa)'}]}),'بالاتر بهتر است')}
+   ${card('نرخ انطباق چک‌لیست‌ها (٪)',svgChart(L,[{name:'انطباق',c:'var(--ok)',v:V(m=>m.c.comp),good:'up'}],{max:100,min:50,sub:SB,stat:1,fmt:pc,lines:[{y:90,t:'هدف ۹۰'}]}),'محور از ۵۰٪ شروع می‌شود')}
+   ${card('عدم‌انطباق‌های جدید و بسته‌شده',svgChart(L,[{name:'جدید',c:'var(--wa)',v:V(m=>m.c.fNew),bar:1,good:'down'},{name:'بسته‌شده',c:'var(--ok)',v:V(m=>m.c.fClosed),bar:1,good:'up'}],{sub:SB}),'اگر «بسته‌شده» همیشه زیر «جدید» باشد، پشتوانه رشد می‌کند')}
+   ${card('پشتوانهٔ عدم‌انطباق‌های باز (پایان هر ماه)',svgChart(L,[{name:'باز',c:'var(--bad)',v:V(m=>m.c.fOpen),good:'down'}],{sub:SB,stat:1}),'نزولی بودن خط یعنی پشتوانه کم می‌شود')}
+   ${card('تعداد حوادث',svgChart(L,[{name:'حادثه',c:'var(--bad)',v:V(m=>m.c.inc),bar:1,good:'down'}],{sub:SB,stat:1}))}
+   ${card('روز کاری از دست‌رفته',svgChart(L,[{name:'روز از دست‌رفته',c:'var(--wa)',v:V(m=>m.c.lost),bar:1,good:'down'}],{sub:SB,stat:1}),'فقط حوادث دارای استعلاجی')}
+   ${card('فرهنگ: تشویق در برابر اخطار/تذکر',svgChart(L,[{name:'تشویق',c:'var(--ok)',v:V(m=>m.c.rw),bar:1,good:'up'},{name:'تذکر/اخطار',c:'var(--bad)',v:V(m=>m.c.wr),bar:1,good:'down'}],{sub:SB}),'هدف: تشویق ≥ اخطار')}
+   ${card('پوشش آموزش پرسنل (٪)',svgChart(L,[{name:'پوشش ۱۲ ماه',c:'var(--ac)',v:V(m=>m.c.covP),good:'up'}],{max:100,sub:SB,stat:1,fmt:pc,lines:[{y:90,t:'هدف ۹۰'}]}))}
   </div></div>`;
 }
 /* شاخص‌های نتیجه‌محور (نه فعالیت): شدت حوادث، روند، شبه‌حادثه، سرعت بستن موارد شدید، روز از آخرین حادثه جدی */
