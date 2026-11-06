@@ -2674,6 +2674,7 @@ document.oninput = async e => {
 home().then(() => {
   if (location.hash == '#rep') renderManagementReport();
   else if (location.hash == '#cycle') { FQ.one = ''; FQ.st = 'open'; FQ.per = 'all'; finds(); }
+  else if (/^#list(&|$)/.test(location.hash)) { const q = new URLSearchParams(location.hash.slice(1)); FQ.one = ''; FQ.st = q.get('st') || ''; FQ.loc = q.get('loc') || ''; FQ.cat = q.get('cat') || ''; FQ.sev = q.get('sev') || ''; FQ.per = 'all'; finds(); } /* لینک از گزارش: #list&st=open&loc=…&cat=… */
   else if (/^#fu=/.test(location.hash)) { const id = decodeURIComponent(location.hash.slice(4)); FQ.one = id; FQ.st = ''; FQ.per = 'all'; finds().then(() => setTimeout(() => { if (document.querySelector('[data-a=fufu][data-id="' + id + '"]')) fuDialog(id); }, 400)); }
   else if (/^#visit=/.test(location.hash)) { const q = new URLSearchParams(location.hash.slice(1)), k = q.get('visit'); if (k == 'MED') medHome(); else startVisit(k, q.get('code'), q.get('title'), q.get('hall')).then(() => { if (k == 'CT' && q.get('ctr')) { D.extra.contractor_name = q.get('ctr'); D.extra.contract_no = q.get('cno') || 'ندارد'; D.loc = q.get('ctr'); CTR_LINK = q.get('ctr'); form(); } }); }
 });

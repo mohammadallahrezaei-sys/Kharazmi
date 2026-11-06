@@ -26,7 +26,9 @@ ul{margin:6px 0 0;padding-inline-start:18px}li{margin:2px 0}.mu{color:var(--mu);
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;border-bottom:1px solid var(--bd);text-align:right}
 .up{color:var(--ok)}.down{color:var(--bad)}.flat{color:var(--mu)}
 .cur{background:rgba(15,118,110,0.08);font-weight:700}
-@media print{body{background:#fff;color:#000}.np{display:none}.card{border-color:#ccc}.w{padding:0}}
+a.k{position:relative;display:block;color:inherit;text-decoration:none;transition:border-color .12s}a.k:hover{border-color:var(--ac)}a.k::after{content:"‹";position:absolute;left:10px;top:6px;color:var(--mu);font-size:16px}
+.lnk{margin-inline-start:6px;color:var(--ac);font-size:12px;font-weight:500;text-decoration:none;white-space:nowrap}.lnk:hover{text-decoration:underline}a.lnk2{color:inherit;text-decoration:none;border-bottom:1px dotted var(--mu)}a.lnk2:hover{color:var(--ac);border-color:var(--ac)}
+@media print{a.k::after,.lnk{display:none}a.lnk2{border:0}body{background:#fff;color:#000}.np{display:none}.card{border-color:#ccc}.w{padding:0}}
 </style>
 </head>
 <body>
@@ -368,20 +370,20 @@ function outcomeHtml(R,c,p,hasPrev){
   const SEVH=x=>(+x.severity||0)>=3;
   const cl=(D.fin||[]).filter(x=>SEVH(x)&&x.closed_at&&d10(x.closed_at)>=R.a&&d10(x.closed_at)<=R.b&&x.created_at),avg=cl.length?Math.round(cl.reduce((a,x)=>a+(new Date(d10(x.closed_at))-new Date(d10(x.created_at)))/864e5,0)/cl.length):null;
   const op=(D.fin||[]).filter(x=>SEVH(x)&&d10(x.created_at)<=end&&(x.status==='open'||(x.closed_at&&d10(x.closed_at)>end))),ov=op.filter(x=>x.due_date&&String(x.due_date).slice(0,10)<end).length;
-  const k=(n2,l,cl2,pv)=>`<div class="k"><b class="${cl2||''}">${n2}</b><span>${l}</span>${hasPrev&&pv!=null?`<span style="display:block;font-size:11px">قبل: ${pv}</span>`:''}</div>`;
+  const k=(n2,l,cl2,pv,h)=>{const in_=`<b class="${cl2||''}">${n2}</b><span>${l}</span>${hasPrev&&pv!=null?`<span style="display:block;font-size:11px">قبل: ${pv}</span>`:''}`;return h?`<a class="k" href="${h}" title="مشاهده فهرست (وضعیت فعلی)">${in_}</a>`:`<div class="k">${in_}</div>`};
   return `<div class="card" style="border-color:var(--ac)"><h2>🎯 شاخص‌های نتیجه (مسیر حادثهٔ شدید صفر)</h2><div class="g">
-   ${k(fa(hi),'حادثه شدید/فوتی در دوره',hi?'bad':'ok',pHi!=null?fa(pHi):null)}
-   ${k(fa(c.inc||0),'کل حوادث در دوره',(c.inc||0)?'wa':'ok',p&&p.inc!=null?fa(p.inc):null)}
+   ${k(fa(hi),'حادثه شدید/فوتی در دوره',hi?'bad':'ok',pHi!=null?fa(pHi):null,'clinic.html')}
+   ${k(fa(c.inc||0),'کل حوادث در دوره',(c.inc||0)?'wa':'ok',p&&p.inc!=null?fa(p.inc):null,'clinic.html')}
    ${k(days==null?'—':fa(days),'روز از آخرین حادثه شدید/فوتی',days!=null&&days<90?'wa':'ok')}
-   ${k(fa(cdL),'شبه‌حادثه گزارش‌شده (بیشتر = فرهنگ گزارش‌دهی بهتر)',cdL?'ok':'wa')}
+   ${k(fa(cdL),'شبه‌حادثه گزارش‌شده (بیشتر = فرهنگ گزارش‌دهی بهتر)',cdL?'ok':'wa',null,'cards.html')}
    ${k(avg==null?'—':fa(avg)+' روز','میانگین زمان بستن موارد شدید',avg!=null&&avg>14?'wa':'ok')}
-   ${k(fa(ov),'موارد شدید باز و معوق',ov?'bad':'ok')}</div>
+   ${k(fa(ov),'موارد شدید باز و معوق',ov?'bad':'ok',null,'desk.html#fin')}</div>
    <div class="mu" style="margin-top:6px">هدف: صفر حادثهٔ شدید/فوتی، کاهش پیوستهٔ کل حوادث، و افزایش گزارش شبه‌حادثه. صفر شدن «کل حوادث» به‌تنهایی هدف نیست، چون ممکن است به‌معنای کم‌گزارشی باشد.</div></div>`}
 function obligationsHtml(R){
   const ob=(D.ob||[]).filter(o=>o.active!==false);if(!ob.length)return'';
   const d10=v=>String(v||'').slice(0,10),end=R.b<HSEToday()?R.b:HSEToday(),done=(D.obl||[]).filter(x=>d10(x.done_at)>=R.a&&d10(x.done_at)<=R.b),title=id=>(ob.find(o=>o.id===id)||{}).title||'—';
   const late=ob.filter(o=>o.next_due&&d10(o.next_due)<end),nod=ob.filter(o=>!o.next_due);
-  return `<div class="card" style="border-color:${late.length?'var(--bad)':'var(--bd)'}"><h2>تعهدات دوره‌ای HSE (سنجش، مانور، آزمون، ممیزی)</h2>
+  return `<div class="card" style="border-color:${late.length?'var(--bad)':'var(--bd)'}"><h2>تعهدات دوره‌ای HSE (سنجش، مانور، آزمون، ممیزی) <a class="lnk" href="obligations.html">مشاهده و ثبت ←</a></h2>
    <div class="mu">${fa(ob.length)} تعهد تعریف‌شده · ${fa(done.length)} مورد در این دوره انجام شد · ${fa(late.length)} معوق${nod.length?' · '+fa(nod.length)+' بدون موعد':''}</div>
    ${done.length?`<div><b>انجام‌شده در دوره:</b> ${done.map(x=>esc(title(x.obligation_id))).join('، ')}</div>`:''}
    ${late.length?`<div class="bad"><b>معوق:</b> ${late.map(o=>esc(o.title)+' (موعد '+new Date(d10(o.next_due)+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{timeZone:'UTC'})+')').join('؛ ')}</div>`:'<div class="ok">موردی معوق نیست.</div>'}</div>`;
@@ -394,10 +396,10 @@ function weakAreasHtml(R,c){
   const byLoc=cnt(x=>pl(x.location),open),byCat=cnt(x=>x.category||'بدون دسته',open);
   const L={};(D.ins||[]).filter(r=>{const d=d10(r.created_at);return d>=R.a&&d<=R.b&&r.location!==ROUND_LOC}).forEach(r=>{const k=pl(r.location);(L[k]=L[k]||{ok:0,nc:0,n:0});L[k].ok+=r.ok||0;L[k].nc+=r.nc||0;L[k].n++});
   const lowC=Object.entries(L).filter(([k,v])=>v.ok+v.nc>=15).map(([k,v])=>[k,pct(v.ok,v.ok+v.nc),v.nc]).sort((a,b)=>a[1]-b[1]).slice(0,5);
-  const row=([k,v])=>`<tr><td>${esc(k)}</td><td style="text-align:center">${fa(v.n)}</td><td style="text-align:center" class="${v.over?'bad':''}">${fa(v.over)}</td><td style="text-align:center" class="${v.old?'wa':''}">${fa(v.old)}</td></tr>`;
-  const tb=(t,rows)=>`<div><b style="font-size:13px">${t}</b><table><tr><th></th><th style="text-align:center">باز</th><th style="text-align:center">معوق</th><th style="text-align:center">&gt;۶۰ روز</th></tr>${rows.map(row).join('')||'<tr><td colspan="4" class="mu">—</td></tr>'}</table></div>`;
+  const row=([k,v],kind)=>`<tr><td>${kind&&k!=='نامشخص'&&k!=='بدون دسته'?`<a class="lnk2" href="checklists.html#list&st=open&${kind}=${encodeURIComponent(k)}" title="فهرست عدم‌انطباق‌های باز">${esc(k)}</a>`:esc(k)}</td><td style="text-align:center">${fa(v.n)}</td><td style="text-align:center" class="${v.over?'bad':''}">${fa(v.over)}</td><td style="text-align:center" class="${v.old?'wa':''}">${fa(v.old)}</td></tr>`;
+  const tb=(t,rows,kind)=>`<div><b style="font-size:13px">${t}</b><table><tr><th></th><th style="text-align:center">باز</th><th style="text-align:center">معوق</th><th style="text-align:center">&gt;۶۰ روز</th></tr>${rows.map(r=>row(r,kind)).join('')||'<tr><td colspan="4" class="mu">—</td></tr>'}</table></div>`;
   return`<div class="card"><h2>🔍 کجا ضعیف‌ایم؟ (نقاط ضعف به‌تفکیک محل و موضوع)</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
-   ${tb('محل‌هایی با بیشترین عدم‌انطباق باز',byLoc)}${tb('موضوعات (دسته) با بیشترین عدم‌انطباق باز',byCat)}
+   ${tb('محل‌هایی با بیشترین عدم‌انطباق باز',byLoc,'loc')}${tb('موضوعات (دسته) با بیشترین عدم‌انطباق باز',byCat,'cat')}
    <div><b style="font-size:13px">پایین‌ترین انطباق چک‌لیست در این دوره</b><table><tr><th></th><th style="text-align:center">انطباق</th><th style="text-align:center">عدم‌انطباق</th></tr>${lowC.map(r=>`<tr><td>${esc(r[0])}</td><td style="text-align:center" class="${col(r[1])}">${P(r[1])}</td><td style="text-align:center">${fa(r[2])}</td></tr>`).join('')||'<tr><td colspan="3" class="mu">داده کافی نیست (حداقل ۱۵ بند بررسی‌شده)</td></tr>'}</table></div></div>
    <div class="mu" style="margin-top:6px">راهبرد: ابتدا محل‌های بالای جدول را هدفمند بازدید و با فنی چرخهٔ ۱ و ۱۵ پیگیری کنید؛ سپس برای موضوع‌های تکراری (دسته) یک راه‌حل ریشه‌ای یا آموزش تعریف کنید.</div></div>`;
 }
@@ -426,7 +428,7 @@ function render(selVal){
   try{if(D.ev&&D.ev.units)ev=HSE.compute(evalK,D.ev);}catch(e){}
   try{cu=HSE.cultureAt(D.cu,evalK);}catch(e){}
 
-  const k=(n2,l,cl,pv)=>`<div class="k"><b class="${cl||''}">${n2}</b><span>${l}</span>${hasPrev&&pv!=null?`<span style="display:block;font-size:11px">${pw} قبل: ${pv}</span>`:''}</div>`;
+  const k=(n2,l,cl,pv,h)=>{const in_=`<b class="${cl||''}">${n2}</b><span>${l}</span>${hasPrev&&pv!=null?`<span style="display:block;font-size:11px">${pw} قبل: ${pv}</span>`:''}`;return h?`<a class="k" href="${h}" title="مشاهده فهرست (وضعیت فعلی)">${in_}</a>`:`<div class="k">${in_}</div>`};
   const A=[];
   A.push(c.has?`${fa(c.rounds)} گشت بازرسی (${fa(c.checks)} چک‌لیست) انجام شد و نرخ انطباق ${P(c.comp)} بود.`:`در این ${pw} بازرسی ثبت نشده است.`);
   if(c.fNew||c.fClosed)A.push(`${fa(c.fNew)} عدم‌انطباق جدید ثبت و ${fa(c.fClosed)} مورد بسته شد؛ در پایان ${pw} ${fa(c.fOpen)} مورد باز بود${c.fOver?` که ${fa(c.fOver)} مورد از مهلت گذشته بود`:''}.`);
@@ -443,13 +445,13 @@ function render(selVal){
   const Z=HSE.ZONES;
   const evalNote=type!=='m'?`<div class="mu" style="margin-top:6px">🔸 برای دوره‌های فصلی و سالانه، ارزیابی واحدها و فرهنگ برای آخرین ماه دوره (${MN[+evalK.slice(5)-1]} ${fa(evalK.slice(0,4))}) نمایش داده می‌شود.</div>`:'';
   const evalCard=!ev?`<div class="card"><h2>ارزیابی عملکرد واحدها</h2><div class="mu">ثبت نشده (جدول‌های ارزیابی واحدها راه‌اندازی نشده است)</div>${evalNote}</div>`:
-   `<div class="card"><h2>ارزیابی عملکرد واحدها (شاخص ایمنی × مشارکت)</h2><div class="g">${ev.zones.map((z,i)=>k(fa(z.length),Z[i],['ok','','wa','bad'][i])).join('')}</div>
+   `<div class="card"><h2>ارزیابی عملکرد واحدها (شاخص ایمنی × مشارکت) <a class="lnk" href="evaluation.html">جزئیات واحدها ←</a></h2><div class="g">${ev.zones.map((z,i)=>k(fa(z.length),Z[i],['ok','','wa','bad'][i])).join('')}</div>
    <table style="margin-top:8px"><tr><th>واحد نمونه ماه</th><td>${ev.rank.slice(0,3).map(r=>fa(r.rank)+'. '+esc(r.u.name)).join('، ')||'واحد واجد شرایطی نبود'}</td></tr>
    <tr><th>نیازمند مداخله فوری</th><td>${ev.zones[3].map(r=>esc(r.u.name)).join('، ')||'—'}</td></tr>
    <tr><th>کارت‌های گزارش</th><td>${fa(ev.cardsTotal)} کارت (خطر ${fa(ev.cardTypes.hazard)}${ev.cardTypes.health?` که ${fa(ev.cardTypes.health)} بهداشتی`:''}، شبه‌حادثه ${fa(ev.cardTypes.near_miss)}، پیشنهاد ${fa(ev.cardTypes.suggestion)})</td></tr></table>
    ${ev.incomplete.length?`<div class="wa" style="margin-top:6px">⚠ برای ${fa(ev.incomplete.length)} واحد از ${fa(ev.rows.length)} واحد ورودی ماهانه‌ی PPE و رفتار ناایمن ثبت نشده و در ماتریس نیامده‌اند.</div>`:''}${evalNote}</div>`;
   const cultureCard=!D.cu?`<div class="card"><h2>نردبان فرهنگ ایمنی</h2><div class="mu">ثبت نشده (جدول ارزیابی فرهنگ راه‌اندازی نشده است)</div></div>`:!cu.latest?`<div class="card"><h2>نردبان فرهنگ ایمنی</h2><div class="mu">تا پایان این ${pw} ارزیابی ثبت نشده است.</div></div>`:
-   `<div class="card"><h2>نردبان فرهنگ ایمنی</h2><div class="score"><div><div class="big" style="color:${HSE.levelOf(cu.latest.avg)[1]}">${fa(Math.round(cu.latest.avg*10)/10)}</div></div><div><b>سطح «${HSE.levelOf(cu.latest.avg)[0]}»</b><div class="mu">آخرین ارزیابی: ${new Date(cu.latest.assessed_at+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}${cu.prev?` · قبلی: ${fa(Math.round(cu.prev.avg*10)/10)} (${HSE.levelOf(cu.prev.avg)[0]}) — ${cu.latest.avg>cu.prev.avg?'بهبود':cu.latest.avg<cu.prev.avg?'افت':'بدون تغییر'}`:''}</div></div></div>${evalNote}</div>`;
+   `<div class="card"><h2>نردبان فرهنگ ایمنی <a class="lnk" href="culture.html">ارزیابی و نمودار ←</a></h2><div class="score"><div><div class="big" style="color:${HSE.levelOf(cu.latest.avg)[1]}">${fa(Math.round(cu.latest.avg*10)/10)}</div></div><div><b>سطح «${HSE.levelOf(cu.latest.avg)[0]}»</b><div class="mu">آخرین ارزیابی: ${new Date(cu.latest.assessed_at+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}${cu.prev?` · قبلی: ${fa(Math.round(cu.prev.avg*10)/10)} (${HSE.levelOf(cu.prev.avg)[0]}) — ${cu.latest.avg>cu.prev.avg?'بهبود':cu.latest.avg<cu.prev.avg?'افت':'بدون تغییر'}`:''}</div></div></div>${evalNote}</div>`;
 
   /* ---- کارت روند ---- */
   const nonEmpty=trend.filter(t=>t.m.has||t.m.inc||t.m.fNew);
@@ -490,17 +492,17 @@ function render(selVal){
     </div>
   `:'';
 
-  const tr=c.trOk?`<div class="card"><h2>آموزش</h2><div class="g">${k(fa(c.trN),'جلسه آموزشی',0,p.trOk?fa(p.trN):null)}${k(fa(c.trAtt),'حضور ثبت‌شده',0,p.trOk?fa(p.trAtt):null)}${k(fa(c.trHrs),'نفر-ساعت آموزش',0,p.trOk?fa(p.trHrs):null)}${k(P(c.covP),'پوشش آموزش پرسنل (۱۲ ماه)',col(c.covP),p.trOk?P(p.covP):null)}</div>
+  const tr=c.trOk?`<div class="card"><h2>آموزش <a class="lnk" href="training.html">ماژول آموزش ←</a></h2><div class="g">${k(fa(c.trN),'جلسه آموزشی',0,p.trOk?fa(p.trN):null)}${k(fa(c.trAtt),'حضور ثبت‌شده',0,p.trOk?fa(p.trAtt):null)}${k(fa(c.trHrs),'نفر-ساعت آموزش',0,p.trOk?fa(p.trHrs):null)}${k(P(c.covP),'پوشش آموزش پرسنل (۱۲ ماه)',col(c.covP),p.trOk?P(p.covP):null)}</div>
    <table style="margin-top:10px">${Object.entries({onboarding:'بدو استخدام',periodic:'دوره‌ای',on_job:'حین کار',post_incident:'پس از حادثه',contractor:'پیمانکاران',safety_talk:'جلسه کوتاه ایمنی'}).map(([a,b])=>`<tr><th>${b}</th><td>${fa((c.trType||{})[a]||0)} جلسه · ${fa((c.trPer||{})[a]||0)} نفر · ${fa(Math.round(((c.trPh||{})[a]||0)*10)/10)} نفر-ساعت</td></tr>`).join('')}</table>
    ${c.inc?`<div class="mu" style="margin-top:6px">${fa(c.inc)} حادثه در دوره، ${fa(c.trPost)} جلسه آموزش پس از حادثه${c.trPost<c.inc?' — برای همه حوادث آموزش ثبت نشده':''}</div>`:''}</div>`:'<div class="card"><h2>آموزش</h2><div class="mu">ثبت نشده (ماژول آموزش راه‌اندازی نشده است)</div></div>';
   /* ---- کارت «نیازمند توجه»: فقط مواردی که اقدام می‌خواهند ---- */
   const AT=[];
-  if(c.sev.severe+c.sev.fatal)AT.push(`<b class="bad">${fa(c.sev.severe+c.sev.fatal)}</b> حادثه شدید یا فوتی در این ${pw}`);
-  if(c.fOver)AT.push(`<b class="bad">${fa(c.fOver)}</b> عدم‌انطباق معوق در پایان ${pw} (پیگیری با کارشناس)`);
-  if(c.capaOver)AT.push(`<b class="bad">${fa(c.capaOver)}</b> اقدام اصلاحی حوادث از مهلت گذشته (پیگیری با کارشناس)`);
-  if(c.fuOver)AT.push(`<b class="bad">${fa(c.fuOver)}</b> پیگیری طب کار معوق (پیگیری با کارشناس)`);
-  if(hasPrev&&c.inc>p.inc)AT.push(`افزایش حوادث نسبت به ${pw} قبل (${fa(p.inc)} ← ${fa(c.inc)})`);
-  if(c.trOk&&c.inc&&c.trPost<c.inc)AT.push(`برای ${fa(c.inc-c.trPost)} حادثه آموزش پس از حادثه ثبت نشده است`);
+  if(c.sev.severe+c.sev.fatal)AT.push(`<b class="bad">${fa(c.sev.severe+c.sev.fatal)}</b> حادثه شدید یا فوتی در این ${pw} <a class="lnk" href="clinic.html">مشاهده ←</a>`);
+  if(c.fOver)AT.push(`<b class="bad">${fa(c.fOver)}</b> عدم‌انطباق معوق در پایان ${pw} (پیگیری با کارشناس) <a class="lnk" href="desk.html#fin">مشاهده ←</a>`);
+  if(c.capaOver)AT.push(`<b class="bad">${fa(c.capaOver)}</b> اقدام اصلاحی حوادث از مهلت گذشته (پیگیری با کارشناس) <a class="lnk" href="desk.html#inc">مشاهده ←</a>`);
+  if(c.fuOver)AT.push(`<b class="bad">${fa(c.fuOver)}</b> پیگیری طب کار معوق (پیگیری با کارشناس) <a class="lnk" href="desk.html#fu">مشاهده ←</a>`);
+  if(hasPrev&&c.inc>p.inc)AT.push(`افزایش حوادث نسبت به ${pw} قبل (${fa(p.inc)} ← ${fa(c.inc)}) <a class="lnk" href="clinic.html">مشاهده ←</a>`);
+  if(c.trOk&&c.inc&&c.trPost<c.inc)AT.push(`برای ${fa(c.inc-c.trPost)} حادثه آموزش پس از حادثه ثبت نشده است <a class="lnk" href="training.html">مشاهده ←</a>`);
   const attnCard=`<div class="card" style="border-color:${AT.length?'var(--wa)':'var(--bd)'}"><h2>نیازمند توجه</h2>${AT.length?`<ul>${AT.map(a=>`<li>${a}</li>`).join('')}</ul>`:`<div class="ok">مورد معوق یا هشداری برای این ${pw} ثبت نشده است.</div>`}</div>`;
   const bad=['inspections','findings','clinic_incidents','clinic_followups','ekhtars'].filter((t,i)=>[D.ins,D.fin,D.inc,D.fu,D.ek][i]==null);
   document.getElementById('out').outerHTML=`<div id="out">
@@ -509,10 +511,10 @@ function render(selVal){
   ${excellenceHtml(c,R,type,y,n)}${chartsHtml(type,y,n)}${weakAreasHtml(R,c)}${obligationsHtml(R)}
   ${achievements(R,c,pw)}
   <div class="card"><h2>خلاصه مدیریتی</h2><ul>${A.map(a=>`<li>${a}</li>`).join('')}</ul></div>
-  <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="g">
-   ${k(P(c.comp),'نرخ انطباق چک‌لیست‌ها',col(c.comp),comparable?P(p.comp):null)}${k(fa(c.fOpen),'عدم‌انطباق باز (پایان دوره)',c.fOpen?'wa':'ok',fa(p.fOpen))}${k(fa(c.fOver),'عدم‌انطباق معوق (پایان دوره)',c.fOver?'bad':'ok',fa(p.fOver))}
-   ${k(fa(c.inc),'حوادث دوره',c.inc?'wa':'ok',fa(p.inc))}${k(fa(c.lost),'روز کاری از دست‌رفته',c.lost?'bad':'ok',fa(p.lost))}${k(fa(c.sev.severe+c.sev.fatal),'حادثه شدید/فوتی',c.sev.severe+c.sev.fatal?'bad':'ok',fa(p.sev.severe+p.sev.fatal))}
-   ${k(fa(c.ss),'گزارش به تأمین اجتماعی',0,fa(p.ss))}${k(fa(c.capaOpen),'اقدام اصلاحی باز حوادث (تا امروز)',c.capaOpen?'wa':'ok')}${k(fa(c.capaOver),'اقدام اصلاحی معوق (تا امروز)',c.capaOver?'bad':'ok')}${k(fa(c.fuOpen),'پیگیری باز طب کار (پایان دوره)',c.fuOpen?'wa':'ok',fa(p.fuOpen))}${k(fa(c.fuOver),'پیگیری معوق طب کار (پایان دوره)',c.fuOver?'bad':'ok',fa(p.fuOver))}</div>
+  <div class="card"><h2>وضعیت HSE کارخانه</h2><div class="mu np" style="margin-bottom:6px">کادرهای دارای فلش ‹ قابل‌کلیک‌اند و فهرست فعلی همان مشکلات را باز می‌کنند (وضعیت امروز؛ برای دوره‌های گذشته ممکن است با عدد پایان آن دوره فرق داشته باشد).</div><div class="g">
+   ${k(P(c.comp),'نرخ انطباق چک‌لیست‌ها',col(c.comp),comparable?P(p.comp):null)}${k(fa(c.fOpen),'عدم‌انطباق باز (پایان دوره)',c.fOpen?'wa':'ok',fa(p.fOpen),'checklists.html#list&st=open')}${k(fa(c.fOver),'عدم‌انطباق معوق (پایان دوره)',c.fOver?'bad':'ok',fa(p.fOver),'desk.html#fin')}
+   ${k(fa(c.inc),'حوادث دوره',c.inc?'wa':'ok',fa(p.inc),'clinic.html')}${k(fa(c.lost),'روز کاری از دست‌رفته',c.lost?'bad':'ok',fa(p.lost),'clinic.html')}${k(fa(c.sev.severe+c.sev.fatal),'حادثه شدید/فوتی',c.sev.severe+c.sev.fatal?'bad':'ok',fa(p.sev.severe+p.sev.fatal),'clinic.html')}
+   ${k(fa(c.ss),'گزارش به تأمین اجتماعی',0,fa(p.ss))}${k(fa(c.capaOpen),'اقدام اصلاحی باز حوادث (تا امروز)',c.capaOpen?'wa':'ok',null,'desk.html#inc')}${k(fa(c.capaOver),'اقدام اصلاحی معوق (تا امروز)',c.capaOver?'bad':'ok',null,'desk.html#inc')}${k(fa(c.fuOpen),'پیگیری باز طب کار (پایان دوره)',c.fuOpen?'wa':'ok',fa(p.fuOpen),'desk.html#fu')}${k(fa(c.fuOver),'پیگیری معوق طب کار (پایان دوره)',c.fuOver?'bad':'ok',fa(p.fuOver),'desk.html#fu')}</div>
    ${warn.map(w=>`<div class="wa" style="margin-top:6px">⚠ ${w}</div>`).join('')}<table style="margin-top:10px"><tr><th>شدت حوادث</th><td>جزئی ${fa(c.sev.minor)}</td><td>متوسط ${fa(c.sev.moderate)}</td><td>شدید ${fa(c.sev.severe)}</td><td>فوتی ${fa(c.sev.fatal)}</td></tr></table></div>
   ${trendCard}
   <div class="card"><h2>عملکرد واحد HSE در این ${pw}</h2><div class="g">
