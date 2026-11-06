@@ -555,10 +555,15 @@ const dsev = q => /اتوکلاو|دیگ|شیر اطمینان|مانومتر|ق
 const addDays = n => HSEToday(n);
 
 /* نمایش سوال‌ها به‌صورت پرسشی («آیا … ؟»). متن ذخیره‌شده در عدم‌انطباق‌ها همان جمله‌ی اصلی می‌ماند تا تطبیق و گزارش‌ها به‌هم نخورد. */
+const QOVR = { 'ورود افراد متفرقه ممنوع است': 'آیا ورود افراد متفرقه ممنوع و کنترل می‌شود؟', 'کار در ارتفاع ایمن است (داربست استاندارد، کمربند ایمنی، افراد مناسب)': 'آیا کار در ارتفاع ایمن انجام می‌شود (داربست استاندارد، کمربند ایمنی، افراد مناسب)؟' };
+/* هر مورد باید یک جملهٔ پرسشی کامل باشد و «؟» آخرش بیاید؛ توضیح داخل پرانتز قبل از «؟» می‌رود */
 const asQ = s => {
-  s = String(s || '').trim(); if (!s || /^آیا\s/.test(s) || /[؟?]$/.test(s)) return s;
+  s = String(s || '').trim(); if (!s) return s; if (QOVR[s]) return QOVR[s];
+  if (/[؟?]\s*$/.test(s)) return s;
   let note = ''; const m = /\s*(\([^()]*\))\s*$/.exec(s); if (m) { note = ' ' + m[1]; s = s.slice(0, m.index); }
-  return 'آیا ' + s.replace(/:\s+/, '، ').trim() + '؟' + note;
+  const c = /^(.+?):\s+(.+)$/.exec(s);
+  if (c) { let pre = c[1].trim(), rest = c[2].trim(); const opt = /\s*\(در صورت وجود\)\s*$/.exec(pre); if (opt) { pre = pre.slice(0, opt.index); return ('در صورت وجود ' + pre + '، آیا ' + rest.replace(/^آیا\s+/, '') + note + '؟'); } return 'در ' + pre + '، آیا ' + rest.replace(/^آیا\s+/, '') + note + '؟'; }
+  return (/^آیا\s/.test(s) ? s : 'آیا ' + s) + note + '؟';
 };
 M.forEach(m => { m[6] = m[4].map((t, i) => ({ id: String(i + 1), t })); });
 
