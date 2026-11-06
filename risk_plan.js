@@ -28,7 +28,7 @@
     cap: { expert: 4, manager: 2 }, /* ساعت مفید ارزیابی ریسک در هر روز کاری */
     minDays: 2, maxDays: 15,
     hrs: { safety: { b: 3, e: 1.5, p: 0.05 }, health: { b: 2, e: 0.3, p: 0.1 }, ergo: { b: 1.5, e: 0, p: 0.1 } }, /* پایه + ضریب هر تجهیز + ضریب هر نفر */
-    eqW: { 'کپسول آتش‌نشانی': 0, 'چاه ارت': 0.25, 'سیستم همبندی': 0.25, 'فایرباکس': 0.25 } /* وزن تجهیز در حجم کار (پیش‌فرض ۱) */
+    eqW: { 'کپسول آتش‌نشانی': 0, 'چاه ارت': 0.25, 'سیستم همبندی': 0.25, 'فایرباکس': 0.25, 'تابلو و تأسیسات برقی': 0.5 } /* وزن تجهیز در حجم کار (پیش‌فرض ۱) */
   };
   const groupOfCat = c => Object.keys(GROUPS).find(k => GROUPS[k].cats.includes(c)) || '';
   const norm = s => String(s == null ? '' : s).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/[\s\u200c\-_()،,]/g, '').toLowerCase();
@@ -46,15 +46,54 @@
     return c;
   }
   const remaining = (uid, track, cnt, o) => TRACKS[track].filter(g => (cnt[uid + '|' + g] || 0) < ((o && o.minRisks) || DEF.minRisks));
-  /* حجم کار هر واحد از روی تجهیزات فعال (hall/location) و پرسنل فعال (department) */
-  function workloads(units, equipment, employees) {
+  /* ---- فهرست ماشین‌آلات هر سوله: اجتماع «تجهیزات ثبت‌شده» + «اعلان‌ها» + «عدم‌انطباق‌ها» ----
+     src = { equipment, notices, findings, elist }   (elist = equipment_list: code,title,is_equipment)
+     هر ماشین با کد (یا عنوان) یکتا می‌شود؛ سولهٔ آن از رأی‌گیری محل‌ها تعیین می‌شود:
+       تجهیزات ثبت‌شده (hall) وزن ۳ · محل عدم‌انطباق وزن ۱ · فیلدهای محل اعلان (یا شرح اعلان) وزن ۱. بدون رأی = «بدون سوله» */
+  const cleanCode = c => { c = String(c == null ? '' : c).trim(); return !c || c === '0' || /^(null|undefined|-)$/i.test(c) ? '' : c; };
+  const LOCKEY = /(^|_)(loc|location|place|area|hall|unit|section|site|dept|department|plant|workcenter|work_center|functional|fl)(_|$)|محل|سوله|سالن|بخش|واحد/i;
+  function machines(units, src) {
+    src = src || {};
+    const act = activeUnits(units), m0 = matcher(act), memo = new Map();
+    const m = t => { const k = String(t == null ? '' : t); if (!k) return null; if (memo.has(k)) return memo.get(k); const r = m0(k); memo.set(k, r); return r; };
+    const typeOf = t => (window.HSERiskCatalog && HSERiskCatalog.typeOf ? HSERiskCatalog.typeOf(t) : 'ماشین‌آلات تولیدی');
+    const elTitle = {}, notEq = new Set();
+    (src.elist || []).forEach(e => { const c = cleanCode(e && e.code); if (!c) return; if (e.title) elTitle[c] = e.title; if (e.is_equipment === false) notEq.add(c); });
+    const info = {};
+    const get = (code, title) => {
+      code = cleanCode(code); title = String(title || '').trim(); if (code && notEq.has(code)) return null; if (!title && code) title = elTitle[code] || '';
+      const key = code || (title ? 'T:' + norm(title) : ''); if (!key) return null;
+      const o = info[key] || (info[key] = { key, code, title: '', n: 0, f: 0, votes: {}, src: new Set(), cat: '' }); if (title && !o.title) o.title = title; return o;
+    };
+    const vote = (o, u, w) => { if (u) o.votes[u.id] = (o.votes[u.id] || 0) + w; };
+    (src.equipment || []).forEach(e => { if (!e || e.active === false) return; const o = get(e.code, e.title); if (!o) return; o.cat = e.category || ''; o.src.add('تجهیزات'); vote(o, m(e.hall) || m(e.location), 3); });
+    (src.findings || []).forEach(f => { if (!f) return; const o = get(f.equipment_code, f.equipment_title); if (!o) return; o.f++; o.src.add('عدم‌انطباق'); vote(o, m(f.location), 1); });
+    (src.notices || []).forEach(n => {
+      if (!n || String(n.status || '').trim() === 'باطل شده') return;
+      const o = get(n.equipment_code, n.equipment_title || n.equipment_name || n.equipment); if (!o) return; o.n++; o.src.add('اعلان');
+      const lt = Object.keys(n).filter(k => LOCKEY.test(k) && typeof n[k] === 'string').map(k => n[k]).join(' ');
+      vote(o, m(lt) || m(n.description), 1);
+    });
+    const byUnit = {}, unassigned = [];
+    Object.values(info).forEach(o => {
+      if (!o.title) o.title = o.code; o.type = o.cat || typeOf(o.title); o.src = [...o.src];
+      let best = null, bw = 0; Object.keys(o.votes).forEach(id => { if (o.votes[id] > bw) { bw = o.votes[id]; best = id; } });
+      if (best != null) (byUnit[best] = byUnit[best] || []).push(o); else unassigned.push(o);
+    });
+    const cmp = (x, y) => (y.n + y.f) - (x.n + x.f) || String(x.title).localeCompare(String(y.title), 'fa', { numeric: true });
+    Object.values(byUnit).forEach(a => a.sort(cmp)); unassigned.sort(cmp);
+    return { byUnit, unassigned, total: Object.keys(info).length };
+  }
+  const weightOf = type => (DEF.eqW[type] != null ? DEF.eqW[type] : 1);
+  /* حجم کار هر واحد: ماشین‌آلات (mach از machines()، یا فقط تجهیزات ثبت‌شده اگر ندهید) و پرسنل فعال (department) */
+  function workloads(units, equipment, employees, mach) {
     const act = activeUnits(units), m = matcher(act), W = {};
     act.forEach(u => W[u.id] = { eq: 0, eqw: 0, ppl: 0, byCat: {} });
-    (equipment || []).forEach(e => {
+    if (mach) act.forEach(u => (mach.byUnit[u.id] || []).forEach(o => { const w = W[u.id]; w.eq++; w.eqw += weightOf(o.type); w.byCat[o.type] = (w.byCat[o.type] || 0) + 1; }));
+    else (equipment || []).forEach(e => {
       if (!e || e.active === false) return;
       const u = m(e.hall) || m(e.location); if (!u) return;
-      const w = W[u.id], k = DEF.eqW[e.category] != null ? DEF.eqW[e.category] : 1;
-      w.eq++; w.eqw += k; w.byCat[e.category] = (w.byCat[e.category] || 0) + 1;
+      const w = W[u.id]; w.eq++; w.eqw += weightOf(e.category); w.byCat[e.category] = (w.byCat[e.category] || 0) + 1;
     });
     (employees || []).forEach(p => { if (!p || p.termination_date) return; const u = m(p.department); if (u) W[u.id].ppl++; });
     return W;
@@ -100,5 +139,5 @@
   }
   /* آیا هنوز واحد/حوزه‌ی بدون ارزیابی هست؟ (برای یادآوری تدوین برنامه) */
   const anyPending = (units, risks) => { const c = counts(units, risks); return activeUnits(units).some(u => Object.keys(TRACKS).some(t => remaining(u.id, t, c).length)); };
-  window.HSERiskPlan = { anyPending, CATS, GROUPS, TRACKS, TRACK_NAME, DEF, groupOfCat, norm, matcher, counts, remaining, workloads, hoursOf, daysOf, build, tasks, activeUnits };
+  window.HSERiskPlan = { anyPending, machines, weightOf, CATS, GROUPS, TRACKS, TRACK_NAME, DEF, groupOfCat, norm, matcher, counts, remaining, workloads, hoursOf, daysOf, build, tasks, activeUnits };
 })();

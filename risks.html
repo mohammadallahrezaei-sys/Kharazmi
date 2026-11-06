@@ -99,7 +99,7 @@ function lvl(r){
 const calc=(m,s,o,d)=>m==='fmea'?s*o*(d||1):s*o;
 const TODAY=HSEToday();
 const fday=d=>{try{return new Date(String(d).slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
-let R=[],F=[],I=[],C=[],CH=[],units=[],editId=null,PLAN=null,SUG=null,FREE=false,EQ=[],EMP=[],RP=[],RPOK=true,PV=null,PLO={},PSTART=null,SUGLIST=[]; /* PLAN: سولهٔ/حوزهٔ در حال ارزیابی {unit, group}؛ SUG: پیشنهاد انتخاب‌شده؛ FREE: ریسک آزاد (بدون محدودیت حوزه)؛ RP: بازه‌های ذخیره‌شده؛ PV: پیش‌نمایش */
+let R=[],F=[],I=[],C=[],CH=[],units=[],editId=null,PLAN=null,SUG=null,FREE=false,EQ=[],EMP=[],RP=[],RPOK=true,PV=null,PLO={},PSTART=null,SUGLIST=[],MCH=null,MCHP=null; /* MCH: ماشین‌آلات هر سوله (تجهیزات + اعلان‌ها + عدم‌انطباق‌ها) */ /* PLAN: سولهٔ/حوزهٔ در حال ارزیابی {unit, group}؛ SUG: پیشنهاد انتخاب‌شده؛ FREE: ریسک آزاد (بدون محدودیت حوزه)؛ RP: بازه‌های ذخیره‌شده؛ PV: پیش‌نمایش */
 const isMgr=()=>window.HSEAuth&&HSEAuth.role==='manager';
 const opts=(arr,v)=>arr.map((t,i)=>i?`<option value="${i}" ${v==i?'selected':''}>${fa(i)} — ${t}</option>`:'').join('');
 const catOpts=f=>`<option value="">${f}</option>`+CATS.map(g=>`<optgroup label="${g[0]}">${g[1].map(c=>`<option>${c}</option>`).join('')}</optgroup>`).join('');
@@ -172,26 +172,43 @@ $('list').onclick=async e=>{const d=e.target.dataset;
   else if(d.arc&&confirm('این ریسک بایگانی شود؟')){await req('risks?id=eq.'+d.arc,'PATCH',{status:'archived'},'return=minimal');load()}
   else if(d.del&&confirm('این ریسک حذف شود؟ (اتصال رکوردهای مرتبط برداشته می‌شود)')){await req('risks?id=eq.'+d.del,'DELETE',null,'return=minimal');load()}
   }catch(er){alert('خطا: '+er.message)}};
+/* ---- ماشین‌آلات هر سوله: اجتماع تجهیزات ثبت‌شده + اعلان‌ها (notices) + عدم‌انطباق‌ها (findings)؛ فقط یک‌بار بارگذاری می‌شود ---- */
+function loadMachines(){
+  if(MCH)return Promise.resolve(MCH);if(MCHP)return MCHP;
+  MCHP=(async()=>{
+    const since=HSEToday(-1100);
+    const g=async(q,qf)=>{try{const r=await getAll(q+qf);if(r&&r.length)return r}catch(e){}try{return await getAll(q)}catch(e){return null}};
+    const [no,fi,el]=await Promise.all([
+      g('notices?select=*&equipment_code=not.is.null','&created_on=gte.'+since),
+      g('findings?select=equipment_code,equipment_title,location,module,created_at&module=neq.MED&or=(equipment_code.not.is.null,equipment_title.not.is.null)','&created_at=gte.'+since),
+      getAll('equipment_list?select=code,title,is_equipment').catch(()=>null)]);
+    MCH=HSERiskPlan.machines(units,{equipment:EQ,notices:no||[],findings:fi||[],elist:el||[]});
+    MCH.ok={notices:no!=null,findings:fi!=null,elist:el!=null,nN:(no||[]).length,nF:(fi||[]).length};
+    return MCH})();
+  return MCHP}
+
 /* ---- پیشنهاد ریسک برای هر سوله (risk_catalog.js) ---- */
 function openSug(unit,group){PLAN={unit,group};FREE=false;renderSug();const e=$('sug');if(e&&e.scrollIntoView)e.scrollIntoView({behavior:'smooth',block:'start'})}
 function renderSug(){
   const el=$('sug');if(!PLAN||!PLAN.unit||!PLAN.group){el.innerHTML='';SUGLIST=[];return}
   const P=HSERiskPlan,Cg=HSERiskCatalog,m=P.matcher(P.activeUnits(units)),u=m(PLAN.unit),g=PLAN.group;
-  const inU=x=>u&&x===u,eqs=u?EQ.filter(e=>e.active!==false&&inU(m(e.hall)||m(e.location))):[],ppl=u?EMP.filter(p=>!p.termination_date&&inU(m(p.department))).length:0;
-  const by={};eqs.forEach(e=>(by[e.category]=by[e.category]||[]).push(e.code));
+  if(!MCH){el.innerHTML='<div class="card mu">در حال استخراج ماشین‌آلات این سوله از اعلان‌ها و عدم‌انطباق‌ها...</div>';loadMachines().then(renderSug);return}
+  const inU=x=>u&&x===u,ms=u?(MCH.byUnit[u.id]||[]):[],ppl=u?EMP.filter(p=>!p.termination_date&&inU(m(p.department))).length:0;
+  const by={};ms.forEach(o=>(by[o.type]=by[o.type]||[]).push(o));
   const mine=u?R.filter(r=>r.status!=='archived'&&inU(m(r.unit))):[];
-  const blocks=Object.keys(by).map(k=>({key:k,title:k,sub:fa(by[k].length)+' دستگاه: '+by[k].slice(0,8).join('، ')+(by[k].length>8?' …':''),list:Cg.forCategory(k)}));
+  const mdesc=o=>[o.n?fa(o.n)+' اعلان':'',o.f?fa(o.f)+' عدم‌انطباق':'',o.src.includes('تجهیزات')?'ثبت‌شده در تجهیزات':''].filter(Boolean).join('، ');
+  const blocks=Object.keys(by).map(k=>({key:k,title:k,sub:fa(by[k].length)+' ماشین',more:`<details style="display:inline-block;margin-right:6px"><summary class="mu" style="cursor:pointer">فهرست</summary><div class="mu" style="margin-top:4px">${by[k].slice(0,40).map(o=>esc((o.code||'—')+' · '+o.title)+(mdesc(o)?' ('+esc(mdesc(o))+')':'')).join('<br>')}${by[k].length>40?'<br>…':''}</div></details>`,list:Cg.forCategory(k)}));
   blocks.push({key:Cg.GENERIC,title:'ماشین‌آلات تولیدی',sub:'ماشین‌هایی که در ماژول «تجهیزات» ثبت نمی‌شوند؛ برای هر ماشین مهم این موارد را بررسی کنید.',list:Cg.CAT[Cg.GENERIC]});
   blocks.push({key:'تابلو و تأسیسات برقی',title:'تابلو و تأسیسات برقی',sub:'تابلوها و تجهیزات برقی این سوله',list:Cg.CAT['تابلو و تأسیسات برقی']});
   blocks.push({key:'عمومی سوله',title:'عمومی سوله',sub:'مستقل از دستگاه‌ها',list:Cg.AREA});
   SUGLIST=[];let tot=0,dn=0;
   const body=blocks.map(b=>{const items=b.list.map((s,i)=>({s,id:b.key+'|'+i})).filter(x=>x.s.g===g);if(!items.length)return'';
-    return`<div style="margin-top:10px"><b>${esc(b.title)}</b> <span class="mu">${esc(b.sub)}</span>`+items.map(x=>{
+    return`<div style="margin-top:10px"><b>${esc(b.title)}</b> <span class="mu">${esc(b.sub)}</span>${b.more||''}`+items.map(x=>{
       const d=mine.some(r=>(r.detail&&r.detail.sug===x.id)||P.norm(r.hazard)===P.norm(x.s.h));tot++;if(d)dn++;const n=SUGLIST.push(x)-1;
       return`<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--bd)"><span>${d?'✅':'⬜'}</span><div style="flex:1"><div>${esc(x.s.h)}</div>${x.s.q?`<div class="mu">پیامد: ${esc(x.s.q)}</div>`:''}${x.s.u?`<div class="mu">علل: ${esc(x.s.u)}</div>`:''}${x.s.m!=='fmea'?`<div class="mu">روش پیشنهادی: ${x.s.m.toUpperCase()}</div>`:''}</div>${d?'<span class="mu">ثبت شده</span>':`<button data-sg="${n}">ثبت این ریسک</button>`}</div>`}).join('')+'</div>'}).join('');
   const tabs=P.GROUPS&&Object.keys(P.GROUPS).map(k=>`<button data-sgt="${k}" ${k===g?'class="p"':''}>${P.GROUPS[k].name}</button>`).join(' ');
   el.innerHTML=`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>💡 پیشنهاد ریسک برای «${esc(PLAN.unit)}»</b><button data-sgx="1">✕ بستن</button></div>
-   <div class="mu" style="margin:4px 0">${u?`${fa(eqs.length)} تجهیز ثبت‌شده · ${fa(ppl)} نفر پرسنل`:'این نام با هیچ واحدی در «واحدها» تطبیق نخورد؛ فقط پیشنهادهای عمومی نمایش داده می‌شود.'} — پیشنهادها فقط راهنما هستند؛ شدت، احتمال و کشف را با دیدن محل خودتان تعیین کنید. ${fa(dn)} از ${fa(tot)} پیشنهاد این حوزه ثبت شده است.</div>
+   <div class="mu" style="margin:4px 0">${u?`${fa(ms.length)} ماشین/تجهیز (از تجهیزات، اعلان‌ها و عدم‌انطباق‌ها) · ${fa(ppl)} نفر پرسنل`:'این نام با هیچ واحدی در «واحدها» تطبیق نخورد؛ فقط پیشنهادهای عمومی نمایش داده می‌شود.'} — پیشنهادها فقط راهنما هستند؛ شدت، احتمال و کشف را با دیدن محل خودتان تعیین کنید. ${fa(dn)} از ${fa(tot)} پیشنهاد این حوزه ثبت شده است.</div>
    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${tabs}</div>${body||'<div class="mu">پیشنهادی برای این حوزه نیست.</div>'}</div>`}
 $('sug').onclick=e=>{const d=e.target.dataset;
   if(d.sg!==undefined){SUG=SUGLIST[+d.sg];FREE=false;openM(null)}
@@ -201,21 +218,23 @@ $('sug').onclick=e=>{const d=e.target.dataset;
 /* ---- برنامهٔ سوله‌ها: بازه بر اساس تعداد تجهیز و پرسنل ---- */
 const WDAYS=HSERiskPlan.DEF.workdays,dowOf=iso=>new Date(iso+'T12:00:00Z').getUTCDay(),isWork=iso=>WDAYS.includes(dowOf(iso)),addDays=(iso,n)=>new Date(new Date(iso+'T12:00:00Z').getTime()+n*864e5).toISOString().slice(0,10);
 const nextWork=iso=>{let d=iso,g=0;while(!isWork(d)&&g++<14)d=addDays(d,1);return d};
-function planLoads(){const P=HSERiskPlan,W=P.workloads(units,EQ,EMP),o={};
+function planLoads(){const P=HSERiskPlan,W=P.workloads(units,EQ,EMP,MCH),o={};
   P.activeUnits(units).forEach(u=>{const l=PLO[u.id],w=W[u.id]||{eq:0,eqw:0,ppl:0};o[u.id]=l?{eq:l.eq,eqw:l.eq===w.eq?w.eqw:l.eq,ppl:l.ppl}:{eq:w.eq,eqw:w.eqw,ppl:w.ppl}});return o}
-function openPlan(){PV=null;PLO={};PSTART=null;drawPlan();$('planM').classList.add('on')}
+async function openPlan(){PV=null;PLO={};PSTART=null;$('planM').classList.add('on');$('planNote').textContent='';$('planBody').innerHTML='<div class="mu">در حال استخراج ماشین‌آلات از اعلان‌ها، عدم‌انطباق‌ها و تجهیزات...</div>';$('pBuild').style.display='none';$('pSave').style.display='none';await loadMachines();drawPlan()}
 function drawPlan(){
-  const P=HSERiskPlan,act=P.activeUnits(units),W=P.workloads(units,EQ,EMP),cnt=P.counts(units,R),mg=isMgr(),rows=PV||RP;
+  const P=HSERiskPlan,act=P.activeUnits(units),W=P.workloads(units,EQ,EMP,MCH),cnt=P.counts(units,R),mg=isMgr(),rows=PV||RP;
   $('planNote').innerHTML=(RPOK?'':'<div class="err" style="display:block">جدول <b>risk_plan</b> ساخته نشده؛ فایل <b>hse_risk_plan.sql</b> را در Supabase اجرا کنید.</div>')+
-   `حجم کار هر سوله از روی <b>تعداد تجهیز ثبت‌شده</b> (ماژول تجهیزات) و <b>تعداد پرسنل</b> واحد حساب می‌شود: ساعت ایمنی = ${P.DEF.hrs.safety.b} + ${P.DEF.hrs.safety.e}×تجهیز + ${P.DEF.hrs.safety.p}×نفر؛ بهداشتی = ${P.DEF.hrs.health.b} + ${P.DEF.hrs.health.e}×تجهیز + ${P.DEF.hrs.health.p}×نفر؛ ارگونومی = ${P.DEF.hrs.ergo.b} + ${P.DEF.hrs.ergo.p}×نفر. روز کاری = ساعت ÷ ظرفیت روزانه (کارشناس ${fa(P.DEF.cap.expert)} ساعت، مدیر ${fa(P.DEF.cap.manager)} ساعت)، حداقل ${fa(P.DEF.minDays)} و حداکثر ${fa(P.DEF.maxDays)} روز. کپسول‌ها حساب نمی‌شوند و چاه ارت/همبندی/فایرباکس یک‌چهارم. حوزه‌ای که ریسکش ثبت شده از بازه کم می‌شود.`+
+   `حجم کار هر سوله از روی <b>تعداد ماشین‌آلات</b> (استخراج‌شده از تجهیزات ثبت‌شده + <b>اعلان‌ها</b> + <b>عدم‌انطباق‌ها</b>؛ سولهٔ هر ماشین از محل ثبت‌شده در آن‌ها تعیین می‌شود) و <b>تعداد پرسنل</b> واحد حساب می‌شود: ساعت ایمنی = ${P.DEF.hrs.safety.b} + ${P.DEF.hrs.safety.e}×تجهیز + ${P.DEF.hrs.safety.p}×نفر؛ بهداشتی = ${P.DEF.hrs.health.b} + ${P.DEF.hrs.health.e}×تجهیز + ${P.DEF.hrs.health.p}×نفر؛ ارگونومی = ${P.DEF.hrs.ergo.b} + ${P.DEF.hrs.ergo.p}×نفر. روز کاری = ساعت ÷ ظرفیت روزانه (کارشناس ${fa(P.DEF.cap.expert)} ساعت، مدیر ${fa(P.DEF.cap.manager)} ساعت)، حداقل ${fa(P.DEF.minDays)} و حداکثر ${fa(P.DEF.maxDays)} روز. کپسول‌ها حساب نمی‌شوند و چاه ارت/همبندی/فایرباکس یک‌چهارم. حوزه‌ای که ریسکش ثبت شده از بازه کم می‌شود.`+
    (mg&&RPOK?`<div style="margin-top:8px">شروع برنامه: <span id="pS" style="display:inline-block;min-width:260px">${jdHTML('pStart')}</span> — تعداد تجهیز/پرسنل را در صورت نیاز اصلاح کنید (مثلاً ماشین‌آلات ثبت‌نشده را اضافه کنید)، «محاسبهٔ بازه‌ها» و سپس «ذخیرهٔ برنامه» را بزنید.</div>`:'');
   const win=(uid,t)=>{const x=rows.find(y=>String(y.unit_id)===String(uid)&&y.track===t);return x?`${fday(x.start_date)} تا ${fday(x.end_date)}<div class="mu">${fa(x.days||'')} روز کاری · ${fa(x.hours||'')} ساعت</div>`:'<span class="mu">—</span>'};
   const rem=(uid,t)=>{const r=P.remaining(uid,t,cnt);return r.length?r.map(g=>P.GROUPS[g].label).join(' + '):'<span class="ok">انجام شده ✓</span>'};
   const L=planLoads();
-  $('planBody').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:right;border-bottom:1px solid var(--bd)"><th>سوله / واحد</th><th>تجهیز</th><th>پرسنل</th><th>باقی‌مانده: کارشناس</th><th>بازهٔ کارشناس (ایمنی)</th><th>باقی‌مانده: مدیر</th><th>بازهٔ مدیر (بهداشتی/ارگونومی)</th><th></th></tr></thead><tbody>`+
+  $('planBody').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:right;border-bottom:1px solid var(--bd)"><th>سوله / واحد</th><th>ماشین‌آلات</th><th>پرسنل</th><th>باقی‌مانده: کارشناس</th><th>بازهٔ کارشناس (ایمنی)</th><th>باقی‌مانده: مدیر</th><th>بازهٔ مدیر (بهداشتی/ارگونومی)</th><th></th></tr></thead><tbody>`+
    (act.length?act.map(u=>{const w=W[u.id]||{byCat:{}},l=L[u.id],bc=Object.entries(w.byCat||{}).map(([k,v])=>k+' '+fa(v)).join('، ');
      const inp=(k)=>mg?`<input type="number" min="0" style="width:64px" data-${k}="${u.id}" value="${l[k]}">`:fa(l[k]);
      return`<tr style="border-bottom:1px solid var(--bd);vertical-align:top"><td><b>${esc(u.name)}</b></td><td>${inp('eq')}<div class="mu" style="max-width:180px">${esc(bc)}</div></td><td>${inp('ppl')}</td><td>${rem(u.id,'expert')}</td><td>${win(u.id,'expert')}</td><td>${rem(u.id,'manager')}</td><td>${win(u.id,'manager')}</td><td><button data-psg="${u.id}">پیشنهاد ریسک</button></td></tr>`}).join(''):'<tr><td colspan="8">واحد فعالی (hse_units) پیدا نشد.</td></tr>')+'</tbody></table>';
+  const un=(MCH&&MCH.unassigned)||[];
+  $('planBody').innerHTML+=`<div class="mu" style="margin-top:8px">منبع ماشین‌آلات: ${fa(MCH?MCH.total:0)} ماشین یکتا از ${fa((MCH&&MCH.ok&&MCH.ok.nN)||0)} اعلان و ${fa((MCH&&MCH.ok&&MCH.ok.nF)||0)} عدم‌انطباق (سه سال اخیر) و تجهیزات ثبت‌شده.${MCH&&MCH.ok&&!MCH.ok.notices?' <b>جدول اعلان‌ها خوانده نشد.</b>':''}</div>`+(un.length?`<details style="margin-top:6px"><summary class="mu" style="cursor:pointer">${fa(un.length)} ماشین به هیچ سوله‌ای نسبت داده نشد (محل ثبت‌شده با هیچ واحدی تطبیق نخورد)</summary><div class="mu" style="margin-top:4px">${un.slice(0,60).map(o=>esc((o.code||'—')+' · '+o.title)+' ('+fa(o.n)+' اعلان، '+fa(o.f)+' عدم‌انطباق)').join('<br>')}${un.length>60?'<br>…':''}</div></details>`:'');
   $('pBuild').style.display=mg&&RPOK&&act.length?'':'none';$('pSave').style.display=mg&&RPOK&&PV?'':'none';
   const ps=$('pStart');if(ps){jdInit(ps);jdSet(ps,PSTART||nextWork(HSEToday()))}
 }
