@@ -90,7 +90,7 @@ const prevK=K=>{let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}return y+'-
 const nextK=K=>{let y=+K.slice(0,4),m=+K.slice(5)+1;if(m>12){m=1;y++}return y+'-'+String(m).padStart(2,'0')};
 
 const MODT={CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخزن تحت فشار',AC:'اتوکلاو',BL:'دیگ بخار',PJ:'جک پالت'};
-let TICKS=new Set(),HTK=new Set(),RKP=[],CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],OBL=[],HRT=null,X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
+let TICKS=new Set(),HTK=new Set(),RKP=null,CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],OBL=[],HRT=null,X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
 if(/[?&]embed=1/.test(location.search)){document.documentElement.classList.add('emb')}
 
 async function hd(){let t=KEY;try{t=(await HSEAuth.token())||KEY}catch(e){}return{apikey:KEY,Authorization:'Bearer '+t}}
@@ -102,7 +102,7 @@ async function load(){
   if(!ins){EQ_COL=false;ins=await getAll(base)||[]}
   INS=ins.map(x=>({m:x.module,loc:x.location||'',code:x.equipment_code||null,d:new Date(x.created_at).toLocaleDateString('en-CA')}));
   /* برنامهٔ ارزیابی ریسک سوله‌ها: ایمنی برای کارشناس، بهداشتی و ارگونومی برای مدیر (risk_plan.js) */
-  RKP=[];if(window.HSERiskPlan&&(HSEAuth.role==='expert'||HSEAuth.role==='manager')){const [ru,rr]=await Promise.all([getAll('hse_units?select=id,name,aliases,active').catch(()=>null),getAll('risks?select=unit,category,status').catch(()=>null)]);if(ru&&rr)RKP=HSERiskPlan.plan(ru,rr,HSEAuth.role,{today,isWork,addDays})}
+  RKP=null;if(window.HSERiskPlan&&(HSEAuth.role==='expert'||HSEAuth.role==='manager')){const [ru,rr,rp]=await Promise.all([getAll('hse_units?select=id,name,aliases,active').catch(()=>null),getAll('risks?select=unit,category,status').catch(()=>null),getAll('risk_plan?select=*').catch(()=>null)]);if(ru&&rr)RKP={units:ru,risks:rr,rows:rp||[]}}
   HTK=new Set((await getAll("daily_ticks?select=tick_date&key=eq.hrtrain").catch(()=>null)||[]).map(x=>String(x.tick_date).slice(0,10)));
   TICKS=new Set((await getAll("daily_ticks?select=tick_date&key=eq.chlorination").catch(()=>null)||[]).map(x=>String(x.tick_date).slice(0,10)));
   CTR=(await getAll('contractors?select=id,name,contract_no,scope,start_date,end_date,status').catch(()=>null)||[]).filter(c=>c.start_date);
@@ -160,8 +160,11 @@ function build(K){
   /* ۳-ب) چک‌لیست روزانهٔ پیمانکاران حاضر در کارخانه (از روز ورود تا ثبت پایان کار) */
   CTR.forEach(c=>{const s=c.start_date,e=c.end_date||(c.status==='finished'?s:b);
     days.filter(d=>isWork(d.iso)&&d.iso>=s&&d.iso<=e).forEach(d=>T.push({id:'CT'+c.id+d.iso,date:d.iso,due:d.iso,t:'چک‌لیست ایمنی پیمانکار — '+c.name,sub:'روزانه · '+(c.scope||'').slice(0,50),mk:'CT',done:INS.some(x=>x.m==='CT'&&x.d===d.iso&&x.loc.includes(c.name)),kind:'daily',go:'checklists.html#visit=CT&ctr='+encodeURIComponent(c.name)+'&cno='+encodeURIComponent(c.contract_no||'')}))});
-  /* ۳-پ) نوبت ارزیابی ریسک سوله‌ها (از امروز به بعد؛ با ثبت ریسک برای آن سوله خودکار از برنامه خارج می‌شود) */
-  RKP.filter(x=>x.date>=a&&x.date<=b).forEach(x=>T.push({id:'RK'+x.gk+x.uid,date:x.date,due:x.date,t:'ارزیابی ریسک '+x.label+' — '+x.unit,sub:'نوبت '+fa(x.n)+' از '+fa(x.total)+' · با ثبت ریسک برای این سوله از برنامه خارج می‌شود',mk:'RK',done:false,kind:'month',go:'risks.html#new&unit='+encodeURIComponent(x.unit)+'&group='+x.gk}));
+  /* ۳-پ) ارزیابی ریسک سوله‌ها: هر سوله یک «بازه» دارد (بر اساس تعداد تجهیز و پرسنل؛ جدول risk_plan که مدیر در صفحهٔ ثبت ریسک می‌سازد).
+        ایمنی ← کارشناس · بهداشتی و ارگونومی ← مدیر. با ثبت ریسک برای هر حوزه، آن حوزه از برنامه خارج می‌شود (risk_plan.js) */
+  if(RKP){HSERiskPlan.tasks(RKP.rows,RKP.units,RKP.risks,HSEAuth.role,{isWork,addDays,today,a,b}).forEach(x=>{const k=x.rk;
+      T.push({...x,sub:'بازه: '+lbl(k.start)+' تا '+lbl(k.end)+(k.late?' · بازه تمام شده و ارزیابی ثبت نشده':' · روز '+fa(k.idx)+' از '+fa(k.n))+' · '+fa(k.eq)+' تجهیز · '+fa(k.ppl)+' نفر پرسنل'})});
+    if(HSEAuth.role==='manager'&&!RKP.rows.length&&HSERiskPlan.anyPending(RKP.units,RKP.risks)&&today>=a&&today<=b)T.push({id:'RKP0',date:today,due:today,t:'برنامهٔ ارزیابی ریسک سوله‌ها هنوز تدوین نشده',sub:'بازهٔ هر سوله را بر اساس تعداد تجهیز و پرسنل بسازید',mk:'RK',done:false,kind:'month',go:'risks.html'})}
   /* ۴) کارهای مؤثر بر امتیاز: آموزش کوتاه هفتگی، اخطار/تشویق، نظر حادثه، عدم‌انطباق و ارجاع‌ها */
   if(X.on){
     const wk=iso=>addDays(iso,-((dowOf(iso)+1)%7)),pre=K.replace('-','/')+'/',nz=s=>String(s||'').replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c));
@@ -198,7 +201,8 @@ function href(x){if(x.go)return x.go;return 'checklists.html#visit='+encodeURICo
 /* «چیکار کنم؟»: یک جمله‌ی ساده برای هر نوع کار (نوع از پیشوند شناسه یا kind می‌آید) */
 function how(x){const id=String(x.id||'');
   if(id.startsWith('HRT'))return 'افراد پرریسک را آموزش دهید؛ روزی که آموزش دادید تیک بزنید.';
-  if(id.startsWith('RK'))return 'ارزیابی ریسک این سوله را انجام دهید؛ حداقل یک ریسک با دستهٔ همین حوزه ثبت کنید.';
+  if(id==='RKP0')return 'در صفحهٔ ثبت ریسک روی «برنامهٔ سوله‌ها» بزنید، «محاسبهٔ بازه‌ها» و سپس «ذخیرهٔ برنامه» را بزنید.';
+  if(id.startsWith('RK'))return 'ارزیابی ریسک این سوله را در بازهٔ مشخص‌شده انجام دهید؛ از «پیشنهاد ریسک» برای هر دستگاه کمک بگیرید و برای هر حوزه حداقل یک ریسک ثبت کنید.';
   if(id.startsWith('OB'))return 'تعهد دوره‌ای را انجام دهید و در صفحه‌ی تعهدات ثبت کنید.';
   if(id.startsWith('CL'))return 'سیستم کلرزنی را روشن کنید و تیک بزنید.';
   if(id.startsWith('CT'))return 'چک‌لیست ایمنی این پیمانکار را برای امروز ثبت کنید.';
@@ -214,6 +218,7 @@ function how(x){const id=String(x.id||'');
   if(id.startsWith('M'))return 'چک‌لیست این مورد را تا مهلت ثبت کنید.';
   return ''}
 function cta(x){const id=String(x.id||'');
+  if(id==='RKP0')return 'تدوین برنامه';
   if(id.startsWith('RK'))return 'ثبت ارزیابی ریسک';
   if(/^(CT|M)/.test(id)||/^[DK]\d/.test(id))return 'ثبت چک‌لیست';
   if(x.kind==='equip')return 'ثبت بازدید';

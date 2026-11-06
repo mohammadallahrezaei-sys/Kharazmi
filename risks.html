@@ -18,7 +18,7 @@
 <div class="w">
   <div class="top">
     <div><h1>⚠️ ثبت ریسک</h1><p>روش رسمی شرکت: FMEA (شدت × احتمال × کشف) — آستانه RPN ≥ ۹۰ · به‌علاوه HAZOP، REBA و RULA</p></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="p" id="bNew">+ ریسک جدید</button><button id="bAll" style="display:none"></button><a class="btn" href="index.html">← بازگشت</a></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="p" id="bNew">+ ریسک جدید</button><button id="bPlan">📅 برنامهٔ سوله‌ها</button><button id="bAll" style="display:none"></button><a class="btn" href="index.html">← بازگشت</a></div>
   </div>
   <div id="err" class="err"></div>
   <div class="card">
@@ -32,6 +32,7 @@
     <div class="mu" id="stats" style="margin-top:10px"></div>
     <div class="bar" id="bar"></div>
   </div>
+  <div id="sug"></div>
   <div id="list"><div class="card">در حال بارگذاری...</div></div>
 </div>
 
@@ -43,6 +44,7 @@
   <div id="chW" style="display:none"><label class="l">ماده شیمیایی / گاز مرتبط (اختیاری)</label><select id="mCh"></select></div>
   <label class="l" id="lAct">فعالیت</label><input type="text" id="mA">
   <label class="l" id="lHz">خطر (الزامی)</label><textarea id="mH" rows="2" placeholder="مثلاً: سقوط مخزن اسید هنگام جابه‌جایی با لیفتراک"></textarea>
+  <div class="mu" id="mHint" style="display:none;margin:4px 0"></div>
   <div class="m-sod">
   <label class="l">اثرات / پیامد</label><textarea id="mC" rows="2"></textarea>
   <label class="l">علل بالقوه</label><textarea id="mCa" rows="2"></textarea>
@@ -61,8 +63,16 @@
   <div class="mu" id="mNote" style="margin-top:6px"></div>
 </div></div>
 
+<div class="modal" id="planM"><div style="max-width:1000px">
+  <h2 style="margin:0 0 6px;font-size:15px">📅 برنامهٔ ارزیابی ریسک سوله‌ها</h2>
+  <div class="mu" id="planNote"></div>
+  <div id="planBody" style="margin-top:8px;overflow-x:auto"></div>
+  <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="p" id="pBuild" style="display:none">محاسبهٔ بازه‌ها</button><button class="p" id="pSave" style="display:none">ذخیرهٔ برنامه</button><button id="pClose">بستن</button></div>
+</div></div>
+
 <script src="eval_core.js"></script>
 <script src="risk_plan.js"></script>
+<script src="risk_catalog.js"></script>
 <script>
 const {esc,fa,getAll,req,jdInit,jdGet,jdSet,jdHTML,toJal}=HSE;
 const $=id=>document.getElementById(id);
@@ -89,7 +99,7 @@ function lvl(r){
 const calc=(m,s,o,d)=>m==='fmea'?s*o*(d||1):s*o;
 const TODAY=HSEToday();
 const fday=d=>{try{return new Date(String(d).slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
-let R=[],F=[],I=[],C=[],CH=[],units=[],editId=null,PLAN=null; /* PLAN: ورود از برنامهٔ تقویم {unit, group} */
+let R=[],F=[],I=[],C=[],CH=[],units=[],editId=null,PLAN=null,SUG=null,FREE=false,EQ=[],EMP=[],RP=[],RPOK=true,PV=null,PLO={},PSTART=null,SUGLIST=[]; /* PLAN: سولهٔ/حوزهٔ در حال ارزیابی {unit, group}؛ SUG: پیشنهاد انتخاب‌شده؛ FREE: ریسک آزاد (بدون محدودیت حوزه)؛ RP: بازه‌های ذخیره‌شده؛ PV: پیش‌نمایش */
 const isMgr=()=>window.HSEAuth&&HSEAuth.role==='manager';
 const opts=(arr,v)=>arr.map((t,i)=>i?`<option value="${i}" ${v==i?'selected':''}>${fa(i)} — ${t}</option>`:'').join('');
 const catOpts=f=>`<option value="">${f}</option>`+CATS.map(g=>`<optgroup label="${g[0]}">${g[1].map(c=>`<option>${c}</option>`).join('')}</optgroup>`).join('');
@@ -99,14 +109,14 @@ $('mDW').innerHTML=jdHTML('mD');jdInit($('mD'),true);
 
 async function load(){
   await HSEAuth.ready;
-  const [r,f,i,c,u,ch]=await Promise.all([getAll('risks?select=*'),getAll('findings?select=id,risk_id,status&risk_id=not.is.null'),getAll('clinic_incidents?select=id,risk_id,incident_date&risk_id=not.is.null'),getAll('hse_cards?select=id,risk_id,status&risk_id=not.is.null'),getAll('hse_units?select=name&order=name.asc'),getAll('chemicals?select=id,name,code&status=neq.archived&order=name.asc')]);
+  const [r,f,i,c,u,ch,eq,em,rp]=await Promise.all([getAll('risks?select=*'),getAll('findings?select=id,risk_id,status&risk_id=not.is.null'),getAll('clinic_incidents?select=id,risk_id,incident_date&risk_id=not.is.null'),getAll('hse_cards?select=id,risk_id,status&risk_id=not.is.null'),getAll('hse_units?select=id,name,aliases,active&order=name.asc'),getAll('chemicals?select=id,name,code&status=neq.archived&order=name.asc'),getAll('equipment?select=code,title,category,hall,location,active').catch(()=>null),getAll('employees?select=id,department,termination_date').catch(()=>null),getAll('risk_plan?select=*&order=track.asc,start_date.asc').catch(()=>null)]);
   if(r==null){$('err').style.display='block';$('err').textContent='جدول ریسک پیدا نشد. فایل‌های SQL شماره ۰۱ تا ۰۴ را به‌ترتیب در Supabase اجرا کنید.';R=[]}else{$('err').style.display='none';R=r}
-  F=f||[];I=i||[];C=c||[];units=u||[];CH=ch||[];
+  F=f||[];I=i||[];C=c||[];units=u||[];CH=ch||[];EQ=eq||[];EMP=em||[];RPOK=rp!=null;RP=rp||[];
   $('chW').style.display=CH.length?'':'none';$('mCh').innerHTML='<option value="">— بدون ماده مرتبط —</option>'+CH.map(x=>`<option value="${x.id}">${esc(x.name)}${x.code?' ('+esc(x.code)+')':''}</option>`).join('');
   const names=[...new Set([...units.map(x=>x.name),...R.map(x=>x.unit)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,'fa',{numeric:true}));
   $('fU').innerHTML='<option value="">همه</option>'+names.map(n=>`<option>${esc(n)}</option>`).join('');
   $('ul').innerHTML=names.map(n=>`<option value="${esc(n)}">`).join('');
-  render();
+  render();renderSug();
 }
 function evid(id){const f=F.filter(x=>x.risk_id==id),y=Date.now()-365*864e5;
   return{fo:f.filter(x=>x.status==='open').length,fa:f.length,inc:I.filter(x=>x.risk_id==id&&new Date(x.incident_date)>=y).length,cd:C.filter(x=>x.risk_id==id).length}}
@@ -162,6 +172,65 @@ $('list').onclick=async e=>{const d=e.target.dataset;
   else if(d.arc&&confirm('این ریسک بایگانی شود؟')){await req('risks?id=eq.'+d.arc,'PATCH',{status:'archived'},'return=minimal');load()}
   else if(d.del&&confirm('این ریسک حذف شود؟ (اتصال رکوردهای مرتبط برداشته می‌شود)')){await req('risks?id=eq.'+d.del,'DELETE',null,'return=minimal');load()}
   }catch(er){alert('خطا: '+er.message)}};
+/* ---- پیشنهاد ریسک برای هر سوله (risk_catalog.js) ---- */
+function openSug(unit,group){PLAN={unit,group};FREE=false;renderSug();const e=$('sug');if(e&&e.scrollIntoView)e.scrollIntoView({behavior:'smooth',block:'start'})}
+function renderSug(){
+  const el=$('sug');if(!PLAN||!PLAN.unit||!PLAN.group){el.innerHTML='';SUGLIST=[];return}
+  const P=HSERiskPlan,Cg=HSERiskCatalog,m=P.matcher(P.activeUnits(units)),u=m(PLAN.unit),g=PLAN.group;
+  const inU=x=>u&&x===u,eqs=u?EQ.filter(e=>e.active!==false&&inU(m(e.hall)||m(e.location))):[],ppl=u?EMP.filter(p=>!p.termination_date&&inU(m(p.department))).length:0;
+  const by={};eqs.forEach(e=>(by[e.category]=by[e.category]||[]).push(e.code));
+  const mine=u?R.filter(r=>r.status!=='archived'&&inU(m(r.unit))):[];
+  const blocks=Object.keys(by).map(k=>({key:k,title:k,sub:fa(by[k].length)+' دستگاه: '+by[k].slice(0,8).join('، ')+(by[k].length>8?' …':''),list:Cg.forCategory(k)}));
+  blocks.push({key:Cg.GENERIC,title:'ماشین‌آلات تولیدی',sub:'ماشین‌هایی که در ماژول «تجهیزات» ثبت نمی‌شوند؛ برای هر ماشین مهم این موارد را بررسی کنید.',list:Cg.CAT[Cg.GENERIC]});
+  blocks.push({key:'تابلو و تأسیسات برقی',title:'تابلو و تأسیسات برقی',sub:'تابلوها و تجهیزات برقی این سوله',list:Cg.CAT['تابلو و تأسیسات برقی']});
+  blocks.push({key:'عمومی سوله',title:'عمومی سوله',sub:'مستقل از دستگاه‌ها',list:Cg.AREA});
+  SUGLIST=[];let tot=0,dn=0;
+  const body=blocks.map(b=>{const items=b.list.map((s,i)=>({s,id:b.key+'|'+i})).filter(x=>x.s.g===g);if(!items.length)return'';
+    return`<div style="margin-top:10px"><b>${esc(b.title)}</b> <span class="mu">${esc(b.sub)}</span>`+items.map(x=>{
+      const d=mine.some(r=>(r.detail&&r.detail.sug===x.id)||P.norm(r.hazard)===P.norm(x.s.h));tot++;if(d)dn++;const n=SUGLIST.push(x)-1;
+      return`<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--bd)"><span>${d?'✅':'⬜'}</span><div style="flex:1"><div>${esc(x.s.h)}</div>${x.s.q?`<div class="mu">پیامد: ${esc(x.s.q)}</div>`:''}${x.s.u?`<div class="mu">علل: ${esc(x.s.u)}</div>`:''}${x.s.m!=='fmea'?`<div class="mu">روش پیشنهادی: ${x.s.m.toUpperCase()}</div>`:''}</div>${d?'<span class="mu">ثبت شده</span>':`<button data-sg="${n}">ثبت این ریسک</button>`}</div>`}).join('')+'</div>'}).join('');
+  const tabs=P.GROUPS&&Object.keys(P.GROUPS).map(k=>`<button data-sgt="${k}" ${k===g?'class="p"':''}>${P.GROUPS[k].name}</button>`).join(' ');
+  el.innerHTML=`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>💡 پیشنهاد ریسک برای «${esc(PLAN.unit)}»</b><button data-sgx="1">✕ بستن</button></div>
+   <div class="mu" style="margin:4px 0">${u?`${fa(eqs.length)} تجهیز ثبت‌شده · ${fa(ppl)} نفر پرسنل`:'این نام با هیچ واحدی در «واحدها» تطبیق نخورد؛ فقط پیشنهادهای عمومی نمایش داده می‌شود.'} — پیشنهادها فقط راهنما هستند؛ شدت، احتمال و کشف را با دیدن محل خودتان تعیین کنید. ${fa(dn)} از ${fa(tot)} پیشنهاد این حوزه ثبت شده است.</div>
+   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${tabs}</div>${body||'<div class="mu">پیشنهادی برای این حوزه نیست.</div>'}</div>`}
+$('sug').onclick=e=>{const d=e.target.dataset;
+  if(d.sg!==undefined){SUG=SUGLIST[+d.sg];FREE=false;openM(null)}
+  else if(d.sgt){PLAN.group=d.sgt;renderSug()}
+  else if(d.sgx){PLAN=null;SUG=null;renderSug()}};
+
+/* ---- برنامهٔ سوله‌ها: بازه بر اساس تعداد تجهیز و پرسنل ---- */
+const WDAYS=HSERiskPlan.DEF.workdays,dowOf=iso=>new Date(iso+'T12:00:00Z').getUTCDay(),isWork=iso=>WDAYS.includes(dowOf(iso)),addDays=(iso,n)=>new Date(new Date(iso+'T12:00:00Z').getTime()+n*864e5).toISOString().slice(0,10);
+const nextWork=iso=>{let d=iso,g=0;while(!isWork(d)&&g++<14)d=addDays(d,1);return d};
+function planLoads(){const P=HSERiskPlan,W=P.workloads(units,EQ,EMP),o={};
+  P.activeUnits(units).forEach(u=>{const l=PLO[u.id],w=W[u.id]||{eq:0,eqw:0,ppl:0};o[u.id]=l?{eq:l.eq,eqw:l.eq===w.eq?w.eqw:l.eq,ppl:l.ppl}:{eq:w.eq,eqw:w.eqw,ppl:w.ppl}});return o}
+function openPlan(){PV=null;PLO={};PSTART=null;drawPlan();$('planM').classList.add('on')}
+function drawPlan(){
+  const P=HSERiskPlan,act=P.activeUnits(units),W=P.workloads(units,EQ,EMP),cnt=P.counts(units,R),mg=isMgr(),rows=PV||RP;
+  $('planNote').innerHTML=(RPOK?'':'<div class="err" style="display:block">جدول <b>risk_plan</b> ساخته نشده؛ فایل <b>hse_risk_plan.sql</b> را در Supabase اجرا کنید.</div>')+
+   `حجم کار هر سوله از روی <b>تعداد تجهیز ثبت‌شده</b> (ماژول تجهیزات) و <b>تعداد پرسنل</b> واحد حساب می‌شود: ساعت ایمنی = ${P.DEF.hrs.safety.b} + ${P.DEF.hrs.safety.e}×تجهیز + ${P.DEF.hrs.safety.p}×نفر؛ بهداشتی = ${P.DEF.hrs.health.b} + ${P.DEF.hrs.health.e}×تجهیز + ${P.DEF.hrs.health.p}×نفر؛ ارگونومی = ${P.DEF.hrs.ergo.b} + ${P.DEF.hrs.ergo.p}×نفر. روز کاری = ساعت ÷ ظرفیت روزانه (کارشناس ${fa(P.DEF.cap.expert)} ساعت، مدیر ${fa(P.DEF.cap.manager)} ساعت)، حداقل ${fa(P.DEF.minDays)} و حداکثر ${fa(P.DEF.maxDays)} روز. کپسول‌ها حساب نمی‌شوند و چاه ارت/همبندی/فایرباکس یک‌چهارم. حوزه‌ای که ریسکش ثبت شده از بازه کم می‌شود.`+
+   (mg&&RPOK?`<div style="margin-top:8px">شروع برنامه: <span id="pS" style="display:inline-block;min-width:260px">${jdHTML('pStart')}</span> — تعداد تجهیز/پرسنل را در صورت نیاز اصلاح کنید (مثلاً ماشین‌آلات ثبت‌نشده را اضافه کنید)، «محاسبهٔ بازه‌ها» و سپس «ذخیرهٔ برنامه» را بزنید.</div>`:'');
+  const win=(uid,t)=>{const x=rows.find(y=>String(y.unit_id)===String(uid)&&y.track===t);return x?`${fday(x.start_date)} تا ${fday(x.end_date)}<div class="mu">${fa(x.days||'')} روز کاری · ${fa(x.hours||'')} ساعت</div>`:'<span class="mu">—</span>'};
+  const rem=(uid,t)=>{const r=P.remaining(uid,t,cnt);return r.length?r.map(g=>P.GROUPS[g].label).join(' + '):'<span class="ok">انجام شده ✓</span>'};
+  const L=planLoads();
+  $('planBody').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:right;border-bottom:1px solid var(--bd)"><th>سوله / واحد</th><th>تجهیز</th><th>پرسنل</th><th>باقی‌مانده: کارشناس</th><th>بازهٔ کارشناس (ایمنی)</th><th>باقی‌مانده: مدیر</th><th>بازهٔ مدیر (بهداشتی/ارگونومی)</th><th></th></tr></thead><tbody>`+
+   (act.length?act.map(u=>{const w=W[u.id]||{byCat:{}},l=L[u.id],bc=Object.entries(w.byCat||{}).map(([k,v])=>k+' '+fa(v)).join('، ');
+     const inp=(k)=>mg?`<input type="number" min="0" style="width:64px" data-${k}="${u.id}" value="${l[k]}">`:fa(l[k]);
+     return`<tr style="border-bottom:1px solid var(--bd);vertical-align:top"><td><b>${esc(u.name)}</b></td><td>${inp('eq')}<div class="mu" style="max-width:180px">${esc(bc)}</div></td><td>${inp('ppl')}</td><td>${rem(u.id,'expert')}</td><td>${win(u.id,'expert')}</td><td>${rem(u.id,'manager')}</td><td>${win(u.id,'manager')}</td><td><button data-psg="${u.id}">پیشنهاد ریسک</button></td></tr>`}).join(''):'<tr><td colspan="8">واحد فعالی (hse_units) پیدا نشد.</td></tr>')+'</tbody></table>';
+  $('pBuild').style.display=mg&&RPOK&&act.length?'':'none';$('pSave').style.display=mg&&RPOK&&PV?'':'none';
+  const ps=$('pStart');if(ps){jdInit(ps);jdSet(ps,PSTART||nextWork(HSEToday()))}
+}
+$('bPlan').onclick=openPlan;$('pClose').onclick=()=>$('planM').classList.remove('on');
+$('planBody').addEventListener('input',e=>{const d=e.target.dataset,k=d.eq!==undefined?'eq':d.ppl!==undefined?'ppl':null;if(!k)return;const uid=d[k],cur=PLO[uid]||(({eq,ppl})=>({eq,ppl}))(planLoads()[uid]);PLO[uid]={...cur,[k]:Math.max(0,+e.target.value||0)}});
+$('planM').addEventListener('change',e=>{if(e.target.closest&&e.target.closest('#pStart'))PSTART=jdGet($('pStart'))});
+$('planBody').onclick=e=>{const id=e.target.dataset.psg;if(!id)return;const u=units.find(x=>String(x.id)===id);if(!u)return;
+  const P=HSERiskPlan,cnt=P.counts(units,R),tr=isMgr()?'manager':'expert',rm=P.remaining(u.id,tr,cnt),g=rm[0]||(isMgr()?'health':'safety');$('planM').classList.remove('on');openSug(u.name,g)};
+$('pBuild').onclick=()=>{const start=PSTART||nextWork(HSEToday());PV=HSERiskPlan.build(units,R,planLoads(),{start,isWork,addDays});drawPlan();if(!PV.length)alert('همهٔ حوزه‌ها برای همهٔ واحدها ثبت شده است؛ برنامه‌ای لازم نیست.')};
+$('pSave').onclick=async()=>{if(!PV||!confirm('برنامهٔ فعلی با این برنامه جایگزین شود؟'))return;
+  try{await req('risk_plan?id=gte.0','DELETE',null,'return=minimal');
+    if(PV.length)await req('risk_plan','POST',PV.map(x=>({unit_id:x.unit_id,unit_name:x.unit_name,track:x.track,start_date:x.start_date,end_date:x.end_date,equipment_n:x.equipment_n,people_n:x.people_n,hours:x.hours,days:x.days,created_by:HSEAuth.email})),'return=minimal');
+    PV=null;PLO={};await load();drawPlan();alert('برنامه ذخیره شد و در تقویم نمایش داده می‌شود.')}
+  catch(er){alert('خطا: '+er.message+(/risk_plan/.test(er.message)?'\nفایل hse_risk_plan.sql را در Supabase اجرا کنید.':''))}};
+
 /* ---- فرم ---- */
 function fillScales(m,k){
   const f=m==='fmea',S=f?SEV10:SEV5,O=f?OCC10:LIK5;
@@ -184,9 +253,9 @@ function sc(){const m=$('mM').value;
 $('mM').onchange=()=>{fillScales($('mM').value,{});applyMethod()};
 $('mSc').oninput=sc;
 function openM(r){editId=r?r.id:null;$('mT').textContent=r?'ویرایش ریسک':'ریسک جدید';
-  const pg=!r&&PLAN&&PLAN.group?HSERiskPlan.GROUPS[PLAN.group]:null; /* از برنامهٔ تقویم: فقط دسته‌های همان حوزه و انتخاب دسته الزامی */
+  const pg=!r&&!FREE&&PLAN&&PLAN.group?HSERiskPlan.GROUPS[PLAN.group]:null; /* از برنامهٔ تقویم: فقط دسته‌های همان حوزه و انتخاب دسته الزامی */
   $('mK').innerHTML=pg?`<option value="">— انتخاب دسته (${pg.name}) —</option>`+pg.cats.map(c=>`<option>${c}</option>`).join(''):catOpts('— انتخاب دسته —');
-  const m=r?r.method:(pg&&PLAN.group==='ergo'?'reba':'fmea');$('mM').value=m;$('mM').disabled=!!r;
+  const m=r?r.method:(SUG&&SUG.s.m)||(pg&&PLAN.group==='ergo'?'reba':'fmea');$('mM').value=m;$('mM').disabled=!!r;
   fillScales(m,r?{s:r.severity,o:r.likelihood,d:r.detection,rs:r.residual_severity,ro:r.residual_likelihood,rd:r.residual_detection}:{});
   const v=(id,x)=>$(id).value=x==null?'':x;
   v('mU',r?r.unit:(PLAN&&PLAN.unit)||$('fU').value);v('mCh',r&&r.chemical_id);v('mK',r&&r.category);v('mPr',r&&r.process);v('mA',r&&r.activity);v('mH',r&&r.hazard);v('mC',r&&r.consequence);v('mCa',r&&r.causes);v('mE',r&&r.existing_controls);
@@ -195,12 +264,14 @@ function openM(r){editId=r?r.id:null;$('mT').textContent=r?'ویرایش ریس�
   const ss=$('mD').querySelectorAll('select');if(r&&r.review_date)jdSet($('mD'),r.review_date);else ss.forEach(s=>s.value='');
   $('mApprove').style.display=isMgr()?'':'none';
   $('mNote').textContent=(isMgr()?'':'ریسک ثبت‌شده توسط کارشناس «در انتظار تأیید» می‌ماند تا مدیر تأیید کند. ویرایش ریسک تأییدشده هم آن را به این حالت برمی‌گرداند.')+(pg?' این ریسک برای برنامهٔ ارزیابی «'+pg.name+'» سوله «'+PLAN.unit+'» ثبت می‌شود؛ پس از ثبت، آن سوله از برنامهٔ تقویم خارج می‌شود.':'');
+  const hint=$('mHint');
+  if(!r&&SUG){v('mH',SUG.s.h);v('mC',SUG.s.q);v('mCa',SUG.s.u);v('mK',SUG.s.c);hint.style.display='';hint.textContent='کنترل‌های مرسوم برای مقایسه با وضع موجود (ذخیره نمی‌شود): '+SUG.s.e}else hint.style.display='none';
   applyMethod();$('modal').classList.add('on')}
-$('bNew').onclick=()=>{PLAN=null;openM(null)};$('mCancel').onclick=()=>{PLAN=null;$('modal').classList.remove('on')};
+$('bNew').onclick=()=>{FREE=true;SUG=null;openM(null)};$('mCancel').onclick=()=>{SUG=null;FREE=false;$('modal').classList.remove('on')};
 async function save(approve){
   const m=$('mM').value,sod=m==='fmea'||m==='hazop',unit=$('mU').value.trim(),hz=$('mH').value.trim();
   if(!unit||!hz){alert('سوله و '+(sod?'خطر':'نام وظیفه')+' الزامی است.');return}
-  if(!editId&&PLAN&&PLAN.group&&!$('mK').value){alert('دستهٔ ریسک را انتخاب کنید؛ برای ثبت انجام ارزیابی این سوله در برنامهٔ تقویم الزامی است.');return}
+  if(!editId&&!FREE&&PLAN&&PLAN.group&&!$('mK').value){alert('دستهٔ ریسک را انتخاب کنید؛ برای ثبت انجام ارزیابی این سوله در برنامهٔ تقویم الزامی است.');return}
   const t=x=>$(x).value.trim()||null,n=x=>$(x).value?+$(x).value:null;
   const b={unit,category:$('mK').value||null,process:t('mPr'),activity:t('mA'),hazard:hz,owner:t('mO'),action_type:t('mAT'),planned_controls:t('mP'),assessed_on:t('mAs'),review_date:jdGet($('mD'))};
   if(!editId)b.method=m;
@@ -214,12 +285,13 @@ async function save(approve){
     const v=+$('mSc').value;if(!(v>=1)){alert('امتیاز نهایی را وارد کنید.');return}
     Object.assign(b,{manual_score:v,severity:null,likelihood:null,detection:null,legal_gap:false});
   }
+  if(!editId&&SUG)b.detail={sug:SUG.id,src:'catalog'};
   if(approve)b.status='approved';
   try{if(editId)await req('risks?id=eq.'+editId,'PATCH',b,'return=minimal');else{b.status=approve?'approved':'draft';b.created_by=HSEAuth.email;await req('risks','POST',b,'return=minimal')}
-    PLAN=null;$('modal').classList.remove('on');load()}catch(e){alert('خطا در ذخیره: '+e.message)}}
+    SUG=null;FREE=false;$('modal').classList.remove('on');load()}catch(e){alert('خطا در ذخیره: '+e.message)}}
 $('mSave').onclick=()=>save(false);$('mApprove').onclick=()=>save(true);
 load().then(()=>{const hm=/^#new(?:&(.*))?$/.exec(location.hash);
-  if(hm){const q=new URLSearchParams(hm[1]||''),g=q.get('group');PLAN={unit:q.get('unit')||'',group:HSERiskPlan.GROUPS[g]?g:''};openM(null)}
+  if(hm){const q=new URLSearchParams(hm[1]||''),g=q.get('group');PLAN={unit:q.get('unit')||'',group:HSERiskPlan.GROUPS[g]?g:''};FREE=false;renderSug();if(!PLAN.unit||!PLAN.group)openM(null)}
   else if(/^#risk=/.test(location.hash)){const id=decodeURIComponent(location.hash.slice(6)),r=R.find(x=>String(x.id)===id);if(r)openM(r);else alert('این ریسک پیدا نشد (ممکن است بایگانی یا حذف شده باشد).')}});
 </script>
 </body>
