@@ -52,8 +52,8 @@ html.emb .w>div:first-child,html.emb footer{display:none}html.emb .w{padding:4px
 <body>
 <div class="w">
   <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">
-    <div><h1>📅 تقویم بازرسی</h1><div class="mu" style="color:var(--mu);font-size:13px">کارهای هر روز: چک‌لیست‌های روزانه، موعد ماهانه‌ی جدول، و سررسید بازدید هر دستگاه. بعد از ثبت چک‌لیست، تیک خودکار می‌خورد.</div></div>
-    <div style="display:flex;gap:10px;font-size:13px"><a href="checklists.html" style="color:var(--ac)">چک‌لیست‌ها</a><a href="expert_eval.html" style="color:var(--ac)">ارزیابی کارشناس</a><a href="index.html" style="color:var(--ac)">← صفحه اصلی</a></div>
+    <div><h1 id="ttl">📅 تقویم بازرسی</h1><div id="sub" class="mu" style="color:var(--mu);font-size:13px">کارهای هر روز: چک‌لیست‌های روزانه، موعد ماهانه‌ی جدول، و سررسید بازدید هر دستگاه. بعد از ثبت چک‌لیست، تیک خودکار می‌خورد.</div></div>
+    <div id="hl" style="display:flex;gap:10px;font-size:13px;flex-wrap:wrap"><a href="checklists.html" style="color:var(--ac)">چک‌لیست‌ها</a><a href="expert_eval.html" style="color:var(--ac)">ارزیابی کارشناس</a><a href="index.html" style="color:var(--ac)">← صفحه اصلی</a></div>
   </div>
   <div class="nav"><button id="pv">‹ ماه قبل</button><b id="mt"></b><button id="nx">ماه بعد ›</button><button id="td">امروز</button></div>
   <div id="warn"></div>
@@ -199,7 +199,15 @@ function build(K){
 }
 function href(x){if(x.go)return x.go;return 'checklists.html#visit='+encodeURIComponent(x.mk)+(x.code?'&code='+encodeURIComponent(x.code)+'&title='+encodeURIComponent(x.title||'')+'&hall='+encodeURIComponent(x.hall||''):'')}
 /* «چیکار کنم؟»: یک جمله‌ی ساده برای هر نوع کار (نوع از پیشوند شناسه یا kind می‌آید) */
-function how(x){const id=String(x.id||'');
+const MH={WL:'کارهایی را که امروز انجام داده‌اید (با عکس) ثبت کنید؛ شامل پیشرفت و بهبود نرم‌افزار و کارهای دیگر.',
+  WV:'یک بازدید تأییدی از موارد گزارش‌شده‌ی کارشناس انجام دهید و نتیجه‌اش را ثبت کنید.',
+  TM:'یک جلسه آموزشی برگزار و در ماژول آموزش ثبت کنید.',CM:'جلسه‌ی کمیته را برگزار و صورتجلسه را ثبت کنید.',
+  IC:'اقدام اصلاحی این حادثه را پیگیری و وضعیتش را به‌روز کنید.',FP:'پیگیری طب کار را انجام دهید و وضعیتش را به‌روز کنید.',
+  RV:'ریسک‌های پیش‌نویس را بررسی و تأیید کنید و بازبینی‌های معوق را انجام دهید.',CD:'کارت‌های منتظر را بررسی و نتیجه‌شان را ثبت کنید.',
+  EI:'برای دستگاه‌های بدون بازرسی معتبر، بازرسی رسمی را هماهنگ و نتیجه را ثبت کنید.',DR:'یک مانور یا تمرین اضطراری برگزار و در ماژول آموزش ثبت کنید.',
+  CU:'ارزیابی نردبان فرهنگ ایمنی را انجام دهید.'};
+const MC={WL:'ثبت کار',WV:'ثبت بازدید',TM:'ثبت آموزش',DR:'ثبت آموزش',CM:'ثبت جلسه',IC:'پیگیری',FP:'پیگیری',RV:'بررسی ریسک‌ها',CD:'بررسی کارت‌ها',EI:'مشاهده تجهیزات',CU:'شروع ارزیابی'};
+function how(x){const id=String(x.id||'');for(const k in MH)if(id.startsWith(k))return MH[k];
   if(id.startsWith('HRT'))return 'افراد پرریسک را آموزش دهید؛ روزی که آموزش دادید تیک بزنید.';
   if(id==='RKP0')return 'در صفحهٔ ثبت ریسک روی «برنامهٔ سوله‌ها» بزنید، «محاسبهٔ بازه‌ها» و سپس «ذخیرهٔ برنامه» را بزنید.';
   if(id.startsWith('RK'))return 'ارزیابی ریسک این سوله را در بازهٔ مشخص‌شده انجام دهید؛ از «پیشنهاد ریسک» برای هر دستگاه کمک بگیرید و برای هر حوزه حداقل یک ریسک ثبت کنید.';
@@ -217,7 +225,7 @@ function how(x){const id=String(x.id||'');
   if(/^K\d/.test(id))return 'رستوران و آشپزخانه را بازدید کنید و چک‌لیست را ثبت کنید.';
   if(id.startsWith('M'))return 'چک‌لیست این مورد را تا مهلت ثبت کنید.';
   return ''}
-function cta(x){const id=String(x.id||'');
+function cta(x){const id=String(x.id||'');for(const k in MC)if(id.startsWith(k))return MC[k];
   if(id==='RKP0')return 'تدوین برنامه';
   if(id.startsWith('RK'))return 'ثبت ارزیابی ریسک';
   if(/^(CT|M)/.test(id)||/^[DK]\d/.test(id))return 'ثبت چک‌لیست';
@@ -262,8 +270,76 @@ function focusHTML(){
   if(S.mis.length)h+=`<details data-fk="miss" ${FO.miss?'open':''}><summary>🕘 روزهای ثبت‌نشده — قابل جبران نیست (${fa(S.mis.length)} روز)</summary>${missRows(S.mis)}<div class="mu" style="color:var(--mu);margin-top:6px">${MISS_NOTE}</div></details>`;
   if(done.length)h+=`<details data-fk="done" ${FO.done?'open':''}><summary>✓ انجام‌شده‌ی امروز (${fa(done.length)})</summary>${done.map(taskHTML).join('')}</details>`;
   return h+'</div>'}
+/* ================= تقویم مدیر ================= */
+let MODE='exp',MG={wl:new Set(),wlFirst:null,vr:[],vrFirst:null,tr:[],cm:null,inc:[],fup:[],rk:[],cd:[],eq:[],eqi:[],cu:[],ob:[],wlOk:true};
+const d10=v=>String(v||'').slice(0,10),wkOf=iso=>addDays(iso,-((dowOf(iso)+1)%7));
+const njd=s=>String(s||'').replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c));
+/* تاریخ شمسی (YYYY/MM/DD) ← میلادی ISO؛ جمع ماه شمسی (همان توابع expert_eval.html) */
+function jIso(s){const m=/^(1[34]\d\d)[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(njd(s));if(!m)return null;let jy=+m[1]-979,jm=+m[2]-1,jd2=+m[3]-1;
+  const dm=[31,31,31,31,31,31,30,30,30,30,30,29],gm=[31,28,31,30,31,30,31,31,30,31,30,31];let n=365*jy+Math.floor(jy/33)*8+Math.floor((jy%33+3)/4);for(let i=0;i<jm;i++)n+=dm[i];n+=jd2;
+  let g=n+79,gy=1600+400*Math.floor(g/146097);g%=146097;let leap=true;if(g>=36525){g--;gy+=100*Math.floor(g/36524);g%=36524;if(g>=365)g++;else leap=false}
+  gy+=4*Math.floor(g/1461);g%=1461;if(g>=366){leap=false;g--;gy+=Math.floor(g/365);g%=365}let i=0;for(;g>=gm[i]+(i===1&&leap?1:0);i++)g-=gm[i]+(i===1&&leap?1:0);
+  return gy+'-'+String(i+1).padStart(2,'0')+'-'+String(g+1).padStart(2,'0')}
+function jAddM(s,n){const m=/^(1[34]\d\d)[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(njd(s));if(!m)return null;let t=+m[1]*12+(+m[2]-1)+n;const y=Math.floor(t/12),mo=t%12+1;return y+'/'+mo+'/'+Math.min(+m[3],mo<=6?31:mo<=11?30:29)}
+async function loadMgr(){
+  const me=String(HSEAuth.email||'').toLowerCase(),since=HSEToday(-500),g=q=>getAll(q).catch(()=>null);
+  const [wl,vr,tr,cm,inc,fup,rk,cd,eq,eqi,cu,ob]=await Promise.all([
+    g('work_log?select=work_date,created_by'),g('verify_rounds?select=week_start,result'),
+    g('trainings?select=training_date,training_type,title&training_date=gte.'+since),
+    g('committee_meetings?select=jdate,next_date&order=jdate.desc'),
+    g('clinic_incidents?select=id,incident_date,corrective_action,action_status,action_due_date'),g('clinic_followups?select=*'),
+    g('risks?select=id,status,review_date&status=neq.archived'),g('hse_cards?select=id,card_date,status&status=eq.pending'),
+    g('equipment?select=code,requires_inspection,interval_months&active=eq.true'),g('equipment_inspections?select=equipment_code,inspected_on,result,next_due'),
+    g('culture_assessments?select=assessed_at'),g('hse_obligations?select=id,title,next_due,active')]);
+  /* برنامهٔ ارزیابی ریسک سوله‌ها (risk_plan.js): برای مدیر، حوزه‌های بهداشتی و ارگونومی */
+  RKP=null;if(window.HSERiskPlan){const [ru,rr,rp]=await Promise.all([g('hse_units?select=id,name,aliases,active'),g('risks?select=unit,category,status'),g('risk_plan?select=*')]);if(ru&&rr)RKP={units:ru,risks:rr,rows:rp||[]}}
+  const own=(wl||[]).filter(x=>String(x.created_by||'').toLowerCase()===me).map(x=>d10(x.work_date));
+  MG={wlOk:wl!==null,wl:new Set(own),wlFirst:own.slice().sort()[0]||today,vr:vr||[],vrFirst:(vr||[]).map(r=>d10(r.week_start)).sort()[0]||wkOf(today),
+    tr:tr||[],cm:cm||null,inc:inc||[],fup:fup||[],rk:rk||[],cd:cd||[],eq:eq||[],eqi:eqi||[],cu:cu||[],ob:(ob||[]).filter(o=>o.active!==false&&o.next_due)};
+  $('warn').innerHTML=MG.wlOk?'':'<div class="cerr">جدول کارهای روزانه ساخته نشده؛ فایل <b>hse_worklog.sql</b> را یک‌بار در Supabase اجرا کنید.</div>';
+}
+function buildMgr(K){
+  const days=monthDays(K),a=days[0].iso,b=days[days.length-1].iso,T=[],wd=days.filter(d=>isWork(d.iso)),inM=iso=>iso>=a&&iso<=b,cur=K===nowK,lastW=wd[wd.length-1].iso;
+  /* ۱) ثبت کارهای روزانه (از اولین ثبت خودِ مدیر؛ شاخص «ثبت و گزارش کارهای روزانه» در ارزیابی) */
+  wd.forEach(d=>{if(d.iso<MG.wlFirst)return;T.push({id:'WL'+d.iso,date:d.iso,due:d.iso,t:'ثبت گزارش کارهای روزانه',sub:'شاخص «ثبت و گزارش کارهای روزانه»',done:MG.wl.has(d.iso),kind:'daily',go:'worklog.html'})});
+  /* ۲) بازدید تأییدی هفتگی از کار کارشناس (از اولین هفته‌ی ثبت‌شده) */
+  const weeks={};wd.forEach(d=>{(weeks[wkOf(d.iso)]=weeks[wkOf(d.iso)]||[]).push(d.iso)});
+  Object.entries(weeks).forEach(([ws,l])=>{const last=l[l.length-1];if(ws<MG.vrFirst)return;
+    T.push({id:'WV'+ws,date:last,due:last,t:'بازدید تأییدی هفتگی از بازدید کارشناس',sub:'برنامه‌ریزی و ثبت نتیجه در «بازدید تأییدی هفتگی»',done:MG.vr.some(r=>d10(r.week_start)===ws&&r.result!=='planned'),kind:'score',go:'weekly_verify.html'})});
+  /* ۳) آموزش ماهانه: حداقل ۴ جلسه (همان حداقل ارزیابی) */
+  const trn=MG.tr.filter(t=>inM(d10(t.training_date))&&t.training_type!=='safety_talk').length;
+  for(let i=0;i<4;i++)T.push({id:'TM'+i,date:lastW,due:lastW,t:`برگزاری جلسه آموزشی (${fa(i+1)} از ۴)`,sub:'شاخص «آموزش» · مهلت: '+lbl(lastW),done:trn>=i+1,kind:'score',go:'training.html'});
+  /* ۴) جلسه‌ی کمیته: تاریخ جلسه‌ی بعدی ثبت‌شده در آخرین صورتجلسه */
+  const lm=MG.cm&&MG.cm[0],nx=lm&&jIso(lm.next_date);
+  if(nx&&(inM(nx)||(nx<a&&cur)))T.push({id:'CM'+nx,date:adjust(nx<a?a:nx,days),due:nx,t:'برگزاری جلسه‌ی کمیته حفاظت فنی',sub:'تاریخ ثبت‌شده در صورتجلسه: '+lbl(nx),done:false,kind:'month',go:'committee.html'});
+  /* ۵) اقدام اصلاحی حوادث و پیگیری طب کار (هر مورد لینک مستقیم دارد) */
+  MG.inc.filter(x=>x.corrective_action&&x.action_due_date).forEach(x=>{const due=d10(x.action_due_date),dn=x.action_status==='done';if(!(inM(due)||(due<a&&cur&&!dn)))return;
+    T.push({id:'IC'+x.id,date:adjust(due<a?a:due,days),due,t:'اقدام اصلاحی حادثه: '+String(x.corrective_action).slice(0,50),sub:'شاخص «اقدام اصلاحی و پیگیری طب کار» · مهلت: '+lbl(due),done:dn,kind:'score',go:'clinic.html#inc='+encodeURIComponent(x.id)})});
+  MG.fup.filter(x=>x.due_date&&x.status!=='cancelled').forEach(x=>{const due=d10(x.due_date),dn=x.status==='done';if(!(inM(due)||(due<a&&cur&&!dn)))return;
+    T.push({id:'FP'+x.id,date:adjust(due<a?a:due,days),due,t:'پیگیری طب کار',sub:'شاخص «اقدام اصلاحی و پیگیری طب کار» · مهلت: '+lbl(due),done:dn,kind:'score',go:'clinic.html#fu='+encodeURIComponent(x.id)})});
+  /* ۵-ب) ارزیابی ریسک سوله‌ها: هر سوله یک «بازه» دارد؛ برای مدیر حوزه‌های بهداشتی و ارگونومی (همان منطق build() کارشناس) */
+  if(RKP){HSERiskPlan.tasks(RKP.rows,RKP.units,RKP.risks,HSEAuth.role,{isWork,addDays,today,a,b}).forEach(x=>{const k=x.rk;
+      T.push({...x,sub:'بازه: '+lbl(k.start)+' تا '+lbl(k.end)+(k.late?' · بازه تمام شده و ارزیابی ثبت نشده':' · روز '+fa(k.idx)+' از '+fa(k.n))+' · '+fa(k.eq)+' تجهیز · '+fa(k.ppl)+' نفر پرسنل'})});
+    if(HSEAuth.role==='manager'&&!RKP.rows.length&&HSERiskPlan.anyPending(RKP.units,RKP.risks)&&today>=a&&today<=b)T.push({id:'RKP0',date:today,due:today,t:'برنامهٔ ارزیابی ریسک سوله‌ها هنوز تدوین نشده',sub:'بازهٔ هر سوله را بر اساس تعداد تجهیز و پرسنل بسازید',mk:'RK',done:false,kind:'month',go:'risks.html'})}
+  /* ۶) فقط ماه جاری — وضعیت لحظه‌ای که با رفع شدن، کار از تقویم حذف می‌شود */
+  if(cur){
+    const rk=MG.rk.filter(x=>x.status==='draft').length,rod=MG.rk.filter(x=>x.review_date&&d10(x.review_date)<today).length;
+    if(rk||rod)T.push({id:'RV',date:today,due:today,lateF:rod>0,t:`ریسک‌ها: ${fa(rk)} پیش‌نویس منتظر تأیید${rod?` و ${fa(rod)} بازبینی معوق`:''}`,sub:'شاخص «سلامت ثبت ریسک»',done:false,kind:'score',go:'risks.html'});
+    const cp=MG.cd.filter(c=>c.card_date&&d10(c.card_date)<=today),old=cp.filter(c=>(new Date(today)-new Date(d10(c.card_date)))/864e5>7).length;
+    if(cp.length)T.push({id:'CD',date:today,due:today,lateF:old>0,t:`${fa(cp.length)} کارت گزارش خطر/پیشنهاد بدون نتیجه${old?` (${fa(old)} مورد بیش از ۷ روز)`:''}`,sub:'شاخص «پاسخ به کارت‌ها» · حداکثر ۷ روز',done:false,kind:'score',go:'cards.html'});
+    const req=MG.eq.filter(e=>e.requires_inspection!==false),by={};MG.eqi.forEach(x=>(by[x.equipment_code]=by[x.equipment_code]||[]).push(x));
+    let bad=0;req.forEach(e=>{const l=(by[e.code]||[]).sort((p,q)=>String(p.inspected_on)<String(q.inspected_on)?-1:1).pop();if(!l||l.result==='عدم تایید'){bad++;return}
+      const due=jIso(l.next_due)||jIso(jAddM(l.inspected_on,e.interval_months||12));if(due&&due<today)bad++});
+    if(bad)T.push({id:'EI',date:today,due:today,lateF:true,t:`${fa(bad)} دستگاه بدون بازرسی رسمی معتبر (سررسید گذشته، عدم تأیید یا بدون بازرسی)`,sub:'شاخص «تجهیزات حیاتی با بازرسی معتبر»',done:false,kind:'score',go:'equipment.html'});
+    const cut=addDays(today,-365),dr=MG.tr.filter(t=>/مانور|تمرین اضطراری|تخلیه اضطراری/.test(t.title||'')&&d10(t.training_date)>cut).length;
+    if(dr<2)T.push({id:'DR',date:lastW,due:lastW,t:`برگزاری مانور اضطراری (${fa(dr)} از ۲ در ۱۲ ماه اخیر)`,sub:'شاخص «مانور و تمرین اضطراری»',done:false,kind:'score',go:'training.html'});
+    const lc=MG.cu.map(c=>d10(c.assessed_at)).filter(Boolean).sort().pop(),age=lc?Math.round((new Date(today)-new Date(lc))/864e5):null;
+    if(age==null||age>150)T.push({id:'CU',date:lastW,due:lastW,t:'ارزیابی نردبان فرهنگ ایمنی',sub:'شاخص «فرهنگ ایمنی» · '+(age==null?'تاکنون ثبت نشده':'آخرین ارزیابی '+fa(Math.round(age/30))+' ماه پیش')+' (حداکثر هر ۶ ماه)',done:false,kind:'score',go:'culture.html'})}
+  /* ۷) تعهدات دوره‌ای */
+  MG.ob.forEach(o=>{const due=d10(o.next_due);if(!(inM(due))&&!(due<a&&cur))return;T.push({id:'OB'+o.id,date:adjust(due<a?a:due,days),due,t:'تعهد دوره‌ای: '+o.title,sub:'مهلت: '+lbl(due),done:false,kind:'month',go:'obligations.html'})});
+  T.forEach(x=>{x.late=!x.done&&(!!x.lateF||x.date<today)});return T}
 function render(){
-  TASKS=build(K);const days=monthDays(K);
+  TASKS=MODE==='mgr'?buildMgr(K):build(K);const days=monthDays(K);
   $('mt').textContent=MN[+K.slice(5)-1]+' '+fa(K.slice(0,4));
   const by={};TASKS.forEach(x=>(by[x.date]=by[x.date]||[]).push(x));
   const tot=TASKS.length,dn=TASKS.filter(x=>x.done).length,lt=TASKS.filter(x=>x.late&&!unrec(x)).length,ms=TASKS.filter(x=>x.late&&unrec(x)).length,tdy=by[today]||[];
@@ -289,7 +365,11 @@ $('grid').onclick=e=>{const b=e.target.closest('[data-d]');if(!b)return;SEL=b.da
 $('pv').onclick=()=>{K=prevK(K);SEL=monthDays(K)[0].iso;render()};
 $('nx').onclick=()=>{K=nextK(K);SEL=monthDays(K)[0].iso;render()};
 $('td').onclick=()=>{K=nowK;SEL=today;render()};
-HSEAuth.ready.then(async()=>{$('mt').textContent='در حال بارگذاری...';await load();render()});
+HSEAuth.ready.then(async()=>{
+  MODE=(HSEAuth.role==='manager'&&!HSEAuth.viewAs&&!/[?&]as=expert/.test(location.search))?'mgr':'exp';
+  if(HSEAuth.role==='manager'){const sw=MODE==='mgr'?'<a href="calendar.html?as=expert" style="color:var(--ac)">تقویم کارشناس</a>':'<a href="calendar.html" style="color:var(--ac)">تقویم من (مدیر)</a>';$('hl').insertAdjacentHTML('afterbegin',sw)}
+  if(MODE==='mgr'){$('ttl').textContent='📅 تقویم مدیر HSE';$('sub').textContent='کارهای روزانه، هفتگی و ماهانه‌ی خودِ مدیر: ثبت کارهای روزانه، بازدید تأییدی هفتگی، آموزش، کمیته، ریسک‌ها، کارت‌ها، اقدام‌های اصلاحی و تجهیزات.'}
+  $('mt').textContent='در حال بارگذاری...';await(MODE==='mgr'?loadMgr():load());render()});
 </script>
 </body>
 </html>
