@@ -40,7 +40,8 @@ details summary{cursor:pointer;color:var(--ac)}
  <div class="card"><h2>۲) شاخص‌ها</h2>
   <div class="row" id="pre" style="margin-bottom:6px"></div>
   <div class="row"><label>از</label><select id="mf"></select><label>تا</label><select id="mt"></select>
-   <label>مبنای ساعت کار</label><select id="basis"><option value="all">کارکرد + اضافه‌کار (ساعت واقعی کار)</option><option value="base">فقط کارکرد</option></select></div>
+   <label>مبنای ساعت کار</label><select id="basis"><option value="all">کارکرد + اضافه‌کار (ساعت واقعی کار)</option><option value="base">فقط کارکرد</option></select>
+   <label>مقایسه با</label><select id="cmp"><option value="yoy">همان ماه‌ها در سال قبل</option><option value="prev">دورهٔ هم‌طول بلافاصله قبل</option></select></div>
   <div id="res" style="margin-top:10px"><div class="mu">در حال بارگذاری…</div></div></div>
 
  <details class="card"><summary>فرمول‌ها و نحوهٔ محاسبه</summary>
@@ -49,7 +50,7 @@ details summary{cursor:pointer;color:var(--ac)}
    ASR (ضریب شدت) = مجموع روزهای از دست رفته × ۱۰۰۰ ÷ مجموع ساعت کار (مطابق فایل شاخص‌های شما؛ حادثهٔ منجر به فوت با ۹۰۰۰ روز جریمه‌ای (همان‌طور که در ستون Sick Leave (Days) آمده) در ASR حساب می‌شود و در شمارنده‌ها جدا نشان داده می‌شود)<br>
    FSI (شاخص تکرار-شدت) = √(AFR × ASR ÷ ۱۰۰۰)<br>
    Safe-T = (AFR دوره جاری − AFR دورهٔ قبل) ÷ √(AFR دورهٔ قبل ÷ (ساعت کار دورهٔ جاری ÷ ۱٬۰۰۰٬۰۰۰)): بیشتر از ۲+ یعنی بدتر شدن معنادار، کمتر از ۲− یعنی بهبود معنادار، بین این دو یعنی تغییر معنادار نیست.<br>
-   دورهٔ قبل = همان تعداد ماه، بلافاصله پیش از دورهٔ انتخابی. روز از دست رفته از فیلد «روز از دست رفته» ثبت حادثه در بهداری خوانده می‌شود؛ اگر پر نشده باشد، استعلاجی ثبت‌شده در ویزیت‌های بهداری همان فرد از روز حادثه تا ۷ روز بعد جایگزین می‌شود. حوادث بدون هیچ‌کدام حساب نمی‌شوند.</div></details>
+   مبنای مقایسه (قابل انتخاب): «همان ماه‌ها در سال قبل» (پیش‌فرض) یا «دورهٔ هم‌طول بلافاصله قبل». مقایسه فقط روی ماه‌هایی انجام می‌شود که ساعت کار هم در دورهٔ جاری و هم در ماه مقابل ثبت شده باشد؛ حوادث ماه بدون ساعت کار در AFR/ASR/FSI نمی‌آیند تا صورت و مخرج هم‌پایه بمانند. روز از دست رفته از فیلد «روز از دست رفته» ثبت حادثه در بهداری خوانده می‌شود؛ اگر پر نشده باشد، استعلاجی ثبت‌شده در ویزیت‌های بهداری همان فرد از روز حادثه تا ۷ روز بعد جایگزین می‌شود. حوادث بدون هیچ‌کدام حساب نمی‌شوند.</div></details>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -110,12 +111,14 @@ function allInc(){
     out.push({d:jd,k:jkey(iso),name:EMP.get(i.employee_id)||'',loc:i.location||'',lost:lostOf(i),src:srcOf(i)})});
   return out;
 }
+/* فقط ماه‌هایی که ساعت کار دارند هم در مخرج و هم در صورت کسر حساب می‌شوند؛ حوادث ماه بدون ساعت کار AFR را باد می‌کند (IA = همهٔ حوادث بازه برای نمایش) */
+const hasH=(k,b)=>MH.some(r=>r.month_key==k&&hrs(r,b)>0);
 function agg(keys,b){
-  const set=new Set(keys),R=MH.filter(r=>set.has(r.month_key)),missing=keys.filter(k=>!MH.some(r=>r.month_key==k));
+  const set=new Set(keys),R=MH.filter(r=>set.has(r.month_key)&&hrs(r,b)>0),hk=new Set(R.map(r=>r.month_key)),missing=keys.filter(k=>!hk.has(k));
   const H=R.reduce((a,r)=>a+hrs(r,b),0);
-  const I=allInc().filter(x=>x.lost>0&&set.has(x.k));
+  const IA=allInc().filter(x=>x.lost>0&&set.has(x.k)),I=IA.filter(x=>hk.has(x.k));
   const n=I.length,days=I.reduce((a,x)=>a+x.lost,0),afr=H?n*1e6/H:null,asr=H?days*1000/H:null;
-  return{keys,R,H,I,n,days,afr,asr,fsi:afr!=null&&asr!=null?Math.sqrt(afr*asr/1000):null,missing};
+  return{keys,R,H,I,IA,n,days,afr,asr,fsi:afr!=null&&asr!=null?Math.sqrt(afr*asr/1000):null,missing};
 }
 function targetHtml(b){
   const yrs=[...new Set(MH.map(x=>x.month_key.slice(0,4)))].sort();if(!yrs.length)return'';
@@ -123,9 +126,12 @@ function targetHtml(b){
   let h=`<div class="card" style="margin-top:10px"><h2 style="font-size:14px">🎯 تارگت سال ${fa(ty)} (بر اساس عملکرد ${fa(by)})</h2><div class="row"><label>سال هدف</label><select id="ty">${yrs.concat(yrs.includes(String(+yrs[yrs.length-1]+1))?[]:[String(+yrs[yrs.length-1]+1)]).map(y=>`<option ${y==ty?'selected':''}>${y}</option>`).join('')}</select><label>درصد بهبود نسبت به سال پایه</label><input id="red" type="number" min="0" max="100" value="${RED}" style="width:70px">٪</div>`;
   if(!B||!B.H||!B.n){h+=`<div class="mu" style="margin-top:6px">برای تارگت، ساعت کار و حوادث سال ${fa(by)} لازم است (ساعت کارکرد ماه‌های آن سال را بارگذاری کنید).</div></div>`;return h}
   const f=1-RED/100,tA=B.afr*f,tS=B.asr*f,tF=B.fsi*f,hMon=B.H/B.R.length,nAnn=tA*(hMon*12)/1e6,dAnn=tS*(hMon*12)/1000;
-  const row=(l,base,tg,cur)=>`<tr><td>${l}</td><td>${num(base)}</td><td><b>${num(tg)}</b></td><td class="${cur!=null&&cur>tg?'bad':'ok'}">${cur==null?'—':num(cur)}</td><td class="${cur!=null&&cur>tg?'bad':'ok'}">${cur==null?'—':cur>tg?'⚠ بیشتر از تارگت':'در محدودهٔ تارگت'}</td></tr>`;
-  h+=`<div style="overflow:auto"><table><tr><th>شاخص</th><th>سال ${fa(by)} (پایه)</th><th>تارگت سالانه و ماهانه ${fa(ty)}</th><th>تا امروز ${fa(ty)}</th><th>وضعیت</th></tr>
-   ${row('AFR',B.afr,tA,C&&C.H?C.afr:null)}${row('ASR',B.asr,tS,C&&C.H?C.asr:null)}${row('FSI',B.fsi,tF,C&&C.H?C.fsi:null)}</table></div>
+  /* ستون هم‌پایه: همان ماه‌های امسال (دارای ساعت کار) در برابر همان ماه‌ها در سال قبل، نه ۱۲ ماه کامل سال قبل */
+  const mk=C&&C.H?C.R.map(r=>r.month_key).filter(k=>hasH(mkAdd(k,-12),b)):[],Cm=agg(mk,b),Bm=agg(mk.map(k=>mkAdd(k,-12)),b),sameOk=mk.length&&Bm.H;
+  const row=(l,base,same,tg,cur)=>`<tr><td>${l}</td><td>${num(base)}</td><td>${sameOk&&same!=null?num(same):'—'}</td><td><b>${num(tg)}</b></td><td class="${cur!=null&&cur>tg?'bad':'ok'}">${cur==null?'—':num(cur)}</td><td class="${cur!=null&&cur>tg?'bad':'ok'}">${cur==null?'—':cur>tg?'⚠ بیشتر از تارگت':'در محدودهٔ تارگت'}</td></tr>`;
+  h+=`<div style="overflow:auto"><table><tr><th>شاخص</th><th>کل سال ${fa(by)} (پایه تارگت، ${fa(B.R.length)} ماه)</th><th>همان ماه‌ها در سال ${fa(by)}${sameOk?` (${fa(mk.length)} ماه)`:''}</th><th>تارگت سالانه و ماهانه ${fa(ty)}</th><th>تا امروز ${fa(ty)}${C&&C.H?` (${fa(C.R.length)} ماه)`:''}</th><th>وضعیت</th></tr>
+   ${row('AFR',B.afr,Bm.afr,tA,C&&C.H?C.afr:null)}${row('ASR',B.asr,Bm.asr,tS,C&&C.H?C.asr:null)}${row('FSI',B.fsi,Bm.fsi,tF,C&&C.H?C.fsi:null)}</table></div>
+   ${sameOk?`<div class="mu" style="margin-top:6px">مقایسهٔ هم‌پایه با سال ${fa(by)}: ${lbl(mk[0])}${mk.length>1?' تا '+lbl(mk[mk.length-1]):''} ← ${lbl(Bm.keys[0])}${Bm.keys.length>1?' تا '+lbl(Bm.keys[Bm.keys.length-1]):''}. امسال در همین ماه‌ها: AFR ${num(Cm.afr)} · ASR ${num(Cm.asr)} · FSI ${num(Cm.fsi)}؛ سال قبل: AFR ${num(Bm.afr)} · ASR ${num(Bm.asr)} · FSI ${num(Bm.fsi)}. تارگت از عملکرد کل سال پایه ساخته شده؛ ستون «همان ماه‌ها» برای مقایسهٔ منصفانهٔ فصلی است.</div>`:`<div class="mu" style="margin-top:6px">برای مقایسهٔ هم‌پایه، ساعت کار ماه‌های متناظر سال ${fa(by)} ثبت نشده است.</div>`}
    <div class="mu" style="margin-top:6px">تارگت‌ها ضریب هستند، پس تارگت ماهانه همان تارگت سالانه است. سقف تقریبی: حدود ${num(nAnn,1)} حادثهٔ استعلاجی و ${num(dAnn,0)} روز از دست رفته در کل سال (${num(nAnn/12,2)} حادثه در ماه) با ساعت کار مشابه ${fa(by)}. «وضعیت ماه» در جدول بالا برای ماه‌های ${fa(ty)} نسبت به این تارگت سنجیده می‌شود.</div>`;
   if(C&&C.H){const bad=[];if(C.afr>tA)bad.push('AFR');if(C.asr>tS)bad.push('ASR');if(C.fsi>tF)bad.push('FSI');
     const lastK=C.keys[C.keys.length-1],lm=C.R.length?agg([C.R[C.R.length-1].month_key],b):null,lf=lm&&lm.H?fsiOf(lm.n,lm.days,lm.H):null;
@@ -138,24 +144,29 @@ function render(){
   const b=$('#basis').value,f=$('#mf').value,t=$('#mt').value;
   let keys=[];for(let k=f,g=0;g<60;g++){keys.push(k);if(k==t)break;k=mkAdd(k,1)}
   if(keys[keys.length-1]!=t){box.innerHTML='<div class="mu">بازهٔ انتخابی معتبر نیست (ماه «از» باید قبل از «تا» باشد).</div>';return}
-  const A=agg(keys,b),P=agg(keys.map(k=>mkAdd(k,-keys.length)),b);
+  const A=agg(keys,b);
+  /* مقایسهٔ هم‌پایه: فقط ماه‌هایی که هم امسال و هم ماه مقابلشان ساعت کار دارند؛ مقابل = همان ماه سال قبل (پیش‌فرض) یا بلافاصله پیش از بازه */
+  const cmpMode=$('#cmp')?$('#cmp').value:'yoy',off=cmpMode==='yoy'?-12:-keys.length,cmpName=cmpMode==='yoy'?'همان ماه‌ها در سال قبل':'دورهٔ هم‌طول قبل';
+  const ck=keys.filter(k=>hasH(k,b)&&hasH(mkAdd(k,off),b)),Ac=agg(ck,b),P=agg(ck.map(k=>mkAdd(k,off)),b);
   let safe=null,verdict='';
-  if(A.afr!=null&&P.afr!=null&&P.afr>0&&A.H>0){safe=(A.afr-P.afr)/Math.sqrt(P.afr/(A.H/1e6));verdict=safe>2?'<b class="bad">بدتر شدن معنادار نسبت به دورهٔ قبل</b>':safe<-2?'<b class="ok">بهبود معنادار نسبت به دورهٔ قبل</b>':'<b>تغییر معناداری نسبت به دورهٔ قبل نیست</b>'}
-  else if(P.H&&P.afr===0)verdict='<span class="mu">دورهٔ قبل حادثهٔ استعلاجی نداشته؛ Safe-T قابل محاسبه نیست.</span>';
-  else verdict='<span class="mu">برای Safe-T ساعت کار دورهٔ قبل (هم‌طول) ثبت نشده است.</span>';
+  if(Ac.afr!=null&&P.afr!=null&&P.afr>0&&Ac.H>0){safe=(Ac.afr-P.afr)/Math.sqrt(P.afr/(Ac.H/1e6));verdict=safe>2?`<b class="bad">بدتر شدن معنادار نسبت به ${cmpName}</b>`:safe<-2?`<b class="ok">بهبود معنادار نسبت به ${cmpName}</b>`:`<b>تغییر معناداری نسبت به ${cmpName} نیست</b>`}
+  else if(P.H&&P.afr===0)verdict=`<span class="mu">${cmpName} حادثهٔ استعلاجی نداشته؛ Safe-T قابل محاسبه نیست.</span>`;
+  else verdict=`<span class="mu">برای Safe-T ماه‌های هم‌پایه پیدا نشد: ساعت کار این ماه‌ها و ماه مقابلشان (${cmpName}) باید هر دو ثبت شده باشد.</span>`;
   const kp=(v,l,c)=>`<div class="k"><b class="${c||''}">${v}</b><span>${l}</span></div>`;
-  const last=A.I.length?A.I.map(x=>x.d).sort().pop():null;
+  const last=A.IA.length?A.IA.map(x=>x.d).sort().pop():null;
   const since=last?Math.floor((Date.now()-jToDate(last))/864e5):null;
-  const warn=A.missing.length?`<div class="mu wa">⚠ ساعت کار این ماه‌ها ثبت نشده است و در محاسبه نیامده: ${A.missing.map(lbl).join('، ')}</div>`:''
+  const skipN=A.IA.length-A.I.length,warn=A.missing.length?`<div class="mu wa">⚠ ساعت کار این ماه‌ها ثبت نشده است و در محاسبه نیامده: ${A.missing.map(lbl).join('، ')}${skipN?` — ${fa(skipN)} حادثهٔ استعلاجی این ماه‌ها هم در AFR/ASR/FSI نیامده تا صورت و مخرج هم‌پایه بمانند`:''}</div>`:''
   const orph=allInc().filter(x=>x.lost>0&&!MH.some(r=>r.month_key==x.k)),warn2=orph.length?`<div class="mu wa">⚠ ${fa(orph.length)} حادثه در ماه‌هایی است که ساعت کارکرد ندارند (${[...new Set(orph.map(x=>x.k))].sort().map(lbl).join('، ')}) و در شاخص نمی‌آیند؛ فایل کارکرد آن ماه‌ها را بارگذاری کنید.</div>`:'';
   const refOf={};const refFor=y=>{if(y in refOf)return refOf[y];const by=yearIdx(String(+y-1),b),cur=yearIdx(y,b);let r=null,src='';if(by&&by.H&&by.n){r=fsiOf(by.n,by.days,by.H)*(1-RED/100);src='تارگت'}else if(cur&&cur.H){r=fsiOf(cur.n,cur.days,cur.H);src='میانگین سال'}return refOf[y]={r,src}};
-  const mrows=keys.map(k=>{const r=MH.find(x=>x.month_key==k),h=hrs(r,b),m=A.I.filter(x=>x.k==k),d=m.reduce((a,x)=>a+x.lost,0),fs=h?fsiOf(m.length,d,h):null,rf=refFor(k.slice(0,4)),st=stat(fs,rf.r,m.length);
+  const mrows=keys.map(k=>{const r=MH.find(x=>x.month_key==k),h=hrs(r,b),m=A.IA.filter(x=>x.k==k),d=m.reduce((a,x)=>a+x.lost,0),fs=h?fsiOf(m.length,d,h):null,rf=refFor(k.slice(0,4)),st=stat(fs,rf.r,m.length);
     return `<tr><td>${lbl(k)}</td><td>${r?fa(r.headcount):'—'}</td><td>${r?num(h,0):'—'}</td><td>${r?num(h/Math.max(1,r.headcount),0):'—'}</td><td>${fa(m.length)}</td><td>${fa(d)}</td><td>${h?num(m.length*1e6/h):'—'}</td><td>${h?num(d*1000/h):'—'}</td><td><b>${fs==null?'—':num(fs)}</b></td><td class="${st[1]}">${st[0]}${rf.src&&fs!=null?` <span class="mu">(${rf.src}: ${num(rf.r)})</span>`:''}</td></tr>`}).join('');
   box.innerHTML=`${warn}${warn2}<div class="g" style="margin-top:6px">
    ${kp(num(A.H,0),'مجموع ساعت کار (نفر-ساعت)')}${kp(fa(A.n),'حادثه با روز از دست رفته',A.n?'bad':'ok')}${kp(fa(A.days),'مجموع روز از دست رفته')}
    ${kp(num(A.afr),'AFR (ضریب تکرار)')}${kp(num(A.asr),'ASR (ضریب شدت)')}${kp(num(A.fsi),'FSI')}
    ${kp(fa(A.I.filter(x=>x.lost>=6000).length),'حادثهٔ منجر به فوت (۹۰۰۰ روز)',A.I.some(x=>x.lost>=6000)?'bad':'ok')}${kp((()=>{const o=A.I.filter(x=>x.lost<6000);return o.length?num(o.reduce((a,x)=>a+x.lost,0)/o.length,1):'—'})(),'میانگین روز از دست رفته (بدون فوتی‌ها)')}${kp(since==null?'—':fa(since),'روز از آخرین حادثه استعلاجی')}${kp(safe==null?'—':num(safe),'Safe-T')}</div>
-   <div style="margin-top:8px">${verdict}${P.H?` <span class="mu">· دورهٔ قبل (${lbl(P.keys[0])} تا ${lbl(P.keys[P.keys.length-1])}): AFR ${num(P.afr)}، ${fa(P.n)} حادثه، ${num(P.H,0)} نفر-ساعت</span>`:''}</div>
+   <div style="margin-top:8px">${verdict}${P.H?`<div class="mu" style="margin-top:6px">مقایسه با <b>${cmpName}</b> فقط روی ${fa(ck.length)} ماهِ هم‌پایه (ساعت کار هر دو طرف ثبت شده): ${ck.length?`${lbl(ck[0])}${ck.length>1?' تا '+lbl(ck[ck.length-1]):''} ← ${lbl(P.keys[0])}${P.keys.length>1?' تا '+lbl(P.keys[P.keys.length-1]):''}`:''}<br>
+    این دوره: AFR ${num(Ac.afr)} · ASR ${num(Ac.asr)} · FSI ${num(Ac.fsi)} (${fa(Ac.n)} حادثه، ${num(Ac.H,0)} نفر-ساعت)<br>
+    ${cmpName}: AFR ${num(P.afr)} · ASR ${num(P.asr)} · FSI ${num(P.fsi)} (${fa(P.n)} حادثه، ${num(P.H,0)} نفر-ساعت)</div>`:''}</div>
    <div style="overflow:auto;margin-top:10px"><table><tr><th>ماه</th><th>نفرات</th><th>ساعت کار</th><th>میانگین هر نفر</th><th>حوادث</th><th>روز از دست رفته</th><th>AFR</th><th>ASR</th><th>FSI</th><th>وضعیت ماه بر اساس FSI</th></tr>${mrows}</table></div>
    ${(()=>{const set=new Set(keys),seenL=new Set(LOG.map(r=>String(r.emp_code||'').trim()+'|'+r.jdate)),U=INC.filter(i=>set.has(jkey(String(i.incident_date).slice(0,10)+'T12:00:00'))&&!lostOf(i)&&![-1,0,1].some(o=>seenL.has((ECODE.get(i.employee_id)||'')+'|'+jfull(new Date(new Date(String(i.incident_date).slice(0,10)+'T12:00:00').getTime()+o*864e5).toISOString()))));return `<details style="margin-top:8px"><summary>حوادث ثبت‌شدهٔ بدون روز از دست رفته (${fa(U.length)}) — در شاخص نیامده‌اند</summary><div class="mu">اگر حادثه‌ای استعلاجی داشته، تعداد روز را اینجا بزنید تا در شاخص‌ها بیاید.</div><table><tr><th>تاریخ</th><th>پرسنل</th><th>محل</th><th>روز از دست رفته</th></tr>${U.map(i=>`<tr><td>${esc(jfull(String(i.incident_date).slice(0,10)+'T12:00:00'))}</td><td>${esc(EMP.get(i.employee_id)||'')}</td><td>${esc(i.location||'')}</td><td><input type="number" min="0" value="0" style="width:70px" data-lost="${i.id}"> <button data-setlost="${i.id}">ثبت</button></td></tr>`).join('')||'<tr><td colspan="4" class="mu">همهٔ حوادث بازه استعلاجی دارند یا حادثه‌ای ثبت نشده است.</td></tr>'}</table></details>`})()}
    <div class="mu" style="margin-top:6px">نحوهٔ محاسبهٔ بازه: AFR = ${fa(A.n)} × ۱٬۰۰۰٬۰۰۰ ÷ ${num(A.H,0)} = ${num(A.afr)} · ASR = ${fa(A.days)} × ۱۰۰۰ ÷ ${num(A.H,0)} = ${num(A.asr)} · FSI = √(${num(A.afr)} × ${num(A.asr)} ÷ ۱۰۰۰) = ${num(A.fsi)}</div>
@@ -168,7 +179,7 @@ $('#res').addEventListener('click',async e=>{const id=e.target.dataset.setlost;i
 $('#pre').onclick=e=>{const d=e.target.dataset;if(!d)return;const ks=MH.map(x=>x.month_key);let a,b;
   if(d.y){const l=ks.filter(k=>k.startsWith(d.y));a=l[0];b=l[l.length-1]}else if(d.all){a=ks[0];b=ks[ks.length-1]}else if(d.l12){b=ks[ks.length-1];a=ks[Math.max(0,ks.length-12)]}else return;
   $('#mf').value=a;$('#mt').value=b;render()};
-['#mf','#mt','#basis'].forEach(s=>$(s).onchange=render);
+['#mf','#mt','#basis','#cmp'].forEach(s=>$(s).onchange=render);
 
 /* خواندن فایل کارکرد: ستون‌ها: کارکرد | شبکاری | اضافه‌کار مجاز | تعطیل | جمعه | ماموریت (هر کدام ساعت و دقیقه) */
 async function parseFile(file){

@@ -129,6 +129,11 @@ async function load(){
 }
 const lostOf=d=>{const m=/\[روز از دست رفته:\s*([0-9۰-۹]+)\]/.exec(String(d||''));return m?+nd(m[1]):0};
 const r1=v=>Math.round(v*10)/10,r2=v=>Math.round(v*100)/100;
+const hrsOf=r=>(+r.base_hours||0)+(+r.ot_hours||0);
+const hasH=k=>D.MH.some(r=>r.month_key===k&&hrsOf(r)>0);
+function rateOf(ks){const set=new Set(ks),H=D.MH.filter(r=>set.has(r.month_key)).reduce((s,r)=>s+hrsOf(r),0),I=D.I.filter(x=>set.has(x.k)),L=I.filter(x=>x.lost>0),lt=L.length,days=L.reduce((s,x)=>s+x.lost,0),nl=I.length-lt;
+  if(!(H>0))return{H:0,afr:null,asr:null,fsi:null,mir:null};
+  const afr=lt*1e6/H,asr=days*1000/H;return{H,afr,asr,fsi:lt?Math.sqrt(afr*asr/1000):0,mir:nl*1e6/H}}
 function calc(a,b){
   const c={},fin=D.fin;
   c.fNew=fin.filter(f=>inR(jk(f.created_at),a,b)).length;
@@ -145,9 +150,9 @@ function calc(a,b){
   c.lt=L.length;c.fatal=L.filter(x=>x.lost>=6000).length;c.days=L.reduce((s,x)=>s+x.lost,0);
   c.nl=N.length;c.nlMin=N.filter(x=>x.sev==='minor').length;c.nlMod=N.filter(x=>x.sev==='moderate').length;c.nlSev=N.filter(x=>x.sev==='severe'||x.sev==='fatal').length;
   const ks=[];for(let k=a;k<=b;k=addM(k,1))ks.push(k);
-  const mh=D.MH.filter(r=>inR(r.month_key,a,b));c.H=mh.reduce((s,r)=>s+(+r.base_hours||0)+(+r.ot_hours||0),0);c.hMiss=ks.length-mh.length;
-  const okH=c.H&&c.hMiss===0;c.afr=okH?c.lt*1e6/c.H:null;c.asr=okH?c.days*1000/c.H:null;c.fsi=okH?(c.lt?Math.sqrt(c.afr*c.asr/1000):0):null;
-  c.mir=okH?c.nl*1e6/c.H:null;c.ratio=c.lt?c.nl/c.lt:null;
+  /* نرخ‌ها فقط روی ماه‌هایی که ساعت کار دارند: هم ساعت و هم حوادث از همان ماه‌ها (قبلاً با یک ماه بدون ساعت کل نرخ «—» می‌شد، یا حوادث ماه بدون ساعت در صورت کسر می‌آمد) */
+  const HK=ks.filter(hasH),rr=rateOf(HK);c.H=rr.H;c.hMiss=ks.length-HK.length;
+  c.afr=rr.afr;c.asr=rr.asr;c.fsi=rr.fsi;c.mir=rr.mir;c.ratio=c.lt?c.nl/c.lt:null;
   const tr=D.tr.filter(t=>inR(jk(t.training_date),a,b)),ids=new Set(tr.map(t=>t.id)),cnt={};D.ta.forEach(x=>{if(ids.has(x.training_id))cnt[x.training_id]=(cnt[x.training_id]||0)+1});
   c.trN=tr.length;c.byT={};tr.forEach(t=>{const o=c.byT[t.training_type]||(c.byT[t.training_type]={n:0,p:0,h:0}),p=cnt[t.id]||0;o.n++;o.p+=p;o.h+=p*(t.duration_hours>0?+t.duration_hours:(TDUR[t.training_type]??.25))});
   c.trP=Object.values(c.byT).reduce((s,o)=>s+o.p,0);c.trH=Object.values(c.byT).reduce((s,o)=>s+o.h,0);
@@ -211,11 +216,14 @@ function swot(c,p,CV,PV,nm){
     if(c.cards>0)S.push([`${fa(c.cards)} کارت خطر/شبه‌حادثه توسط پرسنل ثبت شد`,'']);
     else if(full('cd')&&nm>=2)W.push(['کارت خطر/شبه‌حادثه‌ای ثبت نشده؛ مشارکت پرسنل در شناسایی خطر پایین است','راه‌اندازی و تبلیغ کارت خطر در سوله‌ها.'])}
   return{S,W}}
-function dataNotes(c,nm){const n=[];if(!D.hasMH)n.push('جدول ساعت کارکرد (hse_manhours) در دسترس نیست؛ شاخص‌های AFR/ASR/MIR محاسبه نشد.');else if(c.hMiss>0)n.push(`ساعت کارکرد ${fa(c.hMiss)} ماه از ${fa(c.months)} ماه این دوره ثبت نشده؛ شاخص‌های نرخ‌محور ناقص است.`);if(D.miss.length)n.push('دریافت این جدول‌ها ناموفق بود: '+D.miss.join('، '));return n}
+function dataNotes(c,nm){const n=[];if(!D.hasMH)n.push('جدول ساعت کارکرد (hse_manhours) در دسترس نیست؛ شاخص‌های AFR/ASR/MIR محاسبه نشد.');else if(c.hMiss>0)n.push(`ساعت کارکرد ${fa(c.hMiss)} ماه از ${fa(c.months)} ماه این دوره ثبت نشده؛ AFR/ASR/FSI/MIR فقط روی ${fa(c.months-c.hMiss)} ماهِ دارای ساعت کار (همراه با حوادث همان ماه‌ها) حساب شده و مقایسهٔ نرخ‌ها با همان ماه‌های سال قبل است.`);if(D.miss.length)n.push('دریافت این جدول‌ها ناموفق بود: '+D.miss.join('، '));return n}
 function render(){
   TICKS=0;const P=PRESETS().find(x=>x[0]===$('per').value)||PRESETS()[0],[,pl,a,b]=P,nm=nMonths(a,b);
   const pa=addM(a,-12),pb=addM(b,-12);
   const c=calc(a,b),p=calc(pa,pb),CV={},PV={};Object.keys(DN).forEach(d=>{CV[d]=covOf(d,a,b);PV[d]=covOf(d,pa,pb)});
+  /* نرخ‌های سال قبل فقط روی «همان ماه‌هایی» که امسال ساعت کار دارند؛ اگر یکی از آن ماه‌ها در سال قبل ساعت کار ندارد، مقایسهٔ نرخ نمایش داده نمی‌شود (نه مقایسهٔ کل سال قبل با چند ماه امسال) */
+  {const HKc=[];for(let k=a;k<=b;k=addM(k,1))if(hasH(k))HKc.push(k);const pk=HKc.map(k=>addM(k,-12)),ok=HKc.length>0&&pk.every(hasH),pr=ok?rateOf(pk):{H:0,afr:null,asr:null,fsi:null,mir:null};
+   p.afr=pr.afr;p.asr=pr.asr;p.fsi=pr.fsi;p.mir=pr.mir;p.H=pr.H;p.hMiss=ok?0:HKc.length}
   const pv=f=>{const d=DOM[f];return PV[d]==='full'&&CV[d]!=='none'?p[f]:null},PL=perL(pa,pb),CL=perL(a,b);
   const pvt=f=>pv(f)==null?'—':fa(pv(f));
   const kd=(d,...x)=>CV[d]==='none'?'':kp(...x);
@@ -228,7 +236,7 @@ function render(){
   const mc=M.map(k=>calc(k,k)),mp=MP.map(k=>calc(k,k));
   const PR=(f,o)=>{const d=DOM[f],fs=D.cov[d],cur=mc.map((x,i)=>fs&&M[i]>=fs?x[f]:null),pri=mp.map((x,i)=>fs&&MP[i]>=fs&&M[i]>=fs?x[f]:null),r=[{name:'این دوره',c:'var(--ac)',v:cur,bar:1,good:o}];if(pri.some(v=>v!=null))r.push({name:'همین ماه در سال قبل',c:'#94a3b8',v:pri,bar:1,good:o});return r};
   const mnote=d=>{const fs=D.cov[d],n=MP.filter(k=>!fs||k<fs).length;return`<div class="note">هر ماه با همان ماه سال قبل مقایسه شده (ستون روشن = امسال، خاکستری = سال قبل). ${n===MP.length?'برای سال قبل در این بخش داده‌ای ثبت نشده و مقایسهٔ ماهانه ممکن نیست.':n?`${fa(n)} ماه از سال قبل پیش از شروع ثبت این بخش است و نمایش داده نشده (خالی = بدون داده، نه صفر).`:''}</div>`};
-  const closeRate=c.fNew?Math.round(c.fClosed/c.fNew*100):null,sw=swot(c,p,CV,PV,nm),notes=dataNotes(c,nm).concat(noD.length?['بخش‌های بدون داده در این دوره و حذف‌شده از گزارش: '+noD.map(d=>DN[d]).join('، ')]:[]);
+  const closeRate=c.fNew?Math.round(c.fClosed/c.fNew*100):null,sw=swot(c,p,CV,PV,nm),notes=dataNotes(c,nm).concat(b===nowK?['ماه جاری ('+lab(nowK)+') هنوز تمام نشده است؛ مقایسهٔ تعداد حوادث/عدم‌انطباق‌ها با همان ماهِ کاملِ سال قبل به ضرر سال قبل است (نرخ‌های AFR/ASR/FSI از این اثر مصون‌اند چون فقط ماه‌های دارای ساعت کار را می‌گیرند).']:[]).concat(noD.length?['بخش‌های بدون داده در این دوره و حذف‌شده از گزارش: '+noD.map(d=>DN[d]).join('، ')]:[]);
   let h='';
   h+=sl('cover',`<div class="sub">گسترش فناوری خوارزمی · واحد HSE</div><h1>گزارش عملکرد HSE</h1><div class="sub">دورهٔ گزارش: <b>${CL}</b> (${fa(nm)} ماه)</div>${cmpTxt}
    <div class="kg">${kd('inc',fa(c.lt),'حادثهٔ استعلاجی (در شاخص)',dl(c.lt,pv('lt'),'down'))}${kd('inc',fa(c.nl),'حادثهٔ بدون استعلاجی',dl(c.nl,pv('nl'),'down'))}${kd('fin',fa(c.fClosed),'عدم‌انطباق اصلاح‌شده',dl(c.fClosed,pv('fClosed'),'up'))}${kd('tr',fa(r1(c.trH)),'نفر-ساعت آموزش',dl(c.trH,pv('trH'),'up'))}</div>`);
