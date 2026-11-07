@@ -6,6 +6,12 @@
   /* ===== نقش‌ها (ایمیل‌ها را اینجا تنظیم کنید) ===== */
   const MANAGERS = ['m.rezaei@gmail.com'];
   const EXPERTS = { 'm.mohammadi@gmail.com': 'محمدی' };
+  /* سوییچ بین حساب مدیر و کارشناس (ورود واقعی با هر حساب؛ دسترسی‌ها دقیقاً همان دسترسی همان حساب است).
+     false (امن، پیش‌فرض): رفتن به کارشناس یک‌کلیکی است، ولی بازگشت به مدیر رمز مدیر را می‌خواهد؛ چون اگر نشست مدیر در همین مرورگر بماند،
+     هر کس پشت این مرورگر بنشیند با یک کلیک مدیر می‌شود و قفل معاینات طب کار بی‌اثر می‌شود.
+     true: هر دو جهت یک‌کلیکی (فقط روی دستگاه شخصیِ خودتان فعال کنید). */
+  const SWITCH_BACK_WITHOUT_PASSWORD = false;
+  const STORE_ALT = 'hse_auth_alt', SW_FLAG = 'hse_switched';
   const MANAGER_ONLY_LINKS = ['report.html', 'reward_eval.html', 'committee.html', 'weekly_verify.html', 'unit_report.html', 'evaluation.html', 'culture.html', 'indices.html', 'mgmt.html', 'procedures.html']; // برای کارشناس از منوها پنهان می‌شود
   /* ================================================= */
   const SCR = document.currentScript, PAGE_ROLES = SCR && SCR.dataset.roles ? SCR.dataset.roles.split(',') : null;
@@ -35,10 +41,11 @@
     isActive: (e, ref) => !e || !e.termination_date || String(e.termination_date).slice(0, 10) >= (ref || new Date().toISOString().slice(0, 10)),
     active: (list, ref) => (list || []).filter(e => window.HSEP.isActive(e, ref))
   };
-  const A = window.HSEAuth = { EXPERTS, MANAGERS, ready, token, email: '', role: '', logout() { localStorage.removeItem(STORE); location.reload(); } };
-  /* معاینات طب کار (clinic_exams) فقط برای مدیر؛ «نمای کارشناس» هم نباید آن را ببیند. بعد از await HSEAuth.ready صدا بزنید.
+  const A = window.HSEAuth = { EXPERTS, MANAGERS, ready, token, email: '', role: '', logout() { localStorage.removeItem(STORE); localStorage.removeItem(STORE_ALT); localStorage.removeItem(SW_FLAG); location.reload(); } };
+  /* معاینات طب کار (clinic_exams) فقط برای مدیر؛ بعد از await HSEAuth.ready صدا بزنید.
      قفل اصلی در دیتابیس است (hse_clinic_exams_private.sql)؛ این تابع فقط برای جلوگیری از خواندن/نمایش بی‌مورد در رابط است. */
   A.canSeeExams = () => A.role === 'manager' && !A.viewAs;
+  A.switchToExpert = () => switchToExpert(); A.switchToManager = () => switchToManager(); /* برای دکمه‌ی صفحه‌ی اصلی */
   /* پیگیری‌هایی که ثبت معاینه خودکار می‌سازد (عنوان با این دو پیشوند شروع می‌شود) حاوی یافته‌های پزشکی‌اند؛ برای غیرمدیر حذف می‌شوند.
      بعد از هر درخواست دیتا (که منتظر ورود می‌ماند) صدا بزنید؛ null را null برمی‌گرداند. قفل اصلی: hse_clinic_followups_exam_hide.sql */
   const EXAM_FU = /^\s*(پیگیری یافته‌های معاینه طب کار|معاینه طب کار بعدی)/;
@@ -95,16 +102,55 @@
     overlay(`<h2 style="margin:0 0 6px;font-size:17px;color:#f87171">${why}</h2><div style="font-size:13px;color:#94a3b8;direction:ltr;text-align:left">${esc(email)}</div>
       <div style="margin-top:12px;display:flex;gap:8px"><a href="index.html" style="color:#2dd4bf">صفحه اصلی</a><a href="#" id="ha-o" style="color:#2dd4bf;margin-right:auto">خروج</a></div>`).querySelector('#ha-o').onclick = e => { e.preventDefault(); A.logout(); };
   }
+  /* ===== سوییچ حساب ===== */
+  const loadAlt = () => { try { return JSON.parse(localStorage.getItem(STORE_ALT)); } catch (e) { return null; } };
+  function askPassword(email, title) {
+    return new Promise(res => {
+      const d = overlay(`<h2 style="margin:0 0 6px;font-size:17px">${esc(title)}</h2><div style="font-size:13px;color:#94a3b8;direction:ltr;text-align:left">${esc(email)}</div>
+        <input id="ha-sp" type="password" placeholder="رمز عبور" style="${inp}">
+        <button id="ha-sb" style="width:100%;margin-top:12px;padding:10px;border-radius:10px;border:0;background:#0f766e;color:#fff;font:inherit;cursor:pointer">تأیید</button>
+        <a href="#" id="ha-sc" style="display:block;margin-top:10px;color:#2dd4bf;text-align:center">انصراف</a>
+        <div id="ha-sm" style="color:#f87171;font-size:13px;margin-top:6px"></div>`);
+      const pw = d.querySelector('#ha-sp'), msg = d.querySelector('#ha-sm'); pw.focus();
+      const go = async () => {
+        const s = await grant('password', { email, password: pw.value });
+        if (!s) { msg.textContent = 'رمز عبور اشتباه است'; return; }
+        s.user.email = s.user.email || email; d.remove(); res(s);
+      };
+      d.querySelector('#ha-sb').onclick = go; pw.onkeydown = ev => { if (ev.key === 'Enter') go(); };
+      d.querySelector('#ha-sc').onclick = ev => { ev.preventDefault(); d.remove(); res(null); };
+    });
+  }
+  async function switchToExpert() {
+    const email = Object.keys(EXPERTS)[0]; if (!email) { alert('ایمیل کارشناس تعریف نشده است'); return; }
+    let s = null; const alt = loadAlt();
+    if (alt && alt.user && alt.user.email === email) { const n = await grant('refresh_token', { refresh_token: alt.refresh_token }); if (n && n.user.email === email) s = n; }
+    if (!s) s = await askPassword(email, 'ورود به حساب کارشناس');
+    if (!s) return;
+    if (roleOf(s.user.email) !== 'expert') { alert('این حساب کارشناس نیست'); return; }
+    if (SWITCH_BACK_WITHOUT_PASSWORD) localStorage.setItem(STORE_ALT, JSON.stringify(load())); else localStorage.removeItem(STORE_ALT);
+    save(s); localStorage.setItem(SW_FLAG, '1'); location.reload();
+  }
+  async function switchToManager() {
+    const email = MANAGERS[0]; let s = null; const alt = loadAlt();
+    if (SWITCH_BACK_WITHOUT_PASSWORD && alt && alt.user && alt.user.email === email) { const n = await grant('refresh_token', { refresh_token: alt.refresh_token }); if (n && n.user.email === email) s = n; }
+    if (!s) s = await askPassword(email, 'بازگشت به حساب مدیر');
+    if (!s) return;
+    if (roleOf(s.user.email) !== 'manager') { alert('این حساب مدیر نیست'); return; }
+    localStorage.setItem(STORE_ALT, JSON.stringify(load())); /* نشست کارشناس برای سوییچ یک‌کلیکی بعدی نگه داشته می‌شود */
+    save(s); localStorage.removeItem(SW_FLAG); location.reload();
+  }
   function chrome() {
     document.getElementById('hse-auth') && document.getElementById('hse-auth').remove();
     const b = document.createElement('div');
     b.style.cssText = 'position:fixed;top:6px;left:6px;z-index:99999;font:12px Vazirmatn,Tahoma,sans-serif;background:rgba(15,23,42,.85);color:#e2e8f0;border-radius:10px;padding:2px 10px;direction:rtl';
     b.className = 'np'; b.innerHTML = `${esc(EXPERTS[A.email] || A.email.split('@')[0])} · <a href="#" style="color:#2dd4bf">خروج</a>`;
     b.querySelector('a').onclick = e => { e.preventDefault(); A.logout(); };
-    if (A.role === 'manager') { /* مدیر می‌تواند نمای کارشناس را (فقط نمایش) ببیند */
+    const flagged = (() => { try { return localStorage.getItem(SW_FLAG) === '1'; } catch (_) { return false; } })();
+    if (A.role === 'manager' || (A.role === 'expert' && flagged)) { /* سوییچ بین حساب مدیر و کارشناس */
       const sw = document.createElement('a'); sw.href = '#'; sw.style.cssText = 'color:#fbbf24;margin-inline-start:8px';
-      sw.textContent = A.viewAs ? '↩ بازگشت به نمای مدیر' : '👁 نمای کارشناس';
-      sw.onclick = e => { e.preventDefault(); try { A.viewAs ? localStorage.removeItem('hse_view_as') : localStorage.setItem('hse_view_as', 'expert'); } catch (_) {} location.reload(); };
+      sw.textContent = A.role === 'manager' ? '🔁 سوییچ به حساب کارشناس' : '🔁 بازگشت به حساب مدیر';
+      sw.onclick = e => { e.preventDefault(); (A.role === 'manager' ? switchToExpert : switchToManager)(); };
       b.insertBefore(sw, b.querySelector('a'));
     }
     const st = document.createElement('style'); st.textContent = '@media print{.np{display:none!important}}'; document.head.appendChild(st);
@@ -120,7 +166,7 @@
     const email = (load().user.email || '').toLowerCase(), role = roleOf(email);
     if (!role) return deny(email, 'این ایمیل برای نرم‌افزار تعریف نشده است');
     if (PAGE_ROLES && !PAGE_ROLES.includes(role)) return deny(email, 'دسترسی به این صفحه برای شما مجاز نیست');
-    A.email = email; A.role = role; try { A.viewAs = role === 'manager' && localStorage.getItem('hse_view_as') === 'expert'; } catch (_) { A.viewAs = false; } done(); chrome();
+    A.email = email; A.role = role; A.viewAs = false; try { localStorage.removeItem('hse_view_as'); } catch (_) { } /* «نمای کارشناس» قدیمی جایش را به سوییچ واقعی حساب داد */ done(); chrome();
   }
 
   /* تاریخ امروز به وقت تهران (toISOString در ۰۰:۰۰–۰۳:۳۰ بامداد تاریخ دیروز را می‌دهد). HSEToday(n) = n روز بعد/قبل */

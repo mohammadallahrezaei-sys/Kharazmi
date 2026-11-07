@@ -172,8 +172,8 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
       <div class="dt" id="today"></div>
     </div>
     <div id="viewAsBtn" role="group" aria-label="نوع نمایش" style="display:none">
-      <button type="button" data-v="mgr">نمای مدیر</button>
-      <button type="button" data-v="exp">نمای کارشناس</button>
+      <button type="button" data-v="mgr">حساب مدیر</button>
+      <button type="button" data-v="exp">حساب کارشناس</button>
     </div>
   </div>
 
@@ -406,13 +406,14 @@ async function loadMyTodo() {
     <a href="expert_eval.html" style="display:block;margin-top:6px;font-size:12px">دیدن امتیاز ماه و همهٔ موارد کسر شده (چک‌لیست‌های موعددار، تاییدیه‌ها و …) ←</a></div>`;
 }
 loadMyTodo();
-/* دکمهٔ نمایان «نمای کارشناس» برای مدیر */
+/* سوییچ واقعی بین حساب مدیر و کارشناس (ورود با همان حساب؛ نه فقط تغییر ظاهر) */
 (async () => {
   const A = window.HSEAuth; if (!A) return; try { await A.ready; } catch (_) {}
-  const b = document.getElementById('viewAsBtn'); if (!b || A.role !== 'manager') return;
+  const b = document.getElementById('viewAsBtn'); let flagged = false; try { flagged = localStorage.getItem('hse_switched') === '1'; } catch (_) {}
+   if (!b || !(A.role === 'manager' || (A.role === 'expert' && flagged))) return;
   b.style.display = 'flex';
-  b.querySelectorAll('button').forEach(x => { const on = (x.dataset.v === 'exp') === !!A.viewAs; x.style.background = on ? 'var(--ac)' : 'transparent'; x.style.color = on ? 'var(--acx,#fff)' : 'var(--tx)'; x.style.fontWeight = on ? '700' : '400';
-    x.onclick = () => { if (on) return; try { A.viewAs ? localStorage.removeItem('hse_view_as') : localStorage.setItem('hse_view_as', 'expert'); } catch (_) {} location.reload(); }; });
+  b.querySelectorAll('button').forEach(x => { const on = (x.dataset.v === 'exp') === (A.role === 'expert'); x.style.background = on ? 'var(--ac)' : 'transparent'; x.style.color = on ? 'var(--acx,#fff)' : 'var(--tx)'; x.style.fontWeight = on ? '700' : '400';
+    x.onclick = () => { if (on) return; x.dataset.v === 'exp' ? A.switchToExpert() : A.switchToManager(); }; });
 })();
 /* برگشت از صفحه‌های دیگر (کش مرورگر): وضعیت‌ها دوباره خوانده شود */
 let _lt = Date.now();
