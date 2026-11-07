@@ -18,7 +18,7 @@
 <div class="w">
   <div class="top">
     <div><h1>⚠️ ثبت ریسک</h1><p>روش رسمی شرکت: FMEA (شدت × احتمال × کشف) — آستانه RPN ≥ ۹۰ · به‌علاوه HAZOP، REBA و RULA</p></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="p" id="bNew">+ ریسک جدید</button><button id="bPlan">📅 برنامهٔ سوله‌ها</button><button id="bAll" style="display:none"></button><a class="btn" href="index.html">← بازگشت</a></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="p" id="bNew">+ ریسک جدید</button><button id="bPlan">📅 برنامهٔ سوله‌ها</button><a class="btn" href="risk_procedure.html">📘 دستورالعمل</a><button id="bAll" style="display:none"></button><a class="btn" href="index.html">← بازگشت</a></div>
   </div>
   <div id="err" class="err"></div>
   <div class="card">
@@ -45,6 +45,7 @@
   <label class="l" id="lAct">فعالیت</label><input type="text" id="mA">
   <label class="l" id="lHz">خطر (الزامی)</label><textarea id="mH" rows="2" placeholder="مثلاً: سقوط مخزن اسید هنگام جابه‌جایی با لیفتراک"></textarea>
   <div class="mu" id="mHint" style="display:none;margin:4px 0"></div>
+  <div id="mStd" style="margin:6px 0;font-size:12px"></div>
   <div class="m-sod">
   <label class="l">اثرات / پیامد</label><textarea id="mC" rows="2"></textarea>
   <label class="l">علل بالقوه</label><textarea id="mCa" rows="2"></textarea>
@@ -73,30 +74,15 @@
 <script src="eval_core.js"></script>
 <script src="risk_plan.js"></script>
 <script src="risk_catalog.js"></script>
+<script src="risk_std.js"></script>
 <script>
 const {esc,fa,getAll,req,jdInit,jdGet,jdSet,jdHTML,toJal}=HSE;
 const $=id=>document.getElementById(id);
 /* ---- مقیاس‌ها: جدول‌های دستورالعمل شرکت (بند ۵-۳) ---- */
-const SEV10=['','بدون آسیب (شبه‌حادثه)','آسیب خیلی جزئی، بدون درمان','آسیب جزئی، کمک‌های اولیه','نیاز به مرکز درمانی (بخیه)','حاد: اورژانس/بیمارستان','شکستگی، بستری','کاهش موقت عملکرد بدن','کاهش دائم (قطع عضو)','از دست دادن کامل عملکرد (کوری)','فوت'];
-const OCC10=['','فقط در شرایط نادر','هر ۱۰ تا ۱۵ سال','هر ۵ تا ۱۰ سال','هر ۲ تا ۴ سال','هر ۱ تا ۲ سال','هر ۶ ماه تا ۱ سال','هر ۳ ماه','هر ماه','هر هفته','هر روز'];
-const DET10=['','حتماً قابل شناسایی','احتمال بسیار بالا','احتمال بالا','معمولاً شناسایی می‌شود','پنجاه‌پنجاه','شانس کم','شانس ناچیز','شانس بسیار ناچیز','شانس بعید','غیرقابل شناسایی'];
-const SEV5=['','ناچیز','جزئی','متوسط','شدید','فاجعه‌بار'],LIK5=['','بسیار نادر','نادر','ممکن','محتمل','تقریباً حتمی'];
-const MN={fmea:'FMEA',hazop:'HAZOP',reba:'REBA',rula:'RULA'};
+const {SEV10,OCC10,DET10,SEV5,LIK5,MN,lvl,calc}=HSERiskStd,{RED,ORG,YEL,GRN}=HSERiskStd.colors; /* مرجع واحد استانداردها: risk_std.js (متن دستورالعمل هم از همین ساخته می‌شود) */
 const CATS=HSERiskPlan.CATS; /* مرجع واحد دسته‌ها: risk_plan.js */
 const GRP=c=>(CATS.find(g=>g[1].includes(c))||[])[0]||'بدون دسته';
-/* ---- سطح ریسک بر اساس روش ---- */
-const RED='#f87171',ORG='#fb923c',YEL='#fbbf24',GRN='#34d399';
-function lvl(r){
-  const s=r.score||0;
-  if(r.method==='fmea'){
-    if(s>=90)return{t:'بالا (RPN ≥ ۹۰)',c:RED,h:1};
-    if(r.legal_gap)return{t:'اولویت: الزام قانونی رعایت نشده',c:ORG,h:1};
-    if(r.severity===10)return{t:'اولویت: شدت ۱۰',c:ORG,h:1};
-    return{t:'پایین',c:GRN,h:0}}
-  if(r.method==='hazop')return s>=15?{t:'خیلی زیاد',c:RED,h:1}:s>=10?{t:'زیاد',c:ORG,h:1}:s>=5?{t:'متوسط',c:YEL,h:0}:{t:'کم',c:GRN,h:0};
-  if(r.method==='reba')return s>=11?{t:'خیلی زیاد',c:RED,h:1}:s>=8?{t:'زیاد',c:ORG,h:1}:s>=4?{t:'متوسط',c:YEL,h:0}:s>=2?{t:'کم',c:GRN,h:0}:{t:'ناچیز',c:GRN,h:0};
-  return s>=7?{t:'تغییر فوری',c:RED,h:1}:s>=5?{t:'بررسی و تغییر به‌زودی',c:ORG,h:1}:s>=3?{t:'نیاز به بررسی بیشتر',c:YEL,h:0}:{t:'قابل قبول',c:GRN,h:0}}
-const calc=(m,s,o,d)=>m==='fmea'?s*o*(d||1):s*o;
+
 const TODAY=HSEToday();
 const fday=d=>{try{return new Date(String(d).slice(0,10)+'T00:00:00').toLocaleDateString('fa-IR',{dateStyle:'medium'})}catch(e){return d||''}};
 let R=[],F=[],I=[],C=[],CH=[],units=[],editId=null,PLAN=null,SUG=null,FREE=false,EQ=[],EMP=[],RP=[],RPOK=true,PV=null,PLO={},PSTART=null,SUGLIST=[],MCH=null,MCHP=null; /* MCH: ماشین‌آلات هر سوله (تجهیزات + اعلان‌ها + عدم‌انطباق‌ها) */ /* PLAN: سولهٔ/حوزهٔ در حال ارزیابی {unit, group}؛ SUG: پیشنهاد انتخاب‌شده؛ FREE: ریسک آزاد (بدون محدودیت حوزه)؛ RP: بازه‌های ذخیره‌شده؛ PV: پیش‌نمایش */
@@ -130,6 +116,7 @@ function flags(r){const e=evid(r.id),o=[],L=lvl(r),sod=r.method==='fmea'||r.meth
   if(r.review_date&&r.review_date<TODAY)o.push('بازبینی معوق');
   if(r.status==='approved'&&e.inc>0&&!L.h)o.push('حادثه رخ داده ولی سطح ریسک پایین است؛ ارزیابی را بازبینی کنید');
   if(sod&&hasRes(r)&&resScore(r)>=r.score)o.push('ریسک باقیمانده کمتر از ریسک اولیه نشده؛ اقدام مؤثر نبوده');
+  HSERiskStd.check(r,{isNew:false,today:TODAY}).forEach(x=>{if(['own','meth','adm','rev','cq','cs'].includes(x.id))o.push('دستورالعمل: '+x.msg)}); /* موارد افزوده‌ی دستورالعمل (موارد هم‌پوشان بالا تکرار نمی‌شود) */
   return o}
 function filtered(){const u=$('fU').value,l=$('fL').value,s=$('fS').value,k=$('fK').value,m=$('fM').value;
   const kf=r=>!k||(k.startsWith('g:')?GRP(r.category)===k.slice(2):r.category===k);
@@ -285,8 +272,29 @@ function openM(r){editId=r?r.id:null;$('mT').textContent=r?'ویرایش ریس�
   $('mNote').textContent=(isMgr()?'':'ریسک ثبت‌شده توسط کارشناس «در انتظار تأیید» می‌ماند تا مدیر تأیید کند. ویرایش ریسک تأییدشده هم آن را به این حالت برمی‌گرداند.')+(pg?' این ریسک برای برنامهٔ ارزیابی «'+pg.name+'» سوله «'+PLAN.unit+'» ثبت می‌شود؛ پس از ثبت، آن سوله از برنامهٔ تقویم خارج می‌شود.':'');
   const hint=$('mHint');
   if(!r&&SUG){v('mH',SUG.s.h);v('mC',SUG.s.q);v('mCa',SUG.s.u);v('mK',SUG.s.c);hint.style.display='';hint.textContent='کنترل‌های مرسوم برای مقایسه با وضع موجود (ذخیره نمی‌شود): '+SUG.s.e}else hint.style.display='none';
-  applyMethod();$('modal').classList.add('on')}
+  applyMethod();$('modal').classList.add('on');updateStd()}
 $('bNew').onclick=()=>{FREE=true;SUG=null;openM(null)};$('mCancel').onclick=()=>{SUG=null;FREE=false;$('modal').classList.remove('on')};
+/* ---- راهنمای زندهٔ دستورالعمل داخل فرم ---- */
+function draftRisk(){
+  const m=$('mM').value,sod=m==='fmea'||m==='hazop',n=x=>$(x).value?+$(x).value:null,t=x=>$(x).value.trim()||null;
+  const o={id:editId,method:m,unit:$('mU').value.trim(),category:$('mK').value||null,hazard:$('mH').value.trim(),owner:t('mO'),action_type:t('mAT'),planned_controls:t('mP'),review_date:jdGet($('mD'))};
+  if(sod){Object.assign(o,{consequence:t('mC'),causes:t('mCa'),existing_controls:t('mE'),severity:n('mS'),likelihood:n('mL'),detection:m==='fmea'?n('mD2'):null,legal_gap:$('mGap').checked,manual_score:null});o.score=o.severity&&o.likelihood?calc(m,o.severity,o.likelihood,o.detection):0}
+  else{o.manual_score=n('mSc');o.score=o.manual_score||0}
+  return o}
+function updateStd(){
+  const el=$('mStd'),r=draftRisk(),S=HSERiskStd;if(!r.hazard&&!r.category){el.innerHTML='';return}
+  const E=S.check(r,{isNew:!editId,today:TODAY}),out=[];
+  E.forEach(x=>out.push(`<div style="color:${x.sev==='block'?'var(--bad)':'var(--wa)'}">${x.sev==='block'?'⛔':'⚠️'} ${esc(x.msg)}</div>`));
+  if(r.method==='fmea'){
+    const b=S.bench(R,r.category,editId);
+    if(b)out.push(`<div class="mu">📊 میانهٔ ${fa(b.n)} ارزیابی ${b.approved?'تأییدشدهٔ':'قبلیِ'} دستهٔ «${esc(r.category)}»: S ${fa(b.S)} · O ${fa(b.O)}${b.D?' · D '+fa(b.D):''} · RPN ${fa(Math.round(b.RPN))}</div>`);
+    const dv=S.deviation(r,R);if(dv)out.push(`<div style="color:var(--wa)">↔ اختلاف زیاد با ارزیابی‌های قبلی (${esc(dv.items.join('، '))}) — هنگام ذخیره ثبت دلیل لازم است.</div>`)}
+  const sim=r.hazard.length>=6?S.similar(R,r,3):[];
+  if(sim.length)out.push(`<details open><summary class="mu" style="cursor:pointer">🔎 ارزیابی‌های قبلیِ مشابه (برای هم‌سنجی امتیاز و کنترل‌ها)</summary>${sim.map(x=>{const L=lvl(x);return`<div class="mu" style="margin:4px 0;padding:4px 8px;border-inline-start:3px solid ${L.c}">${esc(x.unit||'')} — ${esc((x.hazard||'').slice(0,90))}<br>${x.method==='fmea'?`S ${fa(x.severity||'-')} · O ${fa(x.likelihood||'-')} · D ${fa(x.detection||'-')} · RPN ${fa(x.score||'-')}`:`${MN[x.method]} ${fa(x.score||'-')}`} · ${esc(L.t)}${x.existing_controls?'<br>کنترل موجود: '+esc(x.existing_controls.slice(0,110)):''}${x.planned_controls?'<br>اقدام: '+esc(x.planned_controls.slice(0,110)):''}</div>`}).join('')}</details>`);
+  if(r.score>0&&!r.review_date)out.push(`<div class="mu">📅 اگر تاریخ بازبینی را خالی بگذارید، مطابق دستورالعمل روی ${fday(S.reviewDefault(r,TODAY))} (${fa(S.DEF.reviewMonths[S.levelClass(r)])} ماه) تنظیم می‌شود.</div>`);
+  el.innerHTML=out.join('')}
+let stdT=null;const schedStd=()=>{clearTimeout(stdT);stdT=setTimeout(updateStd,150)};
+$('modal').addEventListener('input',schedStd);$('modal').addEventListener('change',schedStd);
 async function save(approve){
   const m=$('mM').value,sod=m==='fmea'||m==='hazop',unit=$('mU').value.trim(),hz=$('mH').value.trim();
   if(!unit||!hz){alert('سوله و '+(sod?'خطر':'نام وظیفه')+' الزامی است.');return}
@@ -304,7 +312,15 @@ async function save(approve){
     const v=+$('mSc').value;if(!(v>=1)){alert('امتیاز نهایی را وارد کنید.');return}
     Object.assign(b,{manual_score:v,severity:null,likelihood:null,detection:null,legal_gap:false});
   }
-  if(!editId&&SUG)b.detail={sug:SUG.id,src:'catalog'};
+  /* ---- انطباق با دستورالعمل ارزیابی ریسک (risk_std.js) ---- */
+  const dr=draftRisk(),E=HSERiskStd.check({...dr,...b,score:dr.score,id:editId},{isNew:!editId,today:TODAY}),blk=E.filter(x=>x.sev==='block'),wrn=E.filter(x=>x.sev==='warn');
+  if(blk.length){alert('طبق دستورالعمل ارزیابی ریسک، موارد زیر باید تکمیل شود:\n• '+blk.map(x=>x.msg).join('\n• '));return}
+  if(wrn.length&&!confirm('هشدارهای دستورالعمل:\n• '+wrn.map(x=>x.msg).join('\n• ')+'\n\nبا همین حال ذخیره شود؟'))return;
+  const old=editId?((R.find(x=>String(x.id)===String(editId))||{}).detail||{}):{},dv=HSERiskStd.deviation({...dr,...b,id:editId},R);let devNote=null;
+  if(dv){const w=prompt('این ارزیابی با میانهٔ ارزیابی‌های قبلی همین دسته اختلاف زیادی دارد ('+dv.items.join('، ')+').\nدلیل (مثلاً شرایط خاص این سوله) را بنویسید:',old.dev_note||'');if(w===null)return;if(w.trim().length<5){alert('ثبت دلیل اختلاف (حداقل ۵ حرف) الزامی است.');return}devNote=w.trim()}
+  if(!b.review_date&&dr.score>0)b.review_date=HSERiskStd.reviewDefault(dr,TODAY); /* مهلت بازبینی پیش‌فرض بر اساس سطح */
+  const det={...old,...(!editId&&SUG?{sug:SUG.id,src:'catalog'}:{}),...(devNote?{dev_note:devNote}:{})};
+  if(Object.keys(det).length&&(devNote||(!editId&&SUG)))b.detail=det;
   if(approve)b.status='approved';
   try{if(editId)await req('risks?id=eq.'+editId,'PATCH',b,'return=minimal');else{b.status=approve?'approved':'draft';b.created_by=HSEAuth.email;await req('risks','POST',b,'return=minimal')}
     SUG=null;FREE=false;$('modal').classList.remove('on');load()}catch(e){alert('خطا در ذخیره: '+e.message)}}
