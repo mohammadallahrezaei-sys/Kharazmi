@@ -90,7 +90,7 @@ const prevK=K=>{let y=+K.slice(0,4),m=+K.slice(5)-1;if(m<1){m=12;y--}return y+'-
 const nextK=K=>{let y=+K.slice(0,4),m=+K.slice(5)+1;if(m>12){m=1;y++}return y+'-'+String(m).padStart(2,'0')};
 
 const MODT={CR:'جرثقیل',LF:'بالابر',FK:'لیفتراک',PV:'مخزن تحت فشار',AC:'اتوکلاو',BL:'دیگ بخار',PJ:'جک پالت'};
-let TICKS=new Set(),HTK=new Set(),RKP=null,CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],OBL=[],HRT=null,X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
+let TICKS=new Set(),HTK=new Set(),RKP=null,CTR=[],INS=[],EQ=[],EQ_COL=true,K=nowK,SEL=today,TASKS=[],OBL=[],PROC=[],HRT=null,X={ek:[],tk:[],inc:[],fin:[],fu:[],on:false};
 if(/[?&]embed=1/.test(location.search)){document.documentElement.classList.add('emb')}
 
 async function hd(){let t=KEY;try{t=(await HSEAuth.token())||KEY}catch(e){}return{apikey:KEY,Authorization:'Bearer '+t}}
@@ -108,6 +108,7 @@ async function load(){
   CTR=(await getAll('contractors?select=id,name,contract_no,scope,start_date,end_date,status').catch(()=>null)||[]).filter(c=>c.start_date);
   try{const R=await computeHR();HRT=R?R.list.filter(p=>p.actions.some(a=>a.startsWith('آموزش'))):[]}catch(e){HRT=null}
   OBL=(await getAll('hse_obligations?select=id,title,next_due,active').catch(()=>null)||[]).filter(o=>o.active!==false&&o.next_due);
+  PROC=HSEAuth.role==='manager'?(await getAll('hse_procedures?select=id,title,status,target_date,active').catch(()=>null)||[]).filter(p=>p.active!==false&&p.status!=='approved'&&p.target_date):[];
   const cats=[...new Set(Object.values(EQC).flatMap(v=>v[0]))];
   EQ=await getAll('equipment?select=code,title,category,hall&active=eq.true&category=in.('+cats.map(c=>'"'+c+'"').join(',')+')&order=code.asc')||[];
   /* کارهای دیگری که در امتیاز کارشناس حساب می‌شوند (فقط برای ورود کارشناس) */
@@ -194,6 +195,10 @@ function build(K){
   if(HRT&&HRT.length&&K===nowK&&days&&(HSEAuth.role==='expert'||HSEAuth.role==='manager')){
     const nm=HRT.slice(0,8).map(p=>((p.e.first_name||'')+' '+(p.e.last_name||'')).trim()).join('، ')+(HRT.length>8?' و …':''),dl=days[days.length-1].iso;
     days.filter(d=>isWork(d.iso)&&d.iso>=a).forEach(d=>T.push({id:'HRT'+d.iso,date:d.iso,due:dl,t:'آموزش افراد پرریسک: '+fa(HRT.length)+' نفر باقی‌مانده',sub:nm+' · موعد همه: '+lbl(dl)+' · روزی که آموزش دادید تیک بزنید',done:HTK.has(d.iso),kind:'month',tick:'hrtrain',go:'training.html#hr'}))}
+  /* دستورالعمل‌های در دست تدوین (فقط مدیر): شروع تدوین ۱۴ روز مانده به موعد و خود موعد */
+  PROC.forEach(p=>{const due=String(p.target_date).slice(0,10),SL={planned:'برنامه‌ریزی‌شده',drafting:'در حال تدوین',review:'در بازنگری'}[p.status]||'';
+    const put=(dt,t,sub)=>{if(!(dt>=a&&dt<=b)&&!(dt<a&&K===nowK))return;T.push({id:'PC'+p.id+t,date:adjust(dt<a?a:dt,days),due,t:(t==='s'?'شروع تدوین دستورالعمل: ':'ابلاغ دستورالعمل: ')+p.title,sub,done:false,kind:'month',go:'procedures.html'})};
+    if(p.status==='planned')put(addDays(due,-14),'s','موعد ابلاغ: '+lbl(due));put(due,'e',SL+' · موعد: '+lbl(due))});
   T.forEach(x=>{x.late=!x.done&&(x.tick==='hrtrain'?x.due<today:x.date<today)});
   return T;
 }
@@ -203,6 +208,7 @@ function how(x){const id=String(x.id||'');
   if(id.startsWith('HRT'))return 'افراد پرریسک را آموزش دهید؛ روزی که آموزش دادید تیک بزنید.';
   if(id==='RKP0')return 'در صفحهٔ ثبت ریسک روی «برنامهٔ سوله‌ها» بزنید، «محاسبهٔ بازه‌ها» و سپس «ذخیرهٔ برنامه» را بزنید.';
   if(id.startsWith('RK'))return 'ارزیابی ریسک این سوله را در بازهٔ مشخص‌شده انجام دهید؛ از «پیشنهاد ریسک» برای هر دستگاه کمک بگیرید و برای هر حوزه حداقل یک ریسک ثبت کنید.';
+  if(id.startsWith('PC'))return 'در صفحهٔ دستورالعمل‌ها ساختار استاندارد را بردارید، تدوین را شروع کنید و وضعیت را به‌روز کنید.';
   if(id.startsWith('OB'))return 'تعهد دوره‌ای را انجام دهید و در صفحه‌ی تعهدات ثبت کنید.';
   if(id.startsWith('CL'))return 'سیستم کلرزنی را روشن کنید و تیک بزنید.';
   if(id.startsWith('CT'))return 'چک‌لیست ایمنی این پیمانکار را برای امروز ثبت کنید.';
