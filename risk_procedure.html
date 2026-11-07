@@ -36,6 +36,7 @@
 <script src="risk_std.js"></script>
 <script>
 const {esc,fa,getAll}=HSE,S=HSERiskStd,P=HSERiskPlan,$=id=>document.getElementById(id);
+let PR=null;const PST={planned:'برنامه‌ریزی‌شده',drafting:'در حال تدوین',review:'در حال بررسی',approved:'ابلاغ‌شده'};
 const tag=k=>`<span class="src ${k}">${S.SRC[k]}</span>`;
 const ol=(a,n)=>a.map((t,i)=>i?`<tr><td>${fa(i)}</td><td>${esc(t)}</td></tr>`:'').join('');
 const dot=c=>`<span class="dot" style="background:${c}"></span>`;
@@ -52,7 +53,7 @@ function reviewTable(){const D=S.DEF;return `<table><tr><th>سطح ریسک</th>
 
 function body(){return `
 <table class="cc"><tr><td>عنوان سند</td><td>دستورالعمل ارزیابی و مدیریت ریسک ایمنی، بهداشت شغلی، ارگونومی و محیط زیست</td></tr>
-<tr><td>شماره سند</td><td>(توسط مدیر / واحد کنترل مدارک تعیین شود)</td></tr><tr><td>ویرایش / وضعیت</td><td>۰۱ — پیش‌نویس برای تأیید مدیر HSE</td></tr><tr><td>تاریخ تهیه</td><td>${esc(new Date().toLocaleDateString('fa-IR',{dateStyle:'long'}))}</td></tr>
+<tr><td>شماره سند</td><td>${PR&&PR.doc_no?esc(PR.doc_no):'(در «برنامهٔ دستورالعمل‌ها» تعیین شود)'}</td></tr><tr><td>ویرایش / وضعیت</td><td>۰۱ — ${PR?esc(PST[PR.status]||PR.status)+(PR.status!=='approved'&&PR.target_date?' · موعد تدوین: '+esc(new Date(String(PR.target_date).slice(0,10)+'T12:00:00Z').toLocaleDateString('fa-IR',{dateStyle:'medium',timeZone:'UTC'})):'')+(PR.owner?' · مسئول: '+esc(PR.owner):''):'پیش‌نویس برای تأیید مدیر HSE'} <span class="noprint">— <a href="procedures.html">برنامهٔ دستورالعمل‌ها</a>${PR&&HSEAuth.role==='manager'&&(PR.status==='planned'||PR.status==='drafting')?' · <button id="bToReview">ارسال برای بررسی</button>':''}</span></td></tr><tr><td>تاریخ تهیه</td><td>${esc(new Date().toLocaleDateString('fa-IR',{dateStyle:'long'}))}</td></tr>
 <tr><td>تهیه‌کننده / تأیید</td><td>کارشناس HSE / مدیر HSE</td></tr></table>
 <div class="mu noprint">راهنمای منبع هر بند: ${tag('co')} ${tag('chem')} ${tag('rec')} — بندهای «پیشنهادی» تا تأیید مدیر الزام رسمی نیستند؛ مهلت‌ها در <b>risk_std.js</b> (<code>DEF</code>) قابل تغییرند.</div>
 
@@ -130,7 +131,11 @@ async function kpi(){
    <tr><td>پوشش سوله‌ها</td><td>ایمنی ${fa(cov('safety'))} از ${fa(un.length)} · بهداشتی ${fa(cov('health'))} از ${fa(un.length)} · ارگونومی ${fa(cov('ergo'))} از ${fa(un.length)}</td></tr></table>
    ${Object.keys(bad).length?`<h3>شایع‌ترین موارد ناانطباقی</h3><table><tr><th>مورد</th><th>تعداد</th></tr>${Object.entries(bad).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([m,n])=>`<tr><td>${esc(m)}</td><td>${fa(n)}</td></tr>`).join('')}</table>`:'<div class="ok">همهٔ ریسک‌ها با دستورالعمل مطابق‌اند.</div>'}`;
 }
-HSEAuth.ready.then(()=>{$('doc').innerHTML=body();chemCalc();kpi();$('bPrint').onclick=()=>window.print()});
+HSEAuth.ready.then(async()=>{
+  try{const L=await getAll('hse_procedures?select=*');PR=(Array.isArray(L)?L:[]).find(x=>x.active!==false&&/ارزیابی ریسک/.test(x.title||''))||null}catch(e){}
+  $('doc').innerHTML=body();chemCalc();kpi();$('bPrint').onclick=()=>window.print();
+  const tb=$('bToReview');if(tb)tb.onclick=async()=>{if(!confirm('وضعیت این دستورالعمل در «برنامهٔ دستورالعمل‌ها» به «در حال بررسی» تغییر کند؟ (ابلاغ نهایی از همان صفحه انجام می‌شود)'))return;
+    try{await HSE.req('hse_procedures?id=eq.'+PR.id,'PATCH',{status:'review'},'return=minimal');PR.status='review';$('doc').innerHTML=body();chemCalc();kpi()}catch(e){alert('خطا: '+e.message)}}});
 </script>
 </body>
 </html>
