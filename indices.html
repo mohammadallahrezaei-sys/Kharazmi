@@ -82,10 +82,23 @@ function yearIdx(y,b){const ks=MH.map(x=>x.month_key).filter(k=>k.startsWith(y+'
 function stat(v,ref,n){ /* وضعیت ماه بر اساس FSI نسبت به مرجع (تارگت یا میانگین سال) */
   if(v==null)return['—',''];if(!n)return['✓ بدون حادثهٔ استعلاجی','ok'];if(!ref)return['—',''];const q=v/ref;return q<=1?['مطلوب (≤ مرجع)','ok']:q<=1.5?['هشدار (تا ۱٫۵ برابر مرجع)','wa']:['بحرانی (بیش از ۱٫۵ برابر مرجع)','bad']}
 function hrs(r,b){return r?(+r.base_hours||0)+(b=='all'?(+r.ot_hours||0):0):0}
+/* ماه‌های گذشته (تمام‌شده) که فایل کارکردشان بارگذاری نشده: برآورد موقت = ساعت و نفرات ماه قبل. فقط در حافظهٔ صفحه است و در دیتابیس ذخیره نمی‌شود؛ با بارگذاری فایل اصلی خودبه‌خود جایگزین می‌شود. ماه جاری (تمام‌نشده) برآورد نمی‌شود. */
+function withEst(rows){
+  const real=[...rows].sort((a,b)=>a.month_key<b.month_key?-1:1);if(!real.length)return real;
+  const have=new Map(real.map(r=>[r.month_key,r])),cur=nowJ(),out=[];let prev=null;
+  for(let k=real[0].month_key,g=0;k<cur&&g<240;k=mkAdd(k,1),g++){
+    const r=have.get(k);
+    if(r){out.push(r);prev=r}
+    else if(prev){const e={month_key:k,base_hours:prev.base_hours,ot_hours:prev.ot_hours,headcount:prev.headcount,est:true,est_from:prev.est_from||prev.month_key};out.push(e);prev=e}
+  }
+  real.filter(r=>r.month_key>=cur).forEach(r=>out.push(r));
+  return out;
+}
 
 async function load(){
   try{
     MH=await api('hse_manhours?select=*&order=month_key.asc').catch(e=>{throw new Error('جدول hse_manhours ساخته نشده؛ فایل hse_manhours.sql را یک‌بار در Supabase اجرا کنید.')});
+    MH=withEst(MH||[]);
     INC=(await HSEDB.getAll('clinic_incidents?select=id,incident_date,employee_id,location,description,severity&order=incident_date.asc'))||[];
     VIS=((await HSEDB.getAll('clinic_visits?select=employee_id,visit_date,medical_leave_days&medical_leave_days=gt.0').catch(()=>[]))||[]);
     let logErr='';LOG=(await api('hse_lost_incidents?select=*&order=jdate.asc').catch(e=>{logErr='جدول hse_lost_incidents ساخته نشده؛ فایل hse_incident_log.sql را در Supabase اجرا کنید.';return[]}))||[];
@@ -133,6 +146,7 @@ function targetHtml(b){
    ${row('AFR',B.afr,Bm.afr,tA,C&&C.H?C.afr:null)}${row('ASR',B.asr,Bm.asr,tS,C&&C.H?C.asr:null)}${row('FSI',B.fsi,Bm.fsi,tF,C&&C.H?C.fsi:null)}</table></div>
    ${sameOk?`<div class="mu" style="margin-top:6px">مقایسهٔ هم‌پایه با سال ${fa(by)}: ${lbl(mk[0])}${mk.length>1?' تا '+lbl(mk[mk.length-1]):''} ← ${lbl(Bm.keys[0])}${Bm.keys.length>1?' تا '+lbl(Bm.keys[Bm.keys.length-1]):''}. امسال در همین ماه‌ها: AFR ${num(Cm.afr)} · ASR ${num(Cm.asr)} · FSI ${num(Cm.fsi)}؛ سال قبل: AFR ${num(Bm.afr)} · ASR ${num(Bm.asr)} · FSI ${num(Bm.fsi)}. تارگت از عملکرد کل سال پایه ساخته شده؛ ستون «همان ماه‌ها» برای مقایسهٔ منصفانهٔ فصلی است.</div>`:`<div class="mu" style="margin-top:6px">برای مقایسهٔ هم‌پایه، ساعت کار ماه‌های متناظر سال ${fa(by)} ثبت نشده است.</div>`}
    <div class="mu" style="margin-top:6px">تارگت‌ها ضریب هستند، پس تارگت ماهانه همان تارگت سالانه است. سقف تقریبی: حدود ${num(nAnn,1)} حادثهٔ استعلاجی و ${num(dAnn,0)} روز از دست رفته در کل سال (${num(nAnn/12,2)} حادثه در ماه) با ساعت کار مشابه ${fa(by)}. «وضعیت ماه» در جدول بالا برای ماه‌های ${fa(ty)} نسبت به این تارگت سنجیده می‌شود.</div>`;
+  if([...B.R,...(C?C.R:[])].some(r=>r.est))h+=`<div class="mu wa" style="margin-top:6px">⚠ در این جدول ماه‌هایی با ساعت کار موقت (برابر ماه قبل) هست؛ پس از بارگذاری فایل اصلی قطعی می‌شود.</div>`;
   if(C&&C.H){const bad=[];if(C.afr>tA)bad.push('AFR');if(C.asr>tS)bad.push('ASR');if(C.fsi>tF)bad.push('FSI');
     const lastK=C.keys[C.keys.length-1],lm=C.R.length?agg([C.R[C.R.length-1].month_key],b):null,lf=lm&&lm.H?fsiOf(lm.n,lm.days,lm.H):null;
     if(bad.length)h+=`<div class="card" style="border-color:var(--bad);margin-top:8px"><b class="bad">🚨 هشدار: ${bad.join('، ')} سال ${fa(ty)} تا امروز از تارگت بیشتر شده است.</b></div>`;
@@ -156,12 +170,14 @@ function render(){
   const last=A.IA.length?A.IA.map(x=>x.d).sort().pop():null;
   const since=last?Math.floor((Date.now()-jToDate(last))/864e5):null;
   const skipN=A.IA.length-A.I.length,warn=A.missing.length?`<div class="mu wa">⚠ ساعت کار این ماه‌ها ثبت نشده است و در محاسبه نیامده: ${A.missing.map(lbl).join('، ')}${skipN?` — ${fa(skipN)} حادثهٔ استعلاجی این ماه‌ها هم در AFR/ASR/FSI نیامده تا صورت و مخرج هم‌پایه بمانند`:''}</div>`:''
+  const eMap=new Map();[...A.R,...Ac.R,...P.R].forEach(r=>{if(r.est)eMap.set(r.month_key,r.est_from)});
+  const estWarn=eMap.size?`<div class="card" style="border-color:var(--wa);margin:6px 0"><b class="wa">⚠ عدد موقت: ساعت کار ${fa(eMap.size)} ماه هنوز بارگذاری نشده و برای محاسبه برابر ماه قبل فرض شده است.</b><div class="mu" style="margin-top:4px">${[...eMap].sort().map(([k,f])=>`${lbl(k)} (برابر ${lbl(f)})`).join('، ')}. AFR، ASR، FSI و Safe-T شامل این ماه‌ها فقط تخمینی‌اند. فایل کارکرد اصلی این ماه‌ها را در بخش ۱ بارگذاری و ثبت کنید تا عدد قطعی شود.</div></div>`:'';
   const orph=allInc().filter(x=>x.lost>0&&!MH.some(r=>r.month_key==x.k)),warn2=orph.length?`<div class="mu wa">⚠ ${fa(orph.length)} حادثه در ماه‌هایی است که ساعت کارکرد ندارند (${[...new Set(orph.map(x=>x.k))].sort().map(lbl).join('، ')}) و در شاخص نمی‌آیند؛ فایل کارکرد آن ماه‌ها را بارگذاری کنید.</div>`:'';
   const refOf={};const refFor=y=>{if(y in refOf)return refOf[y];const by=yearIdx(String(+y-1),b),cur=yearIdx(y,b);let r=null,src='';if(by&&by.H&&by.n){r=fsiOf(by.n,by.days,by.H)*(1-RED/100);src='تارگت'}else if(cur&&cur.H){r=fsiOf(cur.n,cur.days,cur.H);src='میانگین سال'}return refOf[y]={r,src}};
   const mrows=keys.map(k=>{const r=MH.find(x=>x.month_key==k),h=hrs(r,b),m=A.IA.filter(x=>x.k==k),d=m.reduce((a,x)=>a+x.lost,0),fs=h?fsiOf(m.length,d,h):null,rf=refFor(k.slice(0,4)),st=stat(fs,rf.r,m.length);
-    return `<tr><td>${lbl(k)}</td><td>${r?fa(r.headcount):'—'}</td><td>${r?num(h,0):'—'}</td><td>${r?num(h/Math.max(1,r.headcount),0):'—'}</td><td>${fa(m.length)}</td><td>${fa(d)}</td><td>${h?num(m.length*1e6/h):'—'}</td><td>${h?num(d*1000/h):'—'}</td><td><b>${fs==null?'—':num(fs)}</b></td><td class="${st[1]}">${st[0]}${rf.src&&fs!=null?` <span class="mu">(${rf.src}: ${num(rf.r)})</span>`:''}</td></tr>`}).join('');
-  box.innerHTML=`${warn}${warn2}<div class="g" style="margin-top:6px">
-   ${kp(num(A.H,0),'مجموع ساعت کار (نفر-ساعت)')}${kp(fa(A.n),'حادثه با روز از دست رفته',A.n?'bad':'ok')}${kp(fa(A.days),'مجموع روز از دست رفته')}
+    return `<tr><td>${lbl(k)}${r&&r.est?' <span class="wa">⚠ موقت</span>':''}</td><td>${r?fa(r.headcount):'—'}</td><td${r&&r.est?' class="wa"':''}>${r?num(h,0):'—'}</td><td>${r?num(h/Math.max(1,r.headcount),0):'—'}</td><td>${fa(m.length)}</td><td>${fa(d)}</td><td>${h?num(m.length*1e6/h):'—'}</td><td>${h?num(d*1000/h):'—'}</td><td><b>${fs==null?'—':num(fs)}</b></td><td class="${st[1]}">${st[0]}${rf.src&&fs!=null?` <span class="mu">(${rf.src}: ${num(rf.r)})</span>`:''}</td></tr>`}).join('');
+  box.innerHTML=`${estWarn}${warn}${warn2}<div class="g" style="margin-top:6px">
+   ${kp(num(A.H,0),'مجموع ساعت کار (نفر-ساعت)'+(A.R.some(r=>r.est)?' — شامل برآورد موقت':''),A.R.some(r=>r.est)?'wa':'')}${kp(fa(A.n),'حادثه با روز از دست رفته',A.n?'bad':'ok')}${kp(fa(A.days),'مجموع روز از دست رفته')}
    ${kp(num(A.afr),'AFR (ضریب تکرار)')}${kp(num(A.asr),'ASR (ضریب شدت)')}${kp(num(A.fsi),'FSI')}
    ${kp(fa(A.I.filter(x=>x.lost>=6000).length),'حادثهٔ منجر به فوت (۹۰۰۰ روز)',A.I.some(x=>x.lost>=6000)?'bad':'ok')}${kp((()=>{const o=A.I.filter(x=>x.lost<6000);return o.length?num(o.reduce((a,x)=>a+x.lost,0)/o.length,1):'—'})(),'میانگین روز از دست رفته (بدون فوتی‌ها)')}${kp(since==null?'—':fa(since),'روز از آخرین حادثه استعلاجی')}${kp(safe==null?'—':num(safe),'Safe-T')}</div>
    <div style="margin-top:8px">${verdict}${P.H?`<div class="mu" style="margin-top:6px">مقایسه با <b>${cmpName}</b> فقط روی ${fa(ck.length)} ماهِ هم‌پایه (ساعت کار هر دو طرف ثبت شده): ${ck.length?`${lbl(ck[0])}${ck.length>1?' تا '+lbl(ck[ck.length-1]):''} ← ${lbl(P.keys[0])}${P.keys.length>1?' تا '+lbl(P.keys[P.keys.length-1]):''}`:''}<br>
