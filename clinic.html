@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" class="no-exam">
 <head>
        <script src="auth.js"></script>
        <script src="hse_nav.js" defer></script>
@@ -43,6 +43,8 @@
 .qty { width:5rem !important; border-color:var(--wa); }
 .nw { white-space:nowrap; }
 details > summary { cursor:pointer; }
+/* معاینات طب کار فقط برای مدیر (پیش‌فرض بسته؛ بعد از تشخیص نقش برای مدیر باز می‌شود) */
+.no-exam [data-tab="checkup"], .no-exam #paneExam, .no-exam .ex-only { display: none !important; }
 </style>
 </head>
 <body class="mx-auto flex flex-col min-h-screen justify-between" style="max-width:900px;padding:16px 14px 40px">
@@ -106,7 +108,7 @@ details > summary { cursor:pointer; }
                         <datalist id="reasonOptions"></datalist>
                         <div id="reasonChips" class="flex flex-wrap gap-1.5 mt-2"></div>
                     </div>
-                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-[11px] text-slate-400 space-y-1"><p>معاینه (دوره‌ای، بدو استخدام، پس از حادثه و...) اینجا ثبت نمی‌شود.</p><button type="button" data-gotab="checkup" class="text-blue-400">رفتن به معاینات طب کار</button></div>
+                    <div class="ex-only bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-[11px] text-slate-400 space-y-1"><p>معاینه (دوره‌ای، بدو استخدام، پس از حادثه و...) اینجا ثبت نمی‌شود.</p><button type="button" data-gotab="checkup" class="text-blue-400">رفتن به معاینات طب کار</button></div>
                 </div>
 
                 <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 space-y-2">
@@ -459,6 +461,14 @@ const SEV_TXT = { minor: 'جزئی', moderate: 'متوسط', severe: 'شدید',
 const FIT = { fit: 'مجاز به کار', fit_restricted: 'مجاز با محدودیت', temp_unfit: 'موقتاً ناتوان', unfit: 'ناتوان از کار' };
 
 let employees = [], visits = [], followups = [], incidents = [], exams = [], meds = [], selEmp = null, tab = 'new', doneId = null;
+/* معاینات طب کار فقط برای مدیر: برای کارشناس (و «نمای کارشناس» مدیر) نه خوانده می‌شود و نه نمایش داده می‌شود.
+   قفل اصلی در دیتابیس است (hse_clinic_exams_private.sql)؛ این بخش فقط رابط را مرتب می‌کند. */
+let EX_OK = false;
+const EX_READY = (async () => {
+    try { if (window.HSEAuth) await HSEAuth.ready; } catch (_) { }
+    EX_OK = !!(window.HSEAuth && HSEAuth.role === 'manager' && !HSEAuth.viewAs);
+    document.documentElement.classList.toggle('no-exam', !EX_OK);
+})();
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label = e => `${e.first_name || ''} ${e.last_name || ''} (کد ${e.emp_id} - ${e.department || 'نامشخص'})`;
@@ -586,6 +596,8 @@ async function loadAll() {
 async function loadVisits() {
     try {
         visits = await apiAll('clinic_visits?order=visit_date.desc,id.asc');
+        await EX_READY;
+        if (!EX_OK) visits = visits.filter(v => !isCheckup(v)); /* مراجعات از نوع معاینه طب کار برای کارشناس نمایش داده نمی‌شود */
         if (selEmp) renderSummary();
         if (TAB_TITLE[tab]) renderList();
         if (tab === 'stats') renderStats();
@@ -604,6 +616,7 @@ async function loadIncidents() {
 async function loadFollowups() {
     try {
         followups = await apiAll('clinic_followups?order=due_date.asc.nullslast,id.asc');
+        followups = HSEAuth.visibleFollowups(followups); /* پیگیری‌های ساخته‌شده از معاینات طب کار فقط برای مدیر */
         updateBadge();
         if (selEmp) renderSummary();
         if (tab === 'follow') renderFollow();
@@ -1188,6 +1201,7 @@ function drugAlerts(empId, name) {
 const alertsHTML = (empId, name) => drugAlerts(empId, name).map(a => `<div class="vbanner ${a.lvl === 'd' ? 'vb-red' : 'vb-amber'}">${a.lvl === 'd' ? '⛔' : '⚠️'} ${esc(a.msg)}</div>`).join('');
 
 function occBannerHTML(empId) {
+    if (!EX_OK) return '';
     const P = occProfile(empId);
     if (!P) return '<div class="vbanner vb-gray">⚕️ برای این فرد هنوز معاینه طب کار ثبت نشده؛ سوابق بیماری، آلرژی و داروهای مصرفی نامشخص است. <button type="button" data-gotab="checkup" class="text-blue-400">ثبت معاینه</button></div>';
     const al = trendAlarms(empId), bad = al.some(a => a.lvl === 'd');
@@ -1372,6 +1386,8 @@ $('exportEx').onclick = () => {
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'occupational-exams.csv'; a.click();
 };
 async function loadExams() {
+    await EX_READY;
+    if (!EX_OK) { exams = []; return; }
     try { exams = await apiAll('clinic_exams?order=exam_date.desc,id.asc'); }
     catch (e) { exams = []; showDebug('معاینات طب کار: ' + e.message + ' (اگر جدول clinic_exams ساخته نشده، فایل clinic_exams.sql را اجرا کنید)'); }
     if (selEmp) { renderSummary(); renderMeds(); }
@@ -1601,7 +1617,7 @@ function renderRates() {
 function renderStats() {
     const totalVisits = visits.length;
     const totalIncidents = incidents.length;
-    const totalCheckups = exams.length;
+    const totalCheckups = EX_OK ? exams.length : 0;
     const medTot = {};
     visits.forEach(v => medsOf(v).forEach(m => { const n = medName(m).trim(); if (!n) return; (medTot[n] = medTot[n] || { v: 0, i: 0 }).v += (medQty(m) || 1); }));
     incidents.forEach(i => incMedsOf(i).forEach(m => { (medTot[m.name] = medTot[m.name] || { v: 0, i: 0 }).i += m.qty; }));
@@ -1642,7 +1658,7 @@ function renderStats() {
         ${card('کل مراجعات بهداری', totalVisits, 'text-emerald-400')}
         ${card('کل حوادث شغلی', totalIncidents, 'text-rose-400')}
         ${card('مجموع روزهای استعلاجی', totalLeaves, 'text-amber-400')}
-        ${card('معاینات طب کار', totalCheckups, 'text-blue-400')}
+        ${EX_OK ? card('معاینات طب کار', totalCheckups, 'text-blue-400') : ''}
         ${card('دارو و مواد مصرفی', totalMeds, 'text-emerald-400')}
         ${card('CAPA باز', openCapa, 'text-amber-400')}
     </div>
@@ -1686,7 +1702,7 @@ function renderStats() {
             <h3 class="text-sm font-bold text-white">دارو و مواد مصرفی (مراجعات + حوادث)</h3>
             <div class="space-y-2">${Object.keys(medTot).length ? Object.keys(medTot).sort((a, b) => medSum(b) - medSum(a)).slice(0, 25).map(n => row(n, medSum(n) + ' عدد (مراجعات ' + medTot[n].v + ' · حوادث ' + medTot[n].i + ')', 'text-emerald-400')).join('') : '<p class="text-xs text-slate-500">داده‌ای ثبت نشده است.</p>'}</div>
         </div>
-        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3 md:col-span-2">
+        <div class="ex-only bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-3 md:col-span-2">
             <h3 class="text-sm font-bold text-white">شایع‌ترین یافته‌های طب کار (آخرین معاینه هر فرد)</h3>
             <div class="space-y-2">${topExamProblems().length ? topExamProblems().map(([n, c]) => row(n, c + ' نفر', 'text-amber-400')).join('') : '<p class="text-xs text-slate-500">معاینه‌ای ثبت نشده است.</p>'}</div>
         </div>

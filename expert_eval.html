@@ -91,18 +91,20 @@ async function start(){
     getAll('findings?select=id,status,module,created_at,closed_at,due_date,inspector,severity,photos_before,note,question,missed_by').then(x=>x||getAll('findings?select=id,status,module,created_at,closed_at,due_date,inspector,severity,photos_before,note,question'))]);
   const eqCol=ins!=null; if(!eqCol)ins=await getAll(INS+'&created_at=gte.'+since);
   const eqRows=await getAll('equipment?select=code,category,interval_months,requires_inspection&active=eq.true')||[];
-  const [eqIns,risks,exams]=await Promise.all(['equipment_inspections?select=equipment_code,inspected_on,result,next_due','risks?select=status,review_date','clinic_exams?select=employee_id,exam_date'].map(getAll));
+  try{if(window.HSEAuth)await HSEAuth.ready}catch(_){}
+  const exOK=!!(window.HSEAuth&&HSEAuth.canSeeExams&&HSEAuth.canSeeExams());
+  const [eqIns,risks,exams]=await Promise.all(['equipment_inspections?select=equipment_code,inspected_on,result,next_due','risks?select=status,review_date',exOK?'clinic_exams?select=employee_id,exam_date':null].map(q=>q?getAll(q):null));
   if(!ins||!fin)return loginUI('دریافت اطلاعات ناموفق بود (دسترسی یا اتصال)');
   const [cards,cul]=await Promise.all(['hse_cards?select=card_type,card_date,status','culture_assessments?select=assessed_at'].map(getAll));
   const [tr,ta,emp,inc,fu]=await Promise.all(['trainings?select=id,training_date,title,training_type,trainer','training_attendees?select=training_id,employee_id','employees?select=*',
-    'clinic_incidents?select=corrective_action,action_status,action_due_date,incident_date,expert_opinion,expert_opinion_by','clinic_followups?select=status,due_date'].map(getAll));
+    'clinic_incidents?select=corrective_action,action_status,action_due_date,incident_date,expert_opinion,expert_opinion_by','clinic_followups?select=status,due_date,title'].map(getAll));
   const ffl=await getAll('finding_followups?select=finding_id,followed_at,followed_by,next_due&order=followed_at.asc')||[];
   const ctrs=await getAll('contractors?select=name,start_date,end_date,status')||[];
   const vr=await getAll('verify_rounds?select=expert,week_start,result,location,note')||[];
   const wl=await getAll('work_log?select=work_date,category,title,status,created_by');
   const inc2=inc||await getAll('clinic_incidents?select=corrective_action,action_status,action_due_date,incident_date');
   let hrt=null;try{const R=await computeHR();hrt=R?R.list.filter(p=>p.actions.some(a=>a.startsWith('آموزش'))):null}catch(e){}
-  D={hrt,ffl,ctrs,vr,wl,eqCol,eqRows,eqIns,risks,exams,cards,cul,ins:ins.filter(r=>r.module!=='Q'&&!String(r.location||'').startsWith(IMPORT_LOC)),fin:fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc2||[],fu:fu||[]};
+  D={hrt,ffl,ctrs,vr,wl,eqCol,eqRows,eqIns,risks,exams,cards,cul,ins:ins.filter(r=>r.module!=='Q'&&!String(r.location||'').startsWith(IMPORT_LOC)),fin:fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc2||[],fu:HSEAuth.visibleFollowups(fu)||[]};
   const es=document.getElementById('esel'),ms=document.getElementById('msel');
   const mine=isMgr()?people():[ME];
   es.innerHTML=mine.map(e=>`<option value="${esc(e)}">${esc(nm(e))}</option>`).join('');es.style.display=isMgr()?'':'none';

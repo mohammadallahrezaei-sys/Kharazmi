@@ -77,7 +77,7 @@ async function load(){
   const [fin,inc,fu,emp,eq,ins,cards,units,mon,cul,rk]=await Promise.all([
     getAll('findings?select=id,status,created_at,due_date,location,question,severity,module,risk_id'),
     getAll('clinic_incidents?select=id,incident_date,body_part,corrective_action,action_status,action_due_date,location'),
-    getAll('clinic_followups?select=*'),getAll('employees?select=id,emp_id,first_name,last_name,department,termination_date'),
+    getAll('clinic_followups?select=*').then(r=>HSEAuth.visibleFollowups(r)),getAll('employees?select=id,emp_id,first_name,last_name,department,termination_date'),
     getAll('equipment?select=code,category,title,hall,location,active,requires_inspection,interval_months'),
     getAll('equipment_inspections?select=equipment_code,inspected_on,result,next_due,defects'),
     getAll('hse_cards?select=id,card_type,card_date,status,unit,description,reporter_name'),

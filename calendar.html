@@ -293,7 +293,7 @@ async function loadMgr(){
     g('work_log?select=work_date,created_by'),g('verify_rounds?select=week_start,result'),
     g('trainings?select=training_date,training_type,title&training_date=gte.'+since),
     g('committee_meetings?select=jdate,next_date&order=jdate.desc'),
-    g('clinic_incidents?select=id,incident_date,corrective_action,action_status,action_due_date'),g('clinic_followups?select=*'),
+    g('clinic_incidents?select=id,incident_date,corrective_action,action_status,action_due_date'),g('clinic_followups?select=*').then(r=>HSEAuth.visibleFollowups(r)),
     g('risks?select=id,status,review_date&status=neq.archived'),g('hse_cards?select=id,card_date,status&status=eq.pending'),
     g('equipment?select=code,requires_inspection,interval_months&active=eq.true'),g('equipment_inspections?select=equipment_code,inspected_on,result,next_due'),
     g('culture_assessments?select=assessed_at'),g('hse_obligations?select=id,title,next_due,active')]);

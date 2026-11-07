@@ -17,7 +17,9 @@ const getAllRows = t => HSEDB.getAll(t);
 const pickK = (o, ks) => { for (const k of ks) if (o[k] != null && o[k] !== '') return o[k]; return null; };
 
 async function computeHR() {
-  const [emp, inc, vis, ex, fu, ekh, tr, ta] = await Promise.all(['employees?select=*', 'clinic_incidents?select=employee_id,incident_date,severity,description', 'clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days', 'clinic_exams?select=employee_id,exam_date,history,vitals,fitness,restrictions', 'clinic_followups?select=employee_id,status,due_date', 'ekhtars?select=*', 'trainings?select=id,training_date', 'training_attendees?select=training_id,employee_id'].map(getAllRows));
+  try { if (window.HSEAuth) await HSEAuth.ready; } catch (_) { }
+  const exOK = !!(window.HSEAuth && HSEAuth.canSeeExams && HSEAuth.canSeeExams());
+  const [emp, inc, vis, ex, fu, ekh, tr, ta] = await Promise.all(['employees?select=*', 'clinic_incidents?select=employee_id,incident_date,severity,description', 'clinic_visits?select=employee_id,visit_date,visit_reason,medical_leave_days', exOK ? 'clinic_exams?select=employee_id,exam_date,history,vitals,fitness,restrictions' : null, 'clinic_followups?select=employee_id,status,due_date,title', 'ekhtars?select=*', 'trainings?select=id,training_date', 'training_attendees?select=training_id,employee_id'].map(q => q ? getAllRows(q) : null));
   if (!emp) return null;
   const c24 = agoISO(24), c36 = agoISO(36), c60 = agoISO(60), c12 = agoISO(12), c6 = agoISO(6), today = HSEToday();
   /* کل سوابق لحاظ می‌شود؛ هرچه قدیمی‌تر، وزن کمتر (۲ سال اخیر ۱۰۰٪، تا ۵ سال ۶۰٪، قدیمی‌تر ۳۵٪؛ حادثه شدید/فوتی حداقل ۶۰٪) */
@@ -33,7 +35,7 @@ async function computeHR() {
   (vis || []).forEach(v => { const p = P[v.employee_id], d = dISO(v.visit_date); if (!p || !d) return; const ld = Number(v.medical_leave_days) || 0; p.lostVis += ld; p.lostVisW += ld * wAge(d, 0); if (d >= c6) p.v6++; const r = String(v.visit_reason || ''); if (d >= c12 && /فشار/.test(r)) p.vBP++; if (/تشنج|صرع|غش|بیهوش/.test(r)) p.seizV++; });
   const latest = {}; (ex || []).forEach(x => { const c = latest[x.employee_id]; if (!c || String(x.exam_date) > String(c.exam_date)) latest[x.employee_id] = x; if (P[x.employee_id]) Object.keys(((x.history || {}).cond) || {}).forEach(k => P[x.employee_id].cond.add(k)); });
   Object.keys(latest).forEach(id => { const p = P[id], x = latest[id]; if (!p) return; const v = x.vitals || {}; if ((+v.sys >= 140) || (+v.dia >= 90)) p.bp = true; if (['fit_restricted', 'temp_unfit', 'unfit'].includes(x.fitness)) p.restr = true; });
-  (fu || []).forEach(f => { const p = P[f.employee_id]; if (p && ['pending', 'overdue'].includes(f.status) && f.due_date && f.due_date < today) p.fuOver++; });
+  (HSEAuth.visibleFollowups(fu) || []).forEach(f => { const p = P[f.employee_id]; if (p && ['pending', 'overdue'].includes(f.status) && f.due_date && f.due_date < today) p.fuOver++; });
   (ekh || []).forEach(o => { const id = pickK(o, ['employee_id', 'personnel_id']) || byCode[String(pickK(o, ['emp_id', 'employee_code', 'personnel_code', 'code']))], p = P[id]; if (!p) return; const d = dISO(pickK(o, ['record_date', 'issue_date', 'issued_at', 'letter_date', 'date', 'created_at'])), w = d ? wAge(d, 0) : 1; if (d && (!p.lastEv || d > p.lastEv)) p.lastEv = d; if ((pickK(o, ['record_type', 'type', 'kind']) || '') === 'اخطار کتبی') { p.warnW++; p.warnPts += HRW.warnWritten * w; } else { p.warnO++; p.warnPts += HRW.warnOther * w; } });
   const trD = {}; (tr || []).forEach(t => trD[t.id] = dISO(t.training_date)); const haveTr = !!(tr && ta);
   (ta || []).forEach(a => { const p = P[a.employee_id], d = trD[a.training_id]; if (p && d && (!p.lastTr || d > p.lastTr)) p.lastTr = d; });

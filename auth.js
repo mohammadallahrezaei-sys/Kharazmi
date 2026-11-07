@@ -36,6 +36,14 @@
     active: (list, ref) => (list || []).filter(e => window.HSEP.isActive(e, ref))
   };
   const A = window.HSEAuth = { EXPERTS, MANAGERS, ready, token, email: '', role: '', logout() { localStorage.removeItem(STORE); location.reload(); } };
+  /* معاینات طب کار (clinic_exams) فقط برای مدیر؛ «نمای کارشناس» هم نباید آن را ببیند. بعد از await HSEAuth.ready صدا بزنید.
+     قفل اصلی در دیتابیس است (hse_clinic_exams_private.sql)؛ این تابع فقط برای جلوگیری از خواندن/نمایش بی‌مورد در رابط است. */
+  A.canSeeExams = () => A.role === 'manager' && !A.viewAs;
+  /* پیگیری‌هایی که ثبت معاینه خودکار می‌سازد (عنوان با این دو پیشوند شروع می‌شود) حاوی یافته‌های پزشکی‌اند؛ برای غیرمدیر حذف می‌شوند.
+     بعد از هر درخواست دیتا (که منتظر ورود می‌ماند) صدا بزنید؛ null را null برمی‌گرداند. قفل اصلی: hse_clinic_followups_exam_hide.sql */
+  const EXAM_FU = /^\s*(پیگیری یافته‌های معاینه طب کار|معاینه طب کار بعدی)/;
+  A.isExamFollowup = f => !!f && EXAM_FU.test(String(f.title || ''));
+  A.visibleFollowups = list => (!Array.isArray(list) || A.canSeeExams()) ? list : list.filter(f => !A.isExamFollowup(f));
 
   /* همه‌ی درخواست‌های Supabase بعد از ورود و با توکن کاربر می‌روند (صفحه‌ها تغییری نمی‌خواهند) */
   /* جلوگیری از ثبت دوباره با دوبار لمس: درخواست POST کاملاً یکسان به دیتابیس در ۴ ثانیه یک‌بار فرستاده می‌شود */
