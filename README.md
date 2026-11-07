@@ -6,6 +6,8 @@
 `hse_schema_check.sql` را اول اجرا کنید (ستون‌های کم را می‌سازد)، سپس هر فایل `hse_*.sql` که هنوز اجرا نکرده‌اید:
 indexes · findings_cancel · findings_missed · findings_closed_dates · finding_followups و finding_followups2 · inspections_equipment · equipment_inactive · employee_termination · incident_edit · incident_review · ekhtar_missed · weekly_verify · contractors · worklog · committee* · phonebook · cards_health · unit_obs · **obligations** (تعهدات دوره‌ای) · **incident_rca** (علت‌یابی ریشه‌ای حادثه؛ بعد از incident_review اجرا شود).
 
+ورود دادهٔ یک‌باره: `hse_exams_1404.sql` — ۱۸۲ معاینهٔ طب کار (فایل اکسل ۱۴۰۴، معاینه ۲۷ و ۲۸ اردیبهشت ۱۴۰۵) را در `clinic_exams` ثبت می‌کند؛ پرسنل با کد پرسنلی تطبیق می‌خورند، تکراری‌ساز است و کدهای پیدا‌نشده را در خروجی فهرست می‌کند.
+
 ## قواعد فنی
 - خواندن جدول‌های بزرگ فقط با `HSEDB.getAll(...)` (سقف ۱۰۰۰ ردیف Supabase را دور می‌زند). `limit=` بزرگ‌تر از ۱۰۰۰ بی‌اثر است.
 - تاریخ «امروز» همیشه با `HSEToday()` (وقت تهران) گرفته شود؛ `new Date().toISOString()` بین ۰۰:۰۰ تا ۰۳:۳۰ بامداد تاریخ دیروز می‌دهد.
