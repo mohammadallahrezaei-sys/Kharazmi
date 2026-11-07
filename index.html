@@ -101,52 +101,21 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
 .wi b{font-size:12.5px}
 .wi.ok span,.wi:not(.wa):not(.bad) span{display:none}
 </style>
+<link rel="stylesheet" href="home.css">
 </head>
 <body>
-<div class="w">
+<div class="shell">
 
-<header>
-  <img src="logo-sm.png" alt="گسترش فناوری خوارزمی" onerror="this.style.display='none'">
-  <div>
-    <h1>نرم‌افزار جامع HSE</h1>
-    <div class="mu">گسترش فناوری خوارزمی</div>
-  </div>
-  <div class="srch"><input id="q" type="search" placeholder="جستجوی ماژول…" autocomplete="off" aria-label="جستجوی ماژول"></div>
-</header>
-
-<div id="viewAsBtn" role="group" aria-label="نوع نمایش" style="display:none;margin:0 0 10px;gap:0;border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:var(--card)">
-  <button type="button" data-v="mgr" style="flex:1;min-height:42px;border:0;font:inherit;cursor:pointer;color:var(--tx);background:transparent">👤 نمای مدیر</button>
-  <button type="button" data-v="exp" style="flex:1;min-height:42px;border:0;font:inherit;cursor:pointer;color:var(--tx);background:transparent">👁 نمای کارشناس</button>
-</div>
-<a class="desk" href="desk.html">
-  <div>
-    <b>میز کار HSE</b>
-    <span id="deskLine">موارد معوق و نیازمند اقدام در یک نگاه</span>
-  </div>
-  <i aria-hidden="true">←</i>
-</a>
-
-<div class="quick" aria-label="ثبت سریع">
-  <a href="cards.html#new">＋ کارت خطر یا شبه‌حادثه</a>
-  <a href="risks.html#new">＋ ثبت ریسک</a>
-  <a href="clinic.html">＋ مراجعه بهداری</a>
-  <a href="ekhtar.html#new">＋ اخطار / تشویق</a>
-</div>
-<!-- افراد پرریسک: کشویی و فقط برای مدیر (اطلاعات پزشکی دارد؛ با دیده‌شدن بخش مدیر نمایش داده می‌شود) -->
-<details id="hr" style="display:none">
-  <summary>افراد پرریسک: اولویت آموزش و پیگیری <small id="mHr">باز کنید</small></summary>
-  <div id="hrBody" class="mu" style="margin-top:10px">در حال محاسبه...</div>
-</details>
-
-<button id="myBtn" type="button" style="display:none;width:100%;margin:0 0 10px;min-height:48px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;font:inherit;font-weight:700;cursor:pointer"></button>
-<dialog id="myDlg" style="width:min(980px,96vw);max-height:92vh;border:1px solid var(--bd);border-radius:16px;background:var(--bg,var(--card));color:var(--tx);padding:12px;direction:rtl">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b id="myTtl">کارهای من</b><button type="button" id="myX" style="border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:4px 12px;font:inherit;cursor:pointer">بستن ✕</button></div>
-  <div id="myTodo"></div>
-  <iframe id="myFr" title="تقویم" style="width:100%;height:700px;border:1px solid var(--bd);border-radius:14px;background:var(--card)"></iframe>
-</dialog>
-<style>@keyframes myPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}50%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}#myBtn.bad{border-color:var(--bad,#dc2626);animation:myPulse 1.6s infinite}#myBtn.wa{border-color:var(--wa,#d97706)}#myBtn .n{display:inline-block;min-width:24px;padding:0 8px;border-radius:99px;background:var(--bad,#dc2626);color:#fff;margin-inline-start:6px}#myBtn.wa .n{background:var(--wa,#d97706)}#myBtn.ok .n{background:var(--ok,#059669)}</style>
-<div class="wg" id="wg" aria-label="نیازمند اقدام"><div class="wi"><i>⏳</i><div><b>در حال بررسی...</b><span>موارد نیازمند اقدام</span></div></div></div>
-
+<aside class="rail">
+  <header class="brand">
+    <span class="plate"><img src="logo-sm.png" alt="گسترش فناوری خوارزمی" onerror="this.style.display='none'"></span>
+    <div>
+      <h1>نرم‌افزار جامع HSE</h1>
+      <div class="mu">گسترش فناوری خوارزمی</div>
+    </div>
+  </header>
+  <nav class="mods" aria-label="ماژول‌ها">
+    <div class="srch"><input id="q" type="search" placeholder="جستجوی ماژول…" autocomplete="off" aria-label="جستجوی ماژول"><kbd aria-hidden="true">/</kbd></div>
 <section class="mg grp" id="gRisk">
   <h2>ریسک و بازرسی</h2>
   <div class="tiles">
@@ -192,9 +161,55 @@ footer{order:99}#nores{order:50;text-align:center;color:var(--mu);padding:18px 0
   </div>
 </details>
 <div id="nores">موردی با این جستجو پیدا نشد.</div>
+  </nav>
+</aside>
 
+<main class="main">
+  <div class="bar">
+    <div class="ttl">
+      <h2>نمای کلی</h2>
+      <div class="dt" id="today"></div>
+    </div>
+    <div id="viewAsBtn" role="group" aria-label="نوع نمایش" style="display:none">
+      <button type="button" data-v="mgr">نمای مدیر</button>
+      <button type="button" data-v="exp">نمای کارشناس</button>
+    </div>
+  </div>
 
-<footer>نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <b>محمد اله رضایی</b></footer>
+  <section class="panel" id="board">
+    <div class="ph">
+      <h2>نیازمند اقدام</h2>
+      <span class="dl" id="deskLine">موارد معوق و نیازمند اقدام در یک نگاه</span>
+      <a class="desk" href="desk.html"><b>میز کار</b><i aria-hidden="true">‹</i></a>
+    </div>
+    <div class="wg" id="wg" aria-label="نیازمند اقدام"><div class="wi"><i>⏳</i><div><b>در حال بررسی...</b><span>موارد نیازمند اقدام</span></div></div>
+  </section>
+
+  <div class="tools">
+    <div class="quick" aria-label="ثبت سریع">
+  <a href="cards.html#new">＋ کارت خطر یا شبه‌حادثه</a>
+  <a href="risks.html#new">＋ ثبت ریسک</a>
+  <a href="clinic.html">＋ مراجعه بهداری</a>
+  <a href="ekhtar.html#new">＋ اخطار / تشویق</a>
+</div>
+    <button id="myBtn" type="button" style="display:none"></button>
+  </div>
+  <!-- افراد پرریسک: کشویی و فقط برای مدیر (اطلاعات پزشکی دارد؛ با دیده‌شدن بخش مدیر نمایش داده می‌شود) -->
+<details id="hr" style="display:none">
+  <summary>افراد پرریسک: اولویت آموزش و پیگیری <small id="mHr">باز کنید</small></summary>
+  <div id="hrBody" class="mu" style="margin-top:10px">در حال محاسبه...</div>
+</details>
+
+  <dialog id="myDlg" style="width:min(980px,96vw);max-height:92vh;border:1px solid var(--bd);border-radius:16px;background:var(--bg,var(--card));color:var(--tx);padding:12px;direction:rtl">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b id="myTtl">کارهای من</b><button type="button" id="myX" style="border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:4px 12px;font:inherit;cursor:pointer">بستن ✕</button></div>
+  <div id="myTodo"></div>
+  <iframe id="myFr" title="تقویم" style="width:100%;height:700px;border:1px solid var(--bd);border-radius:14px;background:var(--card)"></iframe>
+</dialog>
+<style>@keyframes myPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}50%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}#myBtn.bad{border-color:var(--bad,#dc2626);animation:myPulse 1.6s infinite}#myBtn.wa{border-color:var(--wa,#d97706)}#myBtn .n{display:inline-block;min-width:24px;padding:0 8px;border-radius:99px;background:var(--bad,#dc2626);color:#fff;margin-inline-start:6px}#myBtn.wa .n{background:var(--wa,#d97706)}#myBtn.ok .n{background:var(--ok,#059669)}</style>
+
+  <footer>نرم‌افزار جامع HSE &copy; 2026 - گسترش فناوری خوارزمی | طراح نرم‌افزار: <b>محمد اله رضایی</b></footer>
+</main>
+
 </div>
 
 <script src="hr_risk.js"></script>
@@ -218,7 +233,7 @@ function renderAlerts(L) {
   const g = document.getElementById('wg'); if (!g) return;
   const A = L.filter(x => x.n > 0).sort((a, b) => (b.s === 'bad') - (a.s === 'bad') || b.n - a.n);
   if (!A.length) { g.innerHTML = '<a class="wi ok" href="desk.html"><i>✓</i><div><b>همه‌چیز در مهلت است</b><span>موردی معوق یا نیازمند اقدام فوری نیست.</span></div></a>'; return; }
-  g.innerHTML = A.map(x => `<a class="wi ${x.s}" href="${x.h || 'desk.html#' + x.id}"><i>${x.i}</i><div><b>${fa(x.n)} ${x.t}</b><span>${x.d}</span></div></a>`).join('');
+  g.innerHTML = A.map(x => `<a class="wi ${x.s}" href="${x.h || 'desk.html#' + x.id}"><i>${x.i}</i><div><b><em class="n">${fa(x.n)}</em> ${x.t}</b><span>${x.d}</span></div></a>`).join('');
 }
 async function loadStatus() {
   const [fin, fu, inc, rk, cd] = await Promise.all([
@@ -404,6 +419,9 @@ const refreshStatus = () => { if (Date.now() - _lt < 1500) return; _lt = Date.no
 addEventListener('pageshow', e => { if (e.persisted) { _lt = 0; refreshStatus(); } });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshStatus(); });
 [300, 1200, 3000].forEach(t => setTimeout(syncMgr, t));
+/* تاریخ امروز (تقویم شمسی) و میان‌بر «/» برای جستجوی ماژول */
+(() => { const t = document.getElementById('today'); if (t) { try { const p = {}; new Intl.DateTimeFormat('fa-IR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Tehran' }).formatToParts(new Date()).forEach(x => { p[x.type] = x.value; }); t.textContent = `${p.weekday} ${p.day} ${p.month} ${p.year}`; } catch (_) {} }
+  document.addEventListener('keydown', e => { const q = document.getElementById('q'); if (e.key === '/' && q && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '') && !e.ctrlKey && !e.metaKey) { e.preventDefault(); q.focus(); q.select(); } }); })();
 </script>
 </body>
 </html>
