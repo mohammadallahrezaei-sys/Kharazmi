@@ -10,11 +10,12 @@
 <title>ماژول چک‌لیست‌ها و بازرسی - نرم‌افزار جامع HSE</title>
 <link rel="stylesheet" href="fonts.css">
 <style>
-:root{--bg:#f1f5f9;--card-bg:#fff;--ink:#0f172a;--mu:#64748b;--ln:#e2e8f0;--ac:#0f766e;--acx:#fff;--ac-hover:#115e59;--ok:#059669;--nc:#dc2626;--warn:#d97706;--shadow:0 4px 14px rgba(15,23,42,.12);--shadow-sm:0 1px 3px rgba(15,23,42,.12);color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card-bg:#1e293b;--ink:#f1f5f9;--mu:#94a3b8;--ln:#334155;--ac:#14b8a6;--acx:#042f2e;--ac-hover:#2dd4bf;--ok:#34d399;--nc:#f87171;--warn:#fbbf24;--shadow:0 10px 15px -3px rgba(0,0,0,.3);--shadow-sm:0 1px 3px rgba(0,0,0,.2)}}
+:root{--bg:#e8ecf0;--card-bg:#fff;--ink:#13202c;--mu:#5a6877;--ln:#d2d9e0;--ac:#0f766e;--acx:#fff;--ac-hover:#115e59;--ok:#1f8a57;--nc:#c8372d;--warn:#c47400;--shadow:0 4px 14px rgba(15,23,42,.12);--shadow-sm:0 1px 3px rgba(15,23,42,.12);color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0e141a;--card-bg:#16202a;--ink:#e6edf3;--mu:#8d9cab;--ln:#26323f;--ac:#2cc4b3;--acx:#04201d;--ac-hover:#5eead4;--ok:#3ecf8e;--nc:#ff6b5e;--warn:#f0b429;--shadow:0 10px 15px -3px rgba(0,0,0,.3);--shadow-sm:0 1px 3px rgba(0,0,0,.2)}}
 * { box-sizing: border-box; transition: all 0.15s ease-in-out; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.7 Vazirmatn, Tahoma, sans-serif; padding: 16px 16px 100px; }
 #app { max-width: 680px; margin: auto; }
+@media (min-width: 1024px) { #app { max-width: 1040px; } #app .mgrid { grid-template-columns: repeat(3, 1fr); } } /* دسکتاپ: پهن‌تر، کاشی‌ها سه‌ستونه */
 h2 { font-size: 20px; font-weight: 800; margin: 16px 0 8px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
 small { color: var(--mu); display: block; font-size: 12px; }
 

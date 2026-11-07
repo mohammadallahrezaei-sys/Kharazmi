@@ -6,8 +6,8 @@
 @font-face{font-family:Vazirmatn;src:url(fonts/vazirmatn-var.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 
 /* ---------- رنگ‌ها ---------- */
-:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ok:#059669;--wa:#d97706;--bad:#dc2626;--ac:#0f766e;--acx:#fff;--soft:#f8fafc;--in:#2563eb;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mu:#94a3b8;--bd:#334155;--ok:#34d399;--wa:#fbbf24;--bad:#f87171;--ac:#14b8a6;--acx:#042f2e;--soft:#172033;--in:#60a5fa}}
+:root{--bg:#e8ecf0;--card:#fff;--tx:#13202c;--mu:#5a6877;--bd:#d2d9e0;--ok:#1f8a57;--wa:#c47400;--bad:#c8372d;--ac:#0f766e;--acx:#fff;--soft:#f2f5f8;--in:#2563eb;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0e141a;--card:#16202a;--tx:#e6edf3;--mu:#8d9cab;--bd:#26323f;--ok:#3ecf8e;--wa:#f0b429;--bad:#ff6b5e;--ac:#2cc4b3;--acx:#04201d;--soft:#121a22;--in:#60a5fa}}
 /* نام‌های قدیمی متغیرها (برای صفحه‌هایی که قبلاً پالت جدا داشتند) */
 :root{--card-bg:var(--card);--ink:var(--tx);--ln:var(--bd);--line:var(--bd);--mut:var(--mu);--nc:var(--bad);--warn:var(--wa);--info:var(--in);--na:var(--mu);--pri:var(--ac);--pri-ink:var(--acx);--ac-hover:color-mix(in srgb,var(--ac) 85%,#000);--field:var(--soft);
   --okbg:color-mix(in srgb,var(--ok) 13%,var(--card));--warnbg:color-mix(in srgb,var(--wa) 14%,var(--card));--badbg:color-mix(in srgb,var(--bad) 12%,var(--card));--infobg:color-mix(in srgb,var(--in) 12%,var(--card));--nabg:color-mix(in srgb,var(--mu) 12%,var(--card));
@@ -32,8 +32,8 @@ footer b{color:var(--ac)}
 .w{max-width:900px;margin:auto;padding:16px 14px 40px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px 16px;margin-bottom:12px}
 .top h1{font-size:18px}.top p{margin:0;font-size:12px;color:var(--mu)}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:10px}
-:where(button),.btn{font-family:inherit;font-size:13px;line-height:1.6;padding:6px 13px;border-radius:10px;border:1px solid var(--bd);background:var(--soft);color:var(--tx);cursor:pointer;text-decoration:none;display:inline-block}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:10px}
+:where(button),.btn{font-family:inherit;font-size:13px;line-height:1.6;padding:6px 13px;border-radius:8px;border:1px solid var(--bd);background:var(--soft);color:var(--tx);cursor:pointer;text-decoration:none;display:inline-block}
 :where(button):hover,.btn:hover{border-color:var(--ac)}
 .btn.p,button.p{background:var(--ac);border-color:var(--ac);color:var(--acx);font-weight:700}
 .btn.d,button.d{background:transparent;border-color:var(--bad);color:var(--bad)}
@@ -51,7 +51,7 @@ label.l{display:block;font-size:12px;color:var(--mu);margin:6px 0 2px}
 :where(th){color:var(--mu);font-weight:500;white-space:nowrap}
 .sc{overflow-x:auto}
 .modal{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}.modal.on{display:flex}
-.modal>div{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;max-width:560px;width:100%;max-height:92vh;overflow-y:auto}
+.modal>div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;max-width:560px;width:100%;max-height:92vh;overflow-y:auto}
 .err{background:color-mix(in srgb,var(--bad) 12%,var(--card));border:1px solid var(--bad);color:var(--bad);border-radius:12px;padding:10px;margin-bottom:10px;display:none}
 
 /* کاشی‌ها و نشان‌های وضعیت (میز کار، مواد شیمیایی، گزارش‌ها) */
@@ -83,5 +83,5 @@ footer{margin-top:2rem}
 .top a.btn[href="index.html"]{border-color:var(--ac);color:var(--ac);background:var(--card);border-radius:12px;font-weight:700}
 
 /* ---------- تنظیم‌های مشترک صفحه‌های Tailwind (tw.css) ---------- */
-.rounded-2xl{border-radius:14px}.rounded-xl{border-radius:12px}
+.rounded-2xl{border-radius:10px}.rounded-xl{border-radius:10px}
 .shadow,.shadow-md,.shadow-sm,.shadow-2xl{box-shadow:none}
