@@ -43,6 +43,7 @@ const CFG={
   FQ_MIN_LEN:20,       // حداقل طول شرح مشخص عدم‌انطباق برای «کیفیت ثبت»
   MISS_PEN:0.34,       // کسر امتیاز اعتبارسنجی به ازای هر مورد از‌قلم‌افتاده (مورد شدت بالا دو برابر)
   DRILL_MIN:2,         // حداقل مانور اضطراری در ۱۲ ماه
+  WORK_COV:0.8, // هدف سهم روزهای کاری که مدیر حداقل یک کار در «گزارش کارهای روزانه» ثبت کرده (شاخص مدیر: work؛ وزن در MW)
   MIN_RW:3, // حداقل تشویق ثبت‌شده در ماه
   TALK_WEEKS:4, // آموزش کوتاه در محل (جلسهٔ کوتاه ایمنی): حداقل یک هفته‌ی پوشش‌داده‌شده در هر هفته‌ی ماه (۴ هفته)
   MIN_WARN:3, // حداقل اخطار/تذکر ثبت‌شده توسط کارشناس در ماه (تا زمانی که رعایت ایمنی/PPE جا نیفتاده)
@@ -98,9 +99,10 @@ async function start(){
   const ffl=await getAll('finding_followups?select=finding_id,followed_at,followed_by,next_due&order=followed_at.asc')||[];
   const ctrs=await getAll('contractors?select=name,start_date,end_date,status')||[];
   const vr=await getAll('verify_rounds?select=expert,week_start,result,location,note')||[];
+  const wl=await getAll('work_log?select=work_date,category,title,status,created_by');
   const inc2=inc||await getAll('clinic_incidents?select=corrective_action,action_status,action_due_date,incident_date');
   let hrt=null;try{const R=await computeHR();hrt=R?R.list.filter(p=>p.actions.some(a=>a.startsWith('آموزش'))):null}catch(e){}
-  D={hrt,ffl,ctrs,vr,eqCol,eqRows,eqIns,risks,exams,cards,cul,ins:ins.filter(r=>r.module!=='Q'&&!String(r.location||'').startsWith(IMPORT_LOC)),fin:fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc2||[],fu:fu||[]};
+  D={hrt,ffl,ctrs,vr,wl,eqCol,eqRows,eqIns,risks,exams,cards,cul,ins:ins.filter(r=>r.module!=='Q'&&!String(r.location||'').startsWith(IMPORT_LOC)),fin:fin.filter(f=>f.status!=='cancelled'&&f.module!=='MED'),ek,ekAttr,tr:tr||[],ta:ta||[],emp:emp||[],inc:inc2||[],fu:fu||[]};
   const es=document.getElementById('esel'),ms=document.getElementById('msel');
   const mine=isMgr()?people():[ME];
   es.innerHTML=mine.map(e=>`<option value="${esc(e)}">${esc(nm(e))}</option>`).join('');es.style.display=isMgr()?'':'none';
@@ -260,8 +262,8 @@ function jIso(s){const m=/^(1[34]\d\d)[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(jd(
   return gy+'-'+String(i+1).padStart(2,'0')+'-'+String(g+1).padStart(2,'0')}
 function jAddM(s,n){const m=/^(1[34]\d\d)[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(jd(s));if(!m)return null;let t=+m[1]*12+(+m[2]-1)+n;const y=Math.floor(t/12),mo=t%12+1;return y+'/'+mo+'/'+Math.min(+m[3],mo<=6?31:mo<=11?30:29)}
 /* ---------- شاخص‌های مدیر واحد HSE (عملکرد واحد، نه بازرسی شخصی) ---------- */
-const MW={train:15,fup:10,close:10,team:10,cards:10,culture:10,risk:15,equip:10,med:5,drill:5};
-const MNAMES={train:'آموزش (جلسات ماهانه و پوشش ۱۲ ماهه‌ی پرسنل)',fup:'اقدام اصلاحی حوادث و پیگیری طب کار بدون معوقه',close:'پیگیری عدم‌انطباق‌ها با واحد فنی (بدون پیگیری معوق)',team:'رعایت جدول زمان‌بندی توسط تیم کارشناسان',cards:'پاسخ به کارت‌های گزارش خطر/پیشنهاد (حداکثر ۷ روز)',culture:'ارزیابی نردبان فرهنگ ایمنی (حداکثر هر ۶ ماه)',risk:'سلامت ثبت ریسک (تأییدشده و بازبینی‌نشده‌ی معوق نباشد؛ ISO 45001 بند ۶٫۱)',equip:'تجهیزات حیاتی با بازرسی معتبر (سررسید و تأیید بازرس)',med:'معاینات دوره‌ای طب کار (پوشش ۱۲ ماهه)',drill:'مانور و تمرین اضطراری (ISO 45001 بند ۸٫۲)'};
+const MW={train:15,fup:10,close:10,team:10,cards:10,culture:10,risk:15,equip:10,med:5,drill:5,work:10}; /* work: ثبت و گزارش کارهای روزانه؛ برای فقط‌نمایش بودن وزن را ۰ بگذارید */
+const MNAMES={train:'آموزش (جلسات ماهانه و پوشش ۱۲ ماهه‌ی پرسنل)',fup:'اقدام اصلاحی حوادث و پیگیری طب کار بدون معوقه',close:'پیگیری عدم‌انطباق‌ها با واحد فنی (بدون پیگیری معوق)',team:'رعایت جدول زمان‌بندی توسط تیم کارشناسان',cards:'پاسخ به کارت‌های گزارش خطر/پیشنهاد (حداکثر ۷ روز)',culture:'ارزیابی نردبان فرهنگ ایمنی (حداکثر هر ۶ ماه)',risk:'سلامت ثبت ریسک (تأییدشده و بازبینی‌نشده‌ی معوق نباشد؛ ISO 45001 بند ۶٫۱)',equip:'تجهیزات حیاتی با بازرسی معتبر (سررسید و تأیید بازرس)',med:'معاینات دوره‌ای طب کار (پوشش ۱۲ ماهه)',drill:'مانور و تمرین اضطراری (ISO 45001 بند ۸٫۲)',work:'ثبت و گزارش کارهای روزانه (شامل پیشرفت و بهبود نرم‌افزار HSE و سایر کارها)'};
 const _MC={};
 function mgrCalc(K){return _MC[K]||(_MC[K]=mgrCalc_(K))}
 function mgrCalc_(K){
@@ -290,9 +292,22 @@ function mgrCalc_(K){
     m.drill=Math.min(1,n/CFG.DRILL_MIN);det.drill=`${fa(n)} مانور در ۱۲ ماه اخیر (حداقل ${fa(CFG.DRILL_MIN)}؛ جلسه‌ی آموزشی با واژه‌ی «مانور» در عنوان شمرده می‌شود)`}
   if(D.cul){const last=D.cul.map(c=>d10(c.assessed_at)).filter(d=>d&&d<=end).sort().pop();
     if(last){const age=Math.round((new Date(end)-new Date(last))/864e5);m.culture=Math.max(0,Math.min(1,1-(age-180)/180));det.culture=`آخرین ارزیابی ${fa(Math.round(age/30))} ماه پیش`}else{m.culture=0;det.culture='ارزیابی ثبت نشده'}}else{m.culture=null;det.culture='دسترسی به جدول ارزیابی فرهنگ نیست'}
+  /* ثبت کارهای روزانه: سهم روزهای کاریِ (تا امروز) که مدیر حداقل یک کار در «گزارش کارهای روزانه» ثبت کرده؛ از اولین ثبت خودش شروع می‌شود تا قبل از شروع جریمه نشود */
+  {const mine=(D.wl||[]).filter(x=>eqm(x.created_by,ME)),first=mine.map(x=>d10(x.work_date)).sort()[0];
+    if(!D.wl){m.work=null;det.work='جدول کارهای روزانه در دسترس نیست (فایل hse_worklog.sql)'}
+    else if(!first){m.work=null;det.work='هنوز کاری ثبت نشده؛ از صفحه‌ی «گزارش کارهای روزانه» ثبت کنید (تا اولین ثبت از امتیاز خارج است)'}
+    else{const days=new Set(mine.map(x=>d10(x.work_date))),wd=workdays(R).filter(d=>d>=first&&(d<today||days.has(d))),n=wd.filter(d=>days.has(d)).length,need=Math.ceil(CFG.WORK_COV*wd.length),
+        inM=mine.filter(x=>d10(x.work_date)>=R.a&&d10(x.work_date)<=R.b),sw=inM.filter(x=>/نرم‌افزار/.test(x.category||'')).length;
+      if(!wd.length){m.work=null;det.work='در این ماه روز کاری قابل‌سنجشی نیست'}
+      else{m.work=need?Math.min(1,n/need):1;det.work=`${fa(n)} از ${fa(wd.length)} روز کاری گزارش ثبت شده (هدف ${fa(Math.round(CFG.WORK_COV*100))}٪) · ${fa(inM.length)} کار در این ماه${sw?` که ${fa(sw)} مورد توسعه و بهبود نرم‌افزار است`:''}`}}}
   let raw=0,ws=0;for(const k in MW)if(m[k]!=null){raw+=Math.max(0,Math.min(1,m[k]))*MW[k];ws+=MW[k]}
   const pts={};for(const k in MW)pts[k]=m[k]==null?null:Math.round(Math.max(0,Math.min(1,m[k]))*MW[k]);
   return{m,det,pts,total:ws?Math.round(raw/ws*100):null}}
+/* کارت «کارهای روزانهٔ ثبت‌شده» برای مدیر: خلاصهٔ ماه به تفکیک دسته */
+function workBlock(K){
+  if(!D.wl)return'';const R=monthRange(K),L=D.wl.filter(x=>eqm(x.created_by,ME)&&d10(x.work_date)>=R.a&&d10(x.work_date)<=R.b),by={};
+  L.forEach(x=>{const c=x.category||'سایر';(by[c]=by[c]||[]).push(x)});const cats=Object.entries(by).sort((p,q)=>q[1].length-p[1].length);
+  return `<div class="card"><h2>کارهای روزانهٔ ثبت‌شده — ${lab(K)}</h2>${L.length?`<div class="mu">${fa(L.length)} کار در ${fa(new Set(L.map(x=>d10(x.work_date))).size)} روز · ${fa(L.filter(x=>x.status==='progress').length)} مورد در جریان</div><table style="margin-top:6px">${cats.map(([c,l])=>`<tr><td>${esc(c)}</td><td class="c">${fa(l.length)}</td></tr>`).join('')}</table>`:'<div class="mu">در این ماه کاری ثبت نشده است.</div>'}<div style="margin-top:6px"><a href="worklog.html" style="color:var(--ac)">ثبت یا مشاهده‌ی کارهای روزانه ←</a></div></div>`}
 function mgrCard(K){
   const c=mgrCalc(K);if(c.total==null)return'';
   return `<div class="card"><h2>شاخص‌های مدیر واحد HSE (محمد اله رضایی) — ${lab(K)}${K===nowK?' <span class="mu">(ماه جاری؛ هنوز تمام نشده)</span>':''}</h2>
@@ -379,7 +394,7 @@ function render(){
     const kk=[];let k=K;for(let i=0;i<6;i++){kk.unshift(k);k=prevK(k)}
     h+=`<div class="card"><h2>مقایسه کارشناسان (امتیاز ماهانه)</h2><table><tr><th></th>${kk.map(x=>`<th class="c">${MN[+x.slice(5)-1]}</th>`).join('')}</tr>
      ${ex.map(e=>`<tr><td>${esc(nm(e))}</td>${kk.map(x=>{const t=tv(e,x);return `<td class="c ${cc(t)}">${fm(t)}</td>`}).join('')}</tr>`).join('')}</table></div>`;
-    h+=mgrCard(K);
+    h+=mgrCard(K)+workBlock(K);
     h+=card(document.getElementById('esel').value,K);
   }else h+=card(ME,K);
   h+=`<div class="mu">وزن‌ها: ${Object.keys(CFG.W).map(k=>NAMES[k]+' '+fa(CFG.W[k])).join('، ')}. حداقل‌ها در بخش CFG بالای فایل قابل تنظیم است. چک‌لیست «انجام‌شده» یعنی آخرین ثبت آن در همان ماه.</div>`;

@@ -23,7 +23,10 @@ async function computeHR() {
   /* کل سوابق لحاظ می‌شود؛ هرچه قدیمی‌تر، وزن کمتر (۲ سال اخیر ۱۰۰٪، تا ۵ سال ۶۰٪، قدیمی‌تر ۳۵٪؛ حادثه شدید/فوتی حداقل ۶۰٪) */
   const wAge = (d, sev) => { const w = d >= c24 ? 1 : d >= c60 ? 0.6 : 0.35; return sev >= 3 ? Math.max(w, 0.6) : w; };
   const P = {}, byCode = {};
-  const empA = emp.filter(e => HSEP.isActive(e)); /* قطع همکاری: از فهرست افراد پرخطر حذف */
+  /* فوتی: فردی که حادثهٔ فوتی دارد (یا علت قطع همکاری‌اش «فوت» است) در فهرست نمی‌آید، حتی اگر تاریخ قطع همکاری ثبت نشده باشد؛
+     «روز از دست رفته»ی فوتی (مثلاً ۹۰۰۰) روز جریمه‌ای شاخص‌هاست و استعلاجی واقعی نیست */
+  const dead = new Set((inc || []).filter(i => i.severity === 'fatal').map(i => i.employee_id));
+  const empA = emp.filter(e => HSEP.isActive(e) && !dead.has(e.id) && !/فوت/.test(e.termination_reason || '')); /* قطع همکاری یا فوت: از فهرست افراد پرخطر حذف */
   empA.forEach(e => { P[e.id] = { e, n: 0, nRec: 0, n36: 0, sevMax: 0, pts: 0, lostInc: 0, lostVis: 0, lostIncW: 0, lostVisW: 0, warnPts: 0, lastEv: null, warnW: 0, warnO: 0, v6: 0, vBP: 0, seizV: 0, cond: new Set(), bp: false, restr: false, fuOver: 0, lastTr: null, chips: [], act: new Set() }; if (e.emp_id != null) byCode[String(e.emp_id)] = e.id; });
   const SO = { minor: 1, moderate: 2, severe: 3, fatal: 4 };
   (inc || []).forEach(i => { const p = P[i.employee_id], d = dISO(i.incident_date); if (!p || !d) return; const sv = HRW.sev[i.severity] ? i.severity : 'minor', w = wAge(d, SO[sv]); if (!p.lastEv || d > p.lastEv) p.lastEv = d; p.n++; if (d >= c24) p.nRec++; if (d >= c36) p.n36++; p.pts += HRW.sev[sv] * w; p.sevMax = Math.max(p.sevMax, SO[sv]); const m = ndg(i.description).match(/روز از دست رفته:\s*(\d+)/); if (m) { p.lostInc += +m[1]; p.lostIncW += +m[1] * w; } });

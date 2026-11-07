@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js" data-roles="manager"></script>
+<script src="hse_nav.js" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>برنامه دستورالعمل‌ها - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.w{max-width:900px;margin:0 auto;padding:14px}
+.card2{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin:10px 0}
+.t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.mu{color:var(--mu);font-size:12px}
+.b2{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.b2.p{background:var(--ac);color:var(--acx);border-color:var(--ac)}.b2.ok{border-color:var(--ok);color:var(--ok)}.b2.bad{border-color:var(--bad);color:var(--bad)}
+.bg{display:inline-block;border-radius:99px;padding:1px 10px;font-size:11px;border:1px solid var(--bd)}.bg.ok{color:var(--ok);border-color:var(--ok)}.bg.bad{color:var(--bad);border-color:var(--bad)}.bg.wa{color:var(--wa);border-color:var(--wa)}
+.sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0}.sm button{text-align:center;padding:8px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}.sm b{display:block;font-size:22px}
+input,select,textarea{font:inherit;font-size:13px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:7px 9px;width:100%}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);width:min(94vw,560px);padding:14px}
+dialog::backdrop{background:rgba(15,23,42,.55)}
+label.f{display:block;font-size:12px;color:var(--mu);margin-top:8px}
+.jd{display:flex;gap:4px}.jd select{width:auto;flex:1}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pb{height:8px;border-radius:99px;background:var(--bd);overflow:hidden;margin:6px 0}.pb i{display:block;height:100%;background:var(--ok)}
+pre{white-space:pre-wrap;font:inherit;font-size:13px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;max-height:46vh;overflow:auto}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="w">
+ <h1 style="margin:0">📘 برنامه تدوین دستورالعمل‌های HSE</h1>
+ <div class="mu">دستورالعمل‌های سیستمی (مثل مدیریت حوادث و پیمانکاران)، دستگاه‌ها و فرایندها — هر کدام با موعد؛ موعدها در تقویم کاری مدیر هم می‌آید.</div>
+ <div class="card2"><div class="row"><b id="pt"></b><span class="mu" id="ps"></span></div><div class="pb"><i id="pbi" style="width:0"></i></div></div>
+ <div class="sm" id="sm"></div>
+ <div class="row"><select id="kind" style="flex:1;min-width:130px"><option value="">همهٔ انواع</option><option>سیستمی</option><option>دستگاه</option><option>فرایند</option></select><input id="q" placeholder="🔍 جستجو…" style="flex:2;min-width:160px"><button class="b2 p" id="bAdd">＋ دستورالعمل جدید</button></div>
+ <div id="warn"></div><div id="list"></div>
+</div>
+<dialog id="dlg"></dialog>
+<div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:99px;font-size:13px;z-index:99999"></div>
+<script src="eval_core.js"></script>
+<script>
+const {fa,esc}=HSE,$=s=>document.querySelector(s),SB='https://priopguwfjawybffarhd.supabase.co/rest/v1/';
+const ST={planned:'برنامه‌ریزی‌شده',drafting:'در حال تدوین',review:'در بازنگری/تأیید',approved:'ابلاغ‌شده'},NX={planned:'drafting',drafting:'review',review:'approved'},NB={planned:'▶ شروع تدوین',drafting:'📨 ارسال برای بازنگری',review:'✔ ابلاغ شد'};
+const PRI={1:'اولویت بالا',2:'اولویت متوسط',3:'اولویت پایین'};
+const OUT={
+ 'سیستمی':['هدف','دامنه و محدوده اجرا','تعاریف و اختصارات','مسئولیت‌ها و اختیارات (مدیرعامل، مدیر HSE، سرپرستان، پرسنل)','شرح فعالیت‌ها (گام‌به‌گام، با مهلت و مسئول هر گام)','فرم‌ها و سوابق (نام فرم، محل نگهداری، مدت نگهداری)','شاخص‌های پایش و نحوهٔ گزارش‌دهی','مراجع و الزامات قانونی (قانون کار، آیین‌نامه‌های حفاظت فنی، استانداردها)','تاریخ تدوین، شمارهٔ ویرایش و امضاها'],
+ 'دستگاه':['هدف و دامنه (کد و نام دستگاه‌ها)','مشخصات و ظرفیت مجاز دستگاه','خطرات اصلی دستگاه (با بیان پیامد)','شرایط به‌کارگیری اپراتور (آموزش، صلاحیت، مجوز)','بازرسی پیش از شروع کار (چک‌لیست)','روش کار ایمن حین بهره‌برداری','توقف، تعمیر و نگهداری ایمن (شامل قفل و برچسب)','وضعیت اضطراری و اقدام فوری','بازرسی‌های دوره‌ای، تست‌ها و سوابق','تجهیزات حفاظت فردی لازم','مراجع و شمارهٔ ویرایش'],
+ 'فرایند':['هدف و دامنه (سوله/واحد)','شرح مختصر فرایند و مواد درگیر','خطرات فرایندی و محیط کار (اسید، گاز، گردوغبار، دما، فشار)','مسئولیت‌ها','روش اجرای ایمن مرحله‌به‌مرحله (راه‌اندازی، کار عادی، توقف)','کنترل‌های مهندسی و مدیریتی (تهویه، حفاظ، حدود مجاز)','تجهیزات حفاظت فردی','واکنش در نشتی، آتش‌سوزی و مسمومیت','پایش (سنجش، بازرسی) و آموزش لازم','سوابق و مراجع'],
+};
+let L=[],ME='',FIL='all';
+const todayISO=()=>HSEToday();
+const jl=iso=>iso?new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'}):'—';
+const diff=(a,b)=>Math.round((new Date(a+'T12:00:00Z')-new Date(b+'T12:00:00Z'))/864e5);
+const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',2600)};
+async function rq(p,o={}){const r=await fetch(SB+p,{...o,headers:{'Content-Type':'application/json','Prefer':'return=representation',...(o.headers||{})}});if(!r.ok)throw new Error((await r.text()).slice(0,250));const t=await r.text();return t?JSON.parse(t):null}
+const st=o=>{if(o.status==='approved')return{k:'done',t:'ابلاغ شد'+(o.approved_at?' ('+jl(String(o.approved_at).slice(0,10))+')':''),c:'ok',n:9999};if(!o.target_date)return{k:'none',t:'بدون موعد',c:'wa',n:5000};const d=diff(String(o.target_date).slice(0,10),todayISO());return d<0?{k:'late',t:'معوق '+fa(-d)+' روز',c:'bad',n:d}:d<=30?{k:'soon',t:fa(d)+' روز مانده',c:'wa',n:d}:{k:'ok',t:fa(d)+' روز مانده',c:'',n:d}};
+async function load(){
+  L=await HSE.getAll('hse_procedures?select=*&order=target_date.asc');if(!Array.isArray(L))throw new Error('table');L=L.filter(o=>o.active!==false);draw()}
+function draw(){
+  const S=L.map(o=>({o,s:st(o)})),cnt=k=>S.filter(x=>x.s.k===k).length,dn=cnt('done');
+  $('#pt').textContent=fa(dn)+' از '+fa(L.length)+' دستورالعمل ابلاغ شده';$('#ps').textContent=L.length?fa(Math.round(dn/L.length*100))+'٪ پیشرفت':'';$('#pbi').style.width=(L.length?dn/L.length*100:0)+'%';
+  $('#sm').innerHTML=[['all','همه',L.length,''],['late','معوق',cnt('late'),'var(--bad)'],['soon','تا ۳۰ روز آینده',cnt('soon'),'var(--wa)'],['ok','در مهلت',cnt('ok'),''],['done','ابلاغ‌شده',dn,'var(--ok)']].map(([k,t,n,c])=>`<button data-f="${k}" style="${FIL===k?'border-color:var(--ac);':''}"><b style="${c?'color:'+c:''}">${fa(n)}</b>${t}</button>`).join('');
+  const kv=$('#kind').value,q=$('#q').value.trim(),R=S.filter(x=>(FIL==='all'||x.s.k===FIL)&&(!kv||x.o.kind===kv)&&(!q||[x.o.title,x.o.owner,x.o.doc_no,x.o.note].join(' ').includes(q)))
+   .sort((a,b)=>(a.s.k==='done')-(b.s.k==='done')||a.s.n-b.s.n);
+  if(!L.length){$('#list').innerHTML='<div class="card2">فهرستی ثبت نشده است. فایل hse_procedures.sql را یک‌بار در Supabase اجرا کنید تا فهرست پیشنهادی (حدود ۳۰ دستورالعمل با موعد) بارگذاری شود، یا «دستورالعمل جدید» را بزنید.</div>';return}
+  $('#list').innerHTML=R.map(({o,s})=>`<div class="card2"><div class="t"><div style="flex:1;min-width:220px"><b>${esc(o.title)}</b> <span class="bg">${esc(o.kind)}</span> <span class="bg">${PRI[o.priority]||''}</span> <span class="bg ${s.c}">${s.t}</span>
+   <div class="mu">وضعیت: <b>${ST[o.status]}</b>${o.status!=='approved'?' · موعد: '+jl(o.target_date&&String(o.target_date).slice(0,10)):''}${o.owner?' · مسئول: '+esc(o.owner):''}${o.doc_no?' · شماره: '+esc(o.doc_no):''}</div>${o.note?`<div class="mu">${esc(o.note)}</div>`:''}</div>
+   <div class="row">${NX[o.status]?`<button class="b2 ${o.status==='review'?'ok':'p'}" data-a="next" data-id="${o.id}">${NB[o.status]}</button>`:''}<button class="b2" data-a="tpl" data-id="${o.id}">📋 ساختار</button><button class="b2" data-a="edit" data-id="${o.id}">✏️</button></div></div></div>`).join('')||'<div class="card2 mu">موردی با این فیلتر نیست.</div>'}
+function dateField(id){return`<div id="${id}" class="jd"><select></select><select></select><select></select></div>`}
+function openTpl(id){const o=L.find(x=>x.id===id),sec=OUT[o.kind]||OUT['سیستمی'];
+  const txt=`دستورالعمل: ${o.title}\nشمارهٔ سند: ${o.doc_no||'………'}   ویرایش: ۰۰   تاریخ: ………\n\n`+sec.map((s,i)=>`${i+1}. ${s}\n   …\n`).join('\n');
+  $('#dlg').innerHTML=`<b>ساختار پیشنهادی: ${esc(o.title)}</b><div class="mu">سرفصل‌های استاندارد برای نوع «${esc(o.kind)}»؛ کپی کنید و در Word پر کنید.</div><pre id="tx">${esc(txt)}</pre><div class="row" style="margin-top:10px"><button class="b2" id="tX">بستن</button><button class="b2 p" id="tC" style="margin-inline-start:auto">کپی متن</button></div>`;
+  $('#dlg').showModal();$('#tX').onclick=()=>$('#dlg').close();$('#tC').onclick=async()=>{try{await navigator.clipboard.writeText(txt);toast('کپی شد')}catch(e){const r=document.createRange();r.selectNodeContents($('#tx'));getSelection().removeAllRanges();getSelection().addRange(r);toast('متن انتخاب شد؛ کپی کنید')}}}
+function openForm(id){
+  const o=id?L.find(x=>x.id===id):{kind:'سیستمی',priority:2,status:'planned'};
+  $('#dlg').innerHTML=`<b>${id?'ویرایش':'دستورالعمل جدید'}</b>
+   <label class="f">عنوان *<input id="fT" value="${esc(o.title||'')}"></label>
+   <div class="row"><label class="f" style="flex:1">نوع<select id="fK">${['سیستمی','دستگاه','فرایند'].map(c=>`<option ${c===o.kind?'selected':''}>${c}</option>`).join('')}</select></label>
+   <label class="f" style="flex:1">اولویت<select id="fP">${[1,2,3].map(c=>`<option value="${c}" ${c==o.priority?'selected':''}>${PRI[c]}</option>`).join('')}</select></label>
+   <label class="f" style="flex:1">وضعیت<select id="fS">${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${k===o.status?'selected':''}>${v}</option>`).join('')}</select></label></div>
+   <label class="f">موعد تدوین/ابلاغ</label>${dateField('fD')}
+   <div class="row"><label class="f" style="flex:1">مسئول تدوین<input id="fO" value="${esc(o.owner||'')}"></label><label class="f" style="flex:1">شمارهٔ سند<input id="fN" value="${esc(o.doc_no||'')}"></label></div>
+   <label class="f">توضیح<textarea id="fT2" rows="2">${esc(o.note||'')}</textarea></label>
+   <div id="fE" class="mu" style="color:var(--bad)"></div>
+   <div class="row" style="margin-top:12px">${id?'<button class="b2 bad" id="fDel">حذف</button>':''}<button class="b2" id="fX">انصراف</button><button class="b2 p" id="fSv" style="margin-inline-start:auto">ذخیره</button></div>`;
+  HSE.jdInit($('#fD'),true);if(o.target_date)HSE.jdSet($('#fD'),String(o.target_date).slice(0,10));
+  $('#dlg').showModal();$('#fX').onclick=()=>$('#dlg').close();
+  if(id)$('#fDel').onclick=async()=>{if(!confirm('این دستورالعمل از برنامه حذف شود؟'))return;try{await rq('hse_procedures?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=minimal'}});$('#dlg').close();await load()}catch(e){$('#fE').textContent=e.message}};
+  $('#fSv').onclick=async()=>{const title=$('#fT').value.trim();if(!title)return $('#fE').textContent='عنوان را بنویسید';const status=$('#fS').value;
+    const b={title,kind:$('#fK').value,priority:+$('#fP').value,status,target_date:HSE.jdGet($('#fD'))||null,owner:$('#fO').value.trim()||null,doc_no:$('#fN').value.trim()||null,note:$('#fT2').value.trim()||null};
+    if(status==='approved'&&!o.approved_at)b.approved_at=todayISO();if(status!=='approved')b.approved_at=null;
+    try{if(id)await rq('hse_procedures?id=eq.'+id,{method:'PATCH',body:JSON.stringify(b),headers:{Prefer:'return=minimal'}});else await rq('hse_procedures',{method:'POST',body:JSON.stringify({...b,created_by:ME||null}),headers:{Prefer:'return=minimal'}});
+      $('#dlg').close();toast('ثبت شد');await load()}catch(e){$('#fE').textContent=e.message}}}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-f],[data-a],#bAdd');if(!t)return;
+  try{
+    if(t.id==='bAdd')return openForm(null);
+    if(t.dataset.f){FIL=t.dataset.f;return draw()}
+    const o=L.find(x=>x.id===t.dataset.id);
+    if(t.dataset.a==='edit')openForm(t.dataset.id);else if(t.dataset.a==='tpl')openTpl(t.dataset.id);
+    else if(t.dataset.a==='next'&&o){const n=NX[o.status];if(n==='approved'&&!confirm('دستورالعمل ابلاغ شد؟ از تقویم کنار گذاشته می‌شود.'))return;t.disabled=true;
+      await rq('hse_procedures?id=eq.'+o.id,{method:'PATCH',body:JSON.stringify({status:n,approved_at:n==='approved'?todayISO():null}),headers:{Prefer:'return=minimal'}});toast('وضعیت: '+ST[n]);await load()}
+  }catch(er){toast('خطا: '+er.message.slice(0,120))}
+});
+$('#q').oninput=draw;$('#kind').onchange=draw;
+HSEAuth.ready.then(()=>{ME=HSEAuth.email||'';load().catch(()=>{$('#warn').innerHTML='<div class="card2"><span class="bg bad">جدول ساخته نشده</span> فایل hse_procedures.sql را یک‌بار در Supabase SQL Editor اجرا کنید.</div>'})});
+</script>
+</body>
+</html>

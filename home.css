@@ -1,0 +1,169 @@
+/* صفحهٔ اصلی — چیدمان «اتاق کنترل»: ریل ناوبری تیره (ماژول‌ها) + تابلوی وضعیت (نیازمند اقدام)
+   این فایل بعد از استایل داخلی index.html بارگذاری می‌شود و همان متغیرها را با پالت جدید جایگزین می‌کند. */
+
+:root {
+  --bg: #e8ecf0; --card: #ffffff; --soft: #f2f5f8; --tx: #13202c; --mu: #5a6877; --bd: #d2d9e0;
+  --ok: #1f8a57; --wa: #c47400; --bad: #c8372d; --ac: #0f766e; --acx: #fff;
+  --rail: #141e28; --rail2: #1c2935; --rail3: #2b3b4b; --rt: #d3dce5; --rm: #8193a5;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e141a; --card: #16202a; --soft: #121a22; --tx: #e6edf3; --mu: #8d9cab; --bd: #26323f;
+    --ok: #3ecf8e; --wa: #f0b429; --bad: #ff6b5e; --ac: #2cc4b3; --acx: #04201d;
+    --rail: #0a1016; --rail2: #121b24; --rail3: #212f3d;
+  }
+}
+
+body { font-size: 14px; line-height: 1.7; }
+.w { max-width: none; padding: 0; display: block; }
+
+/* ---------- چارچوب ---------- */
+.shell { display: grid; grid-template-columns: 284px minmax(0, 1fr); min-height: 100vh; }
+.rail {
+  background: var(--rail); color: var(--rt); position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: var(--rail3) transparent;
+}
+.main { padding: 22px 32px 36px; max-width: 1060px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+
+/* ---------- ریل: نام و لوگو ---------- */
+.brand { display: flex; align-items: center; gap: 12px; padding: 18px 16px 14px; border-bottom: 1px solid var(--rail3); }
+.brand .plate { flex: none; background: #fff; border-radius: 6px; padding: 5px 8px; line-height: 0; }
+.brand img { height: 30px; width: auto; display: block; }
+.brand h1 { margin: 0; font-size: 14.5px; line-height: 1.5; color: #fff; font-weight: 700; }
+.brand .mu { color: var(--rm); font-size: 11.5px; line-height: 1.5; }
+
+/* ---------- ریل: جستجو ---------- */
+.mods { padding-bottom: 20px; }
+.srch { position: relative; padding: 14px 12px 6px; }
+.srch input {
+  width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--rail3); background: var(--rail2);
+  color: #fff; padding: 0 12px 0 34px; font: inherit; font-size: 13px;
+}
+.srch input::placeholder { color: var(--rm); }
+.srch input:focus { outline: 2px solid var(--ac); outline-offset: 0; border-color: transparent; background: var(--rail2); }
+.srch kbd {
+  position: absolute; inset-inline-end: auto; left: 22px; top: 22px; width: 20px; height: 20px; border-radius: 4px;
+  border: 1px solid var(--rail3); color: var(--rm); font: 600 11px/18px Vazirmatn, sans-serif; text-align: center; pointer-events: none;
+}
+.srch input:focus + kbd, .srch input:not(:placeholder-shown) + kbd { display: none; }
+
+/* ---------- ریل: گروه‌ها و ماژول‌ها ---------- */
+.mods .mg, .mods #mgr { background: transparent; border: 0; border-radius: 0; box-shadow: none; padding: 0; margin: 0; }
+.mods .mg h2, .mods #mgr > summary {
+  margin: 0; padding: 16px 16px 6px; font-size: 11.5px; font-weight: 600; color: var(--rm); background: transparent; border: 0;
+  line-height: 1.5; cursor: default;
+}
+.mods #mgr > summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; min-height: 0; }
+.mods #mgr > summary::-webkit-details-marker { display: none; }
+.mods #mgr > summary::after { content: "▾"; position: static; color: var(--rm); font-size: 11px; transform: none; }
+.mods #mgr[open] > summary::after { content: "▴"; transform: none; }
+.mods .tiles { display: flex; flex-direction: column; gap: 1px; padding: 0 8px; margin: 0; }
+.mods .tiles a.m {
+  position: relative; display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 5px 8px;
+  background: transparent; border: 0; border-radius: 6px; box-shadow: none; color: var(--rt); font-size: 13.5px; line-height: 1.4;
+  text-align: start; flex-direction: row; transition: background .12s;
+}
+.mods .tiles a.m:hover { background: var(--rail2); transform: none; box-shadow: none; }
+.mods .tiles a.m:focus-visible { outline: 2px solid var(--ac); outline-offset: -2px; }
+.mods .tiles .im {
+  flex: none; display: block; width: 28px; height: 28px; border-radius: 6px; overflow: hidden; position: relative;
+  background: var(--g); aspect-ratio: auto; margin: 0; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+}
+.mods .tiles .im svg { width: 100%; height: 100%; display: block; }
+.mods .tiles a.m b { display: block; justify-content: flex-start; flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; color: var(--rt); padding: 0; text-align: start; background: none; }
+.mods .tiles a.m small {
+  position: static; flex: none; background: var(--rail3); color: #fff; padding: 0 8px; min-width: 22px; height: 20px; line-height: 20px;
+  border-radius: 10px; font-size: 11px; font-weight: 600; text-align: center; white-space: nowrap;
+}
+.mods .tiles a.m small:empty { display: none; }
+.mods #mgr > div[style] { padding: 6px 12px 0; margin: 0 !important; }
+.mods #mgr #bkBtn {
+  width: 100%; min-height: 36px; font-size: 12px; background: var(--rail2); color: var(--rt); border: 1px solid var(--rail3);
+  border-radius: 6px; cursor: pointer; font-family: inherit;
+}
+.mods #mgr #bkBtn:hover { background: var(--rail3); }
+.mods #mgr #bkMsg { color: var(--rm); font-size: 11px; line-height: 1.6; }
+#nores { padding: 14px 16px; color: var(--rm); font-size: 12.5px; text-align: start; }
+
+/* ---------- نوار بالای محتوا ---------- */
+.bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-inline-start: 0; }
+.bar .ttl h2 { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.4; color: var(--tx); }
+.bar .dt { color: var(--mu); font-size: 13px; }
+#viewAsBtn { margin: 0 !important; border-radius: 6px !important; border: 1px solid var(--bd) !important; background: var(--card) !important; overflow: hidden; }
+#viewAsBtn button { flex: none !important; min-height: 32px !important; padding: 0 14px; font-size: 12.5px; border: 0; border-radius: 0; font-family: inherit; cursor: pointer; }
+
+/* ---------- تابلوی وضعیت ---------- */
+.panel { background: var(--card); border: 1px solid var(--bd); border-radius: 8px; overflow: hidden; }
+.ph { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--bd); }
+.ph h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--tx); }
+.ph .dl { color: var(--mu); font-size: 12.5px; flex: 1; min-width: 0; }
+a.desk {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; margin: 0; width: auto; min-height: 0;
+  background: var(--ac); color: var(--acx); border-radius: 6px; font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: none; border: 0;
+}
+a.desk b { color: inherit; font-size: 13px; font-weight: 700; }
+a.desk i { font-style: normal; font-size: 16px; line-height: 1; }
+a.desk:hover { filter: brightness(1.08); }
+
+.panel .wg { display: block; padding: 0; margin: 0; background: transparent; border: 0; }
+.panel .wg .wi {
+  display: flex; align-items: center; gap: 14px; padding: 9px 16px; margin: 0; min-height: 0; border: 0; border-radius: 0;
+  border-top: 1px solid var(--bd); border-inline-start: 4px solid transparent; background: transparent; color: var(--tx);
+  text-decoration: none; box-shadow: none; transition: background .12s;
+}
+.panel .wg .wi:first-child { border-top: 0; }
+.panel .wg .wi:hover { background: var(--soft); }
+.panel .wg .wi.bad { border-inline-start-color: var(--bad); }
+.panel .wg .wi.wa { border-inline-start-color: var(--wa); }
+.panel .wg .wi.ok { border-inline-start-color: var(--ok); }
+.panel .wg .wi i { display: none; }
+.panel .wg .wi.ok i { display: inline-flex; flex: none; width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 50%; background: var(--ok); color: #fff; font-style: normal; font-size: 13px; }
+.panel .wg .wi > div { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 16px; }
+.panel .wg .wi b { display: flex; align-items: baseline; gap: 10px; font-size: 14px; font-weight: 600; color: var(--tx); }
+.panel .wg .wi b em.n { font-style: normal; font-weight: 800; font-size: 22px; line-height: 1.2; min-width: 34px; text-align: center; font-variant-numeric: tabular-nums; }
+.panel .wg .wi.bad b em.n { color: var(--bad); }
+.panel .wg .wi.wa b em.n { color: var(--wa); }
+.panel .wg .wi span { display: inline; color: var(--mu); font-size: 12.5px; line-height: 1.6; padding: 0; margin: 0; }
+.panel .wg .wi::after { content: "‹"; color: var(--mu); font-size: 18px; line-height: 1; }
+.panel .wg .wi:not(.bad):not(.wa) b { font-weight: 600; }
+
+/* ---------- ابزار: ثبت سریع و کارهای من ---------- */
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.quick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding: 0; background: none; border: 0; }
+.quick::before { content: "ثبت سریع"; color: var(--mu); font-size: 12.5px; margin-inline-end: 4px; }
+.quick a {
+  display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; background: var(--card); color: var(--tx);
+  border: 1px solid var(--bd); border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none; box-shadow: none; flex: none; width: auto;
+}
+.quick a:hover { border-color: var(--ac); color: var(--ac); background: var(--card); }
+#myBtn {
+  margin: 0 !important; width: auto !important; min-height: 34px !important; padding: 0 14px; font-size: 13px; border-radius: 6px !important;
+  margin-inline-start: auto !important; background: var(--card); color: var(--tx); border: 1px solid var(--bd); font-family: inherit; font-weight: 700; cursor: pointer;
+}
+#myBtn:hover { border-color: var(--ac); }
+#myBtn .n { min-width: 22px; padding: 0 7px; font-size: 12px; line-height: 20px; }
+
+/* ---------- افراد پرریسک (مدیر) ---------- */
+#hr { border-radius: 8px; }
+
+footer { color: var(--mu); font-size: 11.5px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--bd); text-align: start; }
+
+/* ---------- نمایشگر باریک / موبایل ---------- */
+@media (max-width: 1100px) { .shell { grid-template-columns: 252px minmax(0, 1fr); } .main { padding: 20px 22px 32px; } }
+@media (max-width: 860px) {
+  .shell { display: flex; flex-direction: column; }
+  .rail { display: contents; }
+  .brand { order: 1; background: var(--rail); border-bottom: 0; padding: 40px 16px 14px; } /* بالای صفحه جای نشان کاربر (auth.js) */
+  .main { order: 2; padding: 16px 14px 8px; gap: 14px; }
+  .mods { order: 3; background: var(--rail); padding-bottom: 28px; margin-top: 10px; }
+  .mods .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0 10px; }
+  .mods .tiles a.m { min-height: 46px; background: var(--rail2); }
+  .mods .tiles a.m b { font-size: 13px; }
+  .bar .ttl h2 { font-size: 18px; }
+  .ph { flex-wrap: wrap; }
+  .ph .dl { order: 3; flex-basis: 100%; }
+  #myBtn { margin-inline-start: 0 !important; width: 100% !important; }
+  .quick a { flex: 1 1 calc(50% - 8px); justify-content: center; }
+  .quick::before { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { #myBtn.bad { animation: none; } }
