@@ -148,10 +148,10 @@
     b.querySelector('a').onclick = e => { e.preventDefault(); A.logout(); };
     const flagged = (() => { try { return localStorage.getItem(SW_FLAG) === '1'; } catch (_) { return false; } })();
     if (A.role === 'manager' || (A.role === 'expert' && flagged)) { /* سوییچ بین حساب مدیر و کارشناس */
-      const sw = document.createElement('a'); sw.href = '#'; sw.style.cssText = 'color:#fbbf24;margin-inline-start:8px';
+      const sw = document.createElement('a'); sw.href = '#'; sw.style.cssText = 'color:#fbbf24';
       sw.textContent = A.role === 'manager' ? '🔁 سوییچ به حساب کارشناس' : '🔁 بازگشت به حساب مدیر';
       sw.onclick = e => { e.preventDefault(); (A.role === 'manager' ? switchToExpert : switchToManager)(); };
-      b.insertBefore(sw, b.querySelector('a'));
+      const lo = b.querySelector('a'); b.insertBefore(sw, lo); b.insertBefore(document.createTextNode(' · '), lo);
     }
     const st = document.createElement('style'); st.textContent = '@media print{.np{display:none!important}}'; document.head.appendChild(st);
     document.body.appendChild(b);

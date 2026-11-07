@@ -12,13 +12,14 @@
 <title>تقویم بازرسی - نرم‌افزار جامع HSE</title>
 <link rel="stylesheet" href="hse_ui.css">
 <style>
-.w{max-width:1000px;margin:0 auto;padding:14px}
+.w{max-width:1000px;margin:0 auto;padding:38px 14px 14px}
 .nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0}
 .nav button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:6px 12px;font:inherit;cursor:pointer}
 .nav b{font-size:17px;min-width:120px;text-align:center}
-.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px}
-.sum div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:8px 10px}
-.sum b{display:block;font-size:20px}
+.sum{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.sum>div{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:99px;padding:3px 12px;font-size:12px;color:var(--mu)}
+.sum b{display:inline;font-size:14px;color:var(--tx)}
+.sum .bar{width:54px;margin:0}
 .bar{height:8px;border-radius:99px;background:var(--bd);overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--ok)}
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .chd{text-align:center;font-size:12px;color:var(--mu);padding:2px 0}
@@ -44,6 +45,12 @@
 .ct a.cgo.p{background:var(--ac);color:var(--acx);font-weight:700}
 #focus .fh{display:flex;align-items:center;gap:6px;margin:12px 0 4px;font-size:14px;font-weight:700}#focus .fh.bad{color:var(--bad)}
 #focus details>summary{cursor:pointer;color:var(--mu);margin:8px 0 2px;font-size:13px}
+/* لیست‌های «امروز» و «عقب‌افتاده» جمع‌وجور: راهنمای هر کار فقط در کارت روز انتخاب‌شده دیده می‌شود */
+#focus{margin-top:12px}#focus .ct,#late .ct{padding:6px 8px;margin:4px 0}#focus .ct .cx small.hw,#late .ct .cx small.hw{display:none}
+#focus .ctk,#late .ctk{width:22px;height:22px;font-size:13px}
+.hd{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}.hd h1{margin:0;font-size:20px}
+.hint>summary{cursor:pointer;color:var(--mu);font-size:12px;margin-top:2px}.hint>div{margin-top:4px}
+#late>details>summary{cursor:pointer;font-weight:700;color:var(--bad);list-style:revert}
 .cerr{background:var(--warnbg);border:1px solid var(--wa);border-radius:10px;padding:8px 10px;margin:8px 0;color:var(--tx)}
 html.emb .w>div:first-child,html.emb footer{display:none}html.emb .w{padding:4px}html.emb body{background:transparent}
 @media(max-width:560px){.cd{min-height:52px}.cd .cc{font-size:10px;padding:0 4px}}
@@ -51,15 +58,15 @@ html.emb .w>div:first-child,html.emb footer{display:none}html.emb .w{padding:4px
 </head>
 <body>
 <div class="w">
-  <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">
-    <div><h1 id="ttl">📅 تقویم بازرسی</h1><div id="sub" class="mu" style="color:var(--mu);font-size:13px">کارهای هر روز: چک‌لیست‌های روزانه، موعد ماهانه‌ی جدول، و سررسید بازدید هر دستگاه. بعد از ثبت چک‌لیست، تیک خودکار می‌خورد.</div></div>
-    <div id="hl" style="display:flex;gap:10px;font-size:13px;flex-wrap:wrap"><a href="checklists.html" style="color:var(--ac)">چک‌لیست‌ها</a><a href="expert_eval.html" style="color:var(--ac)">ارزیابی کارشناس</a><a href="index.html" style="color:var(--ac)">← صفحه اصلی</a></div>
+  <div class="hd">
+    <div><h1 id="ttl">📅 تقویم بازرسی</h1><details class="hint"><summary>ℹ️ این صفحه چیست؟</summary><div id="sub" class="mu" style="color:var(--mu);font-size:13px">کارهای هر روز: چک‌لیست‌های روزانه، موعد ماهانه‌ی جدول، و سررسید بازدید هر دستگاه. بعد از ثبت چک‌لیست، تیک خودکار می‌خورد.</div></details></div>
+    <div id="hl" style="display:flex;gap:10px;font-size:13px;flex-wrap:wrap"><a href="checklists.html" style="color:var(--ac)">چک‌لیست‌ها</a><a href="expert_eval.html" style="color:var(--ac)">ارزیابی کارشناس</a></div>
   </div>
   <div class="nav"><button id="pv">‹ ماه قبل</button><b id="mt"></b><button id="nx">ماه بعد ›</button><button id="td">امروز</button></div>
   <div id="warn"></div>
   <div class="sum" id="sum"></div>
-  <div id="focus"></div>
   <div class="grid" id="grid"></div>
+  <div id="focus"></div>
   <div id="day" style="margin-top:14px"></div>
   <div id="late"></div>
 </div>
@@ -260,7 +267,7 @@ function grpRow(l){const x0=l[0];return `<div class="ct late"><div class="ctk"><
 function missRows(mis){const m=new Map();mis.forEach(x=>{const a=m.get(x.t)||[];a.push(x);m.set(x.t,a)});
   return [...m.entries()].map(([t,l])=>`<div class="ct"><div class="ctk"></div><div class="cx"><b>${esc(t)}</b><small>${fa(l.length)} روز ثبت نشد: ${dl(l)}</small></div></div>`).join('')}
 const MISS_NOTE='چک‌لیست بازدید فقط برای همان روز ثبت می‌شود (ثبت امروز، بازدید امروز را حساب می‌کند)؛ این روزها قابل جبران نیست. فقط بازدید امروز را انجام دهید.';
-const FO={late:false,done:false,miss:false};
+const FO={late:false,done:false,miss:false,late2:false};
 document.addEventListener('toggle',e=>{const d=e.target;if(d&&d.dataset&&d.dataset.fk)FO[d.dataset.fk]=d.open},true);
 function focusHTML(){
   const ord=(p,q)=>(p.kind<q.kind?-1:p.kind>q.kind?1:0),tdy=TASKS.filter(x=>x.date===today),
@@ -271,7 +278,7 @@ function focusHTML(){
     S=lateSplit(late),lateN=late.length-S.mis.length,left=todo.length+lateN;
   let h=`<div class="card" style="margin-bottom:12px">${head}<div class="mu" style="color:var(--mu)">${(left?`${fa(todo.length)} کار برای امروز${lateN?` · ${fa(lateN)} عقب‌افتاده`:''}`:(isWork(today)||tdy.length?'✓ همه‌ی کارهای امروز انجام شده است.':'امروز تعطیل است (پنجشنبه یا جمعه) و کار عقب‌افتاده‌ای نیست.'))+(S.mis.length?` · ${fa(S.mis.length)} روز ثبت‌نشده (قابل جبران نیست)`:'')}</div>`;
   if(lateN){const rows=[...S.grp.map(grpRow),...S.single.map(x=>taskHTML(lateSub(x)))];
-    h+=`<div class="fh bad">⚠ عقب‌افتاده (${fa(lateN)})</div>${rows.slice(0,6).join('')}${rows.length>6?`<details data-fk="late" ${FO.late?'open':''}><summary>${fa(rows.length-6)} مورد عقب‌افتاده‌ی دیگر</summary>${rows.slice(6).join('')}</details>`:''}`}
+    h+=`<div class="fh bad">⚠ عقب‌افتاده (${fa(lateN)})</div>${rows.slice(0,3).join('')}${rows.length>3?`<details data-fk="late" ${FO.late?'open':''}><summary>${fa(rows.length-3)} مورد عقب‌افتاده‌ی دیگر</summary>${rows.slice(3).join('')}</details>`:''}`}
   if(todo.length)h+=`<div class="fh">📋 برای امروز (${fa(todo.length)})</div>${todo.map(taskHTML).join('')}`;
   if(S.mis.length)h+=`<details data-fk="miss" ${FO.miss?'open':''}><summary>🕘 روزهای ثبت‌نشده — قابل جبران نیست (${fa(S.mis.length)} روز)</summary>${missRows(S.mis)}<div class="mu" style="color:var(--mu);margin-top:6px">${MISS_NOTE}</div></details>`;
   if(done.length)h+=`<details data-fk="done" ${FO.done?'open':''}><summary>✓ انجام‌شده‌ی امروز (${fa(done.length)})</summary>${done.map(taskHTML).join('')}</details>`;
@@ -360,7 +367,7 @@ function render(){
   $('day').innerHTML=(K===nowK&&SEL===today)?'':`<div class="card"><h2>${WD[(dowOf(SEL)+1)%7]} ${lbl(SEL)}${SEL===today?' <span class="ctag">امروز</span>':''}</h2>${L.length?[...L].sort((p,q)=>(p.done-q.done)||(p.kind<q.kind?-1:1)).map(taskHTML).join(''):`<div class="mu" style="color:var(--mu)">${isWork(SEL)?'کاری برای این روز برنامه‌ریزی نشده است.':'روز تعطیل (پنجشنبه یا جمعه).'}</div>`}</div>`;
   const LT=TASKS.filter(x=>x.late&&x.date!==SEL).sort((p,q)=>p.date<q.date?-1:1);
   const S2=lateSplit(LT),LN=LT.length-S2.mis.length,LR=[...S2.grp.map(grpRow),...S2.single.map(x=>taskHTML({...x,sub:(x.sub||'')+' · برنامه: '+lbl(x.date)}))];
-  $('late').innerHTML=(LT.length&&K!==nowK)?`<div class="card" style="margin-top:12px">${LN?`<h2 style="color:var(--bad)">عقب‌افتاده‌های این ماه (${fa(LN)})</h2>${LR.slice(0,40).join('')}${LR.length>40?`<div class="mu" style="color:var(--mu)">و ${fa(LR.length-40)} مورد دیگر</div>`:''}`:''}${S2.mis.length?`<details data-fk="miss" ${FO.miss?'open':''}><summary>🕘 روزهای ثبت‌نشده — قابل جبران نیست (${fa(S2.mis.length)} روز)</summary>${missRows(S2.mis)}<div class="mu" style="color:var(--mu);margin-top:6px">${MISS_NOTE}</div></details>`:''}</div>`:'';
+  $('late').innerHTML=(LT.length&&K!==nowK)?`<details data-fk="late2" ${FO.late2?'open':''} class="card" style="margin-top:12px"><summary>${LN?`⚠ عقب‌افتاده‌های این ماه (${fa(LN)})${S2.mis.length?` · ${fa(S2.mis.length)} روز ثبت‌نشده`:''}`:`🕘 روزهای ثبت‌نشده (${fa(S2.mis.length)})`}</summary>${LN?`${LR.slice(0,15).join('')}${LR.length>15?`<div class="mu" style="color:var(--mu)">و ${fa(LR.length-15)} مورد دیگر</div>`:''}`:''}${S2.mis.length?`<details data-fk="miss" ${FO.miss?'open':''}><summary>🕘 روزهای ثبت‌نشده — قابل جبران نیست (${fa(S2.mis.length)} روز)</summary>${missRows(S2.mis)}<div class="mu" style="color:var(--mu);margin-top:6px">${MISS_NOTE}</div></details>`:''}</details>`:'';
 }
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-tick]');if(!b)return;const d=b.dataset.tick,kk=b.dataset.key||'chlorination',SET=kk==='hrtrain'?HTK:TICKS;b.disabled=true;
   try{const h=await hd();h['Content-Type']='application/json';
