@@ -112,13 +112,14 @@
   function compute(K, B) {
     if (!B || !B.units) return null;
     const R = monthRange(K), inM = (a, f) => (a || []).filter(x => jk(x[f]) === K), match = unitMatcher(B.units);
-    const empU = {}; (B.emp || []).forEach(e => { const u = match(e.department); if (u && isActive(e, R.a)) empU[e.id] = u.id; });
+    const empU = {}, empAll = {}; (B.emp || []).forEach(e => { const u = match(e.department); if (u) { empAll[e.id] = u.id; if (isActive(e, R.a)) empU[e.id] = u.id; } });
+    /* حادثه سابقه‌ی تاریخی است: بعد از قطع همکاری/فوت فرد هم در آمار واحد (روز از دست رفته، ۱۲ ماه اخیر) می‌ماند؛ فقط شاخص‌های مشارکت از پرسنل «فعال» (empU) می‌آید */
     const cards = inM(B.cards, 'card_date').filter(c => c.status !== 'rejected');
     const talkIds = new Set(inM(B.tr, 'training_date').filter(t => t.training_type === 'safety_talk').map(t => t.id));
     const talkUnits = {}; (B.ta || []).filter(a => talkIds.has(a.training_id) && empU[a.employee_id]).forEach(a => { (talkUnits[empU[a.employee_id]] = talkUnits[empU[a.employee_id]] || new Set()).add(a.training_id); });
     const incU = {}, incY = {}; let incNoUnit = 0;
     const K12 = keys12(K), S12 = new Set(K12);
-    (B.inc || []).forEach(i => { const k = jk(i.incident_date); if (!k) return; const uid = empU[i.employee_id];
+    (B.inc || []).forEach(i => { const k = jk(i.incident_date); if (!k) return; const uid = empAll[i.employee_id];
       if (S12.has(k) && uid) (incY[uid] = incY[uid] || []).push(i);
       if (k === K) { if (!uid) incNoUnit++; else (incU[uid] = incU[uid] || []).push(i); } });
     const mon = {}; (B.monthly || []).filter(m => m.month_key === K).forEach(m => mon[m.unit_id] = m);
