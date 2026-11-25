@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js"></script>
+<script src="hse_nav.js" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>آزمایشگاه یکپارچه‌سازی HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ac:#0f766e;--ok:#059669;--wa:#d97706;--bad:#dc2626}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.8 Vazirmatn,Tahoma,sans-serif;padding:16px 14px 92px}
+.w{max-width:1120px;margin:auto}.muted{color:var(--mu);font-size:12px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.top h1{margin:0;font-size:21px}
+.notice{margin:12px 0;padding:10px 13px;border:1px solid #d97706;border-radius:12px;background:#fffbeb;color:#78350f}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0}.k{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px;text-align:center}.k b{font-size:23px;display:block}.k small{color:var(--mu)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.tools input,.tools select{min-width:145px;flex:1;padding:9px 11px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit}
+.sources{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.sources button{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:7px 11px;border-radius:99px;font:inherit;cursor:pointer}.sources button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.item{background:var(--card);border:1px solid var(--bd);border-radius:13px;padding:12px;min-width:0}.head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.head b{font-size:14px}.tag{font-size:11px;border:1px solid var(--bd);border-radius:99px;padding:1px 8px;white-space:nowrap;color:var(--mu)}.tag.bad{color:var(--bad);border-color:var(--bad)}.tag.warn{color:var(--wa);border-color:var(--wa)}.tag.good{color:var(--ok);border-color:var(--ok)}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin:7px 0}.meta span{font-size:11px;color:var(--mu);background:var(--bg);border-radius:7px;padding:2px 7px}.desc{font-size:12.5px;margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}.foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;padding-top:7px;border-top:1px dashed var(--bd)}.foot a{color:var(--ac);font-size:12px;text-decoration:none;font-weight:700}
+.empty,.error{padding:18px;background:var(--card);border:1px dashed var(--bd);border-radius:12px;color:var(--mu);grid-column:1/-1}
+@media(max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}.list{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="w">
+ <div class="top"><div><h1>🧩 آزمایشگاه یکپارچه‌سازی HSE</h1><div class="muted">نمای آزمایشیِ تجمیع‌شده از پرونده‌های تخصصی؛ بدون ثبت یا ویرایش</div></div><a href="index.html" style="color:var(--ac);font-weight:700;text-decoration:none">بازگشت به خانه ←</a></div>
+ <div class="notice"><b>نسخهٔ آزمایشیِ فقط‌خواندنی</b> — این صفحه فقط داده‌ها را می‌خواند. هیچ دکمهٔ ثبت، ویرایش یا حذف در آن وجود ندارد. هر کارت برای مشاهدهٔ جزئیات به ماژول اصلی خودش می‌رود.</div>
+ <div class="kpis" id="kpis"><div class="k"><b>—</b><small>در حال دریافت</small></div></div>
+ <div class="tools"><input id="q" placeholder="جستجو در عنوان، واحد، محل، تجهیز…"><select id="state"><option value="">همه وضعیت‌ها</option><option value="open">باز / نیازمند پیگیری</option><option value="closed">بسته / تکمیل</option><option value="other">سایر وضعیت‌ها</option></select><select id="unit"><option value="">همه واحدها</option></select></div>
+ <div class="sources" id="sources"></div>
+ <div class="muted" id="summary">در حال خواندن منابع…</div>
+ <div class="list" id="list"><div class="empty">در حال دریافت اطلاعات از ماژول‌های اصلی…</div></div>
+</div>
+<script src="eval_core.js"></script>
+<script>
+const $=s=>document.querySelector(s),fa=n=>String(n??0).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let ITEMS=[],FILTER='all',FAILED=[];
+const today=()=>new Date().toISOString().slice(0,10);
+const d10=x=>String(x||'').slice(0,10);
+const normStatus=s=>{s=String(s||'').toLowerCase();if(!s)return'other';if(/closed|done|complete|approved|rejected|بسته|انجام|تأیید|تایید|رد/.test(s))return'closed';if(/open|pending|unsafe|overdue|باز|در انتظار|ناایمن|معوق/.test(s))return'open';return'other'};
+const add=(source,rows,adapter)=>{(rows||[]).forEach(r=>{const x=adapter(r);if(x&&x.title)ITEMS.push({...x,source,statusKey:normStatus(x.status),rawStatus:String(x.status||'ثبت نشده')})})};
+const get=async(name,query)=>{try{return await HSE.getAll(query)}catch(e){FAILED.push(name+': '+e.message);return null}};
+async function load(){
+ await HSEAuth.ready;
+ const specs=[
+  ['عدم‌انطباق','findings?select=id,module,question,note,location,status,severity,created_at,due_date,responsible,category&order=id.desc&limit=600','checklists.html',r=>({id:r.id,title:r.question||r.note||'عدم‌انطباق',description:r.note,unit:'',location:r.location,status:r.status,severity:r.severity,due:r.due_date,owner:r.responsible,date:r.created_at,detail:r.module||r.category})],
+  ['کارت گزارش','hse_cards?select=*&order=card_date.desc&limit=500','cards.html',r=>({id:r.id,title:r.description||r.suggestion||'کارت گزارش',description:r.suggestion,unit:r.unit,location:r.location,status:r.status,severity:r.card_type,due:'',owner:'',date:r.card_date,detail:r.equipment_code})],
+  ['مشاهده رفتار','behavior_obs?select=*&order=created_at.desc&limit=500','behavior.html',r=>({id:r.id,title:r.behavior||r.details||r.action||'مشاهده رفتار',description:r.details||r.action,unit:r.unit,location:r.location,status:r.status,severity:r.result,due:r.action_due,owner:r.owner,date:r.created_at,detail:r.action_status})],
+  ['ارزیابی ریسک','risks?select=*&status=neq.archived&order=created_at.desc&limit=600','risks.html',r=>({id:r.id,title:r.hazard||r.activity||r.category||'ارزیابی ریسک',description:r.detail&&typeof r.detail==='string'?r.detail:'',unit:r.unit,location:r.location,status:r.status,severity:r.manual_score??r.score,due:r.review_date,owner:r.owner,date:r.created_at,detail:r.method})],
+  ['بازرسی‌ها','inspections?select=id,module,location,shift,inspector,created_at,ok,nc,na,equipment_code&order=created_at.desc&limit=500','checklists.html',r=>({id:r.id,title:'بازرسی '+(r.module||'HSE'),description:'OK: '+(r.ok??'—')+' · NC: '+(r.nc??'—')+' · NA: '+(r.na??'—'),unit:'',location:r.location,status:Number(r.nc||0)>0?'open':'closed',severity:'',due:'',owner:r.inspector,date:r.created_at,detail:r.equipment_code})],
+  ['تجهیزات','equipment?select=code,title,category,hall,location,active,requires_inspection,interval_months&active=eq.true&order=code.asc&limit=500','equipment.html',r=>({id:r.code,title:r.title||'تجهیز',description:r.category,unit:r.hall,location:r.location,status:'active',severity:'',due:'',owner:'',date:'',detail:r.code})]
+ ];
+ const results=await Promise.all(specs.map(s=>get(s[0],s[1])));
+ specs.forEach((s,i)=>{if(results[i]!==null)add(s[0],results[i],r=>({...s[3](r),href:s[2]}))});
+ // آخرین بازرسی تجهیز برای نمایش سابقه، بدون ساختن رکورد یا تغییر منبع
+ const inspections=await get('سوابق بازرسی تجهیزات','equipment_inspections?select=equipment_code,inspected_on,result,next_due&order=inspected_on.desc&limit=1500');
+ if(inspections){const last={};inspections.forEach(x=>{if(!last[x.equipment_code])last[x.equipment_code]=x});ITEMS.forEach(x=>{if(x.source==='تجهیزات'){const z=last[x.id];if(z){x.due=z.next_due||'';x.detail+=' · آخرین بازرسی: '+d10(z.inspected_on)+' · '+(z.result||'')}}})}
+ render();
+}
+function render(){
+ const q=$('#q').value.trim().toLowerCase(),st=$('#state').value,u=$('#unit').value;
+ const units=[...new Set(ITEMS.map(x=>x.unit).filter(Boolean))].sort();
+ $('#unit').innerHTML='<option value="">همه واحدها</option>'+units.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+ $('#unit').value=u;
+ const visible=ITEMS.filter(x=>(FILTER==='all'||x.source===FILTER)&&(!st||x.statusKey===st)&&(!u||x.unit===u)&&(!q||[x.title,x.description,x.unit,x.location,x.detail,x.owner,x.source].join(' ').toLowerCase().includes(q)));
+ const open=ITEMS.filter(x=>x.statusKey==='open').length,late=ITEMS.filter(x=>x.due&&x.due<today()&&x.statusKey!=='closed').length;
+ $('#kpis').innerHTML=[['همه پرونده‌ها',ITEMS.length],['باز / نیازمند پیگیری',open],['موعد گذشته',late],['منابع دارای خطا',FAILED.length]].map(x=>'<div class="k"><b>'+fa(x[1])+'</b><small>'+x[0]+'</small></div>').join('');
+ const sources=['all',...new Set(ITEMS.map(x=>x.source))];
+ $('#sources').innerHTML=sources.map(s=>'<button data-source="'+esc(s)+'" class="'+(FILTER===s?'on':'')+'">'+(s==='all'?'همه منابع':esc(s)+' · '+fa(ITEMS.filter(x=>x.source===s).length))+'</button>').join('');
+ $('#summary').textContent='نمایش '+fa(visible.length)+' از '+fa(ITEMS.length)+' پرونده'+(FAILED.length?' · '+FAILED.length+' منبع بارگذاری نشد':'');
+ $('#list').innerHTML=visible.length?visible.map(x=>{
+ const late=x.due&&x.due<today()&&x.statusKey!=='closed',tag=late?'bad':x.statusKey==='closed'?'good':x.statusKey==='open'?'warn':'';
+ return '<article class="item"><div class="head"><b>'+esc(x.title).slice(0,180)+'</b><span class="tag '+tag+'">'+esc(x.rawStatus)+(late?' · معوق':'')+'</span></div><div class="meta"><span>'+esc(x.source)+'</span>'+(x.unit?'<span>'+esc(x.unit)+'</span>':'')+(x.location?'<span>'+esc(x.location)+'</span>':'')+(x.severity?'<span>'+esc(String(x.severity))+'</span>':'')+(x.date?'<span>'+esc(d10(x.date))+'</span>':'')+'</div>'+(x.description?'<div class="desc">'+esc(x.description).slice(0,500)+'</div>':'')+'<div class="foot"><span class="muted">'+(x.owner?'مسئول: '+esc(x.owner):'')+(x.due?' · موعد: '+esc(x.due):'')+(x.detail?' · '+esc(String(x.detail)):'')+'</span><a href="'+esc(x.href)+'">پرونده اصلی ←</a></div></article>'
+ }).join(''):'<div class="empty">موردی با این فیلتر پیدا نشد.</div>';
+}
+$('#q').addEventListener('input',render);$('#state').addEventListener('change',render);$('#unit').addEventListener('change',render);
+$('#sources').addEventListener('click',e=>{const b=e.target.closest('button[data-source]');if(b){FILTER=b.dataset.source;render()}});
+load().catch(e=>{$('#list').innerHTML='<div class="error">خطا در دریافت داده: '+esc(e.message)+'</div>'});
+</script>
+</body></html>
