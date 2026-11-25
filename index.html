@@ -599,8 +599,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 /* همهٔ گروه‌ها همیشه باز و کنار هم دیده می‌شوند (بدون آکاردئون) */
 (function(){const gs=[...document.querySelectorAll('details.grp')],o=()=>gs.forEach(g=>{if(!g.open)g.open=true});gs.forEach(g=>g.addEventListener('toggle',o));o();setTimeout(o,600)})();
 /* زیر عنوان هر گروه نام ماژول‌هایی نوشته می‌شود که همین کاربر می‌بیند (نقش‌های محدودتر ماژول‌های پنهان را نمی‌بینند) */
-(function(){const fill=()=>document.querySelectorAll('details.grp').forEach(g=>{const el=g.querySelector('summary small.gs');if(!el)return;const n=[...g.querySelectorAll('a.m')].filter(a=>authVis(a)).map(a=>{const b=a.querySelector('b');return b?b.textContent.trim():''}).filter(Boolean);if(n.length){const t=n.join(' · ');if(el.textContent!==t)el.textContent=t}});
- [300,1200,3000].forEach(t=>setTimeout(fill,t));fill()})();
+/* توضیح کوتاه هر گروه در HTML حفظ می‌شود؛ از جایگزینی آن با فهرست بلند ماژول‌ها خودداری می‌کنیم. */
 /* پانویس به انتهای صفحه (بعد از ماژول‌ها) */
 (function(){const f=document.querySelector('.main footer'),sh=document.querySelector('.shell');if(f&&sh)sh.appendChild(f)})();
 </script>
