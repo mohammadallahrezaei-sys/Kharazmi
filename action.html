@@ -64,7 +64,7 @@ let ITEMS=[],OV={},ME='',SHOW=15,OVOK=true;
 const lvl=s=>s>=80?1:s>=60?2:s>=40?3:4;
 function build(it){ /* امتیاز، مهلت مؤثر و سطح تشدید */
  const o=OV[it.key]||{},today=todayISO(),why=[];
- it.owner=o.owner||it.srcOwner||'';it.follow=o.follow_until||'';it.events=[...(Array.isArray(it.srcEvents)?it.srcEvents:[]),...(Array.isArray(o.events)?o.events:[])].sort((a,b)=>String(a.t||'').localeCompare(String(b.t||'')));
+ it.owner=o.owner||it.srcOwner||'';it.follow=o.follow_until||it.srcFollow||'';it.events=[...(Array.isArray(it.srcEvents)?it.srcEvents:[]),...(Array.isArray(o.events)?o.events:[])].sort((a,b)=>String(a.t||'').localeCompare(String(b.t||'')));
  let sc=it.base;
  if(HIGH.test((it.unit||'')+' '+(it.title||''))){sc+=10;why.push('واحد پرریسک')}
  if(it.rec>1){const r=Math.min(10,3*(it.rec-1));sc+=r;why.push('تکرار ×'+fa(it.rec))}
