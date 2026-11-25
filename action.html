@@ -85,11 +85,11 @@ async function load(){
  await Promise.all([
   T('عدم‌انطباق‌ها',async()=>{const f=await HSE.getAll('findings?status=eq.open&select=id,qid,module,question,note,location,severity,due_date,responsible,created_at,category&order=id.asc');
    const grp={};f.forEach(x=>{const k=(x.category||x.qid||'')+'|'+(x.location||'');grp[k]=(grp[k]||0)+1});
-   f.filter(x=>x.module!=='MED').forEach(x=>{const sv=Math.min(4,Math.max(1,+x.severity||2));L.push({key:'finding:'+x.id,src:'finding',id:x.id,title:x.question||x.note||'عدم‌انطباق',unit:x.location||'',base:BASE_SEV[sv],sla:SLA_SEV[sv],due:x.due_date,created:x.created_at,srcOwner:x.responsible,rec:grp[(x.category||x.qid||'')+'|'+(x.location||'')]||1,can:'close'})})}),
+   f.filter(x=>x.module!=='MED').forEach(x=>{const sv=Math.min(4,Math.max(1,+x.severity||2));L.push({key:'finding:'+x.id,src:'finding',id:x.id,title:x.question||x.note||'عدم‌انطباق',unit:x.location||'',base:BASE_SEV[sv],sla:SLA_SEV[sv],due:x.due_date,created:x.created_at,srcOwner:x.responsible,rec:grp[(x.category||x.qid||'')+'|'+(x.location||'')]||1,readOnlySource:true})})}),
   T('پیگیری بهداری',async()=>{let r=await HSE.getAll('clinic_followups?kind=eq.followup&status=in.(pending,overdue)&select=id,title,kind,priority,due_date,status,created_at');if(window.HSEAuth&&HSEAuth.visibleFollowups)r=await HSEAuth.visibleFollowups(r);
    r.forEach(x=>L.push({key:'followup:'+x.id,src:'followup',id:x.id,title:x.title||'پیگیری بهداری',unit:'',base:x.priority==='urgent'?70:35,due:x.due_date,created:x.created_at,can:'close'}))}),
   T('اقدام اصلاحی حوادث',async()=>{const r=await HSE.getAll('clinic_incidents?select=id,corrective_action,action_owner,action_due_date,action_status,location,unit,incident_date,created_at');
-   r.filter(x=>x.corrective_action&&x.action_status!=='done').forEach(x=>L.push({key:'incident:'+x.id,src:'incident',id:x.id,title:x.corrective_action,unit:x.location||x.unit||'',base:70,due:x.action_due_date,created:x.incident_date||x.created_at,srcOwner:x.action_owner,can:'close'}))}),
+   r.filter(x=>x.corrective_action&&x.action_status!=='done').forEach(x=>L.push({key:'incident:'+x.id,src:'incident',id:x.id,title:x.corrective_action,unit:x.location||x.unit||'',base:70,due:x.action_due_date,created:x.incident_date||x.created_at,srcOwner:x.action_owner,readOnlySource:true}))}),
   T('تعهدات دوره‌ای',async()=>{if(!(HSEAuth.role==='manager'||HSEAuth.role==='user'))return;const r=await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active');
    r.filter(x=>x.active!==false&&x.next_due&&diff(x.next_due.slice(0,10),today)<=14).forEach(x=>L.push({key:'obligation:'+x.id,src:'obligation',id:x.id,title:x.title,unit:'',base:x.category==='قانونی و مجوز'?60:40,due:x.next_due.slice(0,10),srcOwner:x.owner}))}),
   T('رفتار ناایمن',async()=>{const r=await HSE.getAll('behavior_obs?result=eq.unsafe&status=neq.closed&select=id,action,action_owner,action_due,action_status,result,status,location,unit,created_at');
@@ -125,7 +125,7 @@ function render(){
   +(last?'<div class="xe">آخرین پیگیری ('+jl(last.t)+'): '+esc(last.note||'')+(x.events.length>1?' — '+fa(x.events.length)+' سابقه':'')+'</div>':'')
   +'<div class="xa"><button class="b2 p" data-a="follow" data-k="'+esc(x.key)+'">📝 ثبت پیگیری</button><button class="b2" data-a="assign" data-k="'+esc(x.key)+'">👤 مسئول و مهلت</button>'
   +(x.can?'<button class="b2 ok" data-a="close" data-k="'+esc(x.key)+'">✅ بستن با تأیید</button>':'')
-  +'<a class="b2" href="'+S.link+'" style="text-decoration:none">🔗 باز کردن ماژول</a></div></div></div>'}).join('')
+  +'<a class="b2" href="'+(x.src==='finding'?S.link+'#one='+encodeURIComponent(x.id):S.link)+'" style="text-decoration:none">🔗 باز کردن ماژول تخصصی</a></div></div></div>'}).join('')
   +(V.length>SHOW?'<div style="text-align:center"><button class="b2" id="more">نمایش '+fa(Math.min(20,V.length-SHOW))+' مورد بعدی (از '+fa(V.length-SHOW)+')</button></div>':'')}
 function ov(x){return OV[x.key]||{key:x.key,source:x.src,source_id:String(x.id),owner:null,due_override:null,follow_until:null,note:null,events:[]}}
 async function saveOv(x,patch,ev){
