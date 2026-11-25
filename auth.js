@@ -225,6 +225,17 @@
     }
     const st = document.createElement('style'); st.textContent = '@media print{.np{display:none!important}}'; document.head.appendChild(st);
     document.body.appendChild(b);
+    if (PREVIEW) {
+      const notice = document.createElement('div');
+      notice.id = 'hse-preview-notice';
+      notice.className = 'np';
+      notice.textContent = 'نسخهٔ آزمایشی · فقط مشاهده؛ ثبت و ویرایش اطلاعات غیرفعال است';
+      notice.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:99997;max-width:calc(100vw - 260px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:12px Vazirmatn,Tahoma,sans-serif;direction:rtl;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;border-radius:999px;padding:5px 14px;box-shadow:0 2px 10px rgba(0,0,0,.12);pointer-events:none';
+      document.body.appendChild(notice);
+      const previewStyle = document.createElement('style');
+      previewStyle.textContent = '@media(max-width:700px){#hse-preview-notice{top:48px!important;left:8px!important;right:8px!important;max-width:none!important;transform:none!important;text-align:center;font-size:11px!important}#hse-user{top:6px!important;left:8px!important}}@media print{#hse-preview-notice{display:none!important}}';
+      document.head.appendChild(previewStyle);
+    }
     /* لینک‌های دارای data-roles فقط برای نقش‌های مجاز نمایش داده می‌شوند. */
     const hideRoleLinks = () => document.querySelectorAll('a[data-roles]').forEach(a => {
       const allowed = (a.dataset.roles || '').split(',').map(x => x.trim()).filter(Boolean);
