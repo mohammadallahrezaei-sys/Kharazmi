@@ -127,7 +127,7 @@ function render(){
   +(e?'<span class="'+e[1]+'">'+e[0]+'</span>':'')
   +(x.follow?'<span class="'+(x.followLate?'bad':'ok')+'">پیگیری بعدی: '+jl(x.follow)+'</span>':'')
   +x.why.map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>'
-  +(last?'<div class="xe">آخرین پیگیری ('+jl(last.t)+'): '+esc(last.note||'')+(x.events.length>1?' — '+fa(x.events.length)+' سابقه':'')+'</div>':'')
+  +(last?'<div class="xe">آخرین پیگیری ('+jl(last.t)+'): '+esc(last.note||'')+(last.by?' — ثبت‌کننده: '+esc(last.by):'')+(x.events.length>1?' — '+fa(x.events.length)+' سابقه':'')+'</div>':'')
   +'<div class="xa"><button class="b2 p" data-a="follow" data-k="'+esc(x.key)+'">📝 ثبت پیگیری</button><button class="b2" data-a="assign" data-k="'+esc(x.key)+'">👤 مسئول و مهلت</button>'
   +(x.can?'<button class="b2 ok" data-a="close" data-k="'+esc(x.key)+'">✅ بستن با تأیید</button>':'')
   +'<a class="b2" href="'+(x.src==='finding'?S.link+'#one='+encodeURIComponent(x.id):S.link)+'" style="text-decoration:none">🔗 باز کردن ماژول تخصصی</a></div></div></div>'}).join('')
