@@ -64,7 +64,7 @@ let ITEMS=[],OV={},ME='',SHOW=15,OVOK=true;
 const lvl=s=>s>=80?1:s>=60?2:s>=40?3:4;
 function build(it){ /* امتیاز، مهلت مؤثر و سطح تشدید */
  const o=OV[it.key]||{},today=todayISO(),why=[];
- it.owner=o.owner||it.srcOwner||'';it.follow=o.follow_until||'';it.events=Array.isArray(o.events)?o.events:[];
+ it.owner=o.owner||it.srcOwner||'';it.follow=o.follow_until||'';it.events=[...(Array.isArray(it.srcEvents)?it.srcEvents:[]),...(Array.isArray(o.events)?o.events:[])].sort((a,b)=>String(a.t||'').localeCompare(String(b.t||'')));
  let sc=it.base;
  if(HIGH.test((it.unit||'')+' '+(it.title||''))){sc+=10;why.push('واحد پرریسک')}
  if(it.rec>1){const r=Math.min(10,3*(it.rec-1));sc+=r;why.push('تکرار ×'+fa(it.rec))}
@@ -99,6 +99,11 @@ async function load(){
   T('اقدامات ارگونومی',async()=>{const r=await HSE.getAll('ergonomic_actions?status=eq.open&select=id,unit,job_title,station,task,risk_factor,method,initial_score,initial_level,planned_action,responsible,due_date,created_at');r.forEach(x=>L.push({key:'ergo:'+x.id,src:'ergo',id:x.id,title:[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — ')||'اقدام ارگونومی',unit:[x.unit,x.station].filter(Boolean).join(' · '),base:/بالا|زیاد|high/i.test(x.initial_level||'')?65:45,due:x.due_date,created:x.created_at,srcOwner:x.responsible,can:null,readOnlySource:true}))}),
   T('مسئول/مهلت',async()=>{const o=await rq('action_overlay?select=*',{headers:{Prefer:'return=representation'}});OV={};(o||[]).forEach(x=>OV[x.key]=x)}).then(()=>{})
  ]);
+ // تاریخچهٔ فنی عدم‌انطباق به‌صورت فقط‌خواندنی به timeline مشترک اضافه می‌شود.
+ await T('تاریخچه پیگیری عدم‌انطباق',async()=>{const h=await HSE.getAll('finding_followups?select=id,finding_id,followed_at,followed_by,result,next_due,kind,tech_deadline&order=followed_at.asc');
+  const by={};(h||[]).forEach(z=>{const k=String(z.finding_id);(by[k]=by[k]||[]).push({t:z.followed_at||z.created_at,by:z.followed_by||'',note:z.result||'',type:z.kind||'follow',next:z.next_due||z.tech_deadline||null,source:'finding_followups'})});
+  L.filter(x=>x.src==='finding').forEach(x=>{x.srcEvents=by[String(x.id)]||[];if(x.srcEvents.length){const last=x.srcEvents[x.srcEvents.length-1];if(last.next)x.srcFollow=last.next}})
+ });
  /* اگر جدول لایهٔ مدیریتی نبود، فقط ثبت مسئول/پیگیری کار نمی‌کند */
  OVOK=!miss.includes('مسئول/مهلت');
  ITEMS=L.map(build);
