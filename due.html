@@ -1,1 +1,91 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex"><script src="auth.js" data-roles="manager"></script><script src="hse_nav.js" defer="defer"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>رادار سررسیدها - نرم‌افزار جامع HSE</title><link rel="stylesheet" href="hse_ui.css"><style>.w{max-width:920px;margin:0 auto;padding:14px}.mu{color:var(--mu);font-size:12px}.sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}.sm button{text-align:center;padding:9px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}.sm button b{display:block;font-size:22px}.sm button.on{border-color:var(--ac);outline:2px solid var(--ac)}.sm .bad b{color:var(--bad)}.sm .wa b{color:var(--wa)}.fl{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.fl input,.fl select{font:inherit;font-size:13px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:7px 9px;flex:1;min-width:130px}.bk{margin:14px 0 4px;font-weight:800;font-size:15px;display:flex;gap:8px;align-items:center}.bk small{font-weight:400;color:var(--mu)}.bk.bad{color:var(--bad)}.bk.wa{color:var(--wa)}.it{display:flex;gap:10px;align-items:center;border:1px solid var(--bd);border-radius:12px;background:var(--card);padding:8px 10px;margin:5px 0;text-decoration:none;color:var(--tx)}.it .dt{flex:0 0 74px;text-align:center;font-size:12px;border-radius:10px;padding:5px 2px;background:var(--nabg)}.it .dt b{display:block;font-size:15px}.it.bad .dt{background:var(--badbg);color:var(--bad)}.it.wa .dt{background:var(--warnbg);color:var(--wa)}.it .tx{flex:1;min-width:0;font-size:13.5px;line-height:1.7}.it .tx small{display:block;color:var(--mu);font-size:11.5px}.tg{font-size:11px;border:1px solid var(--bd);border-radius:99px;padding:0 8px;white-space:nowrap;color:var(--mu)}.gap{border-style:dashed}</style></head><body><div class="w"><h1 style="">⏳ رادار سررسیدها</h1><div class="mu">همهٔ سررسیدهای ثبت‌شده در ماژول‌های مختلف در یک خط زمانی: معوق، این هفته، این ماه و ماه‌های آینده. موارد بازِ بدون تاریخ سررسید جدا فهرست می‌شود تا تکمیل شود.</div><div class="sm" id="sm"></div><div class="fl"><select id="fs"></select><input id="fq" placeholder="جستجو…"></div><div id="msg"></div><div id="list"><div class="mu">در حال خواندن…</div></div><details class="mu" style=""><summary>این صفحه از کجا می‌خواند؟</summary><div>عدم‌انطباق‌های باز، پیگیری بهداری، اقدام اصلاحی حوادث، تعهدات و مجوزهای دوره‌ای، اقدام رفتار ناایمن، روش‌های اجرایی در دست تدوین، بازنگری ارزیابی ریسک، بازرسی بعدی تجهیزات (آخرین بازرسی + فاصله)، پایان قرارداد پیمانکاران. اقدامات اصلاحی آلاینده‌ها هنوز در این صفحه نیستند.</div></details></div><script src="eval_core.js"></script><script>const{fa:fa,esc:esc}=HSE,$=t=>document.querySelector(t);const today=HSEToday();const d10=t=>t?String(t).slice(0,10):"";const okD=t=>/^\d{4}-\d{2}-\d{2}$/.test(t)&&+t.slice(0,4)>1900;const diff=(t,e)=>Math.round((new Date(t+"T12:00:00Z")-new Date(e+"T12:00:00Z"))/864e5);const addM=(t,e)=>{const a=new Date(t+"T12:00:00Z");a.setUTCMonth(a.getUTCMonth()+e);return a.toISOString().slice(0,10)};const jl=t=>new Date(t+"T12:00:00Z").toLocaleDateString("fa-IR-u-ca-persian",{year:"numeric",month:"long",day:"numeric",timeZone:"UTC"});const SRC={finding:["📋","عدم‌انطباق","checklists.html"],followup:["🏥","پیگیری بهداری","clinic.html"],incident:["🚑","اقدام حادثه","clinic.html"],obl:["📜","تعهد/مجوز","obligations.html"],beh:["👁","رفتار ناایمن","behavior.html"],proc:["📘","روش اجرایی","procedures.html"],risk:["⚠️","بازنگری ریسک","risks.html"],eq:["🧯","بازرسی تجهیزات","equipment.html"],ctr:["🏗","قرارداد پیمانکار","contractors.html"]};let L=[],GAP=[],F="all",miss=[];const add=(t,e,a,n)=>{if(!e)return;a=d10(a);if(okD(a))L.push({s:t,t:String(e).slice(0,140),due:a,sub:n||""});else GAP.push({s:t,t:String(e).slice(0,140),sub:n||""})};async function load(){const t=async(t,e)=>{try{await e()}catch(e){miss.push(t)}};await Promise.all([t("عدم‌انطباق‌ها",async()=>{(await HSE.getAll("findings?status=eq.open&select=id,module,question,note,location,due_date&order=id.asc")).filter(t=>t.module!=="MED").forEach(t=>add("finding",t.question||t.note,t.due_date,t.location))}),t("پیگیری بهداری",async()=>{let t=await HSE.getAll("clinic_followups?status=in.(pending,overdue)&select=id,title,due_date,status");if(HSEAuth.visibleFollowups)t=await HSEAuth.visibleFollowups(t);t.forEach(t=>add("followup",t.title,t.due_date))}),t("حوادث",async()=>{(await HSE.getAll("clinic_incidents?select=*")).filter(t=>t.corrective_action&&t.action_status!=="done").forEach(t=>add("incident",t.corrective_action,t.action_due_date,t.location||t.unit))}),t("تعهدات",async()=>{(await HSE.getAll("hse_obligations?select=id,title,category,next_due,owner,active")).filter(t=>t.active!==false).forEach(t=>add("obl",t.title,t.next_due,[t.category,t.owner].filter(Boolean).join(" · ")))}),t("رفتار ناایمن",async()=>{(await HSE.getAll("behavior_obs?result=eq.unsafe&status=neq.closed&select=*")).filter(t=>t.action&&t.action_status==="open").forEach(t=>add("beh",t.action,t.action_due,t.location||t.unit))}),t("روش‌های اجرایی",async()=>{(await HSE.getAll("hse_procedures?select=id,title,status,target_date,owner,active")).filter(t=>t.active!==false&&t.status!=="approved").forEach(t=>add("proc",t.title,t.target_date,t.owner))}),t("ریسک‌ها",async()=>{(await HSE.getAll("risks?select=id,hazard,unit,status,review_date&status=neq.archived")).filter(t=>t.status!=="draft").forEach(t=>add("risk","بازنگری: "+(t.hazard||""),t.review_date,t.unit))}),t("تجهیزات",async()=>{const[t,e]=await Promise.all([HSE.getAll("equipment?select=code,title,requires_inspection,interval_months&active=eq.true"),HSE.getAll("equipment_inspections?select=equipment_code,inspected_on,next_due&order=inspected_on.desc")]);const a={};e.forEach(t=>{if(!a[t.equipment_code])a[t.equipment_code]=t});t.filter(t=>t.requires_inspection).forEach(t=>{const e=a[t.code];let n=e&&(d10(e.next_due)||(e.inspected_on?addM(d10(e.inspected_on),t.interval_months||12):""));add("eq","بازرسی "+(t.title||t.code),n,e?"":"هیچ بازرسی ثبت نشده")})}),t("پیمانکاران",async()=>{(await HSE.getAll("contractors?select=id,name,end_date,status")).filter(t=>t.status!=="finished"&&t.status!=="ended").forEach(t=>add("ctr","پایان قرارداد "+t.name,t.end_date))})]);L.forEach(t=>t.n=diff(t.due,today));L.sort((t,e)=>t.n-e.n);draw()}const BK=[["late","معوق (گذشته)",t=>t.n<0,"bad"],["w","تا ۷ روز آینده",t=>t.n>=0&&t.n<=7,"wa"],["m","۸ تا ۳۰ روز",t=>t.n>7&&t.n<=30,""],["q","۳۱ تا ۹۰ روز",t=>t.n>30&&t.n<=90,""],["f","بیش از ۹۰ روز",t=>t.n>90,""]];function draw(){const t=$("#fq").value.trim(),e=L.filter(e=>(F==="all"||F==="gap"||BK.find(t=>t[0]===F)[2](e))&&($("#fs").value===""||e.s===$("#fs").value)&&(!t||(e.t+e.sub).includes(t)));const a=GAP.filter(e=>($("#fs").value===""||e.s===$("#fs").value)&&(!t||(e.t+e.sub).includes(t)));const n=t=>L.filter(BK.find(e=>e[0]===t)[2]).length;$("#sm").innerHTML=[["all","همه",L.length,""],["late","معوق",n("late"),"bad"],["w","تا ۷ روز",n("w"),"wa"],["m","تا ۳۰ روز",n("m"),""],["q","تا ۹۰ روز",n("q"),""],["gap","بدون سررسید",GAP.length,"wa"]].map(t=>'<button class="'+t[3]+(F===t[0]?" on":"")+'" data-f="'+t[0]+'"><b>'+fa(t[2])+"</b>"+t[1]+"</button>").join("");document.querySelectorAll("#sm button").forEach(t=>t.onclick=()=>{F=t.dataset.f;draw()});const s=[...new Set(L.concat(GAP).map(t=>t.s))];const i=$("#fs").value;$("#fs").innerHTML='<option value="">همهٔ منابع</option>'+s.map(t=>'<option value="'+t+'">'+SRC[t][0]+" "+SRC[t][1]+"</option>").join("");$("#fs").value=i;const l=(t,e)=>'<a class="it'+(e?" gap":t.n<0?" bad":t.n<=7?" wa":"")+'" href="'+SRC[t.s][2]+'">'+(e?'<div class="dt">بدون<br>تاریخ</div>':'<div class="dt"><b>'+fa(Math.abs(t.n))+"</b>"+(t.n<0?"روز دیر":t.n===0?"امروز":"روز مانده")+"</div>")+'<div class="tx">'+esc(t.t)+"<small>"+(e?"":jl(t.due)+" · ")+esc(t.sub)+'</small></div><span class="tg">'+SRC[t.s][0]+" "+SRC[t.s][1]+"</span></a>";let o="";if(F!=="gap")BK.forEach(t=>{const a=e.filter(t[2]);if(!a.length)return;if(F!=="all"&&F!==t[0])return;o+='<div class="bk '+t[3]+'">'+t[1]+" <small>("+fa(a.length)+")</small></div>"+a.map(t=>l(t)).join("")});if(F==="all"||F==="gap")o+=a.length?'<div class="bk wa">بدون تاریخ سررسید <small>('+fa(a.length)+") — مهلت برایشان ثبت نشده؛ زمان رسیدنشان معلوم نیست</small></div>"+a.slice(0,F==="gap"?400:30).map(t=>l(t,1)).join("")+(F==="all"&&a.length>30?'<div class="mu" style="text-align:center">…و '+fa(a.length-30)+" مورد دیگر (دکمهٔ «بدون سررسید» بالا)</div>":""):"";$("#list").innerHTML=o||'<div class="mu">موردی نیست.</div>';$("#msg").innerHTML=miss.length?'<div class="mu" style="color:var(--wa)">⚠️ این منابع خوانده نشد: '+miss.join("، ")+"</div>":""}$("#fs").onchange=draw;$("#fq").oninput=draw;load();</script></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<script src="auth.js" data-roles="manager"></script>
+<script src="hse_nav.js" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>رادار سررسیدها - نرم‌افزار جامع HSE</title>
+<link rel="stylesheet" href="hse_ui.css">
+<style>
+.w{max-width:920px;margin:0 auto;padding:14px}
+.mu{color:var(--mu);font-size:12px}
+.sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}
+.sm button{text-align:center;padding:9px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);font:inherit;cursor:pointer}
+.sm button b{display:block;font-size:22px}.sm button.on{border-color:var(--ac);outline:2px solid var(--ac)}
+.sm .bad b{color:var(--bad)}.sm .wa b{color:var(--wa)}
+.fl{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.fl select,.fl input{font:inherit;font-size:13px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:7px 9px;flex:1;min-width:130px}
+.bk{margin:14px 0 4px;font-weight:800;font-size:15px;display:flex;gap:8px;align-items:center}
+.bk small{font-weight:400;color:var(--mu)}
+.bk.bad{color:var(--bad)}.bk.wa{color:var(--wa)}
+.it{display:flex;gap:10px;align-items:center;border:1px solid var(--bd);border-radius:12px;background:var(--card);padding:8px 10px;margin:5px 0;text-decoration:none;color:var(--tx)}
+.it .dt{flex:0 0 74px;text-align:center;font-size:12px;border-radius:10px;padding:5px 2px;background:var(--nabg)}
+.it .dt b{display:block;font-size:15px}
+.it.bad .dt{background:var(--badbg);color:var(--bad)}.it.wa .dt{background:var(--warnbg);color:var(--wa)}
+.it .tx{flex:1;min-width:0;font-size:13.5px;line-height:1.7}
+.it .tx small{display:block;color:var(--mu);font-size:11.5px}
+.tg{font-size:11px;border:1px solid var(--bd);border-radius:99px;padding:0 8px;white-space:nowrap;color:var(--mu)}
+.gap{border-style:dashed}
+</style>
+</head>
+<body>
+<div class="w">
+ <h1 style="margin:0">⏳ رادار سررسیدها</h1>
+ <div class="mu">همهٔ سررسیدهای ثبت‌شده در ماژول‌های مختلف در یک خط زمانی: معوق، این هفته، این ماه و ماه‌های آینده. موارد بازِ بدون تاریخ سررسید جدا فهرست می‌شود تا تکمیل شود.</div>
+ <div class="sm" id="sm"></div>
+ <div class="fl"><select id="fs"></select><input id="fq" placeholder="جستجو…"></div>
+ <div id="msg"></div><div id="list"><div class="mu">در حال خواندن…</div></div>
+ <details class="mu" style="margin-top:14px"><summary>این صفحه از کجا می‌خواند؟</summary>
+  <div>عدم‌انطباق‌های باز، پیگیری بهداری، اقدام اصلاحی حوادث، تعهدات و مجوزهای دوره‌ای، اقدام رفتار ناایمن، روش‌های اجرایی در دست تدوین، بازنگری ارزیابی ریسک، بازرسی بعدی تجهیزات (آخرین بازرسی + فاصله)، پایان قرارداد پیمانکاران. اقدامات اصلاحی آلاینده‌ها هنوز در این صفحه نیستند.</div></details>
+</div>
+<script src="eval_core.js"></script>
+<script>
+const {fa,esc}=HSE,$=s=>document.querySelector(s);
+const today=HSEToday();
+const d10=s=>s?String(s).slice(0,10):'';
+const okD=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&+s.slice(0,4)>1900;
+const diff=(a,b)=>Math.round((new Date(a+'T12:00:00Z')-new Date(b+'T12:00:00Z'))/864e5);
+const addM=(iso,n)=>{const d=new Date(iso+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+n);return d.toISOString().slice(0,10)};
+const jl=iso=>new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',timeZone:'UTC'});
+const SRC={finding:['📋','عدم‌انطباق','checklists.html'],followup:['🏥','پیگیری بهداری','clinic.html'],incident:['🚑','اقدام حادثه','clinic.html'],obl:['📜','تعهد/مجوز','obligations.html'],beh:['👁','رفتار ناایمن','behavior.html'],proc:['📘','روش اجرایی','procedures.html'],risk:['⚠️','بازنگری ریسک','risks.html'],eq:['🧯','بازرسی تجهیزات','equipment.html'],ctr:['🏗','قرارداد پیمانکار','contractors.html'],ergo:['🪑','اقدام ارگونومی','ergo_followup.html']};
+let L=[],GAP=[],F='all',miss=[];
+const add=(s,t,due,sub)=>{if(!t)return;due=d10(due);if(okD(due))L.push({s,t:String(t).slice(0,140),due,sub:sub||''});else GAP.push({s,t:String(t).slice(0,140),sub:sub||''})};
+async function load(){
+ const T=async(n,f)=>{try{await f()}catch(e){miss.push(n)}};
+ await Promise.all([
+  T('عدم‌انطباق‌ها',async()=>{(await HSE.getAll('findings?status=eq.open&select=id,module,question,note,location,due_date&order=id.asc')).filter(x=>x.module!=='MED').forEach(x=>add('finding',x.question||x.note,x.due_date,x.location))}),
+  T('پیگیری بهداری',async()=>{let r=await HSE.getAll('clinic_followups?status=in.(pending,overdue)&select=id,title,due_date,status');if(HSEAuth.visibleFollowups)r=await HSEAuth.visibleFollowups(r);r.forEach(x=>add('followup',x.title,x.due_date))}),
+  T('حوادث',async()=>{(await HSE.getAll('clinic_incidents?select=*')).filter(x=>x.corrective_action&&x.action_status!=='done').forEach(x=>add('incident',x.corrective_action,x.action_due_date,x.location||x.unit))}),
+  T('تعهدات',async()=>{(await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active')).filter(x=>x.active!==false).forEach(x=>add('obl',x.title,x.next_due,[x.category,x.owner].filter(Boolean).join(' · ')))}),
+  T('رفتار ناایمن',async()=>{(await HSE.getAll('behavior_obs?result=eq.unsafe&status=neq.closed&select=*')).filter(x=>x.action&&x.action_status==='open').forEach(x=>add('beh',x.action,x.action_due,x.location||x.unit))}),
+  T('اقدامات ارگونومی',async()=>{(await HSE.getAll('ergonomic_actions?status=eq.open&select=id,unit,station,task,risk_factor,planned_action,responsible,due_date,created_at')).forEach(x=>add('ergo',[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — ')||'اقدام ارگونومی',x.due_date,[x.unit,x.station,x.responsible].filter(Boolean).join(' · ')))}),
+  T('روش‌های اجرایی',async()=>{(await HSE.getAll('hse_procedures?select=id,title,status,target_date,owner,active')).filter(x=>x.active!==false&&x.status!=='approved').forEach(x=>add('proc',x.title,x.target_date,x.owner))}),
+  T('ریسک‌ها',async()=>{(await HSE.getAll('risks?select=id,hazard,unit,status,review_date&status=neq.archived')).filter(x=>x.status!=='draft').forEach(x=>add('risk','بازنگری: '+(x.hazard||''),x.review_date,x.unit))}),
+  T('تجهیزات',async()=>{const [eq,ins]=await Promise.all([HSE.getAll('equipment?select=code,title,requires_inspection,interval_months&active=eq.true'),HSE.getAll('equipment_inspections?select=equipment_code,inspected_on,next_due&order=inspected_on.desc')]);
+   const last={};ins.forEach(i=>{if(!last[i.equipment_code])last[i.equipment_code]=i});
+   eq.filter(e=>e.requires_inspection).forEach(e=>{const l=last[e.code];let due=l&&(d10(l.next_due)||(l.inspected_on?addM(d10(l.inspected_on),e.interval_months||12):''));add('eq','بازرسی '+(e.title||e.code),due,l?'':'هیچ بازرسی ثبت نشده')})}),
+  T('پیمانکاران',async()=>{(await HSE.getAll('contractors?select=id,name,end_date,status')).filter(c=>c.status!=='finished'&&c.status!=='ended').forEach(c=>add('ctr','پایان قرارداد '+c.name,c.end_date))})
+ ]);
+ L.forEach(x=>x.n=diff(x.due,today));L.sort((a,b)=>a.n-b.n);
+ draw()}
+const BK=[['late','معوق (گذشته)',x=>x.n<0,'bad'],['w','تا ۷ روز آینده',x=>x.n>=0&&x.n<=7,'wa'],['m','۸ تا ۳۰ روز',x=>x.n>7&&x.n<=30,''],['q','۳۱ تا ۹۰ روز',x=>x.n>30&&x.n<=90,''],['f','بیش از ۹۰ روز',x=>x.n>90,'']];
+function draw(){
+ const q=$('#fq').value.trim(),V=L.filter(x=>(F==='all'||F==='gap'||BK.find(b=>b[0]===F)[2](x))&&($('#fs').value===''||x.s===$('#fs').value)&&(!q||(x.t+x.sub).includes(q)));
+ const G=GAP.filter(x=>($('#fs').value===''||x.s===$('#fs').value)&&(!q||(x.t+x.sub).includes(q)));
+ const c=k=>L.filter(BK.find(b=>b[0]===k)[2]).length;
+ $('#sm').innerHTML=[['all','همه',L.length,''],['late','معوق',c('late'),'bad'],['w','تا ۷ روز',c('w'),'wa'],['m','تا ۳۰ روز',c('m'),''],['q','تا ۹۰ روز',c('q'),''],['gap','بدون سررسید',GAP.length,'wa']].map(a=>'<button class="'+a[3]+(F===a[0]?' on':'')+'" data-f="'+a[0]+'"><b>'+fa(a[2])+'</b>'+a[1]+'</button>').join('');
+ document.querySelectorAll('#sm button').forEach(b=>b.onclick=()=>{F=b.dataset.f;draw()});
+ const used=[...new Set(L.concat(GAP).map(x=>x.s))];const cur=$('#fs').value;
+ $('#fs').innerHTML='<option value="">همهٔ منابع</option>'+used.map(s=>'<option value="'+s+'">'+SRC[s][0]+' '+SRC[s][1]+'</option>').join('');$('#fs').value=cur;
+ const row=(x,g)=>'<a class="it'+(g?' gap':x.n<0?' bad':x.n<=7?' wa':'')+'" href="'+SRC[x.s][2]+'">'+(g?'<div class="dt">بدون<br>تاریخ</div>':'<div class="dt"><b>'+fa(Math.abs(x.n))+'</b>'+(x.n<0?'روز دیر':x.n===0?'امروز':'روز مانده')+'</div>')+'<div class="tx">'+esc(x.t)+'<small>'+(g?'':jl(x.due)+' · ')+esc(x.sub)+'</small></div><span class="tg">'+SRC[x.s][0]+' '+SRC[x.s][1]+'</span></a>';
+ let h='';
+ if(F!=='gap')BK.forEach(b=>{const a=V.filter(b[2]);if(!a.length)return;if(F!=='all'&&F!==b[0])return;h+='<div class="bk '+b[3]+'">'+b[1]+' <small>('+fa(a.length)+')</small></div>'+a.map(x=>row(x)).join('')});
+ if(F==='all'||F==='gap')h+=(G.length?'<div class="bk wa">بدون تاریخ سررسید <small>('+fa(G.length)+') — مهلت برایشان ثبت نشده؛ زمان رسیدنشان معلوم نیست</small></div>'+G.slice(0,F==='gap'?400:30).map(x=>row(x,1)).join('')+(F==='all'&&G.length>30?'<div class="mu" style="text-align:center">…و '+fa(G.length-30)+' مورد دیگر (دکمهٔ «بدون سررسید» بالا)</div>':''):'');
+ $('#list').innerHTML=h||'<div class="mu">موردی نیست.</div>';
+ $('#msg').innerHTML=miss.length?'<div class="mu" style="color:var(--wa)">⚠️ این منابع خوانده نشد: '+miss.join('، ')+'</div>':''}
+$('#fs').onchange=draw;$('#fq').oninput=draw;
+load();
+</script>
+</body>
+</html>
