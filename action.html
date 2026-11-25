@@ -104,6 +104,10 @@ async function load(){
   const by={};(h||[]).forEach(z=>{const k=String(z.finding_id);(by[k]=by[k]||[]).push({t:z.followed_at||z.created_at,by:z.followed_by||'',note:z.result||'',type:z.kind||'follow',next:z.next_due||z.tech_deadline||null,source:'finding_followups'})});
   L.filter(x=>x.src==='finding').forEach(x=>{x.srcEvents=by[String(x.id)]||[];if(x.srcEvents.length){const last=x.srcEvents[x.srcEvents.length-1];if(last.next)x.srcFollow=last.next}})
  });
+ await T('تاریخچه اقدامات ارگونومی',async()=>{const h=await HSE.getAll('ergo_action_history?select=id,action_id,event_type,note,created_by,created_at&order=created_at.asc');
+  const by={};(h||[]).forEach(z=>{const k=String(z.action_id);(by[k]=by[k]||[]).push({t:z.created_at,by:z.created_by||'',note:[z.event_type,z.note].filter(Boolean).join(' — '),type:z.event_type||'ergo',source:'ergo_action_history'})});
+  L.filter(x=>x.src==='ergo').forEach(x=>{x.srcEvents=by[String(x.id)]||[]})
+ });
  /* اگر جدول لایهٔ مدیریتی نبود، فقط ثبت مسئول/پیگیری کار نمی‌کند */
  OVOK=!miss.includes('مسئول/مهلت');
  ITEMS=L.map(build);
