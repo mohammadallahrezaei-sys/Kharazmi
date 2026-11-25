@@ -111,7 +111,7 @@ async function load(){
  /* اگر جدول لایهٔ مدیریتی نبود، فقط ثبت مسئول/پیگیری کار نمی‌کند */
  OVOK=!miss.includes('مسئول/مهلت');
  ITEMS=L.map(build);
- const m=[];if(miss.length)m.push('<div class="mu" style="color:var(--wa)">⚠ خواندن این بخش‌ها ممکن نشد (دسترسی یا نبودن جدول): '+miss.map(esc).join('، ')+(OVOK?'':' — برای ثبت مسئول/مهلت/پیگیری فایل hse_action_center.sql را یک‌بار در Supabase اجرا کنید.')+'</div>');
+ const m=[];if(miss.length)m.push('<div class="mu" style="color:var(--wa)">⚠ خواندن این بخش‌ها ممکن نشد (دسترسی یا نبودن جدول): '+miss.map(esc).join('، ')+(OVOK?'':' — ثبت مسئول/مهلت/پیگیری در دسترس نیست؛ ابتدا وجود جدول و مجوز دسترسی کاربر بررسی شود. اجرای SQL بدون ممیزی لازم نیست.')+'</div>');
  $('#msg').innerHTML=m.join('');
  $('#fs').innerHTML='<option value="">همهٔ منبع‌ها</option>'+Object.keys(SRC).map(k=>'<option value="'+k+'">'+SRC[k].i+' '+SRC[k].n+'</option>').join('');
  render();if(miss.length&&!ITEMS.length)$('#acList').innerHTML='<div class="mu" style="padding:16px;text-align:center;color:var(--wa)">⚠ به‌دلیل خطا در خواندن بعضی منابع، نمی‌توان نتیجه گرفت که اقدام بازی وجود ندارد. ابتدا دسترسی/اتصال منابع ناموفق را بررسی کنید.</div>'}
