@@ -55,10 +55,10 @@ async function load(){
  const T=async(n,f)=>{try{await f()}catch(e){miss.push(n)}};
  await Promise.all([
   T('عدم‌انطباق‌ها',async()=>{(await HSE.getAll('findings?status=eq.open&select=id,module,question,note,location,due_date&order=id.asc')).filter(x=>x.module!=='MED').forEach(x=>add('finding',x.question||x.note,x.due_date,x.location))}),
-  T('پیگیری بهداری',async()=>{let r=await HSE.getAll('clinic_followups?status=in.(pending,overdue)&select=id,title,due_date,status');if(HSEAuth.visibleFollowups)r=await HSEAuth.visibleFollowups(r);r.forEach(x=>add('followup',x.title,x.due_date))}),
-  T('حوادث',async()=>{(await HSE.getAll('clinic_incidents?select=*')).filter(x=>x.corrective_action&&x.action_status!=='done').forEach(x=>add('incident',x.corrective_action,x.action_due_date,x.location||x.unit))}),
+  T('پیگیری بهداری',async()=>{let r=await HSE.getAll('clinic_followups?kind=eq.followup&status=in.(pending,overdue)&select=id,title,due_date,status');if(HSEAuth.visibleFollowups)r=await HSEAuth.visibleFollowups(r);r.forEach(x=>add('followup',x.title,x.due_date))}),
+  T('حوادث',async()=>{(await HSE.getAll('clinic_incidents?select=id,corrective_action,action_due_date,action_status,location,unit,incident_date,created_at')).filter(x=>x.corrective_action&&x.action_status!=='done').forEach(x=>add('incident',x.corrective_action,x.action_due_date,x.location||x.unit))}),
   T('تعهدات',async()=>{(await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active')).filter(x=>x.active!==false).forEach(x=>add('obl',x.title,x.next_due,[x.category,x.owner].filter(Boolean).join(' · ')))}),
-  T('رفتار ناایمن',async()=>{(await HSE.getAll('behavior_obs?result=eq.unsafe&status=neq.closed&select=*')).filter(x=>x.action&&x.action_status==='open').forEach(x=>add('beh',x.action,x.action_due,x.location||x.unit))}),
+  T('رفتار ناایمن',async()=>{(await HSE.getAll('behavior_obs?result=eq.unsafe&status=neq.closed&select=id,action,action_due,action_status,location,unit,created_at')).filter(x=>x.action&&x.action_status==='open').forEach(x=>add('beh',x.action,x.action_due,x.location||x.unit))}),
   T('اقدامات ارگونومی',async()=>{(await HSE.getAll('ergonomic_actions?status=eq.open&select=id,unit,station,task,risk_factor,planned_action,responsible,due_date,created_at')).forEach(x=>add('ergo',[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — ')||'اقدام ارگونومی',x.due_date,[x.unit,x.station,x.responsible].filter(Boolean).join(' · ')))}),
   T('روش‌های اجرایی',async()=>{(await HSE.getAll('hse_procedures?select=id,title,status,target_date,owner,active')).filter(x=>x.active!==false&&x.status!=='approved').forEach(x=>add('proc',x.title,x.target_date,x.owner))}),
   T('ریسک‌ها',async()=>{(await HSE.getAll('risks?select=id,hazard,unit,status,review_date&status=neq.archived')).filter(x=>x.status!=='draft').forEach(x=>add('risk','بازنگری: '+(x.hazard||''),x.review_date,x.unit))}),
@@ -82,7 +82,7 @@ function draw(){
  let h='';
  if(F!=='gap')BK.forEach(b=>{const a=V.filter(b[2]);if(!a.length)return;if(F!=='all'&&F!==b[0])return;h+='<div class="bk '+b[3]+'">'+b[1]+' <small>('+fa(a.length)+')</small></div>'+a.map(x=>row(x)).join('')});
  if(F==='all'||F==='gap')h+=(G.length?'<div class="bk wa">بدون تاریخ سررسید <small>('+fa(G.length)+') — مهلت برایشان ثبت نشده؛ زمان رسیدنشان معلوم نیست</small></div>'+G.slice(0,F==='gap'?400:30).map(x=>row(x,1)).join('')+(F==='all'&&G.length>30?'<div class="mu" style="text-align:center">…و '+fa(G.length-30)+' مورد دیگر (دکمهٔ «بدون سررسید» بالا)</div>':''):'');
- $('#list').innerHTML=h||'<div class="mu">موردی نیست.</div>';
+ $('#list').innerHTML=h||(miss.length?'<div class="mu" style="color:var(--wa)">به‌دلیل خطای خواندن منابع، نمی‌توان خالی بودن سررسیدها را تأیید کرد.</div>':'<div class="mu">موردی نیست.</div>');
  $('#msg').innerHTML=miss.length?'<div class="mu" style="color:var(--wa)">⚠️ این منابع خوانده نشد: '+miss.join('، ')+'</div>':''}
 $('#fs').onchange=draw;$('#fq').oninput=draw;
 load();
