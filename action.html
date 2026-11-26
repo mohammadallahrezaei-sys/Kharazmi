@@ -115,6 +115,7 @@ async function load(){
     if(src==='finding'){sv=Math.min(4,Math.max(1,+d.severity||2));base=BASE_SEV[sv];extra={sla:SLA_SEV[sv],notice_code:d.notice_code,rootCause:d.root_cause||'',rec:grp[(d.category||d.qid||'')+'|'+(x.unit||'')]||1}}
     else if(src==='followup'){base=d.priority==='urgent'?70:35;extra={can:'close'}}
     else if(src==='incident')base=70;
+    else if(src==='incident_capa'){base=70;extra={can:'close'}}
     else if(src==='behavior')base=45;
     else if(src==='ergo')base=/بالا|زیاد|high/i.test(d.initial_level||'')?65:45;
     else if(src==='equipment_defect'){base=d.result==='عدم تایید'?70:d.result==='تایید مشروط'?60:55;extra={equipmentCode:d.equipment_code,inspectionId:d.inspection_id,inspectionDate:d.inspection_date,defectState:d.defects||''}}
@@ -208,7 +209,7 @@ document.addEventListener('click',async e=>{
    if(x.src==='finding')throw new Error('عدم‌انطباق باید از مسیر عکس پس از اصلاح در چک‌لیست بسته شود.');
    if(x.src==='followup')await rq('clinic_followups?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'done',result_notes:n,completed_at:nowI})});
    else if(x.src==='incident')await rq('clinic_incidents?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({action_status:'done'})});
-   else if(x.src==='incident_capa')await rq('clinic_followups?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'done',completed_at:nowI})});
+   else if(x.src==='incident_capa')await rq('clinic_followups?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'done',result_notes:n,completed_at:nowI})});
    let historySaved=true;try{await saveOv(x,{follow_until:null},{type:'close',note:n,verified:true})}catch(_){historySaved=false}
    ITEMS=ITEMS.filter(y=>y!==x);toast(historySaved?'موضوع بسته شد':'وضعیت منبع بسته شد، اما ثبت رویداد تاریخچه در لایه مدیریتی ناموفق بود؛ سوابق را بررسی کنید.')}
   dlg.close();render()}catch(err){toast('خطا: '+err.message);ok.disabled=false}}});
