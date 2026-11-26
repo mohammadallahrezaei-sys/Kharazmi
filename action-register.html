@@ -24,7 +24,7 @@ input,select{font:inherit;padding:8px;border:1px solid var(--bd);border-radius:9
 <div class="filters"><input id="q" placeholder="جستجوی عنوان، واحد، مسئول یا شناسه"><select id="src"><option value="">همه منابع</option><option value="finding">عدم‌انطباق</option><option value="ergo">ارگونومی</option><option value="incident">حادثه</option><option value="incident_capa">اقدام اصلاحی علت‌یابی حادثه</option><option value="risk_plan">برنامه کنترلی FMEA/HAZOP</option><option value="behavior">رفتار</option><option value="clinic_followup">پیگیری بهداری</option><option value="equipment_defect">ایراد تجهیز</option><option value="pollutant_capa">اقدام آلاینده‌سنجی</option></select><select id="state"><option value="">همه وضعیت‌ها</option><option value="open">باز</option><option value="pending">در انتظار</option><option value="implemented">اجراشده</option><option value="pending_verification">در انتظار تأیید</option><option value="overdue">معوق</option></select></div>
 <div id="list" class="muted">در حال دریافت اقدام‌ها…</div>
 </main>
-<script src="eval_core.js"></script><script src="action-engine.js?v=20261126-equipment-source-unified"></script>
+<script src="eval_core.js"></script><script src="action-engine.js?v=20261126-incident-query-schema-fix"></script>
 <script>
 const $=s=>document.querySelector(s),fa=n=>String(n).replace(/\\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let DATA=[],RISKPLANS=[];
