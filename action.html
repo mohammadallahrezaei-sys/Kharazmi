@@ -185,7 +185,7 @@ function open(html){dlg.innerHTML=html;dlg.showModal()}
 const find=k=>ITEMS.find(x=>x.key===k);
 document.addEventListener('click',async e=>{
  if(e.target.id==='more'){SHOW+=20;render();return}
- const b=e.target.closest('[data-a]');if(!b)return;const x=find(b.dataset.k);if(!x)return;const a=b.dataset.a,t=esc(String(x.title).slice(0,160));
+ const b=e.target.closest('[data-a]');if(!b)return;const x=find(b.dataset.k);if(!x)return;const a=b.dataset.a,t=esc(String(x.title).slice(0,160));if(a==='close'&&x.src==='finding'){toast('بستن عدم‌انطباق فقط در چک‌لیست و پس از ثبت عکس اصلاح مجاز است.');window.location.href='checklists.html#one='+encodeURIComponent(x.id);return;}
  if(a==='follow')open('<h3 style="margin-top:0">📝 ثبت پیگیری</h3><div class="mu">'+t+'</div><label>نتیجهٔ پیگیری (چه گفته شد، چه قول داده شد)</label><textarea id="dN" rows="3"></textarea><label>موعد پیگیری بعدی</label><input type="date" id="dD" value="'+addD(todayISO(),x.lv<=2?2:7)+'"><div class="xa"><button class="b2 p" id="dOk">ذخیره</button><button class="b2" onclick="dlg.close()">انصراف</button></div>');
  if(a==='assign')open('<h3 style="margin-top:0">👤 مسئول و مهلت</h3><div class="mu">'+t+'</div><label>مسئول اقدام (نام یا واحد)</label><input id="dO" value="'+esc(x.owner||'')+'"><label>مهلت اقدام</label><input type="date" id="dD" value="'+(x.dueEff||addD(todayISO(),SLA_LVL[x.lv]))+'"><div class="xa"><button class="b2 p" id="dOk">ذخیره</button><button class="b2" onclick="dlg.close()">انصراف</button></div>');
  if(a==='close')open('<h3 style="margin-top:0">✅ بستن با تأیید میدانی</h3><div class="mu">'+t+'</div><label>چه اقدامی انجام شد؟ (حداقل ۱۰ نویسه)</label><textarea id="dN" rows="3"></textarea><label style="display:flex;gap:8px;align-items:flex-start;color:var(--tx)"><input type="checkbox" id="dV" style="width:auto;margin-top:3px"> خودم یا کارشناس HSE در محل بررسی و اصلاح را تأیید کردیم</label><div class="xa"><button class="b2 ok" id="dOk">بستن موضوع</button><button class="b2" onclick="dlg.close()">انصراف</button></div>');
@@ -196,8 +196,8 @@ document.addEventListener('click',async e=>{
    if(await saveOv(x,{owner:o,due_override:d||null},{type:'assign',note:'مسئول: '+o+' — مهلت: '+(d||'—')}))toast('ذخیره شد')}
   else{const n=$('#dN').value.trim();if(n.length<10||!$('#dV').checked){toast('شرح اقدام (حداقل ۱۰ نویسه) و تأیید میدانی لازم است');ok.disabled=false;return}
    const nowI=new Date().toISOString();
-   if(x.src==='finding')await rq('findings?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'closed',closed_at:nowI})});
-   else if(x.src==='followup')await rq('clinic_followups?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'done',result_notes:n,completed_at:nowI})});
+   if(x.src==='finding')throw new Error('عدم‌انطباق باید از مسیر عکس پس از اصلاح در چک‌لیست بسته شود.');
+   if(x.src==='followup')await rq('clinic_followups?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'done',result_notes:n,completed_at:nowI})});
    else if(x.src==='incident')await rq('clinic_incidents?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({action_status:'done'})});
    try{await saveOv(x,{follow_until:null},{type:'close',note:n,verified:true})}catch(_){}
    ITEMS=ITEMS.filter(y=>y!==x);toast('موضوع بسته شد')}
