@@ -203,11 +203,12 @@ document.addEventListener('click',async e=>{
    if(await saveOv(x,{follow_until:d||null},{type:'follow',note:n,next:d}))toast('پیگیری ثبت شد')}
   else if(a==='assign'){const o=$('#dO').value.trim(),d=$('#dD').value;if(!o){toast('مسئول را بنویسید');ok.disabled=false;return}
    if(await saveOv(x,{owner:o,due_override:d||null},{type:'assign',note:'مسئول: '+o+' — مهلت: '+(d||'—')}))toast('ذخیره شد')}
-  else{const n=$('#dN').value.trim();if(n.length<10||!$('#dV').checked){toast('شرح اقدام (حداقل ۱۰ نویسه) و تأیید میدانی لازم است');ok.disabled=false;return}
+  else{if(PREVIEW_READ_ONLY)throw new Error('نسخه آزمایشی اجازه بستن یا تغییر وضعیت پرونده‌های متصل به پایگاه اصلی را ندارد.');const n=$('#dN').value.trim();if(n.length<10||!$('#dV').checked){toast('شرح اقدام (حداقل ۱۰ نویسه) و تأیید میدانی لازم است');ok.disabled=false;return}
    const nowI=new Date().toISOString();
    if(x.src==='finding')throw new Error('عدم‌انطباق باید از مسیر عکس پس از اصلاح در چک‌لیست بسته شود.');
    if(x.src==='followup')await rq('clinic_followups?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'done',result_notes:n,completed_at:nowI})});
    else if(x.src==='incident')await rq('clinic_incidents?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({action_status:'done'})});
+   else if(x.src==='incident_capa')await rq('clinic_followups?id=eq.'+encodeURIComponent(x.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'done',completed_at:nowI})});
    let historySaved=true;try{await saveOv(x,{follow_until:null},{type:'close',note:n,verified:true})}catch(_){historySaved=false}
    ITEMS=ITEMS.filter(y=>y!==x);toast(historySaved?'موضوع بسته شد':'وضعیت منبع بسته شد، اما ثبت رویداد تاریخچه در لایه مدیریتی ناموفق بود؛ سوابق را بررسی کنید.')}
   dlg.close();render()}catch(err){toast('خطا: '+err.message);ok.disabled=false}}});
