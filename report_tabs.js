@@ -1,1 +1,17 @@
-(function(){"use strict";const t=[{t:"📑 گزارش مدیریتی",items:[["mgmt.html","عملکرد و تصمیم‌ها"],["report.html","امتیاز و نقاط ضعف"]]},{t:"🏭 ارزیابی واحدهای کارخانه",items:[["evaluation.html","امتیاز واحدها"],["reward_eval.html","تشویق پرسنل"]]},{t:"✉️ ارسال",items:[["unit_report.html","گزارش واحدها (Outlook)"],["feedback_board.html","تابلوی بازخورد کارت‌ها"]]},{t:"📥 ورود داده",items:[["indices.html","کارکرد و شاخص حوادث"]]}];const e=(location.pathname.split("/").pop()||"index.html").toLowerCase();if(!t.some(t=>t.items.some(t=>t[0]===e)))return;function a(){if(document.querySelector(".rtabs"))return;const a=document.createElement("style");a.textContent=".rtabs{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;max-width:1000px;margin:36px auto 0;padding:6px 12px;font-family:inherit;font-size:12px}"+".rtabs .g{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.rtabs .gt{color:var(--mu,#64748b)}"+".rtabs a{padding:3px 11px;border:1px solid var(--bd,#e2e8f0);border-radius:99px;background:var(--card,#fff);color:var(--ac,#0f766e);text-decoration:none;white-space:nowrap}"+".rtabs a[aria-current]{background:var(--ac,#0f766e);color:#fff;border-color:var(--ac,#0f766e);font-weight:700}"+"@media print{.rtabs{display:none!important}}html.emb .rtabs{display:none!important}";document.head.appendChild(a);const r=document.createElement("nav");r.className="rtabs";r.setAttribute("aria-label","گزارش‌ها");r.innerHTML=t.map(t=>'<div class="g"><span class="gt">'+t.t+":</span>"+t.items.map(t=>'<a href="'+t[0]+'"'+(t[0]===e?' aria-current="page"':"")+">"+t[1]+"</a>").join("")+"</div>").join("");document.body.insertBefore(r,document.body.firstChild)}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",a);else a()})();
+(function(){
+"use strict";
+const hub="comprehensive-report.html";
+const pages=["mgmt.html","report.html","unit_report.html","indices.html","evaluation.html","reward_eval.html","unit_eval.html","culture.html","committee.html","objectives.html"];
+const current=(location.pathname.split("/").pop()||"").toLowerCase();
+if(!pages.includes(current))return;
+function mount(){
+ if(document.querySelector(".rtabs"))return;
+ const style=document.createElement("style");
+ style.textContent=".rtabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;max-width:1000px;margin:24px auto 0;padding:6px 12px;font:12px inherit}.rtabs a{padding:5px 13px;border:1px solid var(--bd,#e2e8f0);border-radius:999px;background:var(--card,#fff);color:var(--ac,#0f766e);text-decoration:none}.rtabs a[aria-current]{background:var(--ac,#0f766e);color:#fff;border-color:var(--ac,#0f766e);font-weight:700}@media print{.rtabs{display:none!important}}";
+ document.head.appendChild(style);
+ const nav=document.createElement("nav");nav.className="rtabs";nav.setAttribute("aria-label","مرکز گزارش‌ها");
+ nav.innerHTML='<a href="'+hub+'">📊 مرکز گزارش جامع</a><a href="mgmt.html">گزارش مدیریتی</a><a href="report.html">گزارش دوره‌ای</a><a href="unit_report.html">گزارش واحدها</a><a href="indices.html">شاخص حوادث</a>';
+ document.body.insertBefore(nav,document.body.firstChild);
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount);else mount();
+})();
