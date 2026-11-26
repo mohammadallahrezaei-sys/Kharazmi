@@ -4,6 +4,7 @@
 const SOURCES={
  finding:{label:'عدم‌انطباق بازرسی',icon:'📋',href:id=>'checklists.html#one='+encodeURIComponent(id)},
  equipment_defect:{label:'ایراد تجهیز',icon:'🛠️',href:id=>'equipment.html?code='+encodeURIComponent(id)},
+ pollutant_capa:{label:'اقدام اصلاحی آلاینده‌سنجی',icon:'🧪',href:id=>'pollutants.html#tab=i'},
  ergo:{label:'اقدام ارگونومی',icon:'🪑',href:id=>'ergo_followup.html#action='+encodeURIComponent(id)},
  incident:{label:'اقدام اصلاحی حادثه',icon:'🚨',href:id=>'clinic.html#inc='+encodeURIComponent(id)},
  behavior:{label:'اقدام رفتار ناایمن',icon:'👷',href:id=>'behavior.html#obs='+encodeURIComponent(id)},
@@ -109,7 +110,7 @@ async function load(options={}){
   }catch(e){errors.push({source:'مدیریت مسئول/مهلت',message:String(e&&e.message||e).slice(0,180)})}
  }
  const unique=new Map();visible.forEach(x=>{if(!unique.has(x.action_uid))unique.set(x.action_uid,x)});
- return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:6,excluded:['finding_followups','ergo_action_history','incident_capa','raw_cards','notice_wo'],separateQueues:['FMEA/HAZOP planned_controls'] }};
+ return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:7,excluded:['finding_followups','ergo_action_history','incident_capa','raw_cards','notice_wo'],separateQueues:['FMEA/HAZOP planned_controls'] }};
 }
 window.HSEActionEngine={load,loadRiskPlans,SOURCES};
 })();
