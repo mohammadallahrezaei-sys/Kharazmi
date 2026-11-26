@@ -65,7 +65,7 @@ details.how{margin:8px 0;font-size:12.5px;color:var(--mu)}
 </div>
 <dialog id="dlg"></dialog>
 <div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:99px;font-size:13px;z-index:99999"></div>
-<script src="eval_core.js"></script><script src="action-engine.js?v=20261126-equipment-capa-bridge"></script>
+<script src="eval_core.js"></script><script src="action-engine.js?v=20261126-equipment-capa-complete"></script>
 <script>
 const {fa,esc}=HSE,$=s=>document.querySelector(s),SB='https://priopguwfjawybffarhd.supabase.co/rest/v1/';
 const todayISO=()=>HSEToday();
@@ -117,6 +117,7 @@ async function load(){
     else if(src==='incident')base=70;
     else if(src==='behavior')base=45;
     else if(src==='ergo')base=/بالا|زیاد|high/i.test(d.initial_level||'')?65:45;
+    else if(src==='equipment_defect'){base=d.result==='عدم تایید'?70:55;extra={equipmentCode:d.equipment_code,inspectionId:d.inspection_id,inspectionDate:d.inspection_date,defectState:d.defects||''}}
     L.push({key:src==='followup'?'followup:'+x.source_id:x.action_uid,src,id:x.source_id,title:x.title,unit:x.unit||'',base,due:x.due_date,created:x.created_at,srcOwner:x.owner,srcStatus:src==='ergo'?x.native_status:'',readOnlySource:src!=='followup',...extra});
    });
   }),
@@ -128,6 +129,7 @@ async function load(){
   T('اقدامات برنامه‌ریزی‌شده FMEA/HAZOP',async()=>{RISK_PLANS=await HSEActionEngine.loadRiskPlans()}),
   T('مسئول/مهلت',async()=>{const o=await rq('action_overlay?select=*',{headers:{Prefer:'return=representation'}});OV={};(o||[]).forEach(x=>OV[x.key]=x)}).then(()=>{})
  ]);
+ if(PREVIEW_READ_ONLY){try{const local=JSON.parse(localStorage.getItem('khz_equipment_action_overlay_v1')||'{}');Object.keys(local||{}).forEach(k=>{if(k.startsWith('equipment_defect:'))OV[k]=local[k]})}catch(e){miss.push('لایه محلی اقدامات تجهیزات')}}
  renderRiskPlans();
  // تاریخچهٔ فنی عدم‌انطباق به‌صورت فقط‌خواندنی به timeline مشترک اضافه می‌شود.
  await T('تاریخچه پیگیری عدم‌انطباق',async()=>{const h=await HSE.getAll('finding_followups?select=id,finding_id,followed_at,created_at,followed_by,result,next_due,kind,tech_deadline&order=followed_at.asc');
@@ -153,7 +155,7 @@ function render(){
  const all=ITEMS,p1=all.filter(x=>x.lv===1).length,late=all.filter(x=>x.late>0).length,noOwn=all.filter(x=>x.lv<=2&&!x.owner).length,esc2=all.filter(x=>x.esc>=2).length,estimated=all.filter(x=>x.dueEstimated).length,noDue=all.filter(x=>!x.dueEff).length;
  $('#sm').innerHTML='<div class="bad"><b>'+fa(p1)+'</b>فوری در صف</div><div class="wa"><b>'+fa(late)+'</b>معوق در صف</div><div class="bad"><b>'+fa(esc2)+'</b>نیازمند تشدید</div><div class="wa"><b>'+fa(noOwn)+'</b>فوری/بالا بدون مسئول</div><div><b>'+fa(all.length)+'</b>کل صف کاری</div><div><b>'+fa(estimated)+'</b>دارای مهلت برآوردی</div><div class="wa"><b>'+fa(noDue)+'</b>بدون مهلت قابل محاسبه</div><a href="risks.html" style="display:block;color:inherit;text-decoration:none" title="مشاهده ارزیابی ریسک‌های FMEA و HAZOP"><div><b>'+(RISK_REVIEW_MISSING==null?'—':fa(RISK_REVIEW_MISSING))+'</b>FMEA/HAZOP بدون تاریخ بازنگری</div></a>';
  const qa=[
-  ['اقدامات اصلاحی فعال',ITEMS.filter(x=>['finding','incident','behavior','ergo','equipment_defect'].includes(x.src)).length,'عدم‌انطباق، حادثه، رفتار و ارگونومی'],
+  ['اقدامات اصلاحی فعال',ITEMS.filter(x=>['finding','incident','behavior','ergo','equipment_defect'].includes(x.src)).length,'عدم‌انطباق، حادثه، رفتار، ارگونومی و ایراد تجهیزات'],
   ['پیگیری‌های بهداری',ITEMS.filter(x=>x.src==='followup').length,'صف پیگیری درمانگاه؛ تابع دسترسی محرمانه'],
   ['کارت‌های در انتظار بررسی',ITEMS.filter(x=>x.src==='card').length,'صف بررسی و تأیید، نه CAPA'],
   ['تعهدات نزدیک سررسید',ITEMS.filter(x=>x.src==='obligation').length,'تعهدات دوره‌ای با موعد نزدیک'],
@@ -172,13 +174,15 @@ const V=view(),sh=V.slice(0,SHOW);
   +x.why.map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>'
   +(last?'<div class="xe">آخرین پیگیری ('+jl(last.t)+'): '+esc(last.note||'')+(last.by?' — ثبت‌کننده: '+esc(last.by):'')+(x.events.length>1?' — '+fa(x.events.length)+' سابقه':'')+'</div>':'')
   +(x.src==='finding'&&x.events.length?'<details class="xe" style="margin-top:6px"><summary style="cursor:pointer">نمایش همهٔ سوابق پیگیری ('+fa(x.events.length)+')</summary>'+x.events.map(v=>'<div style="padding:5px 0;border-top:1px solid var(--bd)">'+jl(v.t)+' · '+esc(({follow:'پیگیری',claim:'اعلام انجام توسط فنی',rejected:'عدم‌تأیید',review:'بررسی کارشناس',verified:'تأیید و بستن',closed:'بسته‌شدن'}[v.type]||v.type||'رویداد'))+' — '+esc(v.note||'')+(v.by?' · '+esc(v.by):'')+(v.next?' · مهلت بعدی: '+jl(v.next):'')+'</div>').join('')+'</details>':'')
-  +'<div class="xa"><button class="b2 p" data-a="follow" data-k="'+esc(x.key)+'" '+(canWrite()?'':'disabled title="عملیات نوشتنی در این نسخه در دسترس نیست"')+'>📝 ثبت پیگیری</button><button class="b2" data-a="assign" data-k="'+esc(x.key)+'" '+(canWrite()?'':'disabled title="عملیات نوشتنی در این نسخه در دسترس نیست"')+'>👤 مسئول و مهلت</button>'
-  +(x.can?'<button class="b2 ok" data-a="close" data-k="'+esc(x.key)+'" '+(canWrite()?'':'disabled title="عملیات نوشتنی در این نسخه در دسترس نیست"')+'>✅ بستن با تأیید</button>':'')
-  +(x.src==='finding'&&x.notice_code?'<a class="b2" href="tech_followup.html?notice_code='+encodeURIComponent(String(x.notice_code).trim())+'" style="text-decoration:none">📤 پیگیری اعلان '+esc(x.notice_code)+'</a>':'')+'<a class="b2" href="'+(x.src==='finding'?S.link+'#one='+encodeURIComponent(x.id):S.link)+'" style="text-decoration:none" title="'+(x.src==='finding'?'بازبینی پرونده و تأیید اصلاح فقط در ماژول تخصصی انجام می‌شود':'باز کردن ماژول تخصصی')+'">'+(x.src==='finding'?'🧾 بازبینی و تأیید در چک‌لیست':'🔗 باز کردن ماژول تخصصی')+'</a></div></div></div>'}).join('')
+  +'<div class="xa"><button class="b2 p" data-a="follow" data-k="'+esc(x.key)+'" '+(canManage(x)?'':'disabled title="عملیات نوشتنی در این نسخه در دسترس نیست"')+'>📝 ثبت پیگیری</button><button class="b2" data-a="assign" data-k="'+esc(x.key)+'" '+(canManage(x)?'':'disabled title="عملیات نوشتنی در این نسخه در دسترس نیست"')+'>👤 مسئول و مهلت</button>'
+  +(x.can?'<button class="b2 ok" data-a="close" data-k="'+esc(x.key)+'" '+(canManage(x)?'':'disabled title="عملیات نوشتنی در این نسخه در دسترس نیست"')+'>✅ بستن با تأیید</button>':'')
+  +(x.src==='finding'&&x.notice_code?'<a class="b2" href="tech_followup.html?notice_code='+encodeURIComponent(String(x.notice_code).trim())+'" style="text-decoration:none">📤 پیگیری اعلان '+esc(x.notice_code)+'</a>':'')+'<a class="b2" href="'+(x.src==='finding'?S.link+'#one='+encodeURIComponent(x.id):S.link)+'" style="text-decoration:none" title="'+(x.src==='finding'?'بازبینی پرونده و تأیید اصلاح فقط در ماژول تخصصی انجام می‌شود':'باز کردن ماژول تخصصی')+'">'+(x.src==='finding'?'🧾 بازبینی و تأیید در چک‌لیست':'🔗 باز کردن ماژول تخصصی')+'</a>'+(x.src==='equipment_defect'?'<div class="xe">برای بستن این مورد، رفع نقص را در ماژول تجهیزات ثبت کنید و نتیجه بازرسی مجدد باید تأیید باشد. بستن دستی از مرکز اقدام مجاز نیست.</div>':'')+'</div></div></div>'}).join('')
   +(V.length>SHOW?'<div style="text-align:center"><button class="b2" id="more">نمایش '+fa(Math.min(20,V.length-SHOW))+' مورد بعدی (از '+fa(V.length-SHOW)+')</button></div>':'')}
+function canManage(x){return PREVIEW_READ_ONLY?x.src==='equipment_defect':OVOK}
 function ov(x){return OV[x.key]||{key:x.key,source:x.src,source_id:String(x.id),owner:null,due_override:null,follow_until:null,note:null,events:[]}}
 async function saveOv(x,patch,ev){
- if(PREVIEW_READ_ONLY){toast('نسخهٔ آزمایشی فقط‌خواندنی است؛ این عملیات در نسخهٔ اصلی انجام می‌شود.');return false}
+ if(PREVIEW_READ_ONLY&&x.src==='equipment_defect'){const base=ov(x),row={...base,...patch,events:[...(Array.isArray(base.events)?base.events:[]),...(ev?[{t:new Date().toISOString(),by:ME,...ev}]:[])],updated_by:ME,updated_at:new Date().toISOString()};try{const local=JSON.parse(localStorage.getItem('khz_equipment_action_overlay_v1')||'{}');local[x.key]=row;localStorage.setItem('khz_equipment_action_overlay_v1',JSON.stringify(local));OV[x.key]=row;build(x);return true}catch(e){toast('ذخیره محلی مسئول/پیگیری ناموفق بود؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.');return false}}
+ if(PREVIEW_READ_ONLY){toast('نسخهٔ آزمایشی فقط‌خواندنی است؛ این عملیات برای این منبع غیرفعال است.');return false}
  if(!OVOK){toast('لایهٔ مسئول/مهلت در دسترس نیست؛ عملیات برای جلوگیری از ثبت ناقص متوقف شد.');return false}
  const base=ov(x),row={...base,...patch,events:[...(Array.isArray(base.events)?base.events:[]),...(ev?[{t:new Date().toISOString(),by:ME,...ev}]:[])],updated_by:ME,updated_at:new Date().toISOString()};
  const r=await rq('action_overlay?on_conflict=key',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify(row)});
