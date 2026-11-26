@@ -1,46 +1,22 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
-<head>
+<html lang="fa" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
 <script src="auth.js" data-roles="manager"></script><script src="hse_nav.js?v=20261126-nav-central" defer></script>
-<title>مرکز گزارش جامع HSE - خوارزمی</title><link rel="stylesheet" href="hse_ui.css">
+<title>گزارش جامع HSE - خوارزمی</title><link rel="stylesheet" href="hse_ui.css">
 <style>
 :root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ac:#0f766e}
-body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.85 Vazirmatn,Tahoma,sans-serif}
-.wrap{max-width:1180px;margin:auto;padding:16px}
-.head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-h1{margin:0;font-size:23px}h2{margin:0 0 8px;font-size:16px;color:var(--ac)}
-.sub{color:var(--mu);font-size:12px}.actions{display:flex;gap:6px;flex-wrap:wrap}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.8 Vazirmatn,Tahoma,sans-serif}
+.wrap{max-width:1400px;margin:auto;padding:12px}
+.head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+h1{margin:0;font-size:22px}.sub{color:var(--mu);font-size:12px}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
 a.btn{display:inline-flex;padding:7px 12px;border:1px solid var(--bd);border-radius:10px;text-decoration:none;color:inherit;background:var(--card)}
 a.primary{background:var(--ac);color:#fff;border-color:var(--ac)}
-.section{border:1px solid var(--bd);border-radius:14px;background:var(--card);padding:14px;margin:12px 0}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px}
-.card{display:block;padding:12px;border:1px solid var(--bd);border-radius:12px;text-decoration:none;color:inherit;background:var(--card);transition:.15s}
-.card:hover{border-color:var(--ac);transform:translateY(-1px)}
-.card .ico{font-size:22px}.card b{display:block;font-size:14px}.card small{display:block;color:var(--mu);font-size:12px;line-height:1.7;margin-top:3px}
-.note{border-right:4px solid #d97706;background:color-mix(in srgb,#d97706 8%,var(--card));border-radius:10px;padding:10px 12px;font-size:12px;color:var(--mu)}
-@media(max-width:600px){.wrap{padding:12px}h1{font-size:19px}}
+.report{width:100%;height:calc(100vh - 110px);min-height:780px;border:1px solid var(--bd);border-radius:14px;background:var(--card)}
+@media(max-width:600px){.wrap{padding:8px}.head{align-items:flex-start}h1{font-size:18px}.report{height:calc(100vh - 150px);min-height:700px}}
 </style></head><body><main class="wrap">
-<header class="head"><div><h1>📊 مرکز گزارش جامع HSE</h1><div class="sub">یک نقطه ورود برای گزارش‌ها، تحلیل‌ها و خروجی مدیریتی</div></div><div class="actions"><a class="btn primary" href="mgmt.html">گزارش مدیریتی / PDF</a><a class="btn" href="action.html">مرکز پیگیری</a><a class="btn" href="index.html">خانه</a></div></header>
-<section class="section"><h2>گزارش‌های اصلی</h2><div class="cards">
-<a class="card" href="mgmt.html"><span class="ico">📑</span><b>گزارش مدیریتی یکپارچه</b><small>عملکرد دوره، حوادث، عدم‌انطباق، آموزش، فرهنگ، اهداف و اقدامات نیازمند تصمیم مدیریت؛ خروجی چاپ/PDF</small></a>
-<a class="card" href="report.html"><span class="ico">🏆</span><b>گزارش دوره‌ای و کارنامه HSE</b><small>امتیاز دوره، نقاط ضعف، روند ۱۲ ماهه، ارزیابی واحدها، فرهنگ و آموزش</small></a>
-<a class="card" href="unit_report.html"><span class="ico">🏭</span><b>گزارش تفکیکی واحدها</b><small>انتخاب واحد، دوره و نوع گزارش؛ خروجی و ارسال به Outlook</small></a>
-<a class="card" href="indices.html"><span class="ico">📈</span><b>شاخص حوادث</b><small>AFR، ASR، FSI و Safe-T؛ انتخاب بازه، مبنای ساعات و دوره مقایسه</small></a>
-</div></section>
-<section class="section"><h2>تحلیل‌ها و گزارش‌های مکمل</h2><div class="cards">
-<a class="card" href="evaluation.html"><span class="ico">🧮</span><b>ارزیابی عملکرد واحدها</b><small>امتیازدهی و مقایسه واحدهای کارخانه</small></a>
-<a class="card" href="unit_eval.html"><span class="ico">📋</span><b>ارزیابی واحدها</b><small>جزئیات ارزیابی و نتایج دوره</small></a>
-<a class="card" href="reward_eval.html"><span class="ico">🏅</span><b>تشویق پرسنل</b><small>ارزیابی و خروجی پیشنهاد تشویقی</small></a>
-<a class="card" href="culture.html"><span class="ico">🧠</span><b>فرهنگ ایمنی</b><small>نتایج پیمایش و تحلیل مشارکت</small></a>
-<a class="card" href="committee.html"><span class="ico">🗓️</span><b>کمیته حفاظت فنی</b><small>جلسات، مصوبات و پیگیری تصمیم‌ها</small></a>
-<a class="card" href="objectives.html"><span class="ico">🎯</span><b>اهداف HSE</b><small>اهداف، پیشرفت و وضعیت تحقق</small></a>
-</div></section>
-<section class="section"><h2>ورودی و پیگیری</h2><div class="cards">
-<a class="card" href="action.html"><span class="ico">🎯</span><b>مرکز پیگیری همه اقدامات</b><small>CAPA، نقص‌ها، برنامه‌های کنترلی، مسئول، موعد، تأخیر و تأیید</small></a>
-<a class="card" href="due.html"><span class="ico">⏳</span><b>نمای سررسیدها (قدیمی)</b><small>فعلاً برای تطبیق/بررسی؛ مسیر روزانه از مرکز پیگیری استفاده شود</small></a>
-<a class="card" href="action-register.html"><span class="ico">🧾</span><b>فهرست اقدامات (قدیمی)</b><small>نمای قدیمی؛ مسیر اصلی مرکز پیگیری است</small></a>
-</div></section>
-<div class="note">این مرحله گردآوری گزارش‌های فعلی در یک نقطه واحد و حذف آن‌ها از ناوبری پراکنده است؛ داده‌ها و محاسبات حذف نشده‌اند. تجمیع واقعی همه داده‌ها و فیلترهای مشترک در یک جدول/گزارش واحد هنوز انجام نشده و در مرحله بعد باید به‌عنوان یک لایه گزارش مستقل ساخته و تست شود. فعلاً هر گزارش، فیلترها و محاسبات داخلی خودش را دارد.</div>
+<header class="head"><div><h1>📊 گزارش جامع HSE</h1><div class="sub">گزارش مدیریتی تجمیعی · انتخاب دوره، تحلیل، اقدامات و خروجی چاپ/PDF در یک صفحه</div></div>
+<div class="actions"><a class="btn primary" href="mgmt.html" target="_blank">باز کردن گزارش مستقل / چاپ PDF</a><a class="btn" href="action.html">مرکز پیگیری</a><a class="btn" href="index.html">خانه</a></div></header>
+<iframe class="report" title="گزارش مدیریتی یکپارچه HSE" src="mgmt.html" loading="eager"></iframe>
 </main></body></html>
