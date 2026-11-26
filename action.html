@@ -88,8 +88,9 @@ function build(it){ /* امتیاز، مهلت مؤثر و سطح تشدید */
  if(it.rec>1){const r=Math.min(10,3*(it.rec-1));sc+=r;why.push('تکرار ×'+fa(it.rec))}
  const sla=it.sla||SLA_LVL[lvl(sc)];
  let due=o.due_override||it.due||'';
+ const dueEstimated=!due&&!!it.created;
  if(!due&&it.created)due=addD(it.created.slice(0,10),sla);
- it.dueEff=due;it.late=due?Math.max(0,diff(today,due)):0;
+ it.dueEff=due;it.dueEstimated=dueEstimated;it.late=due?Math.max(0,diff(today,due)):0;
  if(it.late>0){sc+=Math.min(25,3*it.late);why.push('تأخیر '+fa(it.late)+' روز')}
  it.score=Math.min(100,Math.round(sc));it.lv=lvl(it.score);
  it.esc=it.late>=Math.max(7,Math.ceil(sla*1.5))?3:it.late>=Math.max(3,Math.ceil(sla/2))?2:it.late>0?1:0;
@@ -163,7 +164,7 @@ const V=view(),sh=V.slice(0,SHOW);
   return '<div class="xi'+(x.followed&&x.esc<2?' xf':'')+'" style="--c:'+c+'"><div class="xs" title="امتیاز اولویت">'+fa(x.score)+'</div><div class="xb"><h3>'+S.i+' '+esc(String(x.title).slice(0,220))+'</h3>'
   +'<div class="xc"><span style="color:'+c+';border-color:'+c+'">'+LV[x.lv].n+'</span><span>'+S.n+'</span>'+(x.unit?'<span>'+esc(x.unit)+'</span>':'')+(x.src==='finding'&&x.rootCause?'<span class="ok">علت ریشه‌ای: '+esc(x.rootCause)+'</span>':'')
   +(x.owner?'<span class="ok">مسئول: '+esc(x.owner)+'</span>':'<span class="'+(x.lv<=2?'bad':'wa')+'">بدون مسئول</span>')+(x.src==='ergo'&&x.srcStatus?'<span>مرحله: '+esc(({open:'باز / نیازمند اقدام',implemented:'اجرا شده؛ منتظر ارزیابی مجدد',pending_verification:'منتظر تأیید اثربخشی'}[x.srcStatus]||x.srcStatus))+'</span>':'')
-  +(x.dueEff?'<span class="'+(x.late?'bad':'')+'">مهلت: '+jl(x.dueEff)+(x.late?' ('+fa(x.late)+' روز دیر)':'')+'</span>':'<span class="wa">بدون مهلت</span>')
+  +(x.dueEff?'<span class="'+(x.late?'bad':'')+'">'+(x.dueEstimated?'مهلت برآوردی: ':'مهلت: ')+jl(x.dueEff)+(x.late?' ('+fa(x.late)+' روز دیر)':'')+'</span>':'<span class="wa">بدون مهلت</span>')
   +(e?'<span class="'+e[1]+'">'+e[0]+'</span>':'')
   +(x.follow?'<span class="'+(x.followLate?'bad':'ok')+'">پیگیری بعدی: '+jl(x.follow)+'</span>':'')
   +x.why.map(w=>'<span>'+esc(w)+'</span>').join('')+'</div>'
