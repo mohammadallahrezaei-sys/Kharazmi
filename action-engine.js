@@ -8,7 +8,8 @@ const SOURCES={
  ergo:{label:'اقدام ارگونومی',icon:'🪑',href:id=>'ergo_followup.html#action='+encodeURIComponent(id)},
  incident:{label:'اقدام اصلاحی حادثه',icon:'🚨',href:id=>'clinic.html#inc='+encodeURIComponent(id)},
  behavior:{label:'اقدام رفتار ناایمن',icon:'👷',href:id=>'behavior.html#obs='+encodeURIComponent(id)},
- clinic_followup:{label:'پیگیری عمومی بهداری',icon:'🏥',href:id=>'clinic.html#fu='+encodeURIComponent(id)}
+ clinic_followup:{label:'پیگیری عمومی بهداری',icon:'🏥',href:id=>'clinic.html#fu='+encodeURIComponent(id)},
+ incident_capa:{label:'اقدام اصلاحی علت‌یابی حادثه',icon:'🚨',href:id=>'clinic.html#fu='+encodeURIComponent(id)}
 };
 const clean=v=>String(v==null?'':v).trim();
 const date=v=>v?String(v).slice(0,10):'';
@@ -36,7 +37,8 @@ async function load(options={}){
   read('ergonomic_actions','ergonomic_actions?status=in.(open,implemented,pending_verification)&select=id,unit,station,task,risk_factor,planned_action,initial_level,responsible,due_date,status,created_at',x=>row('ergo',x.id,[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — '),{unit:[x.unit,x.station].filter(Boolean).join(' · '),owner:x.responsible,due_date:x.due_date,status:x.status,created_at:x.created_at,detail:'وضعیت تخصصی: '+(x.status||'—'),task:x.task,risk_factor:x.risk_factor,planned_action:x.planned_action,initial_level:x.initial_level,responsible:x.responsible}),items,errors,GET),
   read('clinic_incidents','clinic_incidents?select=id,corrective_action,action_owner,action_due_date,action_status,location,unit,incident_date,created_at',x=>x.corrective_action&&(includeCompleted||x.action_status!=='done')?row('incident',x.id,x.corrective_action,{unit:x.location||x.unit,owner:x.action_owner,due_date:x.action_due_date,status:x.action_status,created_at:x.incident_date||x.created_at,incident_date:x.incident_date||x.created_at}):null,items,errors,GET),
   read('behavior_obs','behavior_obs?result=eq.unsafe&status=neq.closed&action_status=eq.open&select=id,action,action_owner,action_due,action_status,location,unit,created_at',x=>x.action&&x.action_status!=='done'?row('behavior',x.id,x.action,{unit:x.location||x.unit,owner:x.action_owner,due_date:x.action_due,status:x.action_status,created_at:x.created_at}):null,items,errors,GET),
-  read('clinic_followups','clinic_followups?kind=eq.followup&'+(includeCompleted?'status=neq.cancelled&':'status=in.(pending,overdue)&')+'select=id,title,kind,priority,due_date,status,created_at',x=>row('clinic_followup',x.id,x.title,{due_date:x.due_date,status:x.status,created_at:x.created_at,source_data:{priority:x.priority}}),items,errors,GET)
+  read('clinic_followups','clinic_followups?kind=eq.followup&'+(includeCompleted?'status=neq.cancelled&':'status=in.(pending,overdue)&')+'select=id,title,kind,priority,due_date,status,created_at',x=>row('clinic_followup',x.id,x.title,{due_date:x.due_date,status:x.status,created_at:x.created_at,source_data:{priority:x.priority}}),items,errors,GET),
+  read('incident_capa','clinic_followups?kind=eq.incident_capa&'+(includeCompleted?'status=neq.cancelled&':'status=in.(pending,overdue)&')+'select=id,title,kind,priority,due_date,status,created_at,destination',x=>row('incident_capa',x.id,x.title,{owner:String(x.destination||'').replace(/^مسئول:\\s*/,'').trim(),due_date:x.due_date,status:x.status,created_at:x.created_at,source_data:{priority:x.priority,origin:'incident_rca'}}),items,errors,GET)
  ]);
  // Preview-only local pollutant CAPA bridge. Personal exposure matching is never read here.
  if(location.hostname==='raw.githack.com'){
@@ -110,7 +112,7 @@ async function load(options={}){
   }catch(e){errors.push({source:'مدیریت مسئول/مهلت',message:String(e&&e.message||e).slice(0,180)})}
  }
  const unique=new Map();visible.forEach(x=>{if(!unique.has(x.action_uid))unique.set(x.action_uid,x)});
- return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:7,excluded:['finding_followups','ergo_action_history','incident_capa','raw_cards','notice_wo'],separateQueues:['FMEA/HAZOP planned_controls'] }};
+ return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:8,excluded:['finding_followups','ergo_action_history','raw_cards','notice_wo'],separateQueues:['FMEA/HAZOP planned_controls'] }};
 }
 window.HSEActionEngine={load,loadRiskPlans,SOURCES};
 })();
