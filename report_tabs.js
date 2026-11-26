@@ -1,6 +1,8 @@
 (function(){
 "use strict";
 const current=(location.pathname.split("/").pop()||"").toLowerCase();
+// در گزارش جامعِ توکار، نوار مسیر داخل قاب تکرار می‌شود؛ فقط در صفحه مستقل نمایش داده شود.
+if(window.self!==window.top)return;
 const pages=["mgmt.html","report.html","unit_report.html","indices.html","evaluation.html","reward_eval.html","unit_eval.html","culture.html","committee.html","objectives.html"];
 if(!pages.includes(current))return;
 function mount(){
