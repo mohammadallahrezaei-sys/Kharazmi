@@ -56,34 +56,38 @@ async function load(options={}){
   read('clinic_followups','clinic_followups?kind=eq.followup&'+(includeCompleted?'status=neq.cancelled&':'status=in.(pending,overdue)&')+'select=id,title,kind,priority,due_date,status,created_at',x=>row('clinic_followup',x.id,x.title,{due_date:x.due_date,status:x.status,created_at:x.created_at,source_data:{priority:x.priority}}),items,errors,GET),
   read('incident_capa','clinic_followups?kind=eq.incident_capa&'+(includeCompleted?'status=neq.cancelled&':'status=in.(pending,overdue)&')+'select=id,title,kind,priority,due_date,status,created_at,destination',x=>row('incident_capa',x.id,x.title,{owner:String(x.destination||'').replace(/^مسئول:\s*/,'').trim(),due_date:x.due_date,status:x.status,created_at:x.created_at,source_data:{priority:x.priority,origin:'incident_rca'}}),items,errors,GET)
  ]);
- // Preview-only local pollutant CAPA bridge. Personal exposure matching is never read here.
- if(location.hostname==='raw.githack.com'){
-  try{
-   const raw=localStorage.getItem('khz_pollutant_capa_preview_v1'),data=raw?JSON.parse(raw):{};
-   const jalaliISO=value=>{
-    const m=/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(String(value||''));if(!m)return '';
-    let jy=+m[1],jm=+m[2],jd=+m[3];if(jy<1300||jy>1500||jm<1||jm>12||jd<1||jd>31)return '';
-    jy+=1595;let days=-355668+365*jy+Math.floor(jy/33)*8+Math.floor((jy%33+3)/4)+jd+(jm<7?(jm-1)*31:(jm-7)*30+186);
-    let gy=400*Math.floor(days/146097);days%=146097;
-    if(days>36524){gy+=100*Math.floor(--days/36524);days%=36524;if(days>=365)days++}
-    gy+=4*Math.floor(days/1461);days%=1461;
-    if(days>365){gy+=Math.floor((days-1)/365);days=(days-1)%365}
-    let gd=days+1;const leap=(gy%4===0&&gy%100!==0)||gy%400===0,months=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31],gm=1;
-    let month=gm;while(month<=12&&gd>months[month-1]){gd-=months[month-1];month++}
-    return month<=12?String(gy)+'-'+String(month).padStart(2,'0')+'-'+String(gd).padStart(2,'0'):'';
-   };
-   Object.entries(data&&typeof data==='object'?data:{}).forEach(([key,v])=>{
-    const m=v&&v._meta;if(!m||v.status==='verified')return;
-    const uid='pollutant_capa:'+key;
-    items.push({action_uid:uid,source:'pollutant_capa',source_id:key,source_label:'اقدام اصلاحی آلاینده‌سنجی',icon:'🧪',
-     href:'pollutants.html#tab=i',title:'آلاینده‌سنجی: '+clean(m.domain)+' — '+clean(m.description||m.item),
-     unit:clean(m.unit),owner:clean(v.owner),due_date:jalaliISO(v.due),native_status:v.status==='done'?'انجام‌شده؛ در انتظار تأیید اثربخشی':v.status==='doing'?'در دست اقدام':'باز',
-     action_status:v.status||'open',created_at:null,id:key,detail:clean(v.action)||clean(m.item),
-     source_data:{year:m.year,domain:m.domain,item:m.item,value:m.value,limit:m.limit,page:m.page,followup_log:Array.isArray(v.log)?v.log:[]},
-     record_type:'local_source_record',writable:false});
-   });
-  }catch(e){errors.push({source:'اقدامات آلاینده‌سنجی محلی',message:'اطلاعات محلی این منبع قابل خواندن نیست؛ صف این منبع ناقص است.'})}
- }
+ // Pollutant CAPA: read the shared database in production and merge the browser-local Preview overlay.
+ try{
+  const data={};
+  try{(await GET('pollutant_capa?select=key,data')||[]).forEach(r=>{data[r.key]=r.data||{}})}
+  catch(e){errors.push({source:'pollutant_capa',message:'دریافت اقدامات آلاینده‌سنجی از پایگاه داده ناموفق بود؛ این منبع ناقص است.'})}
+  if(location.hostname==='raw.githack.com'){
+   try{Object.assign(data,JSON.parse(localStorage.getItem('khz_pollutant_capa_preview_v1')||'{}'))}
+   catch(e){errors.push({source:'pollutant_capa local',message:'داده محلی آلاینده‌سنجی قابل خواندن نیست.'})}
+  }
+  const jalaliISO=value=>{
+   const m=/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(String(value||''));if(!m)return '';
+   let jy=+m[1],jm=+m[2],jd=+m[3];if(jy<1300||jy>1500||jm<1||jm>12||jd<1||jd>31)return '';
+   jy+=1595;let days=-355668+365*jy+Math.floor(jy/33)*8+Math.floor((jy%33+3)/4)+jd+(jm<7?(jm-1)*31:(jm-7)*30+186);
+   let gy=400*Math.floor(days/146097);days%=146097;
+   if(days>36524){gy+=100*Math.floor(--days/36524);days%=36524;if(days>=365)days++}
+   gy+=4*Math.floor(days/1461);days%=1461;
+   if(days>365){gy+=Math.floor((days-1)/365);days=(days-1)%365}
+   let gd=days+1;const leap=(gy%4===0&&gy%100!==0)||gy%400===0,months=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31],gm=1;
+   let month=gm;while(month<=12&&gd>months[month-1]){gd-=months[month-1];month++}
+   return month<=12?String(gy)+'-'+String(month).padStart(2,'0')+'-'+String(gd).padStart(2,'0'):'';
+  };
+  Object.entries(data).forEach(([key,v])=>{
+   if(!v||v.status==='verified')return;
+   const m=v._meta||{},uid='pollutant_capa:'+key;
+   items.push({action_uid:uid,source:'pollutant_capa',source_id:key,source_label:'اقدام اصلاحی آلاینده‌سنجی',icon:'🧪',
+    href:'pollutants.html#tab=i',title:'آلاینده‌سنجی: '+clean(m.domain||'اقدام ثبت‌شده')+' — '+clean(m.description||m.item||key),
+    unit:clean(m.unit),owner:clean(v.owner),due_date:jalaliISO(v.due),native_status:v.status==='done'?'انجام‌شده؛ در انتظار تأیید اثربخشی':v.status==='doing'?'در دست اقدام':'باز',
+    action_status:v.status||'open',created_at:null,id:key,detail:clean(v.action)||clean(m.item),
+    source_data:{year:m.year,domain:m.domain,item:m.item,value:m.value,limit:m.limit,page:m.page,followup_log:Array.isArray(v.log)?v.log:[]},
+    record_type:'source_record',writable:false});
+  });
+ }catch(e){errors.push({source:'pollutant_capa',message:'صف اقدامات آلاینده‌سنجی ناقص است.'})}
  // Preview-only local equipment bridge. Never expose browser-local data on production origins.
  if(location.hostname==='raw.githack.com'){
   try{
