@@ -3,7 +3,7 @@
 'use strict';
 const SOURCES={
  finding:{label:'عدم‌انطباق بازرسی',icon:'📋',href:id=>'checklists.html#one='+encodeURIComponent(id)},
- ergo:{label:'اقدام ارگونومی',icon:'🪑',href:id=>'ergo_followup.html'},
+ ergo:{label:'اقدام ارگونومی',icon:'🪑',href:id=>'ergo_followup.html#action='+encodeURIComponent(id)},
  incident:{label:'اقدام اصلاحی حادثه',icon:'🚨',href:id=>'clinic.html#inc='+encodeURIComponent(id)},
  behavior:{label:'اقدام رفتار ناایمن',icon:'👷',href:id=>'behavior.html'},
  clinic_followup:{label:'پیگیری عمومی بهداری',icon:'🏥',href:id=>'clinic.html#fu='+encodeURIComponent(id)}
