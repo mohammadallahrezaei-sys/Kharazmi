@@ -35,8 +35,13 @@ async function load(options={}){
   try{const allowed=await HSEAuth.visibleFollowups(items.filter(x=>x.source==='clinic_followup').map(x=>({id:x.source_id,title:x.title,kind:'followup'})));const ids=new Set((allowed||[]).map(x=>String(x.id)));visible=items.filter(x=>x.source!=='clinic_followup'||ids.has(x.source_id))}
   catch(e){visible=items.filter(x=>x.source!=='clinic_followup');errors.push({source:'clinic_followups visibility',message:'فیلتر محرمانگی اعمال نشد؛ این ردیف‌ها پنهان شدند.'})}
  }
+ let riskPlans=[];
+ try{
+  const rows=await GET('risks?method=in.(fmea,hazop)&status=eq.approved&planned_controls=not.is.null&select=id,method,unit,hazard,planned_controls,owner,review_date,score&order=score.desc');
+  riskPlans=(rows||[]).filter(x=>clean(x.planned_controls)).map(x=>({risk_plan_uid:'risk-plan:'+String(x.id),risk_id:String(x.id),method:clean(x.method),unit:clean(x.unit),hazard:clean(x.hazard),planned_controls:clean(x.planned_controls),risk_owner:clean(x.owner),review_date:date(x.review_date),score:x.score,href:'risks.html#risk='+encodeURIComponent(x.id),record_type:'unconverted_risk_plan',writable:false}));
+ }catch(e){errors.push({source:'FMEA/HAZOP planned controls',message:String(e&&e.message||e).slice(0,180)})}
  const unique=new Map();visible.forEach(x=>{if(!unique.has(x.action_uid))unique.set(x.action_uid,x)});
- return {items:[...unique.values()],errors,meta:{readOnly:true,generated_at:new Date().toISOString(),source_count:5,excluded:['finding_followups','ergo_action_history','incident_capa','raw_cards','FMEA/HAZOP planned_controls','notice_wo'] }};
+ return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,generated_at:new Date().toISOString(),source_count:5,excluded:['finding_followups','ergo_action_history','incident_capa','raw_cards','FMEA/HAZOP planned_controls','notice_wo'] }};
 }
 window.HSEActionEngine={load,SOURCES};
 })();
