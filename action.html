@@ -65,7 +65,7 @@ details.how{margin:8px 0;font-size:12.5px;color:var(--mu)}
 </div>
 <dialog id="dlg"></dialog>
 <div id="toast" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:99px;font-size:13px;z-index:99999"></div>
-<script src="eval_core.js"></script>
+<script src="eval_core.js"></script><script src="action-engine.js"></script>
 <script>
 const {fa,esc}=HSE,$=s=>document.querySelector(s),SB='https://priopguwfjawybffarhd.supabase.co/rest/v1/';
 const todayISO=()=>HSEToday();
@@ -116,7 +116,7 @@ async function load(){
    r.forEach(x=>L.push({key:'card:'+x.id,src:'card',id:x.id,title:x.title||x.description||x.text||x.subject||'کارت گزارش',unit:x.location||x.unit||'',base:25,created:x.card_date||x.created_at,sla:7}))}),
   T('اقدامات ارگونومی',async()=>{const r=await HSE.getAll('ergonomic_actions?status=in.(open,implemented,pending_verification)&select=id,unit,job_title,station,task,risk_factor,method,initial_score,initial_level,planned_action,responsible,due_date,status,created_at');r.forEach(x=>L.push({key:'ergo:'+x.id,src:'ergo',id:x.id,title:[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — ')||'اقدام ارگونومی',unit:[x.unit,x.station].filter(Boolean).join(' · '),base:/بالا|زیاد|high/i.test(x.initial_level||'')?65:45,due:x.due_date,created:x.created_at,srcOwner:x.responsible,srcStatus:x.status,can:null,readOnlySource:true}))}),
   T('بازنگری ارزیابی ریسک',async()=>{const r=await HSE.getAll('risks?method=in.(fmea,hazop)&status=eq.approved&select=id,review_date');RISK_REVIEW_MISSING=(r||[]).filter(x=>!x.review_date).length}),
-  T('اقدامات برنامه‌ریزی‌شده FMEA/HAZOP',async()=>{const r=await HSE.getAll('risks?method=in.(fmea,hazop)&status=eq.approved&planned_controls=not.is.null&select=id,method,unit,hazard,planned_controls,owner,review_date,score,created_at&order=score.desc');RISK_PLANS=(r||[]).filter(x=>String(x.planned_controls||'').trim())}),
+  T('اقدامات برنامه‌ریزی‌شده FMEA/HAZOP',async()=>{RISK_PLANS=await HSEActionEngine.loadRiskPlans()}),
   T('مسئول/مهلت',async()=>{const o=await rq('action_overlay?select=*',{headers:{Prefer:'return=representation'}});OV={};(o||[]).forEach(x=>OV[x.key]=x)}).then(()=>{})
  ]);
  renderRiskPlans();
