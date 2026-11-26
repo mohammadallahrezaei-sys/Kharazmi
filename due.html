@@ -53,7 +53,7 @@
  <details class="mu" style="margin-top:14px"><summary>این صفحه از کجا می‌خواند؟</summary>
   <div>عدم‌انطباق‌های باز، پیگیری بهداری، اقدام اصلاحی حوادث، تعهدات و مجوزهای دوره‌ای، اقدام رفتار ناایمن، روش‌های اجرایی در دست تدوین، بازنگری ارزیابی ریسک، بازرسی بعدی تجهیزات (آخرین بازرسی + فاصله)، پایان قرارداد پیمانکاران. اقدامات اصلاحی آلاینده‌ها هنوز در این صفحه نیستند.</div></details>
 </div>
-<script src="eval_core.js"></script>
+<script src="eval_core.js"></script><script src="action-engine.js"></script>
 <script>
 const {fa,esc}=HSE,$=s=>document.querySelector(s);
 const today=HSEToday();
@@ -68,9 +68,7 @@ const add=(s,t,due,sub)=>{if(!t)return;due=d10(due);if(okD(due))L.push({s,t:Stri
 async function load(){
  const T=async(n,f)=>{try{await f()}catch(e){miss.push(n)}};
  await Promise.all([
-  T('عدم‌انطباق‌ها',async()=>{(await HSE.getAll('findings?status=eq.open&select=id,module,question,note,location,due_date,root_cause&order=id.asc')).filter(x=>x.module!=='MED').forEach(x=>add('finding',x.question||x.note,x.due_date,[x.location,x.root_cause?'علت ریشه‌ای: '+x.root_cause:''].filter(Boolean).join(' · ')))}),
-  T('پیگیری بهداری',async()=>{let r=await HSE.getAll('clinic_followups?kind=eq.followup&status=in.(pending,overdue)&select=id,title,due_date,status');if(HSEAuth.visibleFollowups)r=await HSEAuth.visibleFollowups(r);r.forEach(x=>add('followup',x.title,x.due_date))}),
-  T('حوادث',async()=>{(await HSE.getAll('clinic_incidents?select=id,corrective_action,action_due_date,action_status,location,unit,incident_date,created_at')).filter(x=>x.corrective_action&&x.action_status!=='done').forEach(x=>add('incident',x.corrective_action,x.action_due_date,x.location||x.unit))}),
+  T('اقدامات مستقل (موتور مشترک)',async()=>{const shared=await HSEActionEngine.load();const map={finding:'finding',clinic_followup:'followup',incident:'incident',behavior:'beh',ergo:'ergo'};shared.items.forEach(x=>{const s=map[x.source];if(!s)return;const sub=[x.unit,x.owner,x.native_status?('وضعیت: '+x.native_status):''].filter(Boolean).join(' · ');add(s,x.title,x.due_date,sub)});if(shared.errors.length)miss.push(...shared.errors.map(x=>'موتور مشترک: '+x.source))}),
   T('تعهدات',async()=>{(await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active')).filter(x=>x.active!==false).forEach(x=>add('obl',x.title,x.next_due,[x.category,x.owner].filter(Boolean).join(' · ')))}),
   T('رفتار ناایمن',async()=>{(await HSE.getAll('behavior_obs?result=eq.unsafe&status=neq.closed&select=id,action,action_due,action_status,location,unit,created_at')).filter(x=>x.action&&x.action_status==='open').forEach(x=>add('beh',x.action,x.action_due,x.location||x.unit))}),
   T('اقدامات ارگونومی',async()=>{(await HSE.getAll('ergonomic_actions?status=in.(open,implemented,pending_verification)&select=id,unit,station,task,risk_factor,planned_action,responsible,due_date,status,created_at')).forEach(x=>add('ergo',[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — ')||'اقدام ارگونومی',x.due_date,[x.unit,x.station,x.responsible,({open:'باز',implemented:'اجرا شده؛ منتظر ارزیابی مجدد',pending_verification:'منتظر تأیید اثربخشی'}[x.status]||x.status)].filter(Boolean).join(' · ')))}),
