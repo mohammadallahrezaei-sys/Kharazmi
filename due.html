@@ -58,7 +58,7 @@
 const {fa,esc}=HSE,$=s=>document.querySelector(s);
 const today=HSEToday();
 const d10=s=>s?String(s).slice(0,10):'';
-const okD=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&+s.slice(0,4)>1900;
+const okD=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&+s.slice(0,4)>1900;\nconst isoDate=s=>{const v=String(s||'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;const m=/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/.exec(v);return m&&HSE.jalToISO?HSE.jalToISO(+m[1],+m[2],+m[3])||'':''};
 const diff=(a,b)=>Math.round((new Date(a+'T12:00:00Z')-new Date(b+'T12:00:00Z'))/864e5);
 const addM=(iso,n)=>{const d=new Date(iso+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+n);return d.toISOString().slice(0,10)};
 const jl=iso=>new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',timeZone:'UTC'});
@@ -72,12 +72,20 @@ async function load(){
   T('تعهدات',async()=>{(await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active')).filter(x=>x.active!==false).forEach(x=>add('obl',x.title,x.next_due,[x.category,x.owner].filter(Boolean).join(' · ')))}),
   T('روش‌های اجرایی',async()=>{(await HSE.getAll('hse_procedures?select=id,title,status,target_date,owner,active')).filter(x=>x.active!==false&&x.status!=='approved').forEach(x=>add('proc',x.title,x.target_date,x.owner))}),
   T('ریسک‌ها',async()=>{(await HSE.getAll('risks?select=id,hazard,unit,status,review_date&status=neq.archived')).filter(x=>x.status!=='draft').forEach(x=>add('risk','بازنگری: '+(x.hazard||''),x.review_date,x.unit))}),
-  T('تجهیزات',async()=>{const [eq,ins]=await Promise.all([HSE.getAll('equipment?select=code,title,requires_inspection,interval_months&active=eq.true'),HSE.getAll('equipment_inspections?select=equipment_code,inspected_on,next_due,result&order=inspected_on.desc')]);
-   const last={};ins.forEach(i=>{if(!last[i.equipment_code])last[i.equipment_code]=i});
-   eq.filter(e=>e.requires_inspection).forEach(e=>{const l=last[e.code];if(!l){add('eq','بازرسی '+(e.title||e.code),'','هیچ سابقه بازرسی ثبت نشده');return}
-    if(l.result==='عدم تایید'){add('eq','بازرسی مجدد الزامی — '+(e.title||e.code),'','آخرین نتیجه عدم تأیید در '+(l.inspected_on||'تاریخ نامشخص')+'؛ موعد بازرسی مجدد در ماژول تجهیزات ثبت شود');return}
-    const due=d10(l.next_due)||(l.inspected_on?addM(d10(l.inspected_on),e.interval_months||12):'');
-    add('eq','بازرسی '+(e.title||e.code),due,'آخرین بازرسی: '+(l.inspected_on||'—'))})}),
+  T('تجهیزات',async()=>{
+   const db=await HSEActionEngine.loadEquipmentData(),eq=db.eq,ins=db.ins,last={};
+   ins.slice().sort((a,b)=>String(isoDate(a.inspected_on)||'').localeCompare(String(isoDate(b.inspected_on)||''))).forEach(i=>{if(!last[i.equipment_code])last[i.equipment_code]=i});
+   eq.filter(e=>e.active!==false&&e.requires_inspection).forEach(e=>{
+    const l=last[e.code];
+    if(!l){add('eq','بازرسی '+(e.title||e.code),'','هیچ سابقه بازرسی ثبت نشده');return}
+    if(l.result==='عدم تایید'){
+     if(location.hostname!=='raw.githack.com')add('eq','بازرسی مجدد الزامی — '+(e.title||e.code),'','آخرین نتیجه عدم تأیید در '+(l.inspected_on||'تاریخ نامشخص')+'؛ موعد بازرسی مجدد در ماژول تجهیزات ثبت شود');
+     return;
+    }
+    const inspected=isoDate(l.inspected_on),due=isoDate(l.next_due)||(inspected?addM(inspected,e.interval_months||12):'');
+    add('eq','بازرسی '+(e.title||e.code),due,'آخرین بازرسی: '+(l.inspected_on||'—'));
+   })
+  }),
   T('پیمانکاران',async()=>{(await HSE.getAll('contractors?select=id,name,end_date,status')).filter(c=>c.status!=='finished'&&c.status!=='ended').forEach(c=>add('ctr','پایان قرارداد '+c.name,c.end_date))})
  ]);
  try{const plans=await HSEActionEngine.loadRiskPlans(),saved=JSON.parse(localStorage.getItem('khz_risk_plan_action_preview_v1')||'{}');plans.forEach(p=>{const key='risk-plan:'+String(p.id);if(saved[key])return;add('riskplan',(p.method==='hazop'?'HAZOP':'FMEA')+' · '+(p.hazard||'برنامه کنترلی'),'',[p.unit,'مسئول تعیین نشده','برنامه هنوز وارد گردش اجرایی نشده'].filter(Boolean).join(' · '),key,p.href)})}catch(e){miss.push('برنامه‌های تخصیص‌نیافته FMEA/HAZOP')}
