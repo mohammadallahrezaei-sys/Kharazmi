@@ -42,8 +42,7 @@ async function load(options={}){
   catch(e){visible=items.filter(x=>x.source!=='clinic_followup');errors.push({source:'clinic_followups visibility',message:'فیلتر محرمانگی اعمال نشد؛ این ردیف‌ها پنهان شدند.'})}
  }
  let riskPlans=[];
- try{riskPlans=await loadRiskPlans(GET)}
- catch(e){errors.push({source:'FMEA/HAZOP planned controls',message:String(e&&e.message||e).slice(0,180)})}
+ if(options.includeRiskPlans){try{riskPlans=await loadRiskPlans(GET)}catch(e){errors.push({source:'FMEA/HAZOP planned controls',message:String(e&&e.message||e).slice(0,180)})}}
  const unique=new Map();visible.forEach(x=>{if(!unique.has(x.action_uid))unique.set(x.action_uid,x)});
  return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,generated_at:new Date().toISOString(),source_count:5,excluded:['finding_followups','ergo_action_history','incident_capa','raw_cards','FMEA/HAZOP planned_controls','notice_wo'] }};
 }
