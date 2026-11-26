@@ -4,71 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
-<script src="auth.js" data-roles="manager"></script>
-<script src="hse_nav.js?v=20261126-nav-core" defer></script>
+<meta http-equiv="refresh" content="0;url=mgmt.html?v=20261126-report-filter-top">
 <title>گزارش جامع HSE - خوارزمی</title>
-<link rel="stylesheet" href="hse_ui.css">
 <style>
-:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ac:#0f766e}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.8 Vazirmatn,Tahoma,sans-serif}
-.wrap{max-width:1440px;margin:0 auto;padding:18px 20px 28px}
-.head{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px}
-h1{margin:0;font-size:23px;line-height:1.5}
-.sub{color:var(--mu);font-size:12px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-a.btn{display:inline-flex;align-items:center;justify-content:center;padding:7px 13px;border:1px solid var(--bd);border-radius:10px;text-decoration:none;color:var(--tx);background:var(--card);font:inherit;font-size:13px}
-a.primary{background:var(--ac);color:#fff;border-color:var(--ac)}
-.intro{display:flex;align-items:center;gap:9px;padding:10px 14px;margin-bottom:14px;border:1px solid var(--bd);border-radius:13px;background:var(--card);color:var(--mu);font-size:12px;box-shadow:0 3px 12px rgba(15,23,42,.035)}
-.intro:before{content:"";width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--ac)}
-.report{width:100%;height:1100px;min-height:780px;border:1px solid var(--bd);border-radius:16px;background:var(--card);display:block;overflow:hidden;box-shadow:0 8px 26px rgba(15,23,42,.06)}
-@media(max-width:700px){.wrap{padding:10px}.head{align-items:flex-start}h1{font-size:19px}.actions{width:100%}.actions a{flex:1}.report{min-height:700px;border-radius:12px}.intro{line-height:1.7}}
+*{box-sizing:border-box}body{margin:0;padding:28px;background:#f1f5f9;color:#0f172a;font:14px/2 Tahoma,sans-serif}
+main{max-width:620px;margin:10vh auto;padding:26px;border:1px solid #e2e8f0;border-radius:16px;background:#fff;text-align:center}
+a{display:inline-block;margin-top:12px;padding:9px 18px;border-radius:9px;background:#0f766e;color:#fff;text-decoration:none}
 </style>
 </head>
 <body>
-<main class="wrap">
-<header class="head">
- <div><h1>📊 گزارش جامع HSE</h1><div class="sub">گزارش مدیریتی تجمیعی · شاخص‌ها، تحلیل عملکرد و اقدامات اصلاحی</div></div>
- <nav class="actions" aria-label="دسترسی سریع">
-  <a class="btn primary" href="mgmt.html" target="_blank" rel="noopener">گزارش مستقل و چاپ PDF</a>
-  <a class="btn" href="action.html">مرکز پیگیری</a>
-  <a class="btn" href="index.html">خانه</a>
- </nav>
-</header>
-<div class="intro">برای تغییر دوره شاخص‌ها از فیلتر «بازه گزارش» داخل گزارش استفاده کنید. فیلترهای بخش پیگیری فقط فهرست اقدامات را محدود می‌کنند و مستقل از دوره گزارش هستند.</div>
-<iframe class="report" title="گزارش مدیریتی یکپارچه HSE" src="mgmt.html?v=20261126-report-polish" loading="eager"></iframe>
+<main>
+<h2>در حال باز کردن گزارش جامع HSE</h2>
+<p>گزارش مستقیماً و بدون صفحهٔ تو‌در‌تو باز می‌شود. فیلترهای بازه گزارش و صف پیگیری در ابتدای صفحه قرار دارند.</p>
+<a href="mgmt.html?v=20261126-report-filter-top">ورود به گزارش جامع</a>
 </main>
-<script>
-(function(){
- const frame=document.querySelector('.report');
- let observer=null;
- function fit(){
-  try{
-   const d=frame.contentDocument;
-   if(!d||!d.documentElement)return;
-   const nav=d.getElementById('hse-nav');
-   if(nav)nav.style.display='none';
-   if(d.body)d.body.style.paddingBottom='0';
-   const resize=()=>{
-    const height=Math.max(d.documentElement.scrollHeight,d.body?d.body.scrollHeight:0);
-    if(height>300)frame.style.height=(height+28)+'px';
-   };
-   resize();
-   if(!observer&&typeof ResizeObserver!=='undefined'){
-    observer=new ResizeObserver(resize);
-    observer.observe(d.documentElement);
-    if(d.body)observer.observe(d.body);
-   }
-   if(!frame.dataset.mutationObserved&&d.body&&typeof MutationObserver!=='undefined'){
-    const mutation=new MutationObserver(resize);
-    mutation.observe(d.body,{childList:true,subtree:true,attributes:true});
-    frame.dataset.mutationObserved='1';
-   }
-  }catch(e){frame.style.height='1100px'}
- }
- frame.addEventListener('load',fit);
- window.addEventListener('resize',fit);
-})();
-</script>
+<script>location.replace("mgmt.html?v=20261126-report-filter-top");</script>
 </body>
 </html>
