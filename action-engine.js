@@ -2,17 +2,17 @@
 (function(){
 'use strict';
 const SOURCES={
- finding:{label:'عدم‌انطباق بازرسی',icon:'📋',href:'checklists.html'},
- ergo:{label:'اقدام ارگونومی',icon:'🪑',href:'ergo_followup.html'},
- incident:{label:'اقدام اصلاحی حادثه',icon:'🚨',href:'clinic.html'},
- behavior:{label:'اقدام رفتار ناایمن',icon:'👷',href:'behavior.html'},
- clinic_followup:{label:'پیگیری عمومی بهداری',icon:'🏥',href:'clinic.html'}
+ finding:{label:'عدم‌انطباق بازرسی',icon:'📋',href:id=>'checklists.html#one='+encodeURIComponent(id)},
+ ergo:{label:'اقدام ارگونومی',icon:'🪑',href:id=>'ergo_followup.html'},
+ incident:{label:'اقدام اصلاحی حادثه',icon:'🚨',href:id=>'clinic.html#inc='+encodeURIComponent(id)},
+ behavior:{label:'اقدام رفتار ناایمن',icon:'👷',href:id=>'behavior.html'},
+ clinic_followup:{label:'پیگیری عمومی بهداری',icon:'🏥',href:id=>'clinic.html#fu='+encodeURIComponent(id)}
 };
 const clean=v=>String(v==null?'':v).trim();
 const date=v=>v?String(v).slice(0,10):'';
 function row(source,id,title,fields){
  const uid=source+':'+String(id);
- return {action_uid:uid,source,source_id:String(id),source_label:SOURCES[source].label,icon:SOURCES[source].icon,href:SOURCES[source].href,title:clean(title)||SOURCES[source].label,unit:clean(fields.unit),owner:clean(fields.owner),due_date:date(fields.due_date),native_status:clean(fields.status),created_at:fields.created_at||null,detail:clean(fields.detail),record_type:'source_record',writable:false};
+ return {action_uid:uid,source,source_id:String(id),source_label:SOURCES[source].label,icon:SOURCES[source].icon,href:SOURCES[source].href(id),title:clean(title)||SOURCES[source].label,unit:clean(fields.unit),owner:clean(fields.owner),due_date:date(fields.due_date),native_status:clean(fields.status),created_at:fields.created_at||null,incident_date:fields.incident_date||null,action_status:clean(fields.status),corrective_action:source==='incident'?clean(title):'',action_due_date:date(fields.due_date),id:String(id),detail:clean(fields.detail),record_type:'source_record',writable:false};
 }
 async function read(name,query,map,items,errors){
  try{const rows=await HSE.getAll(query);(rows||[]).forEach(x=>{const y=map(x);if(y)items.push(y)})}
@@ -23,9 +23,9 @@ async function load(){
  const items=[],errors=[];
  await Promise.all([
   read('findings','findings?status=eq.open&module=neq.MED&select=id,module,question,note,location,due_date,responsible,created_at,root_cause&order=id.asc',x=>row('finding',x.id,x.question||x.note,{unit:x.location,owner:x.responsible,due_date:x.due_date,status:'open',created_at:x.created_at,detail:x.root_cause?'علت ریشه‌ای: '+x.root_cause:''}),items,errors),
-  read('ergonomic_actions','ergonomic_actions?status=in.(open,implemented,pending_verification)&select=id,unit,station,task,risk_factor,planned_action,responsible,due_date,status,created_at',x=>row('ergo',x.id,[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — '),{unit:[x.unit,x.station].filter(Boolean).join(' · '),owner:x.responsible,due_date:x.due_date,status:x.status,created_at:x.created_at,detail:'وضعیت تخصصی: '+(x.status||'—')}),items,errors),
-  read('clinic_incidents','clinic_incidents?select=id,corrective_action,action_owner,action_due_date,action_status,location,unit,incident_date,created_at',x=>x.corrective_action&&x.action_status!=='done'?row('incident',x.id,x.corrective_action,{unit:x.location||x.unit,owner:x.action_owner,due_date:x.action_due_date,status:x.action_status,created_at:x.incident_date||x.created_at}):null,items,errors),
-  read('behavior_obs','behavior_obs?result=eq.unsafe&status=neq.closed&select=id,action,action_owner,action_due,action_status,location,unit,created_at',x=>x.action&&x.action_status!=='done'?row('behavior',x.id,x.action,{unit:x.location||x.unit,owner:x.action_owner,due_date:x.action_due,status:x.action_status,created_at:x.created_at}):null,items,errors),
+  read('ergonomic_actions','ergonomic_actions?status=in.(open,implemented,pending_verification)&select=id,unit,station,task,risk_factor,planned_action,responsible,due_date,status,created_at',x=>row('ergo',x.id,[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — '),{unit:[x.unit,x.station].filter(Boolean).join(' · '),owner:x.responsible,due_date:x.due_date,status:x.status,created_at:x.created_at,detail:'وضعیت تخصصی: '+(x.status||'—'),task:x.task,risk_factor:x.risk_factor,planned_action:x.planned_action,responsible:x.responsible}),items,errors),
+  read('clinic_incidents','clinic_incidents?select=id,corrective_action,action_owner,action_due_date,action_status,location,unit,incident_date,created_at',x=>x.corrective_action&&x.action_status!=='done'?row('incident',x.id,x.corrective_action,{unit:x.location||x.unit,owner:x.action_owner,due_date:x.action_due_date,status:x.action_status,created_at:x.incident_date||x.created_at,incident_date:x.incident_date||x.created_at}):null,items,errors),
+  read('behavior_obs','behavior_obs?result=eq.unsafe&status=neq.closed&action_status=eq.open&select=id,action,action_owner,action_due,action_status,location,unit,created_at',x=>x.action&&x.action_status!=='done'?row('behavior',x.id,x.action,{unit:x.location||x.unit,owner:x.action_owner,due_date:x.action_due,status:x.action_status,created_at:x.created_at}):null,items,errors),
   read('clinic_followups','clinic_followups?kind=eq.followup&status=in.(pending,overdue)&select=id,title,kind,due_date,status,created_at',x=>row('clinic_followup',x.id,x.title,{due_date:x.due_date,status:x.status,created_at:x.created_at}),items,errors)
  ]);
  let visible=items;
