@@ -43,8 +43,16 @@ async function load(options={}){
  }
  let riskPlans=[];
  if(options.includeRiskPlans){try{riskPlans=await loadRiskPlans(GET)}catch(e){errors.push({source:'FMEA/HAZOP planned controls',message:String(e&&e.message||e).slice(0,180)})}}
+ // Manager-only overlay: preserve source-native fields and expose effective values separately.
+ let overlayApplied=false;
+ visible.forEach(x=>{x.effective_owner=x.owner;x.effective_due_date=x.due_date});
+ if(options.includeOverlay===true&&window.HSEAuth&&HSEAuth.role==='manager'){
+  try{const overlays=await GET('action_overlay?select=key,owner,due_override');const byKey=new Map((overlays||[]).map(o=>[String(o.key),o]));
+   visible.forEach(x=>{const key=x.source==='clinic_followup'?'followup:'+x.source_id:x.action_uid;const o=byKey.get(key);if(!o)return;x.effective_owner=clean(o.owner)||x.owner;x.effective_due_date=date(o.due_override)||x.due_date});overlayApplied=true;
+  }catch(e){errors.push({source:'مدیریت مسئول/مهلت',message:String(e&&e.message||e).slice(0,180)})}
+ }
  const unique=new Map();visible.forEach(x=>{if(!unique.has(x.action_uid))unique.set(x.action_uid,x)});
- return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,generated_at:new Date().toISOString(),source_count:5,excluded:['finding_followups','ergo_action_history','incident_capa','raw_cards','notice_wo'],separateQueues:['FMEA/HAZOP planned_controls'] }};
+ return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:5,excluded:['finding_followups','ergo_action_history','incident_capa','raw_cards','notice_wo'],separateQueues:['FMEA/HAZOP planned_controls'] }};
 }
 window.HSEActionEngine={load,loadRiskPlans,SOURCES};
 })();
