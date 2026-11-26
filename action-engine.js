@@ -27,6 +27,22 @@ async function loadRiskPlans(GET){
  const rows=await GET('risks?method=in.(fmea,hazop)&status=eq.approved&planned_controls=not.is.null&select=id,method,unit,hazard,planned_controls,owner,review_date,score&order=score.desc');
  return (rows||[]).filter(x=>clean(x.planned_controls)).map(x=>({risk_plan_uid:'risk-plan:'+String(x.id),risk_id:String(x.id),id:String(x.id),method:clean(x.method),unit:clean(x.unit),hazard:clean(x.hazard),planned_controls:clean(x.planned_controls),risk_owner:clean(x.owner),owner:clean(x.owner),review_date:date(x.review_date),score:x.score,href:'risks.html#risk='+encodeURIComponent(x.id),record_type:'unconverted_risk_plan',writable:false}));
 }
+async function loadEquipmentData(){
+ let raw=null;
+ try{raw=localStorage.getItem('khz_equipment_v1')}catch(e){}
+ if(raw){
+  const db=JSON.parse(raw);
+  return {eq:Array.isArray(db.eq)?db.eq:[],ins:Array.isArray(db.ins)?db.ins:[]};
+ }
+ const response=await fetch('seed_equipment.json');
+ if(!response.ok)throw new Error('فایل پایه تجهیزات در دسترس نیست.');
+ const seed=await response.json(),ins=[];
+ Object.entries(seed.history||{}).forEach(([code,rows])=>(rows||[]).forEach((x,i)=>ins.push({
+  id:String(code)+'@'+String(x.date||'')+'@'+i,equipment_code:code,inspected_on:x.date||'',
+  result:x.result||'',defects:x.defects||'',next_due:x.next||'',notes:'',source:x.src||''
+ })));
+ return {eq:Array.isArray(seed.equipment)?seed.equipment:[],ins};
+}
 async function load(options={}){
  const includeCompleted=options.includeCompleted===true;
  const GET=window.HSE&&typeof HSE.getAll==='function'?HSE.getAll.bind(HSE):window.HSEDB&&typeof HSEDB.getAll==='function'?HSEDB.getAll.bind(HSEDB):null;
@@ -71,29 +87,26 @@ async function load(options={}){
  // Preview-only local equipment bridge. Never expose browser-local data on production origins.
  if(location.hostname==='raw.githack.com'){
   try{
-   const raw=localStorage.getItem('khz_equipment_v1');
-   if(raw){
-    const db=JSON.parse(raw),eqs=Array.isArray(db.eq)?db.eq:[],ins=Array.isArray(db.ins)?db.ins:[];
-    const byCode=new Map();
-    ins.forEach(z=>{const k=String(z.equipment_code||'');if(!byCode.has(k))byCode.set(k,[]);byCode.get(k).push(z)});
-    eqs.forEach(eq=>{
-     const code=String(eq.code||'');if(!code)return;
-     const rows=(byCode.get(code)||[]).slice().sort((a,b)=>String(a.inspected_on||'').localeCompare(String(b.inspected_on||'')));
-     const last=rows[rows.length-1];if(!last)return;
-     const open=last.result==='عدم تایید'||last.result==='تایید مشروط'||last.defects==='در حال رسیدگی';
-     if(!open)return;
-     const id=String(last.id||last.inspected_on||code);
-     items.push({action_uid:'equipment_defect:'+code+':'+id,source:'equipment_defect',source_id:id,
-      source_label:SOURCES.equipment_defect.label,icon:SOURCES.equipment_defect.icon,
-      href:'equipment.html?code='+encodeURIComponent(code),
-      title:'ایراد تجهیز: '+clean(eq.title||code)+' ('+code+')',
-      unit:[clean(eq.hall),clean(eq.location)].filter(Boolean).join(' · '),
-      owner:'',due_date:'',native_status:'open',action_status:'open',
-      created_at:last.inspected_on||null,id,detail:[last.result==='عدم تایید'?'نتیجه بازرسی: عدم تأیید':'',clean(last.defects),clean(last.notes)].filter(Boolean).join(' — '),
-      source_data:{equipment_code:code,inspection_id:id,result:last.result||'',defects:last.defects||'',inspection_date:last.inspected_on||''},
-      record_type:'local_source_record',writable:false});
-    });
-   }
+   const db=await loadEquipmentData(),eqs=db.eq,ins=db.ins;
+   const byCode=new Map();
+   ins.forEach(z=>{const k=String(z.equipment_code||'');if(!byCode.has(k))byCode.set(k,[]);byCode.get(k).push(z)});
+   eqs.forEach(eq=>{
+    const code=String(eq.code||'');if(!code)return;
+    const rows=(byCode.get(code)||[]).slice().sort((a,b)=>String(a.inspected_on||'').localeCompare(String(b.inspected_on||'')));
+    const last=rows[rows.length-1];if(!last)return;
+    const open=last.result==='عدم تایید'||last.result==='تایید مشروط'||last.defects==='در حال رسیدگی';
+    if(!open)return;
+    const id=String(last.id||last.inspected_on||code);
+    items.push({action_uid:'equipment_defect:'+code+':'+id,source:'equipment_defect',source_id:id,
+     source_label:SOURCES.equipment_defect.label,icon:SOURCES.equipment_defect.icon,
+     href:'equipment.html?code='+encodeURIComponent(code),
+     title:'ایراد تجهیز: '+clean(eq.title||code)+' ('+code+')',
+     unit:[clean(eq.hall),clean(eq.location)].filter(Boolean).join(' · '),
+     owner:'',due_date:'',native_status:'open',action_status:'open',
+     created_at:last.inspected_on||null,id,detail:[last.result==='عدم تایید'?'نتیجه بازرسی: عدم تأیید':'',clean(last.defects),clean(last.notes)].filter(Boolean).join(' — '),
+     source_data:{equipment_code:code,inspection_id:id,result:last.result||'',defects:last.defects||'',inspection_date:last.inspected_on||''},
+     record_type:'local_source_record',writable:false});
+   });
   }catch(e){errors.push({source:'ایرادهای تجهیزات محلی',message:'داده محلی تجهیزات قابل خواندن نیست؛ صف این منبع ناقص است.'})}
  }
  let visible=items;
@@ -118,5 +131,5 @@ async function load(options={}){
  const unique=new Map();visible.forEach(x=>{if(!unique.has(x.action_uid))unique.set(x.action_uid,x)});
  return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:9,excluded:['finding_followups','ergo_action_history','raw_cards','notice_wo'],separateQueues:['unassigned FMEA/HAZOP planned_controls'] }};
 }
-window.HSEActionEngine={load,loadRiskPlans,SOURCES};
+window.HSEActionEngine={load,loadRiskPlans,loadEquipmentData,SOURCES};
 })();
