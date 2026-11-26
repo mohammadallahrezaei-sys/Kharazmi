@@ -60,6 +60,7 @@ const today=HSEToday();
 const d10=s=>s?String(s).slice(0,10):'';
 const okD=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&+s.slice(0,4)>1900;
 const isoDate=s=>{const v=String(s||'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;const m=/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/.exec(v);return m&&HSE.jalToISO?HSE.jalToISO(+m[1],+m[2],+m[3])||'':''};
+const addJMonths=(iso,n)=>{const j=HSE.toJal(new Date(iso+'T00:00:00Z'));if(!j||j.length<3)return '';const total=j[0]*12+(j[1]-1)+(+n||0),y=Math.floor(total/12),m=total-y*12+1;let d=j[2],out=HSE.jalToISO(y,m,d);while(!out&&d>28)out=HSE.jalToISO(y,m,--d);return out||''};
 const diff=(a,b)=>Math.round((new Date(a+'T12:00:00Z')-new Date(b+'T12:00:00Z'))/864e5);
 const addM=(iso,n)=>{const d=new Date(iso+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+n);return d.toISOString().slice(0,10)};
 const jl=iso=>new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',timeZone:'UTC'});
@@ -92,7 +93,7 @@ async function load(){
      add('eq','نتیجه بازرسی نامشخص — '+(e.title||e.code),'','نتیجه آخرین بازرسی باید در ماژول تجهیزات تکمیل شود');
      return;
     }
-    const inspected=isoDate(l.inspected_on),due=explicitDue||(inspected?addM(inspected,e.interval_months||12):'');
+    const inspected=isoDate(l.inspected_on),due=explicitDue||(inspected?addJMonths(inspected,e.interval_months||12):'');
     add('eq','بازرسی '+(e.title||e.code),due,'آخرین بازرسی: '+(l.inspected_on||'—'));
    })
   }),
