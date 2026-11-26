@@ -116,7 +116,7 @@ async function load(){
   T('مسئول/مهلت',async()=>{const o=await rq('action_overlay?select=*',{headers:{Prefer:'return=representation'}});OV={};(o||[]).forEach(x=>OV[x.key]=x)}).then(()=>{})
  ]);
  // تاریخچهٔ فنی عدم‌انطباق به‌صورت فقط‌خواندنی به timeline مشترک اضافه می‌شود.
- await T('تاریخچه پیگیری عدم‌انطباق',async()=>{const h=await HSE.getAll('finding_followups?select=id,finding_id,followed_at,followed_by,result,next_due,kind,tech_deadline&order=followed_at.asc');
+ await T('تاریخچه پیگیری عدم‌انطباق',async()=>{const h=await HSE.getAll('finding_followups?select=id,finding_id,followed_at,created_at,followed_by,result,next_due,kind,tech_deadline&order=followed_at.asc');
   const by={};(h||[]).forEach(z=>{const k=String(z.finding_id);(by[k]=by[k]||[]).push({t:z.followed_at||z.created_at,by:z.followed_by||'',note:z.result||'',type:z.kind||'follow',next:z.next_due||z.tech_deadline||null,source:'finding_followups'})});
   L.filter(x=>x.src==='finding').forEach(x=>{x.srcEvents=by[String(x.id)]||[];if(x.srcEvents.length){const last=x.srcEvents[x.srcEvents.length-1];if(last.next)x.srcFollow=last.next}})
  });
@@ -150,7 +150,7 @@ function render(){
   +(last?'<div class="xe">آخرین پیگیری ('+jl(last.t)+'): '+esc(last.note||'')+(last.by?' — ثبت‌کننده: '+esc(last.by):'')+(x.events.length>1?' — '+fa(x.events.length)+' سابقه':'')+'</div>':'')
   +'<div class="xa"><button class="b2 p" data-a="follow" data-k="'+esc(x.key)+'">📝 ثبت پیگیری</button><button class="b2" data-a="assign" data-k="'+esc(x.key)+'">👤 مسئول و مهلت</button>'
   +(x.can?'<button class="b2 ok" data-a="close" data-k="'+esc(x.key)+'">✅ بستن با تأیید</button>':'')
-  +(x.src==='finding'&&x.notice_code?'<a class="b2" href="tech_followup.html?notice_code='+encodeURIComponent(String(x.notice_code).trim())+'" style="text-decoration:none">📤 پیگیری اعلان '+esc(x.notice_code)+'</a>':'')+'<a class="b2" href="'+(x.src==='finding'?S.link+'#one='+encodeURIComponent(x.id):S.link)+'" style="text-decoration:none">🔗 باز کردن ماژول تخصصی</a></div></div></div>'}).join('')
+  +(x.src==='finding'&&x.notice_code?'<a class="b2" href="tech_followup.html?notice_code='+encodeURIComponent(String(x.notice_code).trim())+'" style="text-decoration:none">📤 پیگیری اعلان '+esc(x.notice_code)+'</a>':'')+'<a class="b2" href="'+(x.src==='finding'?S.link+'#one='+encodeURIComponent(x.id):S.link)+'" style="text-decoration:none" title="'+(x.src==='finding'?'بازبینی پرونده و تأیید اصلاح فقط در ماژول تخصصی انجام می‌شود':'باز کردن ماژول تخصصی')+'">'+(x.src==='finding'?'🧾 بازبینی و تأیید در چک‌لیست':'🔗 باز کردن ماژول تخصصی')+'</a></div></div></div>'}).join('')
   +(V.length>SHOW?'<div style="text-align:center"><button class="b2" id="more">نمایش '+fa(Math.min(20,V.length-SHOW))+' مورد بعدی (از '+fa(V.length-SHOW)+')</button></div>':'')}
 function ov(x){return OV[x.key]||{key:x.key,source:x.src,source_id:String(x.id),owner:null,due_override:null,follow_until:null,note:null,events:[]}}
 async function saveOv(x,patch,ev){
