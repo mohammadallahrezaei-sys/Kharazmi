@@ -68,7 +68,7 @@ const add=(s,t,due,sub)=>{if(!t)return;due=d10(due);if(okD(due))L.push({s,t:Stri
 async function load(){
  const T=async(n,f)=>{try{await f()}catch(e){miss.push(n)}};
  await Promise.all([
-  T('عدم‌انطباق‌ها',async()=>{(await HSE.getAll('findings?status=eq.open&select=id,module,question,note,location,due_date&order=id.asc')).filter(x=>x.module!=='MED').forEach(x=>add('finding',x.question||x.note,x.due_date,x.location))}),
+  T('عدم‌انطباق‌ها',async()=>{(await HSE.getAll('findings?status=eq.open&select=id,module,question,note,location,due_date,root_cause&order=id.asc')).filter(x=>x.module!=='MED').forEach(x=>add('finding',x.question||x.note,x.due_date,[x.location,x.root_cause?'علت ریشه‌ای: '+x.root_cause:''].filter(Boolean).join(' · ')))}),
   T('پیگیری بهداری',async()=>{let r=await HSE.getAll('clinic_followups?kind=eq.followup&status=in.(pending,overdue)&select=id,title,due_date,status');if(HSEAuth.visibleFollowups)r=await HSEAuth.visibleFollowups(r);r.forEach(x=>add('followup',x.title,x.due_date))}),
   T('حوادث',async()=>{(await HSE.getAll('clinic_incidents?select=id,corrective_action,action_due_date,action_status,location,unit,incident_date,created_at')).filter(x=>x.corrective_action&&x.action_status!=='done').forEach(x=>add('incident',x.corrective_action,x.action_due_date,x.location||x.unit))}),
   T('تعهدات',async()=>{(await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active')).filter(x=>x.active!==false).forEach(x=>add('obl',x.title,x.next_due,[x.category,x.owner].filter(Boolean).join(' · ')))}),
