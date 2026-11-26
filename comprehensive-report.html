@@ -13,10 +13,10 @@ h1{margin:0;font-size:22px}.sub{color:var(--mu);font-size:12px}
 .actions{display:flex;gap:6px;flex-wrap:wrap}
 a.btn{display:inline-flex;padding:7px 12px;border:1px solid var(--bd);border-radius:10px;text-decoration:none;color:inherit;background:var(--card)}
 a.primary{background:var(--ac);color:#fff;border-color:var(--ac)}
-.report{width:100%;height:calc(100vh - 110px);min-height:780px;border:1px solid var(--bd);border-radius:14px;background:var(--card)}
-@media(max-width:600px){.wrap{padding:8px}.head{align-items:flex-start}h1{font-size:18px}.report{height:calc(100vh - 150px);min-height:700px}}
+.report{width:100%;height:1200px;min-height:780px;border:1px solid var(--bd);border-radius:14px;background:var(--card);display:block;overflow:hidden}
+@media(max-width:600px){.wrap{padding:8px}.head{align-items:flex-start}h1{font-size:18px}.report{height:1200px;min-height:700px}}
 </style></head><body><main class="wrap">
 <header class="head"><div><h1>📊 گزارش جامع HSE</h1><div class="sub">گزارش مدیریتی تجمیعی · انتخاب دوره، تحلیل، اقدامات و خروجی چاپ/PDF در یک صفحه</div></div>
 <div class="actions"><a class="btn primary" href="mgmt.html" target="_blank">باز کردن گزارش مستقل / چاپ PDF</a><a class="btn" href="action.html">مرکز پیگیری</a><a class="btn" href="index.html">خانه</a></div></header>
 <iframe class="report" title="گزارش مدیریتی یکپارچه HSE" src="mgmt.html" loading="eager"></iframe>
-</main></body></html>
+</main><script>(function(){const frame=document.querySelector('.report');function fit(){try{const d=frame.contentDocument;if(!d)return;const h=Math.max(d.documentElement.scrollHeight,d.body?d.body.scrollHeight:0);if(h>300)frame.style.height=(h+24)+'px';if(d.documentElement){const ro=new ResizeObserver(()=>{const hh=Math.max(d.documentElement.scrollHeight,d.body?d.body.scrollHeight:0);frame.style.height=(hh+24)+'px'});ro.observe(d.documentElement);if(d.body)ro.observe(d.body)}}catch(e){frame.style.height='1200px'}}frame.addEventListener('load',fit);})();</script></body></html>
