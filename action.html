@@ -48,13 +48,14 @@ dialog::backdrop{background:rgba(15,23,42,.55)}
 dialog label{display:block;font-size:12px;color:var(--mu);margin-top:8px}dialog input,dialog textarea,dialog select{width:100%}
 details.how{margin:8px 0;font-size:12.5px;color:var(--mu)}
 @media(max-width:700px){.xi{flex-direction:column}.xs{flex:none}}
+.rp-panel{margin:10px 0 14px;border:1px solid var(--bd);border-radius:14px;background:var(--card);overflow:hidden}.rp-panel>summary{cursor:pointer;padding:12px 14px;font-weight:800;background:var(--soft);list-style:none}.rp-panel>summary::-webkit-details-marker{display:none}.rp-panel>summary:after{content:"＋";float:left;color:var(--ac)}.rp-panel[open]>summary:after{content:"−"}.rp-note{padding:9px 13px;font-size:12px;color:var(--mu);border-bottom:1px solid var(--bd);line-height:1.8}.rp-list{max-height:480px;overflow:auto;padding:8px 12px}.rp-item{padding:10px 2px;border-bottom:1px solid var(--bd)}.rp-item:last-child{border-bottom:0}.rp-item b{display:block;margin-bottom:4px}.rp-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.rp-meta span{font-size:11px;border:1px solid var(--bd);border-radius:99px;padding:2px 8px}.rp-item .rp-action{white-space:pre-wrap;line-height:1.9;font-size:13px}.rp-link{display:inline-block;margin-top:6px;font-size:12px;color:var(--ac);text-decoration:none;font-weight:700}.rp-link:hover{text-decoration:underline}
 </style>
 <style>.hse-workflow-nav{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px;padding:7px;background:var(--card);border:1px solid var(--bd);border-radius:12px}.hse-workflow-nav a{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:6px 11px;border:1px solid var(--bd);border-radius:9px;background:var(--soft, var(--bg));color:var(--tx);text-decoration:none;font-size:12.5px;font-weight:700}.hse-workflow-nav a:hover{border-color:var(--ac);color:var(--ac)}@media(max-width:560px){.hse-workflow-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.hse-workflow-nav a{padding:5px;font-size:12px}}</style></head>
 <body>
 <div class="w">
  <h1 style="margin:0">🎯 مرکز اقدام</h1>
  <div class="mu">اقدامات باز بازرسی، ارگونومی، حوادث، بهداری، رفتار، تعهدات و کارت‌های نیازمند بررسی در یک فهرست؛ با مسئول، موعد، سابقه پیگیری و تشدید تأخیر.</div>
- <nav class="hse-workflow-nav" aria-label="مسیرهای اصلی HSE"><a href="checklists.html">📝 بازرسی</a><a href="action.html">🎯 اقدامات</a><a href="due.html">⏳ سررسید</a><a href="calendar.html">📅 تقویم</a><a href="tech_followup.html">📤 فنی</a></nav><div class="sm" id="sm"></div>
+ <nav class="hse-workflow-nav" aria-label="مسیرهای اصلی HSE"><a href="checklists.html">📝 بازرسی</a><a href="action.html">🎯 اقدامات</a><a href="due.html">⏳ سررسید</a><a href="calendar.html">📅 تقویم</a><a href="tech_followup.html">📤 فنی</a></nav><div class="sm" id="sm"></div><div id="riskPlans"><div class="mu">در حال دریافت اقدام‌های برنامه‌ریزی‌شده FMEA/HAZOP…</div></div>
  <div class="fl"><select id="fs"></select><select id="fl"><option value="">همهٔ سطح‌ها</option><option value="1">فوری (P1)</option><option value="2">بالا (P2)</option><option value="3">متوسط (P3)</option><option value="4">پایین (P4)</option></select><input id="fq" placeholder="🔍 جستجو…"><label class="mu"><input type="checkbox" id="fo" style="width:auto"> فقط معوق</label><button class="b2" id="bCopy">📋 کپی خلاصهٔ تأخیرها</button></div>
  <div id="msg"></div><div id="acList"><div class="mu">در حال خواندن موضوعات…</div></div>
  <details class="how"><summary>امتیاز و تشدید چطور حساب می‌شود؟</summary>
@@ -76,7 +77,7 @@ const SRC={finding:{n:'عدم‌انطباق',i:'📋',link:'checklists.html'},f
 const SLA_SEV={1:30,2:14,3:3,4:1},SLA_LVL={1:2,2:7,3:14,4:30},BASE_SEV={1:15,2:35,3:60,4:85};
 const HIGH=/(سوله\s*[۴4۵5۶6۸8]\b|سوله\s*(۱۰|10|۱۲|12)\b|بازیابی|کلسیناسیون|اسید|آمونیاک|اتوکلاو|کوره|راکتور)/;
 const LV={1:{n:'فوری',c:'#dc2626'},2:{n:'بالا',c:'#f97316'},3:{n:'متوسط',c:'#eab308'},4:{n:'پایین',c:'#94a3b8'}};
-let ITEMS=[],OV={},ME='',SHOW=15,OVOK=true,RISK_REVIEW_MISSING=null;
+let ITEMS=[],OV={},ME='',SHOW=15,OVOK=true,RISK_REVIEW_MISSING=null,RISK_PLANS=null;
 const lvl=s=>s>=80?1:s>=60?2:s>=40?3:4;
 function build(it){ /* امتیاز، مهلت مؤثر و سطح تشدید */
  const o=OV[it.key]||{},today=todayISO(),why=[];
@@ -114,8 +115,10 @@ async function load(){
    r.forEach(x=>L.push({key:'card:'+x.id,src:'card',id:x.id,title:x.title||x.description||x.text||x.subject||'کارت گزارش',unit:x.location||x.unit||'',base:25,created:x.card_date||x.created_at,sla:7}))}),
   T('اقدامات ارگونومی',async()=>{const r=await HSE.getAll('ergonomic_actions?status=eq.open&select=id,unit,job_title,station,task,risk_factor,method,initial_score,initial_level,planned_action,responsible,due_date,created_at');r.forEach(x=>L.push({key:'ergo:'+x.id,src:'ergo',id:x.id,title:[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — ')||'اقدام ارگونومی',unit:[x.unit,x.station].filter(Boolean).join(' · '),base:/بالا|زیاد|high/i.test(x.initial_level||'')?65:45,due:x.due_date,created:x.created_at,srcOwner:x.responsible,can:null,readOnlySource:true}))}),
   T('بازنگری ارزیابی ریسک',async()=>{const r=await HSE.getAll('risks?method=in.(fmea,hazop)&status=eq.approved&select=id,review_date');RISK_REVIEW_MISSING=(r||[]).filter(x=>!x.review_date).length}),
+  T('اقدامات برنامه‌ریزی‌شده FMEA/HAZOP',async()=>{const r=await HSE.getAll('risks?method=in.(fmea,hazop)&status=eq.approved&planned_controls=not.is.null&select=id,method,unit,hazard,planned_controls,owner,review_date,score,created_at&order=score.desc');RISK_PLANS=(r||[]).filter(x=>String(x.planned_controls||'').trim())}),
   T('مسئول/مهلت',async()=>{const o=await rq('action_overlay?select=*',{headers:{Prefer:'return=representation'}});OV={};(o||[]).forEach(x=>OV[x.key]=x)}).then(()=>{})
  ]);
+ renderRiskPlans();
  // تاریخچهٔ فنی عدم‌انطباق به‌صورت فقط‌خواندنی به timeline مشترک اضافه می‌شود.
  await T('تاریخچه پیگیری عدم‌انطباق',async()=>{const h=await HSE.getAll('finding_followups?select=id,finding_id,followed_at,created_at,followed_by,result,next_due,kind,tech_deadline&order=followed_at.asc');
   const by={};(h||[]).forEach(z=>{const k=String(z.finding_id);(by[k]=by[k]||[]).push({t:z.followed_at||z.created_at,by:z.followed_by||'',note:z.result||'',type:z.kind||'follow',next:z.next_due||z.tech_deadline||null,source:'finding_followups'})});
@@ -132,6 +135,7 @@ async function load(){
  $('#msg').innerHTML=m.join('');
  $('#fs').innerHTML='<option value="">همهٔ منبع‌ها</option>'+Object.keys(SRC).map(k=>'<option value="'+k+'">'+SRC[k].i+' '+SRC[k].n+'</option>').join('');
  render();if(miss.length&&!ITEMS.length)$('#acList').innerHTML='<div class="mu" style="padding:16px;text-align:center;color:var(--wa)">⚠ به‌دلیل خطا در خواندن بعضی منابع، نمی‌توان نتیجه گرفت که اقدام بازی وجود ندارد. ابتدا دسترسی/اتصال منابع ناموفق را بررسی کنید.</div>'}
+function renderRiskPlans(){const el=$('#riskPlans');if(!el)return;if(RISK_PLANS===null){el.innerHTML='<div class="rp-note">⚠ دریافت اقدام‌های برنامه‌ریزی‌شده FMEA/HAZOP ناموفق بود؛ این بخش را خالی یا صفر تلقی نکنید.</div>';return}const a=RISK_PLANS;el.innerHTML='<details class="rp-panel"><summary>📌 اقدام‌های برنامه‌ریزی‌شده در FMEA/HAZOP — '+fa(a.length)+' مورد (جدا از آمار اقدامات جاری)</summary><div class="rp-note">این موارد متن برنامه‌ریزی‌شده داخل ارزیابی ریسک هستند، نه پرونده اقدام مستقل؛ بنابراین عمداً در شمارش فوری/معوق و فهرست اقدامات جاری ادغام نشده‌اند. برای هر مورد باید مسئول اجرا، مهلت، وضعیت اجرا و تأیید اثربخشی در چرخه مستقل ثبت شود.</div><div class="rp-list">' +(a.length?a.map(x=>'<div class="rp-item"><b>'+(x.method==='hazop'?'HAZOP':'FMEA')+' · '+esc(x.hazard||'خطر ثبت‌نشده')+'</b><div class="rp-action">'+esc(x.planned_controls||'—')+'</div><div class="rp-meta"><span>'+esc(x.unit||'واحد نامشخص')+'</span><span>امتیاز ریسک: '+fa(x.score||'—')+'</span><span>'+(x.review_date?'بازنگری: '+jl(x.review_date):'بازنگری: ثبت نشده')+'</span>'+(x.owner?'<span>مالک ریسک: '+esc(x.owner)+'</span>':'<span>مالک ریسک: ثبت نشده</span>')+'</div><a class="rp-link" href="risks.html">مشاهده در ماژول ارزیابی ریسک ←</a></div>').join(''):'<div class="mu" style="padding:12px">مورد تأییدشده‌ای با اقدام برنامه‌ریزی‌شده ثبت نشده است.</div>')+'</div></details>'}
 function view(){const s=$('#fs').value,l=$('#fl').value,q=$('#fq').value.trim(),o=$('#fo').checked;
  return ITEMS.filter(x=>(!s||x.src===s)&&(!l||x.lv==+l)&&(!o||x.late>0)&&(!q||(x.title+' '+x.unit+' '+x.owner).includes(q))).sort((a,b)=>b.rank-a.rank||b.late-a.late)}
 const escTxt={1:['معوق','wa'],2:['تشدید: اطلاع به مسئول بالاتر','bad'],3:['بحرانی: تصمیم مدیریت/کمیته','bad']};
