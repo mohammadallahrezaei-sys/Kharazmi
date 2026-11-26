@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="auth.js"></script><script src="hse_nav.js" defer></script>
+<link rel="stylesheet" href="hse_ui.css">
+<title>فهرست یکپارچه اقدامات HSE</title>
+<style>
+body{background:var(--bg)}.w{max-width:1180px;margin:auto;padding:18px 14px 40px}.muted{color:var(--mu);font-size:12px;line-height:1.8}
+.nav{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.nav a,.item a{border:1px solid var(--bd);border-radius:9px;padding:7px 10px;text-decoration:none;color:var(--tx);font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0}.stat,.item{background:var(--card);border:1px solid var(--bd);border-radius:13px;padding:12px}.stat b{display:block;font-size:24px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;padding:10px;background:var(--card);border:1px solid var(--bd);border-radius:12px}
+input,select{font:inherit;padding:8px;border:1px solid var(--bd);border-radius:9px;background:var(--bg);color:var(--tx);min-width:130px;flex:1}
+.item{margin:8px 0;display:grid;grid-template-columns:42px 1fr;gap:10px}.ico{font-size:24px}.item h3{font-size:14px;margin:0 0 6px;line-height:1.7}.meta{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.tag{border:1px solid var(--bd);border-radius:99px;padding:2px 8px;font-size:11px;color:var(--mu)}
+.warn{padding:10px;border:1px solid var(--wa);border-radius:10px;margin:10px 0;font-size:12px;line-height:1.8}
+@media(max-width:650px){.stats{grid-template-columns:repeat(2,1fr)}.w{padding:12px}.filters>*{min-width:100%}.item{grid-template-columns:30px 1fr}}
+</style></head>
+<body><main class="w">
+<h1>🧭 فهرست یکپارچه اقدامات HSE</h1>
+<p class="muted">نمای تجمیعی فقط‌خواندنی از اقدام‌های مستقل ماژول‌ها. هر ردیف شناسه یکتای منبع دارد؛ تاریخچه‌ها جداگانه نمایش داده نمی‌شوند و هیچ وضعیت یا پرونده‌ای از این صفحه تغییر نمی‌کند.</p>
+<nav class="nav"><a href="action.html">مرکز اقدام مدیریتی</a><a href="due.html">رادار سررسید</a><a href="calendar.html">تقویم</a><a href="risks.html">ارزیابی ریسک</a></nav>
+<section class="stats" id="stats"><div class="stat">در حال بارگذاری…</div></section>
+<div id="warn"></div>
+<div class="filters"><input id="q" placeholder="جستجوی عنوان، واحد، مسئول یا شناسه"><select id="src"><option value="">همه منابع</option><option value="finding">عدم‌انطباق</option><option value="ergo">ارگونومی</option><option value="incident">حادثه</option><option value="behavior">رفتار</option><option value="clinic_followup">پیگیری بهداری</option></select><select id="state"><option value="">همه وضعیت‌ها</option><option value="open">باز</option><option value="pending">در انتظار</option><option value="implemented">اجراشده</option><option value="pending_verification">در انتظار تأیید</option><option value="overdue">معوق</option></select></div>
+<div id="list" class="muted">در حال دریافت اقدام‌ها…</div>
+</main>
+<script src="eval_core.js"></script><script src="action-engine.js"></script>
+<script>
+const $=s=>document.querySelector(s),fa=n=>String(n).replace(/\\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let DATA=[];
+function render(){const q=$('#q').value.trim().toLowerCase(),src=$('#src').value,state=$('#state').value,today=new Date().toISOString().slice(0,10);
+ const a=DATA.filter(x=>(!src||x.source===src)&&(!state||x.native_status===state||(state==='overdue'&&x.due_date&&x.due_date<today))&&(!q||[x.title,x.unit,x.owner,x.action_uid].join(' ').toLowerCase().includes(q)));
+ $('#list').innerHTML=a.length?a.map(x=>'<article class="item"><div class="ico">'+x.icon+'</div><div><h3>'+esc(x.title)+'</h3><div class="meta"><span class="tag">'+esc(x.source_label)+'</span><span class="tag">شناسه: '+esc(x.action_uid)+'</span><span class="tag">وضعیت منبع: '+esc(x.native_status||'ثبت نشده')+'</span>'+(x.due_date?'<span class="tag">مهلت: '+esc(x.due_date)+'</span>':'<span class="tag">بدون مهلت</span>')+'</div><div class="muted">'+(x.unit?'واحد/محل: '+esc(x.unit)+' · ':'')+'مسئول: '+esc(x.owner||'تعیین نشده')+(x.detail?' · '+esc(x.detail):'')+'</div><div style="margin-top:9px"><a href="'+esc(x.href)+'">بازکردن پرونده در ماژول اصلی ↗</a></div></div></article>').join(''):'موردی مطابق فیلترها پیدا نشد.'}
+async function init(){try{await HSEAuth.ready;const r=await HSEActionEngine.load();DATA=r.items;const today=new Date().toISOString().slice(0,10),late=DATA.filter(x=>x.due_date&&x.due_date<today).length;
+ $('#stats').innerHTML='<div class="stat">اقدام مستقل<b>'+fa(DATA.length)+'</b></div><div class="stat">عدم‌انطباق<b>'+fa(DATA.filter(x=>x.source==='finding').length)+'</b></div><div class="stat">ارگونومی<b>'+fa(DATA.filter(x=>x.source==='ergo').length)+'</b></div><div class="stat">دارای موعد گذشته<b>'+fa(late)+'</b></div>';
+ if(r.errors.length)$('#warn').innerHTML='<div class="warn">⚠ برخی منابع دریافت نشدند؛ بنابراین شمارش ناقص است و نباید آن را صفر تلقی کرد: '+r.errors.map(x=>esc(x.source)+' ('+esc(x.message)+')').join('، ')+'</div>';
+ $('#q').oninput=render;$('#src').onchange=render;$('#state').onchange=render;render();
+ }catch(e){$('#list').textContent='بارگذاری ناموفق: '+e.message}}
+init();
+</script></body></html>
