@@ -27,6 +27,20 @@
 .it .tx small{display:block;color:var(--mu);font-size:11.5px}
 .tg{font-size:11px;border:1px solid var(--bd);border-radius:99px;padding:0 8px;white-space:nowrap;color:var(--mu)}
 .gap{border-style:dashed}
+/* Responsive due-radar visual refinement */
+.w{max-width:1180px;padding:18px 16px 34px}
+.w>h1{font-size:24px!important;display:flex;align-items:center;gap:9px}
+.w>h1:after{content:"نمای کلی سررسیدهای HSE";font-size:12px;font-weight:500;color:var(--mu);border:1px solid var(--bd);border-radius:99px;padding:4px 10px;background:var(--card)}
+.sm{grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:14px 0}
+.sm button{border-radius:14px;padding:12px 10px;box-shadow:0 2px 9px rgba(15,23,42,.035)}
+.sm button b{font-size:25px;margin-bottom:2px}
+.sm button.on{box-shadow:0 0 0 2px color-mix(in srgb,var(--ac) 22%,transparent)}
+.fl{background:var(--card);border:1px solid var(--bd);padding:10px;border-radius:14px;position:sticky;top:8px;z-index:4;box-shadow:0 3px 12px rgba(15,23,42,.04)}
+.it{padding:11px 12px;margin:7px 0;border-radius:13px;transition:transform .12s,box-shadow .12s,border-color .12s}
+.it:hover{transform:translateY(-1px);border-color:var(--ac);box-shadow:0 4px 14px rgba(15,23,42,.06)}
+.it .dt{flex-basis:86px;border-radius:11px;padding:7px 4px}
+.it .tx{font-size:14px}
+@media(max-width:650px){.w{padding:12px}.w>h1{font-size:20px!important}.w>h1:after{display:none}.sm{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.sm button{padding:9px}.sm button b{font-size:21px}.fl{position:static}.it{gap:7px;padding:8px}.it .dt{flex-basis:70px;font-size:11px}.it .tx{font-size:12px}.tg{white-space:normal;text-align:center}}
 </style>
 </head>
 <body>
