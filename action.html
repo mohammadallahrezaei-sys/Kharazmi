@@ -14,7 +14,7 @@ body{background:var(--bg)}
 .w>h1{display:flex;align-items:center;gap:10px;font-size:25px!important;letter-spacing:-.3px}
 .w>h1:after{content:"مدیریت متمرکز پیگیری‌ها";font-size:12px;font-weight:500;color:var(--mu);background:var(--card);border:1px solid var(--bd);border-radius:99px;padding:5px 10px}
 .w>h1+ .mu{max-width:850px;line-height:1.9;margin:6px 0 16px}
-#sm{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:14px 0 16px}
+#sm{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:14px 0 16px}
 #sm div{padding:12px 10px;background:linear-gradient(180deg,var(--card),var(--bg));box-shadow:0 2px 8px rgba(15,23,42,.035)}
 #sm b{font-size:26px;margin-bottom:4px}
 .fl{background:var(--card);border:1px solid var(--bd);padding:10px;border-radius:14px;position:sticky;top:8px;z-index:5;box-shadow:0 3px 12px rgba(15,23,42,.04)}
@@ -137,7 +137,7 @@ function view(){const s=$('#fs').value,l=$('#fl').value,q=$('#fq').value.trim(),
 const escTxt={1:['معوق','wa'],2:['تشدید: اطلاع به مسئول بالاتر','bad'],3:['بحرانی: تصمیم مدیریت/کمیته','bad']};
 function render(){
  const all=ITEMS,p1=all.filter(x=>x.lv===1).length,late=all.filter(x=>x.late>0).length,noOwn=all.filter(x=>x.lv<=2&&!x.owner).length,esc2=all.filter(x=>x.esc>=2).length;
- $('#sm').innerHTML='<div class="bad"><b>'+fa(p1)+'</b>فوری</div><div class="wa"><b>'+fa(late)+'</b>معوق</div><div class="bad"><b>'+fa(esc2)+'</b>نیازمند تشدید</div><div class="wa"><b>'+fa(noOwn)+'</b>فوری/بالا بدون مسئول</div><div><b>'+fa(all.length)+'</b>کل باز</div><a href="risks.html" title="مشاهده ارزیابی ریسک‌های FMEA و HAZOP"><b>'+fa(RISK_REVIEW_MISSING)+'</b>FMEA/HAZOP بدون تاریخ بازنگری</a>';
+ $('#sm').innerHTML='<div class="bad"><b>'+fa(p1)+'</b>فوری</div><div class="wa"><b>'+fa(late)+'</b>معوق</div><div class="bad"><b>'+fa(esc2)+'</b>نیازمند تشدید</div><div class="wa"><b>'+fa(noOwn)+'</b>فوری/بالا بدون مسئول</div><div><b>'+fa(all.length)+'</b>کل باز</div><a href="risks.html" style="display:block;color:inherit;text-decoration:none" title="مشاهده ارزیابی ریسک‌های FMEA و HAZOP"><div><b>'+fa(RISK_REVIEW_MISSING)+'</b>FMEA/HAZOP بدون تاریخ بازنگری</div></a>';
  const V=view(),sh=V.slice(0,SHOW);
  if(!V.length){$('#acList').innerHTML='<div class="mu" style="padding:16px;text-align:center">'+(all.length?'موردی با این فیلتر نیست.':'✓ موضوع بازی نیست (یا همهٔ منبع‌ها خوانده نشدند).')+'</div>';return}
  $('#acList').innerHTML=sh.map(x=>{const S=SRC[x.src],c=LV[x.lv].c,e=escTxt[x.esc],last=x.events[x.events.length-1];
