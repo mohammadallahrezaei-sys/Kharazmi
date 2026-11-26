@@ -386,23 +386,23 @@ async function loadStatus() {
   if (fin) {
     const f = fin.filter(x => x.module !== 'MED'), m = fin.filter(x => x.module === 'MED'), fo = f.filter(x => late(x.due_date)).length, mo = m.filter(x => late(x.due_date)).length;
     A.push({ id: 'fin', h: 'action.html?source=finding', i: '📋', n: fo || f.length, s: fo ? 'bad' : 'wa', t: fo ? 'عدم‌انطباق معوق' : 'عدم‌انطباق باز', d: fo ? `از ${fa(f.length)} مورد باز` : 'همه در مهلت' });
-    A.push({ id: 'med', i: '💊', n: m.length, s: mo ? 'bad' : 'wa', t: 'هشدار داروی کمد', d: 'کمبود موجودی یا انقضا' });
+    A.push({ id: 'med', h: 'clinic.html', i: '💊', n: m.length, s: mo ? 'bad' : 'wa', t: 'هشدار داروی کمد', d: 'کمبود موجودی یا انقضا' });
     meta('mChk', f.length ? fa(f.length) + ' باز' : '', fo ? 'bad' : 'wa');
   }
   if (rk) {
     const hi = rk.filter(x => { const sc = x.method === 'fmea' || x.method === 'hazop' ? (x.severity || 0) * (x.likelihood || 0) : (x.manual_score || 0); return window.HSERiskStd ? HSERiskStd.lvl({ ...x, score: sc }).h : x.high; }).length, pend = rk.filter(x => x.status === 'draft').length, od = rk.filter(x => late(x.review_date)).length;
     const note = [pend ? `${fa(pend)} در انتظار تأیید` : '', od ? `${fa(od)} بازبینی معوق` : ''].filter(Boolean).join(' · ');
-    A.push({ id: 'rk', i: '⚠️', n: hi || pend + od, s: hi ? 'bad' : 'wa', t: hi ? 'ریسک بالا' : 'ریسک نیازمند اقدام', d: note || 'ریسک‌های بالا را کنترل کنید' });
+    A.push({ id: 'rk', h: 'risks.html', i: '⚠️', n: hi || pend + od, s: hi ? 'bad' : 'wa', t: hi ? 'ریسک بالا' : 'ریسک نیازمند اقدام', d: note || 'ریسک‌های بالا را کنترل کنید' });
     meta('mRisk', hi ? fa(hi) + ' بالا' : (pend ? fa(pend) + ' در انتظار' : ''), hi ? 'bad' : 'wa');
   }
   if (fu || inc) {
     const fo = (fu || []).filter(x => x.status === 'overdue' || late(x.due_date)).length, co = (inc || []).filter(x => x.corrective_action && x.action_status !== 'done' && late(x.action_due_date)).length, n = fo + co;
-    A.push({ id: fo ? 'fu' : 'inc', i: '🏥', n, s: 'bad', t: 'پیگیری بهداری معوق', d: [fo ? `${fa(fo)} پیگیری طب کار` : '', co ? `${fa(co)} اقدام اصلاحی حادثه` : ''].filter(Boolean).join(' · ') });
+    A.push({ id: fo ? 'fu' : 'inc', h: 'clinic.html', i: '🏥', n, s: 'bad', t: 'پیگیری بهداری معوق', d: [fo ? `${fa(fo)} پیگیری طب کار` : '', co ? `${fa(co)} اقدام اصلاحی حادثه` : ''].filter(Boolean).join(' · ') });
     const fuN = fu ? fu.length : 0; meta('mClinic', fuN ? fa(fuN) + ' پیگیری' : '', n ? 'bad' : 'wa');
   }
   if (cd) {
     const old = cd.filter(x => x.card_date && x.card_date < ago7).length;
-    A.push({ id: 'cd', i: '🗂️', n: old, s: 'wa', t: 'کارت بدون پاسخ بیش از ۷ روز', d: `${fa(cd.length)} کارت بی‌پاسخ در مجموع` });
+    A.push({ id: 'cd', h: 'cards.html', i: '🗂️', n: old, s: 'wa', t: 'کارت بدون پاسخ بیش از ۷ روز', d: `${fa(cd.length)} کارت بی‌پاسخ در مجموع` });
     meta('mCard', cd.length ? fa(cd.length) + ' بی‌پاسخ' : '', old ? 'bad' : 'wa');
   }
   try { const ob = (HSEAuth.role === 'manager' && !HSEAuth.viewAs) ? await get('hse_obligations?select=id,next_due,active') : null; /* تعهدات دوره‌ای فقط برای مدیر */ if (ob) { const act = ob.filter(x => x.active !== false), od = act.filter(x => x.next_due && x.next_due.slice(0, 10) < today).length, nd = act.filter(x => !x.next_due).length;
