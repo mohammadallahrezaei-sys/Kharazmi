@@ -49,7 +49,7 @@ async function load(options={}){
      const code=String(eq.code||'');if(!code)return;
      const rows=(byCode.get(code)||[]).slice().sort((a,b)=>String(a.inspected_on||'').localeCompare(String(b.inspected_on||'')));
      const last=rows[rows.length-1];if(!last)return;
-     const open=last.result==='عدم تایید'||last.defects==='در حال رسیدگی';
+     const open=last.result==='عدم تایید'||last.result==='تایید مشروط'||last.defects==='در حال رسیدگی';
      if(!open)return;
      const id=String(last.id||last.inspected_on||code);
      items.push({action_uid:'equipment_defect:'+code+':'+id,source:'equipment_defect',source_id:id,
