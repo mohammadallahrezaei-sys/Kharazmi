@@ -114,7 +114,7 @@ async function load(){
     else if(src==='incident')base=70;
     else if(src==='behavior')base=45;
     else if(src==='ergo')base=/بالا|زیاد|high/i.test(d.initial_level||'')?65:45;
-    L.push({key:x.action_uid,src,id:x.source_id,title:x.title,unit:x.unit||'',base,due:x.due_date,created:x.created_at,srcOwner:x.owner,srcStatus:src==='ergo'?x.native_status:'',readOnlySource:src!=='followup',...extra});
+    L.push({key:src==='followup'?'followup:'+x.source_id:x.action_uid,src,id:x.source_id,title:x.title,unit:x.unit||'',base,due:x.due_date,created:x.created_at,srcOwner:x.owner,srcStatus:src==='ergo'?x.native_status:'',readOnlySource:src!=='followup',...extra});
    });
   }),
   T('تعهدات دوره‌ای',async()=>{if(!(HSEAuth.role==='manager'||HSEAuth.role==='user'))return;const r=await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active');
