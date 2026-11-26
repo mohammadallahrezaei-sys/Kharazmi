@@ -99,9 +99,9 @@ async function load(){
  ME=(window.HSEAuth&&HSEAuth.email)||'';const today=todayISO(),L=[],miss=[];
  const T=async(name,fn)=>{try{await fn()}catch(e){miss.push(name)}};
  await Promise.all([
-  T('عدم‌انطباق‌ها',async()=>{const f=await HSE.getAll('findings?status=eq.open&select=id,qid,module,question,note,location,severity,due_date,responsible,created_at,category,notice_code&order=id.asc');
+  T('عدم‌انطباق‌ها',async()=>{const f=await HSE.getAll('findings?status=eq.open&select=id,qid,module,question,note,location,severity,due_date,responsible,created_at,category,notice_code,root_cause&order=id.asc');
    const grp={};f.forEach(x=>{const k=(x.category||x.qid||'')+'|'+(x.location||'');grp[k]=(grp[k]||0)+1});
-   f.filter(x=>x.module!=='MED').forEach(x=>{const sv=Math.min(4,Math.max(1,+x.severity||2));L.push({key:'finding:'+x.id,src:'finding',id:x.id,title:x.question||x.note||'عدم‌انطباق',unit:x.location||'',base:BASE_SEV[sv],sla:SLA_SEV[sv],due:x.due_date,created:x.created_at,srcOwner:x.responsible,notice_code:x.notice_code,rec:grp[(x.category||x.qid||'')+'|'+(x.location||'')]||1,readOnlySource:true})})}),
+   f.filter(x=>x.module!=='MED').forEach(x=>{const sv=Math.min(4,Math.max(1,+x.severity||2));L.push({key:'finding:'+x.id,src:'finding',id:x.id,title:x.question||x.note||'عدم‌انطباق',unit:x.location||'',base:BASE_SEV[sv],sla:SLA_SEV[sv],due:x.due_date,created:x.created_at,srcOwner:x.responsible,notice_code:x.notice_code,rootCause:x.root_cause||'',rec:grp[(x.category||x.qid||'')+'|'+(x.location||'')]||1,readOnlySource:true})})}),
   T('پیگیری بهداری',async()=>{let r=await HSE.getAll('clinic_followups?kind=eq.followup&status=in.(pending,overdue)&select=id,title,kind,priority,due_date,status,created_at');if(window.HSEAuth&&HSEAuth.visibleFollowups)r=await HSEAuth.visibleFollowups(r);
    r.forEach(x=>L.push({key:'followup:'+x.id,src:'followup',id:x.id,title:x.title||'پیگیری بهداری',unit:'',base:x.priority==='urgent'?70:35,due:x.due_date,created:x.created_at,can:'close'}))}),
   T('اقدام اصلاحی حوادث',async()=>{const r=await HSE.getAll('clinic_incidents?select=id,corrective_action,action_owner,action_due_date,action_status,location,unit,incident_date,created_at');
@@ -141,7 +141,7 @@ function render(){
  if(!V.length){$('#acList').innerHTML='<div class="mu" style="padding:16px;text-align:center">'+(all.length?'موردی با این فیلتر نیست.':'✓ موضوع بازی نیست (یا همهٔ منبع‌ها خوانده نشدند).')+'</div>';return}
  $('#acList').innerHTML=sh.map(x=>{const S=SRC[x.src],c=LV[x.lv].c,e=escTxt[x.esc],last=x.events[x.events.length-1];
   return '<div class="xi'+(x.followed&&x.esc<2?' xf':'')+'" style="--c:'+c+'"><div class="xs" title="امتیاز اولویت">'+fa(x.score)+'</div><div class="xb"><h3>'+S.i+' '+esc(String(x.title).slice(0,220))+'</h3>'
-  +'<div class="xc"><span style="color:'+c+';border-color:'+c+'">'+LV[x.lv].n+'</span><span>'+S.n+'</span>'+(x.unit?'<span>'+esc(x.unit)+'</span>':'')
+  +'<div class="xc"><span style="color:'+c+';border-color:'+c+'">'+LV[x.lv].n+'</span><span>'+S.n+'</span>'+(x.unit?'<span>'+esc(x.unit)+'</span>':'')+(x.src==='finding'&&x.rootCause?'<span class="ok">علت ریشه‌ای: '+esc(x.rootCause)+'</span>':'')
   +(x.owner?'<span class="ok">مسئول: '+esc(x.owner)+'</span>':'<span class="'+(x.lv<=2?'bad':'wa')+'">بدون مسئول</span>')
   +(x.dueEff?'<span class="'+(x.late?'bad':'')+'">مهلت: '+jl(x.dueEff)+(x.late?' ('+fa(x.late)+' روز دیر)':'')+'</span>':'<span class="wa">بدون مهلت</span>')
   +(e?'<span class="'+e[1]+'">'+e[0]+'</span>':'')
