@@ -105,7 +105,7 @@ async function load(){
  const T=async(name,fn)=>{try{await fn()}catch(e){miss.push(name)}};
  await Promise.all([
   T('اقدامات اصلاحی یکپارچه',async()=>{
-   const p=await HSEActionEngine.load();
+   const p=await HSEActionEngine.load({includeRiskPlans:true});RISK_PLANS=p.riskPlans||[];
    (p.errors||[]).forEach(e=>miss.push('موتور مشترک: '+e.source));
    const findings=p.items.filter(x=>x.source==='finding'),grp={};
    findings.forEach(x=>{const d=x.source_data||{},k=(d.category||d.qid||'')+'|'+(x.unit||'');grp[k]=(grp[k]||0)+1});
@@ -127,7 +127,6 @@ async function load(){
   T('کارت‌های در انتظار بررسی',async()=>{const r=await HSE.getAll('hse_cards?status=eq.in_review&select=id,card_type,card_date,unit,location_detail,description,suggestion,created_at,status');
    r.forEach(x=>L.push({key:'card:'+x.id,src:'card',id:x.id,title:x.description||x.suggestion||'کارت گزارش',unit:x.location_detail||x.unit||'',base:25,created:x.card_date||x.created_at,sla:7}))}),
   T('بازنگری ارزیابی ریسک',async()=>{const r=await HSE.getAll('risks?method=in.(fmea,hazop)&status=eq.approved&select=id,review_date');RISK_REVIEW_MISSING=(r||[]).filter(x=>!x.review_date).length}),
-  T('اقدامات برنامه‌ریزی‌شده FMEA/HAZOP',async()=>{RISK_PLANS=await HSEActionEngine.loadRiskPlans()}),
   T('مسئول/مهلت',async()=>{const o=await rq('action_overlay?select=*',{headers:{Prefer:'return=representation'}});OV={};(o||[]).forEach(x=>OV[x.key]=x)}).then(()=>{})
  ]);
  if(PREVIEW_READ_ONLY){try{const local=JSON.parse(localStorage.getItem('khz_equipment_action_overlay_v1')||'{}');Object.keys(local||{}).forEach(k=>{if(k.startsWith('equipment_defect:'))OV[k]=local[k]})}catch(e){miss.push('لایه محلی اقدامات تجهیزات')}}
