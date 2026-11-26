@@ -43,7 +43,7 @@ async function load(options={}){
   try{
    const raw=localStorage.getItem('khz_pollutant_capa_preview_v1'),data=raw?JSON.parse(raw):{};
    const jalaliISO=value=>{
-    const m=/^(\\d{4})\\/(\\d{1,2})\\/(\\d{1,2})$/.exec(String(value||''));if(!m)return '';
+    const m=/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(String(value||''));if(!m)return '';
     let jy=+m[1],jm=+m[2],jd=+m[3];if(jy<1300||jy>1500||jm<1||jm>12||jd<1||jd>31)return '';
     jy+=1595;let days=-355668+365*jy+Math.floor(jy/33)*8+Math.floor((jy%33+3)/4)+jd+(jm<7?(jm-1)*31:(jm-7)*30+186);
     let gy=400*Math.floor(days/146097);days%=146097;
