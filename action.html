@@ -101,20 +101,26 @@ async function load(){
  ME=(window.HSEAuth&&HSEAuth.email)||'';const today=todayISO(),L=[],miss=[];
  const T=async(name,fn)=>{try{await fn()}catch(e){miss.push(name)}};
  await Promise.all([
-  T('عدم‌انطباق‌ها',async()=>{const f=await HSE.getAll('findings?status=eq.open&select=id,qid,module,question,note,location,severity,due_date,responsible,created_at,category,notice_code,root_cause&order=id.asc');
-   const grp={};f.forEach(x=>{const k=(x.category||x.qid||'')+'|'+(x.location||'');grp[k]=(grp[k]||0)+1});
-   f.filter(x=>x.module!=='MED').forEach(x=>{const sv=Math.min(4,Math.max(1,+x.severity||2));L.push({key:'finding:'+x.id,src:'finding',id:x.id,title:x.question||x.note||'عدم‌انطباق',unit:x.location||'',base:BASE_SEV[sv],sla:SLA_SEV[sv],due:x.due_date,created:x.created_at,srcOwner:x.responsible,notice_code:x.notice_code,rootCause:x.root_cause||'',rec:grp[(x.category||x.qid||'')+'|'+(x.location||'')]||1,readOnlySource:true})})}),
-  T('پیگیری بهداری',async()=>{let r=await HSE.getAll('clinic_followups?kind=eq.followup&status=in.(pending,overdue)&select=id,title,kind,priority,due_date,status,created_at');if(window.HSEAuth&&HSEAuth.visibleFollowups)r=await HSEAuth.visibleFollowups(r);
-   r.forEach(x=>L.push({key:'followup:'+x.id,src:'followup',id:x.id,title:x.title||'پیگیری بهداری',unit:'',base:x.priority==='urgent'?70:35,due:x.due_date,created:x.created_at,can:'close'}))}),
-  T('اقدام اصلاحی حوادث',async()=>{const r=await HSE.getAll('clinic_incidents?select=id,corrective_action,action_owner,action_due_date,action_status,location,unit,incident_date,created_at');
-   r.filter(x=>x.corrective_action&&x.action_status!=='done').forEach(x=>L.push({key:'incident:'+x.id,src:'incident',id:x.id,title:x.corrective_action,unit:x.location||x.unit||'',base:70,due:x.action_due_date,created:x.incident_date||x.created_at,srcOwner:x.action_owner,readOnlySource:true}))}),
+  T('اقدامات اصلاحی یکپارچه',async()=>{
+   const p=await HSEActionEngine.load();
+   (p.errors||[]).forEach(e=>miss.push('موتور مشترک: '+e.source));
+   const findings=p.items.filter(x=>x.source==='finding'),grp={};
+   findings.forEach(x=>{const d=x.source_data||{},k=(d.category||d.qid||'')+'|'+(x.unit||'');grp[k]=(grp[k]||0)+1});
+   p.items.forEach(x=>{
+    const d=x.source_data||{},src=x.source==='clinic_followup'?'followup':x.source;
+    let base=45,sv=2,extra={};
+    if(src==='finding'){sv=Math.min(4,Math.max(1,+d.severity||2));base=BASE_SEV[sv];extra={sla:SLA_SEV[sv],notice_code:d.notice_code,rootCause:d.root_cause||'',rec:grp[(d.category||d.qid||'')+'|'+(x.unit||'')]||1}}
+    else if(src==='followup'){base=d.priority==='urgent'?70:35;extra={can:'close'}}
+    else if(src==='incident')base=70;
+    else if(src==='behavior')base=45;
+    else if(src==='ergo')base=/بالا|زیاد|high/i.test(d.initial_level||'')?65:45;
+    L.push({key:x.action_uid,src,id:x.source_id,title:x.title,unit:x.unit||'',base,due:x.due_date,created:x.created_at,srcOwner:x.owner,srcStatus:src==='ergo'?x.native_status:'',readOnlySource:src!=='followup',...extra});
+   });
+  }),
   T('تعهدات دوره‌ای',async()=>{if(!(HSEAuth.role==='manager'||HSEAuth.role==='user'))return;const r=await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active');
    r.filter(x=>x.active!==false&&x.next_due&&diff(x.next_due.slice(0,10),today)<=14).forEach(x=>L.push({key:'obligation:'+x.id,src:'obligation',id:x.id,title:x.title,unit:'',base:x.category==='قانونی و مجوز'?60:40,due:x.next_due.slice(0,10),srcOwner:x.owner}))}),
-  T('رفتار ناایمن',async()=>{const r=await HSE.getAll('behavior_obs?result=eq.unsafe&status=neq.closed&select=id,action,action_owner,action_due,action_status,result,status,location,unit,created_at');
-   r.filter(x=>x.action&&x.action_status==='open').forEach(x=>L.push({key:'behavior:'+x.id,src:'behavior',id:x.id,title:x.action,unit:x.location||x.unit||'',base:45,due:x.action_due,created:x.created_at,srcOwner:x.action_owner}))}),
   T('کارت‌های در انتظار بررسی',async()=>{const r=await HSE.getAll('hse_cards?status=eq.in_review&select=id,title,description,text,subject,location,unit,card_type,card_date,created_at,status');
    r.forEach(x=>L.push({key:'card:'+x.id,src:'card',id:x.id,title:x.title||x.description||x.text||x.subject||'کارت گزارش',unit:x.location||x.unit||'',base:25,created:x.card_date||x.created_at,sla:7}))}),
-  T('اقدامات ارگونومی',async()=>{const r=await HSE.getAll('ergonomic_actions?status=in.(open,implemented,pending_verification)&select=id,unit,job_title,station,task,risk_factor,method,initial_score,initial_level,planned_action,responsible,due_date,status,created_at');r.forEach(x=>L.push({key:'ergo:'+x.id,src:'ergo',id:x.id,title:[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — ')||'اقدام ارگونومی',unit:[x.unit,x.station].filter(Boolean).join(' · '),base:/بالا|زیاد|high/i.test(x.initial_level||'')?65:45,due:x.due_date,created:x.created_at,srcOwner:x.responsible,srcStatus:x.status,can:null,readOnlySource:true}))}),
   T('بازنگری ارزیابی ریسک',async()=>{const r=await HSE.getAll('risks?method=in.(fmea,hazop)&status=eq.approved&select=id,review_date');RISK_REVIEW_MISSING=(r||[]).filter(x=>!x.review_date).length}),
   T('اقدامات برنامه‌ریزی‌شده FMEA/HAZOP',async()=>{RISK_PLANS=await HSEActionEngine.loadRiskPlans()}),
   T('مسئول/مهلت',async()=>{const o=await rq('action_overlay?select=*',{headers:{Prefer:'return=representation'}});OV={};(o||[]).forEach(x=>OV[x.key]=x)}).then(()=>{})
