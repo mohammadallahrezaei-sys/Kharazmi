@@ -3,6 +3,7 @@
 'use strict';
 const SOURCES={
  finding:{label:'عدم‌انطباق بازرسی',icon:'📋',href:id=>'checklists.html#one='+encodeURIComponent(id)},
+ equipment_defect:{label:'ایراد تجهیز',icon:'🛠️',href:id=>'equipment.html?code='+encodeURIComponent(id)},
  ergo:{label:'اقدام ارگونومی',icon:'🪑',href:id=>'ergo_followup.html#action='+encodeURIComponent(id)},
  incident:{label:'اقدام اصلاحی حادثه',icon:'🚨',href:id=>'clinic.html#inc='+encodeURIComponent(id)},
  behavior:{label:'اقدام رفتار ناایمن',icon:'👷',href:id=>'behavior.html#obs='+encodeURIComponent(id)},
@@ -36,6 +37,33 @@ async function load(options={}){
   read('behavior_obs','behavior_obs?result=eq.unsafe&status=neq.closed&action_status=eq.open&select=id,action,action_owner,action_due,action_status,location,unit,created_at',x=>x.action&&x.action_status!=='done'?row('behavior',x.id,x.action,{unit:x.location||x.unit,owner:x.action_owner,due_date:x.action_due,status:x.action_status,created_at:x.created_at}):null,items,errors,GET),
   read('clinic_followups','clinic_followups?kind=eq.followup&'+(includeCompleted?'status=neq.cancelled&':'status=in.(pending,overdue)&')+'select=id,title,kind,priority,due_date,status,created_at',x=>row('clinic_followup',x.id,x.title,{due_date:x.due_date,status:x.status,created_at:x.created_at,source_data:{priority:x.priority}}),items,errors,GET)
  ]);
+ // Preview-only bridge: local equipment defects are projected from the browser's own
+ // equipment register. They remain source-owned and read-only; no remote write occurs.
+ try{
+  const raw=window.localStorage&&localStorage.getItem('khz_equipment_v1');
+  if(raw){
+   const db=JSON.parse(raw),eqs=Array.isArray(db.eq)?db.eq:[],ins=Array.isArray(db.ins)?db.ins:[];
+   const byCode=new Map();
+   ins.forEach(z=>{const k=String(z.equipment_code||'');if(!byCode.has(k))byCode.set(k,[]);byCode.get(k).push(z)});
+   eqs.forEach(eq=>{
+    const rows=(byCode.get(String(eq.code))||[]).slice().sort((a,b)=>String(a.inspected_on||'').localeCompare(String(b.inspected_on||'')));
+    const last=rows[rows.length-1];if(!last||eq.active===false||eq.requires_inspection===false)return;
+    const open=last.defects==='در حال رسیدگی'||(last.result==='عدم تایید'&&last.defects!=='رفع شد');
+    if(!open)return;
+    const id=String(last.id||eq.code),code=String(eq.code||'');
+    items.push({action_uid:'equipment_defect:'+code+':'+id,source:'equipment_defect',source_id:id,
+     source_label:SOURCES.equipment_defect.label,icon:SOURCES.equipment_defect.icon,
+     href:'equipment.html?code='+encodeURIComponent(code),
+     title:'ایراد تجهیز: '+clean(eq.title||code)+' ('+code+')',
+     unit:[clean(eq.hall),clean(eq.location)].filter(Boolean).join(' · '),
+     owner:'',due_date:'',native_status:'open',action_status:'open',
+     created_at:last.inspected_on||null,incident_date:null,corrective_action:'',
+     action_due_date:'',id,detail:[clean(last.defects),clean(last.notes)].filter(Boolean).join(' — '),
+     source_data:{equipment_code:code,inspection_id:id,result:last.result||'',defects:last.defects||''},
+     record_type:'local_source_record',writable:false});
+   });
+  }
+ }catch(e){errors.push({source:'ایرادهای تجهیزات محلی',message:'داده محلی تجهیزات قابل خواندن نیست؛ صف این منبع ناقص است.'})}
  let visible=items;
  if(window.HSEAuth&&typeof HSEAuth.visibleFollowups==='function'){
   try{const allowed=await HSEAuth.visibleFollowups(items.filter(x=>x.source==='clinic_followup').map(x=>({id:x.source_id,title:x.title,kind:'followup'})));const ids=new Set((allowed||[]).map(x=>String(x.id)));visible=items.filter(x=>x.source!=='clinic_followup'||ids.has(x.source_id))}
