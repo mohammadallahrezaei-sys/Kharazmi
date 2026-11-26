@@ -31,6 +31,7 @@ body{background:var(--bg)}
 .sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:12px 0}
 .sm div{text-align:center;padding:9px;border:1px solid var(--bd);border-radius:12px;background:var(--card)}.sm b{display:block;font-size:22px}
 .sm .bad b{color:var(--bad)}.sm .wa b{color:var(--wa)}
+.queue-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 14px}.queue-summary .qs{border:1px solid var(--bd);border-radius:11px;padding:9px 10px;background:var(--card);min-width:0}.queue-summary .qs b{display:block;font-size:20px;margin-bottom:3px}.queue-summary .qs small{display:block;color:var(--mu);font-size:11px;line-height:1.6}.queue-summary .qs-note{grid-column:1/-1;color:var(--mu);font-size:11px;line-height:1.7}@media(max-width:800px){.queue-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .fl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
 input,select,textarea{font:inherit;font-size:13px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);padding:7px 9px}
 .fl input,.fl select{flex:1;min-width:130px}
@@ -54,8 +55,8 @@ details.how{margin:8px 0;font-size:12.5px;color:var(--mu)}
 <body>
 <div class="w">
  <h1 style="margin:0">🎯 مرکز اقدام</h1>
- <div class="mu">اقدامات باز بازرسی، ارگونومی، حوادث، بهداری، رفتار، تعهدات و کارت‌های نیازمند بررسی در یک فهرست؛ با مسئول، موعد، سابقه پیگیری و تشدید تأخیر.</div>
- <nav class="hse-workflow-nav" aria-label="مسیرهای اصلی HSE"><a href="checklists.html">📝 بازرسی</a><a href="action.html">🎯 اقدامات</a><a href="due.html">⏳ سررسید</a><a href="calendar.html">📅 تقویم</a><a href="tech_followup.html">📤 فنی</a></nav><div class="sm" id="sm"></div><div id="riskPlans"><div class="mu">در حال دریافت اقدام‌های برنامه‌ریزی‌شده FMEA/HAZOP…</div></div>
+ <div class="mu">نمای متمرکز صف‌های کاری HSE؛ اقدام‌های اصلاحی، پیگیری‌های بهداری، بررسی کارت‌ها و تعهدات دوره‌ای جداگانه شمارش می‌شوند تا KPIها با هم مخلوط نشوند.</div>
+ <nav class="hse-workflow-nav" aria-label="مسیرهای اصلی HSE"><a href="checklists.html">📝 بازرسی</a><a href="action.html">🎯 اقدامات</a><a href="due.html">⏳ سررسید</a><a href="calendar.html">📅 تقویم</a><a href="tech_followup.html">📤 فنی</a></nav><div class="sm" id="sm"></div><section id="queueSummary" class="queue-summary" aria-label="تفکیک صف‌های کاری"></section><div id="riskPlans"><div class="mu">در حال دریافت اقدام‌های برنامه‌ریزی‌شده FMEA/HAZOP…</div></div>
  <div class="fl"><select id="fs"></select><select id="fl"><option value="">همهٔ سطح‌ها</option><option value="1">فوری (P1)</option><option value="2">بالا (P2)</option><option value="3">متوسط (P3)</option><option value="4">پایین (P4)</option></select><input id="fq" placeholder="🔍 جستجو…"><label class="mu"><input type="checkbox" id="fo" style="width:auto"> فقط معوق</label><button class="b2" id="bCopy">📋 کپی خلاصهٔ تأخیرها</button></div>
  <div id="msg"></div><div id="acList"><div class="mu">در حال خواندن موضوعات…</div></div>
  <details class="how"><summary>امتیاز و تشدید چطور حساب می‌شود؟</summary>
@@ -142,7 +143,15 @@ const escTxt={1:['معوق','wa'],2:['تشدید: اطلاع به مسئول ب�
 function render(){
  const all=ITEMS,p1=all.filter(x=>x.lv===1).length,late=all.filter(x=>x.late>0).length,noOwn=all.filter(x=>x.lv<=2&&!x.owner).length,esc2=all.filter(x=>x.esc>=2).length;
  $('#sm').innerHTML='<div class="bad"><b>'+fa(p1)+'</b>فوری</div><div class="wa"><b>'+fa(late)+'</b>معوق</div><div class="bad"><b>'+fa(esc2)+'</b>نیازمند تشدید</div><div class="wa"><b>'+fa(noOwn)+'</b>فوری/بالا بدون مسئول</div><div><b>'+fa(all.length)+'</b>کل باز</div><a href="risks.html" style="display:block;color:inherit;text-decoration:none" title="مشاهده ارزیابی ریسک‌های FMEA و HAZOP"><div><b>'+(RISK_REVIEW_MISSING==null?'—':fa(RISK_REVIEW_MISSING))+'</b>FMEA/HAZOP بدون تاریخ بازنگری</div></a>';
- const V=view(),sh=V.slice(0,SHOW);
+ const qa=[
+  ['اقدامات اصلاحی فعال',ITEMS.filter(x=>['finding','incident','behavior','ergo'].includes(x.src)).length,'عدم‌انطباق، حادثه، رفتار و ارگونومی'],
+  ['پیگیری‌های بهداری',ITEMS.filter(x=>x.src==='followup').length,'صف پیگیری درمانگاه؛ تابع دسترسی محرمانه'],
+  ['کارت‌های در انتظار بررسی',ITEMS.filter(x=>x.src==='card').length,'صف بررسی و تأیید، نه CAPA'],
+  ['تعهدات نزدیک سررسید',ITEMS.filter(x=>x.src==='obligation').length,'تعهدات دوره‌ای با موعد نزدیک'],
+  ['FMEA/HAZOP نیازمند تفکیک',RISK_PLANS===null?'—':RISK_PLANS.length,'متن برنامه‌ریزی‌شده؛ هنوز اقدام مستقل نیست']
+];
+$('#queueSummary').innerHTML=qa.map(q=>'<div class="qs"><b>'+ (typeof q[1]==='number'?fa(q[1]):q[1]) +'</b><small>'+esc(q[0])+'</small><small>'+esc(q[2])+'</small></div>').join('')+'<div class="qs-note">این تفکیک فقط برای شفافیت صف‌هاست؛ موارد درمانگاه، کارت‌ها و تعهدات در KPI «اقدامات اصلاحی فعال» ادغام نشده‌اند.</div>';
+const V=view(),sh=V.slice(0,SHOW);
  if(!V.length){$('#acList').innerHTML='<div class="mu" style="padding:16px;text-align:center">'+(all.length?'موردی با این فیلتر نیست.':'✓ موضوع بازی نیست (یا همهٔ منبع‌ها خوانده نشدند).')+'</div>';return}
  $('#acList').innerHTML=sh.map(x=>{const S=SRC[x.src],c=LV[x.lv].c,e=escTxt[x.esc],last=x.events[x.events.length-1];
   return '<div class="xi'+(x.followed&&x.esc<2?' xf':'')+'" style="--c:'+c+'"><div class="xs" title="امتیاز اولویت">'+fa(x.score)+'</div><div class="xb"><h3>'+S.i+' '+esc(String(x.title).slice(0,220))+'</h3>'
