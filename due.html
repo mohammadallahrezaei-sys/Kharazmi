@@ -80,7 +80,7 @@ async function load(){
     add('eq','بازرسی '+(e.title||e.code),due,'آخرین بازرسی: '+(l.inspected_on||'—'))})}),
   T('پیمانکاران',async()=>{(await HSE.getAll('contractors?select=id,name,end_date,status')).filter(c=>c.status!=='finished'&&c.status!=='ended').forEach(c=>add('ctr','پایان قرارداد '+c.name,c.end_date))})
  ]);
- try{const plans=await HSEActionEngine.loadRiskPlans(),saved=JSON.parse(localStorage.getItem('khz_risk_plan_action_preview_v1')||'{}');plans.forEach(p=>{const v=saved['risk-plan:'+String(p.id)];if(!v||v.status==='verified')return;add('riskplan',(p.method==='hazop'?'HAZOP':'FMEA')+' · '+(p.hazard||'برنامه کنترلی'),v.due,[p.unit,v.owner,'وضعیت: '+(v.status||'باز')].filter(Boolean).join(' · '),'risk-plan:'+p.id,p.href)})}catch(e){miss.push('برنامه‌های کنترلی FMEA/HAZOP محلی')}
+ try{const plans=await HSEActionEngine.loadRiskPlans(),saved=JSON.parse(localStorage.getItem('khz_risk_plan_action_preview_v1')||'{}');plans.forEach(p=>{const v=saved['risk-plan:'+String(p.id)]||{};if(v.status==='verified')return;add('riskplan',(p.method==='hazop'?'HAZOP':'FMEA')+' · '+(p.hazard||'برنامه کنترلی'),v.due||'',[p.unit,'مسئول: '+(v.owner||'تعیین نشده'),'وضعیت: '+(v.status||'باز')].filter(Boolean).join(' · '),'risk-plan:'+p.id,p.href)})}catch(e){miss.push('برنامه‌های کنترلی FMEA/HAZOP محلی')}
  L.forEach(x=>x.n=diff(x.due,today));L.sort((a,b)=>a.n-b.n);
  draw()}
 const BK=[['late','معوق (گذشته)',x=>x.n<0,'bad'],['w','تا ۷ روز آینده',x=>x.n>=0&&x.n<=7,'wa'],['m','۸ تا ۳۰ روز',x=>x.n>7&&x.n<=30,''],['q','۳۱ تا ۹۰ روز',x=>x.n>30&&x.n<=90,''],['f','بیش از ۹۰ روز',x=>x.n>90,'']];
