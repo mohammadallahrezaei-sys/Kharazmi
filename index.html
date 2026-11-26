@@ -104,6 +104,15 @@ details.grp .tiles{margin-top:10px}
 .wi i{width:30px;height:30px;font-size:16px}
 .wi b{font-size:12.5px}
 .wi.ok span,.wi:not(.wa):not(.bad) span{display:none}
+/* Main dashboard responsive spacing and group clarity */
+.w,.shell{max-width:1500px}
+.mg{box-shadow:0 2px 8px rgba(15,23,42,.025)}
+.mg>summary{border-radius:10px;padding:5px 7px}
+.tiles{grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px}
+.tiles a{border-radius:12px}
+.tiles a b{font-size:12px;padding:5px 5px 6px}
+@media(min-width:1200px){.tiles{grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:9px}}
+@media(max-width:650px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.tiles a b{font-size:10.5px}.mg{padding:8px}.gt{font-size:14px}.gt small.gs{font-size:11px}}
 </style>
 <link rel="stylesheet" href="home.css">
 <link rel="stylesheet" href="home-polish.css">
