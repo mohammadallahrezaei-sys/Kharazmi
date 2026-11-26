@@ -76,7 +76,7 @@ const SRC={finding:{n:'عدم‌انطباق',i:'📋',link:'checklists.html'},f
 const SLA_SEV={1:30,2:14,3:3,4:1},SLA_LVL={1:2,2:7,3:14,4:30},BASE_SEV={1:15,2:35,3:60,4:85};
 const HIGH=/(سوله\s*[۴4۵5۶6۸8]\b|سوله\s*(۱۰|10|۱۲|12)\b|بازیابی|کلسیناسیون|اسید|آمونیاک|اتوکلاو|کوره|راکتور)/;
 const LV={1:{n:'فوری',c:'#dc2626'},2:{n:'بالا',c:'#f97316'},3:{n:'متوسط',c:'#eab308'},4:{n:'پایین',c:'#94a3b8'}};
-let ITEMS=[],OV={},ME='',SHOW=15,OVOK=true;
+let ITEMS=[],OV={},ME='',SHOW=15,OVOK=true,RISK_REVIEW_MISSING=0;
 const lvl=s=>s>=80?1:s>=60?2:s>=40?3:4;
 function build(it){ /* امتیاز، مهلت مؤثر و سطح تشدید */
  const o=OV[it.key]||{},today=todayISO(),why=[];
@@ -113,6 +113,7 @@ async function load(){
   T('کارت‌های در انتظار بررسی',async()=>{const r=await HSE.getAll('hse_cards?status=eq.in_review&select=id,title,description,text,subject,location,unit,card_type,card_date,created_at,status');
    r.forEach(x=>L.push({key:'card:'+x.id,src:'card',id:x.id,title:x.title||x.description||x.text||x.subject||'کارت گزارش',unit:x.location||x.unit||'',base:25,created:x.card_date||x.created_at,sla:7}))}),
   T('اقدامات ارگونومی',async()=>{const r=await HSE.getAll('ergonomic_actions?status=eq.open&select=id,unit,job_title,station,task,risk_factor,method,initial_score,initial_level,planned_action,responsible,due_date,created_at');r.forEach(x=>L.push({key:'ergo:'+x.id,src:'ergo',id:x.id,title:[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — ')||'اقدام ارگونومی',unit:[x.unit,x.station].filter(Boolean).join(' · '),base:/بالا|زیاد|high/i.test(x.initial_level||'')?65:45,due:x.due_date,created:x.created_at,srcOwner:x.responsible,can:null,readOnlySource:true}))}),
+  T('بازنگری ارزیابی ریسک',async()=>{const r=await HSE.getAll('risks?method=in.(fmea,hazop)&status=eq.approved&select=id,review_date');RISK_REVIEW_MISSING=(r||[]).filter(x=>!x.review_date).length}),
   T('مسئول/مهلت',async()=>{const o=await rq('action_overlay?select=*',{headers:{Prefer:'return=representation'}});OV={};(o||[]).forEach(x=>OV[x.key]=x)}).then(()=>{})
  ]);
  // تاریخچهٔ فنی عدم‌انطباق به‌صورت فقط‌خواندنی به timeline مشترک اضافه می‌شود.
@@ -136,7 +137,7 @@ function view(){const s=$('#fs').value,l=$('#fl').value,q=$('#fq').value.trim(),
 const escTxt={1:['معوق','wa'],2:['تشدید: اطلاع به مسئول بالاتر','bad'],3:['بحرانی: تصمیم مدیریت/کمیته','bad']};
 function render(){
  const all=ITEMS,p1=all.filter(x=>x.lv===1).length,late=all.filter(x=>x.late>0).length,noOwn=all.filter(x=>x.lv<=2&&!x.owner).length,esc2=all.filter(x=>x.esc>=2).length;
- $('#sm').innerHTML='<div class="bad"><b>'+fa(p1)+'</b>فوری</div><div class="wa"><b>'+fa(late)+'</b>معوق</div><div class="bad"><b>'+fa(esc2)+'</b>نیازمند تشدید</div><div class="wa"><b>'+fa(noOwn)+'</b>فوری/بالا بدون مسئول</div><div><b>'+fa(all.length)+'</b>کل باز</div>';
+ $('#sm').innerHTML='<div class="bad"><b>'+fa(p1)+'</b>فوری</div><div class="wa"><b>'+fa(late)+'</b>معوق</div><div class="bad"><b>'+fa(esc2)+'</b>نیازمند تشدید</div><div class="wa"><b>'+fa(noOwn)+'</b>فوری/بالا بدون مسئول</div><div><b>'+fa(all.length)+'</b>کل باز</div><a href="risks.html" title="مشاهده ارزیابی ریسک‌های FMEA و HAZOP"><b>'+fa(RISK_REVIEW_MISSING)+'</b>FMEA/HAZOP بدون تاریخ بازنگری</a>';
  const V=view(),sh=V.slice(0,SHOW);
  if(!V.length){$('#acList').innerHTML='<div class="mu" style="padding:16px;text-align:center">'+(all.length?'موردی با این فیلتر نیست.':'✓ موضوع بازی نیست (یا همهٔ منبع‌ها خوانده نشدند).')+'</div>';return}
  $('#acList').innerHTML=sh.map(x=>{const S=SRC[x.src],c=LV[x.lv].c,e=escTxt[x.esc],last=x.events[x.events.length-1];
