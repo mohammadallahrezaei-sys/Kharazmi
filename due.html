@@ -79,11 +79,20 @@ async function load(){
    eq.filter(e=>e.active!==false&&e.requires_inspection).forEach(e=>{
     const l=last[e.code];
     if(!l){add('eq','بازرسی '+(e.title||e.code),'','هیچ سابقه بازرسی ثبت نشده');return}
-    if(l.result==='عدم تایید'){
+    if(l.result==='عدم تایید') {
      if(location.hostname!=='raw.githack.com')add('eq','بازرسی مجدد الزامی — '+(e.title||e.code),'','آخرین نتیجه عدم تأیید در '+(l.inspected_on||'تاریخ نامشخص')+'؛ موعد بازرسی مجدد در ماژول تجهیزات ثبت شود');
      return;
     }
-    const inspected=isoDate(l.inspected_on),due=isoDate(l.next_due)||(inspected?addM(inspected,e.interval_months||12):'');
+    const explicitDue=isoDate(l.next_due);
+    if(l.result==='تایید مشروط') {
+     if(explicitDue)add('eq','پیگیری بازرسی مشروط — '+(e.title||e.code),explicitDue,'آخرین بازرسی: '+(l.inspected_on||'—'));
+     return;
+    }
+    if(l.result!=='تایید') {
+     add('eq','نتیجه بازرسی نامشخص — '+(e.title||e.code),'','نتیجه آخرین بازرسی باید در ماژول تجهیزات تکمیل شود');
+     return;
+    }
+    const inspected=isoDate(l.inspected_on),due=explicitDue||(inspected?addM(inspected,e.interval_months||12):'');
     add('eq','بازرسی '+(e.title||e.code),due,'آخرین بازرسی: '+(l.inspected_on||'—'));
    })
   }),
