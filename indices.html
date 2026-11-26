@@ -23,7 +23,7 @@
  <div style="overflow:auto"><table><tr><th>شاخص</th><th>مبنای سه‌ساله</th><th>تارگت سالانه ${fa(current)}</th><th>تارگت تا این ماه</th><th>عملکرد تا امروز</th><th>وضعیت</th></tr>
  ${fmt("AFR",annualBase.afr,annualTargets.afr,ytdTargets.afr,actual.afr)}
  ${fmt("ASR",annualBase.asr,annualTargets.asr,ytdTargets.asr,actual.asr)}
- ${fmt("FSI",annualBase.fsi,annualTargets.fsi,ytdTargets.fsi,actual.fsi)}</table></div>
+ ${fmt("FSI",annualBase.fsi,annualTargets.fsi,ytdTargets.fsi,actual.fsi)}<tr><td>حوادث فوتی</td><td>—</td><td>۰</td><td>۰</td><td>${fa(actual.fatal)}</td><td class="${actual.fatal?"bad":"ok"}">${actual.fatal?"⚠ هدف صفر محقق نشده":"✓ هدف صفر محقق شده"}</td></tr></table></div>
  <div class="mu" style="margin-top:6px">تارگت تا این ماه بر اساس همان ماه‌های دارای ساعت کار در سال هدف و ماه‌های متناظر در سه سال پایه محاسبه می‌شود. با ثبت هر ماه جدید، دوره و تارگت تجمعی به‌روزرسانی خواهد شد. عملکرد واقعی ASR و FSI شامل اثر کامل حوادث فوتی است؛ بنابراین ممکن است از تارگت مبتنی بر ASR تعدیل‌شده بیشتر شود.</div>
  <div class="mu" style="margin-top:6px">تعداد فوتی‌های مبنای سه‌ساله: ${fa(annualBase.fatal)}؛ تعداد فوتی‌های عملکرد سال هدف: ${fa(actual.fatal)}. تعداد ماه‌های دارای ساعت کار در مبنای سالانه: ${fa(annualBase.keys.length)}؛ ماه‌های دوره جاری: ${fa(actual.keys.length)}. ماه‌های فاقد ساعت کار از محاسبه حذف می‌شوند.</div>`;
  if(annualBase.keys.length<36)html+=`<div class="mu wa" style="margin-top:6px">⚠ داده کامل ۳۶ ماه در مبنای هدف‌گذاری موجود نیست؛ تارگت بر اساس ماه‌های دارای ساعت کار موجود محاسبه شده و با تکمیل داده‌ها ممکن است تغییر کند.</div>`;
