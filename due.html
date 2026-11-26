@@ -68,7 +68,7 @@ const add=(s,t,due,sub,uid,href)=>{if(!t)return;due=d10(due);const item={s,t:Str
 async function load(){
  const T=async(n,f)=>{try{await f()}catch(e){miss.push(n)}};
  await Promise.all([
-  T('اقدامات مستقل (موتور مشترک)',async()=>{const shared=await HSEActionEngine.load({includeOverlay:true});const map={finding:'finding',equipment_defect:'eq',pollutant_capa:'poll',clinic_followup:'followup',incident:'incident',incident_capa:'incident',behavior:'beh',ergo:'ergo'};shared.items.forEach(x=>{const s=map[x.source];if(!s)return;const sub=[x.unit,x.effective_owner||x.owner,x.native_status?('وضعیت: '+x.native_status):''].filter(Boolean).join(' · ');add(s,x.title,x.effective_due_date||x.due_date,sub,x.action_uid,x.href)});if(shared.errors.length)miss.push(...shared.errors.map(x=>'موتور مشترک: '+x.source))}),
+  T('اقدامات مستقل (موتور مشترک)',async()=>{const shared=await HSEActionEngine.load({includeOverlay:true,includeRiskPlans:true});const map={finding:'finding',equipment_defect:'eq',pollutant_capa:'poll',clinic_followup:'followup',incident:'incident',incident_capa:'incident',behavior:'beh',ergo:'ergo',risk_plan:'riskplan'};shared.items.forEach(x=>{const s=map[x.source];if(!s)return;const sub=[x.unit,x.effective_owner||x.owner,x.native_status?('وضعیت: '+x.native_status):''].filter(Boolean).join(' · ');add(s,x.title,x.effective_due_date||x.due_date,sub,x.action_uid,x.href)});if(shared.errors.length)miss.push(...shared.errors.map(x=>'موتور مشترک: '+x.source))}),
   T('تعهدات',async()=>{(await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active')).filter(x=>x.active!==false).forEach(x=>add('obl',x.title,x.next_due,[x.category,x.owner].filter(Boolean).join(' · ')))}),
   T('روش‌های اجرایی',async()=>{(await HSE.getAll('hse_procedures?select=id,title,status,target_date,owner,active')).filter(x=>x.active!==false&&x.status!=='approved').forEach(x=>add('proc',x.title,x.target_date,x.owner))}),
   T('ریسک‌ها',async()=>{(await HSE.getAll('risks?select=id,hazard,unit,status,review_date&status=neq.archived')).filter(x=>x.status!=='draft').forEach(x=>add('risk','بازنگری: '+(x.hazard||''),x.review_date,x.unit))}),
@@ -80,7 +80,6 @@ async function load(){
     add('eq','بازرسی '+(e.title||e.code),due,'آخرین بازرسی: '+(l.inspected_on||'—'))})}),
   T('پیمانکاران',async()=>{(await HSE.getAll('contractors?select=id,name,end_date,status')).filter(c=>c.status!=='finished'&&c.status!=='ended').forEach(c=>add('ctr','پایان قرارداد '+c.name,c.end_date))})
  ]);
- try{const plans=await HSEActionEngine.loadRiskPlans(),saved=JSON.parse(localStorage.getItem('khz_risk_plan_action_preview_v1')||'{}');plans.forEach(p=>{const v=saved['risk-plan:'+String(p.id)]||{};if(v.status==='verified')return;add('riskplan',(p.method==='hazop'?'HAZOP':'FMEA')+' · '+(p.hazard||'برنامه کنترلی'),v.due||'',[p.unit,'مسئول: '+(v.owner||'تعیین نشده'),'وضعیت: '+(v.status||'باز')].filter(Boolean).join(' · '),'risk-plan:'+p.id,p.href)})}catch(e){miss.push('برنامه‌های کنترلی FMEA/HAZOP محلی')}
  L.forEach(x=>x.n=diff(x.due,today));L.sort((a,b)=>a.n-b.n);
  draw()}
 const BK=[['late','معوق (گذشته)',x=>x.n<0,'bad'],['w','تا ۷ روز آینده',x=>x.n>=0&&x.n<=7,'wa'],['m','۸ تا ۳۰ روز',x=>x.n>7&&x.n<=30,''],['q','۳۱ تا ۹۰ روز',x=>x.n>30&&x.n<=90,''],['f','بیش از ۹۰ روز',x=>x.n>90,'']];
