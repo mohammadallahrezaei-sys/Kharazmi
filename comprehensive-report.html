@@ -1,22 +1,74 @@
 <!doctype html>
-<html lang="fa" dir="rtl"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
-<script src="auth.js" data-roles="manager"></script><script src="hse_nav.js?v=20261126-nav-core" defer></script>
-<title>گزارش جامع HSE - خوارزمی</title><link rel="stylesheet" href="hse_ui.css">
+<script src="auth.js" data-roles="manager"></script>
+<script src="hse_nav.js?v=20261126-nav-core" defer></script>
+<title>گزارش جامع HSE - خوارزمی</title>
+<link rel="stylesheet" href="hse_ui.css">
 <style>
 :root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ac:#0f766e}
+*{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.8 Vazirmatn,Tahoma,sans-serif}
-.wrap{max-width:1400px;margin:auto;padding:12px}
-.head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-h1{margin:0;font-size:22px}.sub{color:var(--mu);font-size:12px}
-.actions{display:flex;gap:6px;flex-wrap:wrap}
-a.btn{display:inline-flex;padding:7px 12px;border:1px solid var(--bd);border-radius:10px;text-decoration:none;color:inherit;background:var(--card)}
+.wrap{max-width:1440px;margin:0 auto;padding:18px 20px 28px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px}
+h1{margin:0;font-size:23px;line-height:1.5}
+.sub{color:var(--mu);font-size:12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+a.btn{display:inline-flex;align-items:center;justify-content:center;padding:7px 13px;border:1px solid var(--bd);border-radius:10px;text-decoration:none;color:var(--tx);background:var(--card);font:inherit;font-size:13px}
 a.primary{background:var(--ac);color:#fff;border-color:var(--ac)}
-.report{width:100%;height:1200px;min-height:780px;border:1px solid var(--bd);border-radius:14px;background:var(--card);display:block;overflow:hidden}
-@media(max-width:600px){.wrap{padding:8px}.head{align-items:flex-start}h1{font-size:18px}.report{height:1200px;min-height:700px}}
-</style></head><body><main class="wrap">
-<header class="head"><div><h1>📊 گزارش جامع HSE</h1><div class="sub">گزارش مدیریتی تجمیعی · انتخاب دوره، تحلیل، اقدامات و خروجی چاپ/PDF در یک صفحه</div></div>
-<div class="actions"><label for="period" class="sub">دوره مشترک گزارش:</label><select id="period" aria-label="دوره مشترک گزارش"><option value="ytd">از ابتدای سال تا امروز</option><option value="6">۶ ماه اخیر</option><option value="12">۱۲ ماه اخیر</option><option value="py">سال قبل (کامل)</option><option value="m">ماه جاری</option></select><a class="btn primary" href="mgmt.html" target="_blank">باز کردن گزارش مستقل / چاپ PDF</a><a class="btn" href="action.html">مرکز پیگیری</a><a class="btn" href="index.html">خانه</a></div></header>
-<div class="sub" style="margin:0 0 8px">انتخاب دوره در این قسمت، همه شاخص‌ها و نمودارهای گزارش مدیریتی را با همان بازه زمانی به‌روزرسانی می‌کند. نمای اقدامات باز، وضعیت جاری صف پیگیری را نشان می‌دهد.</div><iframe class="report" title="گزارش مدیریتی یکپارچه HSE" src="mgmt.html?v=20261126-counting-basis" loading="eager"></iframe>
-</main><script>(function(){const frame=document.querySelector('.report');function fit(){try{const d=frame.contentDocument;if(!d)return;const nested=d.getElementById('hse-nav');if(nested)nested.style.display='none';d.body.style.paddingBottom='0';const h=Math.max(d.documentElement.scrollHeight,d.body?d.body.scrollHeight:0);if(h>300)frame.style.height=(h+24)+'px';if(d.documentElement){const ro=new ResizeObserver(()=>{const hh=Math.max(d.documentElement.scrollHeight,d.body?d.body.scrollHeight:0);frame.style.height=(hh+24)+'px'});ro.observe(d.documentElement);if(d.body)ro.observe(d.body)}}catch(e){frame.style.height='1200px'}}frame.addEventListener('load',fit);})();</script><script>(function(){const frame=document.querySelector('.report'),period=document.getElementById('period');function sync(){try{const d=frame.contentDocument,sel=d&&d.getElementById('per');if(!sel)return;const v=period.value;if([...sel.options].some(o=>o.value===v)&&sel.value!==v){sel.value=v;sel.dispatchEvent(new Event('change',{bubbles:true}));}}catch(e){}}function fit(){try{const d=frame.contentDocument;if(!d)return;const nested=d.getElementById('hse-nav');if(nested)nested.style.display='none';d.body.style.paddingBottom='0';const h=Math.max(d.documentElement.scrollHeight,d.body?d.body.scrollHeight:0);if(h>300)frame.style.height=(h+24)+'px';if(d.documentElement&&!frame.dataset.observed){const ro=new ResizeObserver(()=>{const hh=Math.max(d.documentElement.scrollHeight,d.body?d.body.scrollHeight:0);frame.style.height=(hh+24)+'px'});ro.observe(d.documentElement);if(d.body)ro.observe(d.body);frame.dataset.observed='1'}}catch(e){frame.style.height='1200px'}}frame.addEventListener('load',function(){sync();fit();try{const d=frame.contentDocument;if(d&&d.body){const mo=new MutationObserver(sync);mo.observe(d.body,{childList:true,subtree:true});}}catch(e){}});period.addEventListener('change',sync);})();</script></body></html>
+.intro{display:flex;align-items:center;gap:9px;padding:9px 13px;margin-bottom:12px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--mu);font-size:12px}
+.intro:before{content:"";width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--ac)}
+.report{width:100%;height:1100px;min-height:780px;border:1px solid var(--bd);border-radius:16px;background:var(--card);display:block;overflow:hidden}
+@media(max-width:700px){.wrap{padding:10px}.head{align-items:flex-start}h1{font-size:19px}.actions{width:100%}.actions a{flex:1}.report{min-height:700px;border-radius:12px}.intro{line-height:1.7}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="head">
+ <div><h1>📊 گزارش جامع HSE</h1><div class="sub">گزارش مدیریتی تجمیعی · شاخص‌ها، تحلیل عملکرد و اقدامات اصلاحی</div></div>
+ <nav class="actions" aria-label="دسترسی سریع">
+  <a class="btn primary" href="mgmt.html" target="_blank" rel="noopener">گزارش مستقل و چاپ PDF</a>
+  <a class="btn" href="action.html">مرکز پیگیری</a>
+  <a class="btn" href="index.html">خانه</a>
+ </nav>
+</header>
+<div class="intro">برای تغییر بازه زمانی، فقط از فیلتر داخل گزارش استفاده کنید. همان فیلتر، شاخص‌ها و نمودارهای دوره‌ای را به‌روزرسانی می‌کند؛ صف اقدامات، وضعیت جاری پیگیری‌ها را نشان می‌دهد.</div>
+<iframe class="report" title="گزارش مدیریتی یکپارچه HSE" src="mgmt.html?v=20261126-counting-basis" loading="eager"></iframe>
+</main>
+<script>
+(function(){
+ const frame=document.querySelector('.report');
+ let observer=null;
+ function fit(){
+  try{
+   const d=frame.contentDocument;
+   if(!d||!d.documentElement)return;
+   const nav=d.getElementById('hse-nav');
+   if(nav)nav.style.display='none';
+   if(d.body)d.body.style.paddingBottom='0';
+   const resize=()=>{
+    const height=Math.max(d.documentElement.scrollHeight,d.body?d.body.scrollHeight:0);
+    if(height>300)frame.style.height=(height+28)+'px';
+   };
+   resize();
+   if(!observer&&typeof ResizeObserver!=='undefined'){
+    observer=new ResizeObserver(resize);
+    observer.observe(d.documentElement);
+    if(d.body)observer.observe(d.body);
+   }
+   if(!frame.dataset.mutationObserved&&d.body&&typeof MutationObserver!=='undefined'){
+    const mutation=new MutationObserver(resize);
+    mutation.observe(d.body,{childList:true,subtree:true,attributes:true});
+    frame.dataset.mutationObserved='1';
+   }
+  }catch(e){frame.style.height='1100px'}
+ }
+ frame.addEventListener('load',fit);
+ window.addEventListener('resize',fit);
+})();
+</script>
+</body>
+</html>
