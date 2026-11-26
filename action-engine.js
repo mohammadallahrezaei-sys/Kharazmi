@@ -116,7 +116,7 @@ async function load(options={}){
   }catch(e){errors.push({source:'مدیریت مسئول/مهلت',message:String(e&&e.message||e).slice(0,180)})}
  }
  const unique=new Map();visible.forEach(x=>{if(!unique.has(x.action_uid))unique.set(x.action_uid,x)});
- return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:9,excluded:['finding_followups','ergo_action_history','raw_cards','notice_wo'],separateQueues:['FMEA/HAZOP planned_controls'] }};
+ return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:9,excluded:['finding_followups','ergo_action_history','raw_cards','notice_wo'],separateQueues:['unassigned FMEA/HAZOP planned_controls'] }};
 }
 window.HSEActionEngine={load,loadRiskPlans,SOURCES};
 })();
