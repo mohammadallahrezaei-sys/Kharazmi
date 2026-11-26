@@ -142,7 +142,7 @@ function view(){const s=$('#fs').value,l=$('#fl').value,q=$('#fq').value.trim(),
 const escTxt={1:['معوق','wa'],2:['تشدید: اطلاع به مسئول بالاتر','bad'],3:['بحرانی: تصمیم مدیریت/کمیته','bad']};
 function render(){
  const all=ITEMS,p1=all.filter(x=>x.lv===1).length,late=all.filter(x=>x.late>0).length,noOwn=all.filter(x=>x.lv<=2&&!x.owner).length,esc2=all.filter(x=>x.esc>=2).length;
- $('#sm').innerHTML='<div class="bad"><b>'+fa(p1)+'</b>فوری</div><div class="wa"><b>'+fa(late)+'</b>معوق</div><div class="bad"><b>'+fa(esc2)+'</b>نیازمند تشدید</div><div class="wa"><b>'+fa(noOwn)+'</b>فوری/بالا بدون مسئول</div><div><b>'+fa(all.length)+'</b>کل باز</div><a href="risks.html" style="display:block;color:inherit;text-decoration:none" title="مشاهده ارزیابی ریسک‌های FMEA و HAZOP"><div><b>'+(RISK_REVIEW_MISSING==null?'—':fa(RISK_REVIEW_MISSING))+'</b>FMEA/HAZOP بدون تاریخ بازنگری</div></a>';
+ $('#sm').innerHTML='<div class="bad"><b>'+fa(p1)+'</b>فوری در صف</div><div class="wa"><b>'+fa(late)+'</b>معوق در صف</div><div class="bad"><b>'+fa(esc2)+'</b>نیازمند تشدید</div><div class="wa"><b>'+fa(noOwn)+'</b>فوری/بالا بدون مسئول</div><div><b>'+fa(all.length)+'</b>کل صف کاری</div><a href="risks.html" style="display:block;color:inherit;text-decoration:none" title="مشاهده ارزیابی ریسک‌های FMEA و HAZOP"><div><b>'+(RISK_REVIEW_MISSING==null?'—':fa(RISK_REVIEW_MISSING))+'</b>FMEA/HAZOP بدون تاریخ بازنگری</div></a>';
  const qa=[
   ['اقدامات اصلاحی فعال',ITEMS.filter(x=>['finding','incident','behavior','ergo'].includes(x.src)).length,'عدم‌انطباق، حادثه، رفتار و ارگونومی'],
   ['پیگیری‌های بهداری',ITEMS.filter(x=>x.src==='followup').length,'صف پیگیری درمانگاه؛ تابع دسترسی محرمانه'],
