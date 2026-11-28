@@ -9,10 +9,27 @@ const SOURCES={
  incident:{label:'اقدام اصلاحی حادثه',icon:'🚨',href:id=>'clinic.html#inc='+encodeURIComponent(id)},
  behavior:{label:'اقدام رفتار ناایمن',icon:'👷',href:id=>'behavior.html#obs='+encodeURIComponent(id)},
  clinic_followup:{label:'پیگیری عمومی بهداری',icon:'🏥',href:id=>'clinic.html#fu='+encodeURIComponent(id)},
- incident_capa:{label:'اقدام اصلاحی علت‌یابی حادثه',icon:'🚨',href:id=>'clinic.html#fu='+encodeURIComponent(id)}
+ incident_capa:{label:'اقدام اصلاحی علت‌یابی حادثه',icon:'🚨',href:id=>'clinic.html#fu='+encodeURIComponent(id)},
+ committee:{label:'مصوبه کمیته حفاظت فنی',icon:'🏛️',href:id=>'committee.html#item='+encodeURIComponent(id)},
+ objective:{label:'اقدام اهداف HSE',icon:'🎯',href:id=>'objectives.html#action='+encodeURIComponent(id)},
+ notice_followup:{label:'پیگیری اعلان فنی',icon:'🔧',href:id=>'tech_followup.html#notice='+encodeURIComponent(id)}
 };
 const clean=v=>String(v==null?'':v).trim();
 const date=v=>v?String(v).slice(0,10):'';
+const jalaliISO=value=>{
+ const m=/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/.exec(String(value||'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));if(!m)return '';
+ let jy=+m[1],jm=+m[2],jd=+m[3];if(jy<1300||jy>1500||jm<1||jm>12||jd<1||jd>31)return '';
+ jy+=1595;let days=-355668+365*jy+Math.floor(jy/33)*8+Math.floor((jy%33+3)/4)+jd+(jm<7?(jm-1)*31:(jm-7)*30+186);
+ let gy=400*Math.floor(days/146097);days%=146097;
+ if(days>36524){gy+=100*Math.floor(--days/36524);days%=36524;if(days>=365)days++}
+ gy+=4*Math.floor(days/1461);days%=1461;
+ if(days>365){gy+=Math.floor((days-1)/365);days=(days-1)%365}
+ let gd=days+1;const leap=(gy%4===0&&gy%100!==0)||gy%400===0,months=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+ let month=1;while(month<=12&&gd>months[month-1]){gd-=months[month-1];month++}
+ return month<=12?String(gy)+'-'+String(month).padStart(2,'0')+'-'+String(gd).padStart(2,'0'):'';
+};
+/* تاریخ مبدأ (میلادی ISO یا شمسی) → ISO؛ اگر خوانده نشد خالی */
+const anyDate=v=>{const t=String(v==null?'':v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(t)&&+t.slice(0,4)>1700)return t.slice(0,10);return jalaliISO(t)};
 function row(source,id,title,fields){
  const uid=source+':'+String(id);
  return {action_uid:uid,source,source_id:String(id),source_label:SOURCES[source].label,icon:SOURCES[source].icon,href:SOURCES[source].href(id),title:clean(title)||SOURCES[source].label,unit:clean(fields.unit),owner:clean(fields.owner),due_date:date(fields.due_date),native_status:clean(fields.status),created_at:fields.created_at||null,incident_date:fields.incident_date||null,action_status:clean(fields.status),corrective_action:source==='incident'?clean(title):'',action_due_date:date(fields.due_date),id:String(id),detail:clean(fields.detail),source_data:fields.source_data||{},record_type:'source_record',writable:false};
@@ -28,6 +45,14 @@ async function loadRiskPlans(GET){
  return (rows||[]).filter(x=>clean(x.planned_controls)).map(x=>({risk_plan_uid:'risk-plan:'+String(x.id),risk_id:String(x.id),id:String(x.id),method:clean(x.method),unit:clean(x.unit),hazard:clean(x.hazard),planned_controls:clean(x.planned_controls),risk_owner:clean(x.owner),owner:clean(x.owner),review_date:date(x.review_date),score:x.score,href:'risks.html#risk='+encodeURIComponent(x.id),record_type:'unconverted_risk_plan',writable:false}));
 }
 async function loadEquipmentData(){
+ /* منبع اصلی: دیتابیس مشترک (در همه محیط‌ها)؛ داده محلی فقط پشتیبان نسخه آزمایشی است */
+ const G=window.HSE&&typeof HSE.getAll==='function'?HSE.getAll.bind(HSE):window.HSEDB&&typeof HSEDB.getAll==='function'?HSEDB.getAll.bind(HSEDB):null;
+ if(G){
+  const eq=await G('equipment?active=eq.true&select=code,title,hall,location');
+  const ins=await G('equipment_inspections?select=id,equipment_code,inspected_on,result,defects,next_due,notes&order=inspected_on.asc');
+  if(Array.isArray(eq)&&Array.isArray(ins))return {eq,ins:ins.map(x=>({...x,inspected_on:anyDate(x.inspected_on)||x.inspected_on}))};
+  if(location.hostname!=='raw.githack.com')throw new Error('دریافت ایرادهای تجهیزات از پایگاه داده ناموفق بود.');
+ }
  let raw=null;
  try{raw=localStorage.getItem('khz_equipment_v1')}catch(e){}
  if(raw){
@@ -53,6 +78,9 @@ async function load(options={}){
   read('ergonomic_actions','ergonomic_actions?status=in.(open,implemented,pending_verification)&select=id,unit,station,task,risk_factor,planned_action,initial_level,responsible,due_date,status,created_at',x=>row('ergo',x.id,[x.planned_action,x.risk_factor,x.task].filter(Boolean).join(' — '),{unit:[x.unit,x.station].filter(Boolean).join(' · '),owner:x.responsible,due_date:x.due_date,status:x.status,created_at:x.created_at,detail:'وضعیت تخصصی: '+(x.status||'—'),task:x.task,risk_factor:x.risk_factor,planned_action:x.planned_action,initial_level:x.initial_level,responsible:x.responsible}),items,errors,GET),
   read('clinic_incidents','clinic_incidents?select=id,corrective_action,action_owner,action_due_date,action_status,location,unit,incident_date,created_at',x=>x.corrective_action&&(includeCompleted||x.action_status!=='done')?row('incident',x.id,x.corrective_action,{unit:x.location||x.unit,owner:x.action_owner,due_date:x.action_due_date,status:x.action_status,created_at:x.incident_date||x.created_at,incident_date:x.incident_date||x.created_at}):null,items,errors,GET),
   read('behavior_obs','behavior_obs?result=eq.unsafe&status=neq.closed&action_status=eq.open&select=id,action,action_owner,action_due,action_status,location,unit,created_at',x=>x.action&&x.action_status!=='done'?row('behavior',x.id,x.action,{unit:x.location||x.unit,owner:x.action_owner,due_date:x.action_due,status:x.action_status,created_at:x.created_at}):null,items,errors,GET),
+  read('committee_items','committee_items?kind=in.(new,ongoing)&select=id,seq,kind,text,actor,follower,deadline,result,meeting_id&order=meeting_id.desc,seq.asc',x=>row('committee',x.id,x.text,{owner:x.follower||x.actor,due_date:anyDate(x.deadline),status:x.kind==='ongoing'?'ongoing':'new',detail:[x.result,x.actor&&('مجری: '+x.actor)].filter(Boolean).join(' — '),source_data:{kind:x.kind,seq:x.seq,meeting_id:x.meeting_id,result:x.result}}),items,errors,GET),
+  read('hse_objective_actions','hse_objective_actions?status=neq.completed&select=id,objective_id,title,owner,planned_end,progress,status,month_key,note',x=>row('objective',x.id,x.title,{owner:x.owner,due_date:x.planned_end,status:x.status,detail:x.note,source_data:{objective_id:x.objective_id,progress:x.progress,month_key:x.month_key}}),items,errors,GET),
+  read('notice_followups','notice_followups?select=id,notice_no,followed_by,kind,result,tech_deadline,next_due,followed_at&next_due=not.is.null',x=>row('notice_followup',x.id,'پیگیری اعلان '+x.notice_no+(x.kind?' — '+x.kind:''),{owner:x.followed_by,due_date:x.next_due||x.tech_deadline,status:'open',detail:x.result,source_data:{notice_no:x.notice_no,followed_at:x.followed_at}}),items,errors,GET),
   read('clinic_followups','clinic_followups?kind=eq.followup&'+(includeCompleted?'status=neq.cancelled&':'status=in.(pending,overdue)&')+'select=id,title,kind,priority,due_date,status,created_at',x=>row('clinic_followup',x.id,x.title,{due_date:x.due_date,status:x.status,created_at:x.created_at,source_data:{priority:x.priority}}),items,errors,GET),
   read('incident_capa','clinic_followups?kind=eq.incident_capa&'+(includeCompleted?'status=neq.cancelled&':'status=in.(pending,overdue)&')+'select=id,title,kind,priority,due_date,status,created_at,destination',x=>row('incident_capa',x.id,x.title,{owner:String(x.destination||'').replace(/^مسئول:\s*/,'').trim(),due_date:x.due_date,status:x.status,created_at:x.created_at,source_data:{priority:x.priority,origin:'incident_rca'}}),items,errors,GET)
  ]);
@@ -65,18 +93,6 @@ async function load(options={}){
    try{Object.assign(data,JSON.parse(localStorage.getItem('khz_pollutant_capa_preview_v1')||'{}'))}
    catch(e){errors.push({source:'pollutant_capa local',message:'داده محلی آلاینده‌سنجی قابل خواندن نیست.'})}
   }
-  const jalaliISO=value=>{
-   const m=/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(String(value||''));if(!m)return '';
-   let jy=+m[1],jm=+m[2],jd=+m[3];if(jy<1300||jy>1500||jm<1||jm>12||jd<1||jd>31)return '';
-   jy+=1595;let days=-355668+365*jy+Math.floor(jy/33)*8+Math.floor((jy%33+3)/4)+jd+(jm<7?(jm-1)*31:(jm-7)*30+186);
-   let gy=400*Math.floor(days/146097);days%=146097;
-   if(days>36524){gy+=100*Math.floor(--days/36524);days%=36524;if(days>=365)days++}
-   gy+=4*Math.floor(days/1461);days%=1461;
-   if(days>365){gy+=Math.floor((days-1)/365);days=(days-1)%365}
-   let gd=days+1;const leap=(gy%4===0&&gy%100!==0)||gy%400===0,months=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31],gm=1;
-   let month=gm;while(month<=12&&gd>months[month-1]){gd-=months[month-1];month++}
-   return month<=12?String(gy)+'-'+String(month).padStart(2,'0')+'-'+String(gd).padStart(2,'0'):'';
-  };
   Object.entries(data).forEach(([key,v])=>{
    if(!v||v.status==='verified')return;
    const m=v._meta||{},uid='pollutant_capa:'+key;
@@ -89,7 +105,7 @@ async function load(options={}){
   });
  }catch(e){errors.push({source:'pollutant_capa',message:'صف اقدامات آلاینده‌سنجی ناقص است.'})}
  // Preview-only local equipment bridge. Never expose browser-local data on production origins.
- if(location.hostname==='raw.githack.com'){
+ {
   try{
    const db=await loadEquipmentData(),eqs=db.eq,ins=db.ins;
    const byCode=new Map();
@@ -109,9 +125,9 @@ async function load(options={}){
      owner:'',due_date:'',native_status:'open',action_status:'open',
      created_at:last.inspected_on||null,id,detail:[last.result==='عدم تایید'?'نتیجه بازرسی: عدم تأیید':'',clean(last.defects),clean(last.notes)].filter(Boolean).join(' — '),
      source_data:{equipment_code:code,inspection_id:id,result:last.result||'',defects:last.defects||'',inspection_date:last.inspected_on||''},
-     record_type:'local_source_record',writable:false});
+     record_type:'source_record',writable:false});
    });
-  }catch(e){errors.push({source:'ایرادهای تجهیزات محلی',message:'داده محلی تجهیزات قابل خواندن نیست؛ صف این منبع ناقص است.'})}
+  }catch(e){errors.push({source:'ایرادهای تجهیزات محلی',message:'ایرادهای تجهیزات دریافت نشد؛ صف این منبع ناقص است.'})}
  }
  let visible=items;
  if(window.HSEAuth&&typeof HSEAuth.visibleFollowups==='function'){
@@ -121,7 +137,7 @@ async function load(options={}){
  let riskPlans=[];
  if(options.includeRiskPlans){try{riskPlans=await loadRiskPlans(GET)}catch(e){errors.push({source:'FMEA/HAZOP planned controls',message:String(e&&e.message||e).slice(0,180)})}}
  if(options.includeRiskPlans&&location.hostname==='raw.githack.com'){
-  try{const saved=JSON.parse(localStorage.getItem('khz_risk_plan_action_preview_v1')||'{}');riskPlans.forEach(p=>{const v=saved['risk-plan:'+String(p.id)];if(!v||v.status==='verified'||!clean(v.owner)||!date(v.due))return;visible.push({action_uid:'risk_plan:'+String(p.id),source:'risk_plan',source_label:'اقدام برنامه کنترلی FMEA/HAZOP',icon:'🧩',href:p.href,title:(p.method==='hazop'?'HAZOP':'FMEA')+' · '+clean(p.hazard||'برنامه کنترلی'),unit:clean(p.unit),owner:clean(v.owner),due_date:date(v.due),native_status:v.status||'open',action_status:v.status||'open',created_at:null,id:String(p.id),detail:clean(p.planned_controls),source_data:{risk_id:p.id,method:p.method,hazard:p.hazard,planned_controls:p.planned_controls,score:p.score,review_date:p.review_date},record_type:'local_source_record',writable:false})})}
+  try{const saved=JSON.parse(localStorage.getItem('khz_risk_plan_action_preview_v1')||'{}');riskPlans.forEach(p=>{const v=saved['risk-plan:'+String(p.id)];if(!v||v.status==='verified'||!clean(v.owner)||!date(v.due))return;visible.push({action_uid:'risk_plan:'+String(p.id),source:'risk_plan',source_label:'اقدام برنامه کنترلی FMEA/HAZOP',icon:'🧩',href:p.href,title:(p.method==='hazop'?'HAZOP':'FMEA')+' · '+clean(p.hazard||'برنامه کنترلی'),unit:clean(p.unit),owner:clean(v.owner),due_date:date(v.due),native_status:v.status||'open',action_status:v.status||'open',created_at:null,id:String(p.id),detail:clean(p.planned_controls),source_data:{risk_id:p.id,method:p.method,hazard:p.hazard,planned_controls:p.planned_controls,score:p.score,review_date:p.review_date},record_type:'source_record',writable:false})})}
   catch(e){errors.push({source:'برنامه‌های کنترلی FMEA/HAZOP محلی',message:'داده محلی برنامه‌های کنترلی قابل خواندن نیست؛ صف این منبع ناقص است.'})}
  }
  // Manager-only overlay: preserve source-native fields and expose effective values separately.
@@ -133,7 +149,7 @@ async function load(options={}){
   }catch(e){errors.push({source:'مدیریت مسئول/مهلت',message:String(e&&e.message||e).slice(0,180)})}
  }
  const unique=new Map();visible.forEach(x=>{if(!unique.has(x.action_uid))unique.set(x.action_uid,x)});
- return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:8,included:['findings','ergonomic_actions','clinic_incidents','behavior_obs','clinic_followups','incident_capa','pollutant_capa','equipment_defects_preview'],excluded:['finding_followups (history events, not separate actions)','ergo_action_history (history events, not separate actions)','raw_cards (review queue, not CAPA)','notice_wo (technical notice/work-order queue, not CAPA)'],separateQueues:['FMEA/HAZOP planned_controls (risk controls, not converted to assigned actions)','periodic obligations','raw_cards (review queue, not CAPA)','notice_wo (technical notice/work-order queue, not CAPA)'],notes:['clinic_followups includes follow-up and incident_capa kinds only; clinical visit/medical records are excluded','finding_followups and ergo_action_history are displayed as history under their parent record, not counted as new actions','equipment_defects_preview is browser-local and Preview-only; it is not a multi-user source'] }};
+ return {items:[...unique.values()],riskPlans,errors,meta:{readOnly:true,overlayApplied,generated_at:new Date().toISOString(),source_count:12,included:['findings','ergonomic_actions','clinic_incidents','behavior_obs','clinic_followups','incident_capa','pollutant_capa','equipment_inspections','committee_items','hse_objective_actions','notice_followups'],excluded:['finding_followups (history events, not separate actions)','ergo_action_history (history events, not separate actions)','raw_cards (review queue, not CAPA)','notice_wo (technical notice/work-order queue, not CAPA)'],separateQueues:['FMEA/HAZOP planned_controls (risk controls, not converted to assigned actions)','periodic obligations','raw_cards (review queue, not CAPA)','notice_wo (technical notice/work-order queue, not CAPA)'],notes:['clinic_followups includes follow-up and incident_capa kinds only; clinical visit/medical records are excluded','finding_followups and ergo_action_history are displayed as history under their parent record, not counted as new actions','equipment_defects_preview is browser-local and Preview-only; it is not a multi-user source'] }};
 }
 window.HSEActionEngine={load,loadRiskPlans,loadEquipmentData,SOURCES};
 })();

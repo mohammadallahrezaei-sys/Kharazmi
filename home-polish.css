@@ -131,3 +131,7 @@ body{background:var(--bg);}
 @media(prefers-reduced-motion:reduce){
   .mods .tiles a.m{transition:none!important;}
 }
+
+/* نقطه‌های بنر ایمنی: قاعده‌ی عمومی حداقل ارتفاع ۴۰px دکمه‌ها نباید آن‌ها را میله کند */
+.hero-dots{align-items:center}
+.hero-dots button{min-height:0!important;min-width:0!important;height:7px;flex:none}
