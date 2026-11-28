@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head><script>(function(){if(location.hostname!=="raw.githack.com")return;var original=window.fetch.bind(window);window.fetch=async function(input,init){var u=typeof input==="string"?input:(input&&input.url)||"",m=String((init&&init.method)||(input&&input.method)||"GET").toUpperCase();if(m!=="GET"&&m!=="HEAD"&&/priopguwfjawybffarhd\.supabase\.co/i.test(u))return new Response(JSON.stringify({message:"نسخه آزمایشی فقط‌خواندنی است؛ هرگونه نوشتن در Supabase مسدود شد."}),{status:403,headers:{"Content-Type":"application/json"}});return original(input,init)}})();</script>
 <script src="auth.js" data-roles="manager"></script>
-<script src="hse_nav.js?v=20261126-inspection-nav" defer></script>
+<script src="center_tabs.js" defer></script><script src="hse_nav.js?v=20261126-inspection-nav" defer></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>مرکز اقدام - نرم‌افزار جامع HSE</title>
@@ -28,7 +28,7 @@ body{background:var(--bg)}
 @media(max-width:500px){.w{padding:12px}.w>h1{font-size:21px!important}.w>h1:after{display:none}.fl{gap:6px}.fl>*{min-width:100%;flex:1}.xi{padding:10px}.xs{flex-basis:40px}}
 .b2{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
 .b2.p{background:var(--ac);color:var(--acx);border-color:var(--ac)}.b2.ok{border-color:var(--ok);color:var(--ok)}
-.sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:12px 0}
+.sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:12px 0}@media(min-width:900px){.sm{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .sm div{text-align:center;padding:9px;border:1px solid var(--bd);border-radius:12px;background:var(--card)}.sm b{display:block;font-size:22px}
 .sm .bad b{color:var(--bad)}.sm .wa b{color:var(--wa)}
 .queue-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 14px}.queue-summary .qs{border:1px solid var(--bd);border-radius:11px;padding:9px 10px;background:var(--card);min-width:0}.queue-summary .qs b{display:block;font-size:20px;margin-bottom:3px}.queue-summary .qs small{display:block;color:var(--mu);font-size:11px;line-height:1.6}.queue-summary .qs-note{grid-column:1/-1;color:var(--mu);font-size:11px;line-height:1.7}@media(max-width:800px){.queue-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -74,7 +74,7 @@ const addD=(iso,n)=>{const d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDat
 const jl=iso=>iso?new Date(iso.slice(0,10)+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'numeric',day:'numeric',timeZone:'UTC'}):'—';
 const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(()=>e.style.display='none',2800)};
 async function rq(p,o={}){const r=await fetch(SB+p,{...o,headers:{'Content-Type':'application/json','Prefer':'return=representation',...(o.headers||{})}});if(!r.ok)throw new Error((await r.text()).slice(0,250));const t=await r.text();return t?JSON.parse(t):null}
-const SRC={finding:{n:'عدم‌انطباق',i:'📋',link:'checklists.html'},followup:{n:'پیگیری بهداری',i:'🏥',link:'clinic.html'},clinic_followup:{n:'پیگیری عمومی بهداری',i:'🏥',link:'clinic.html'},incident:{n:'اقدام اصلاحی حادثه',i:'🚨',link:'clinic.html'},incident_capa:{n:'اقدام اصلاحی علت‌یابی حادثه',i:'🧩',link:'clinic.html'},obligation:{n:'تعهد دوره‌ای',i:'📆',link:'obligations.html'},behavior:{n:'رفتار ناایمن',i:'👷',link:'behavior.html'},card:{n:'کارت در انتظار بررسی',i:'🗂️',link:'cards.html'},ergo:{n:'اقدام ارگونومی',i:'🪑',link:'ergo_followup.html'},equipment_defect:{n:'ایراد تجهیز',i:'🛠️',link:'equipment.html'},pollutant_capa:{n:'اقدام آلاینده‌سنجی',i:'🧪',link:'pollutants.html'},risk_plan:{n:'برنامه کنترلی FMEA/HAZOP',i:'🧩',link:'risks.html'}};
+const SRC={finding:{n:'عدم‌انطباق',i:'📋',link:'checklists.html'},followup:{n:'پیگیری بهداری',i:'🏥',link:'clinic.html'},clinic_followup:{n:'پیگیری عمومی بهداری',i:'🏥',link:'clinic.html'},incident:{n:'اقدام اصلاحی حادثه',i:'🚨',link:'clinic.html'},incident_capa:{n:'اقدام اصلاحی علت‌یابی حادثه',i:'🧩',link:'clinic.html'},obligation:{n:'تعهد دوره‌ای',i:'📆',link:'obligations.html'},behavior:{n:'رفتار ناایمن',i:'👷',link:'behavior.html'},card:{n:'کارت در انتظار بررسی',i:'🗂️',link:'cards.html'},ergo:{n:'اقدام ارگونومی',i:'🪑',link:'ergo_followup.html'},equipment_defect:{n:'ایراد تجهیز',i:'🛠️',link:'equipment.html'},pollutant_capa:{n:'اقدام آلاینده‌سنجی',i:'🧪',link:'pollutants.html'},risk_plan:{n:'برنامه کنترلی FMEA/HAZOP',i:'🧩',link:'risks.html'},committee:{n:'مصوبه کمیته حفاظت فنی',i:'🏛️',link:'committee.html'},objective:{n:'اقدام اهداف HSE',i:'🎯',link:'objectives.html'},notice_followup:{n:'پیگیری اعلان فنی',i:'🔧',link:'tech_followup.html'}};
 const SLA_SEV={1:30,2:14,3:3,4:1},SLA_LVL={1:2,2:7,3:14,4:30},BASE_SEV={1:15,2:35,3:60,4:85};
 const HIGH=/(سوله\s*[۴4۵5۶6۸8]\b|سوله\s*(۱۰|10|۱۲|12)\b|بازیابی|کلسیناسیون|اسید|آمونیاک|اتوکلاو|کوره|راکتور)/;
 const LV={1:{n:'فوری',c:'#dc2626'},2:{n:'بالا',c:'#f97316'},3:{n:'متوسط',c:'#eab308'},4:{n:'پایین',c:'#94a3b8'}};
@@ -167,7 +167,7 @@ function render(){
 $('#queueSummary').innerHTML=qa.map(q=>'<div class="qs"><b>'+ (typeof q[1]==='number'?fa(q[1]):q[1]) +'</b><small>'+esc(q[0])+'</small><small>'+esc(q[2])+'</small></div>').join('')+'<div class="qs-note">این تفکیک فقط برای شفافیت صف‌هاست؛ موارد درمانگاه، کارت‌ها و تعهدات در KPI «اقدامات اصلاحی فعال» ادغام نشده‌اند.</div>';
 const V=view(),sh=V.slice(0,SHOW);
  if(!V.length){$('#acList').innerHTML='<div class="mu" style="padding:16px;text-align:center">'+(all.length?'موردی با این فیلتر نیست.':'✓ موضوع بازی نیست (یا همهٔ منبع‌ها خوانده نشدند).')+'</div>';return}
- $('#acList').innerHTML=sh.map(x=>{const S=SRC[x.src],c=LV[x.lv].c,e=escTxt[x.esc],last=x.events[x.events.length-1];
+ $('#acList').innerHTML=sh.map(x=>{const S=SRC[x.src]||{n:x.src,i:'📌',link:'action-register.html'},c=LV[x.lv].c,e=escTxt[x.esc],last=x.events[x.events.length-1];
   return '<div class="xi'+(x.followed&&x.esc<2?' xf':'')+'" style="--c:'+c+'"><div class="xs" title="امتیاز اولویت">'+fa(x.score)+'</div><div class="xb"><h3>'+S.i+' '+esc(String(x.title).slice(0,220))+'</h3>'
   +'<div class="xc"><span style="color:'+c+';border-color:'+c+'">'+LV[x.lv].n+'</span><span>'+S.n+'</span>'+(x.unit?'<span>'+esc(x.unit)+'</span>':'')+(x.src==='finding'&&x.rootCause?'<span class="ok">علت ریشه‌ای: '+esc(x.rootCause)+'</span>':'')
   +(x.owner?'<span class="ok">مسئول: '+esc(x.owner)+'</span>':'<span class="'+(x.lv<=2?'bad':'wa')+'">بدون مسئول</span>')+(x.src==='ergo'&&x.srcStatus?'<span>مرحله: '+esc(({open:'باز / نیازمند اقدام',implemented:'اجرا شده؛ منتظر ارزیابی مجدد',pending_verification:'منتظر تأیید اثربخشی'}[x.srcStatus]||x.srcStatus))+'</span>':'')

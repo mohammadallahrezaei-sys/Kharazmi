@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
 <script src="auth.js" data-roles="manager"></script>
-<script src="hse_nav.js?v=20261126-nav-central" defer></script>
+<script src="center_tabs.js" defer></script><script src="hse_nav.js?v=20261126-nav-central" defer></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>رادار سررسیدها - نرم‌افزار جامع HSE</title>
@@ -64,13 +64,13 @@ const addJMonths=(iso,n)=>{const j=HSE.toJal(new Date(iso+'T00:00:00Z'));if(!j||
 const diff=(a,b)=>Math.round((new Date(a+'T12:00:00Z')-new Date(b+'T12:00:00Z'))/864e5);
 const addM=(iso,n)=>{const d=new Date(iso+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+n);return d.toISOString().slice(0,10)};
 const jl=iso=>new Date(iso+'T12:00:00Z').toLocaleDateString('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',timeZone:'UTC'});
-const SRC={finding:['📋','عدم‌انطباق','checklists.html'],poll:['🧪','اقدام آلاینده‌سنجی','pollutants.html'],followup:['🏥','پیگیری بهداری','clinic.html'],incident:['🚑','اقدام حادثه','clinic.html'],obl:['📜','تعهد/مجوز','obligations.html'],beh:['👁','رفتار ناایمن','behavior.html'],proc:['📘','روش اجرایی','procedures.html'],risk:['⚠️','بازنگری ریسک','risks.html'],eq:['🧯','بازرسی تجهیزات','equipment.html'],ctr:['🏗','قرارداد پیمانکار','contractors.html'],ergo:['🪑','اقدام ارگونومی','ergo_followup.html'],riskplan:['🧩','برنامه کنترلی FMEA/HAZOP','risks.html']};
+const SRC={finding:['📋','عدم‌انطباق','checklists.html'],committee:['🏛️','مصوبه کمیته','committee.html'],objective:['🎯','اقدام اهداف HSE','objectives.html'],ntf:['🔧','پیگیری اعلان فنی','tech_followup.html'],poll:['🧪','اقدام آلاینده‌سنجی','pollutants.html'],followup:['🏥','پیگیری بهداری','clinic.html'],incident:['🚑','اقدام حادثه','clinic.html'],obl:['📜','تعهد/مجوز','obligations.html'],beh:['👁','رفتار ناایمن','behavior.html'],proc:['📘','روش اجرایی','procedures.html'],risk:['⚠️','بازنگری ریسک','risks.html'],eq:['🧯','بازرسی تجهیزات','equipment.html'],ctr:['🏗','قرارداد پیمانکار','contractors.html'],ergo:['🪑','اقدام ارگونومی','ergo_followup.html'],riskplan:['🧩','برنامه کنترلی FMEA/HAZOP','risks.html']};
 let L=[],GAP=[],F='all',miss=[];
 const add=(s,t,due,sub,uid,href)=>{if(!t)return;due=d10(due);const item={s,t:String(t).slice(0,140),due,sub:sub||'',action_uid:uid||null,href:href||null};if(okD(due))L.push(item);else GAP.push(item)};
 async function load(){
  const T=async(n,f)=>{try{await f()}catch(e){miss.push(n)}};
  await Promise.all([
-  T('اقدامات مستقل (موتور مشترک)',async()=>{const shared=await HSEActionEngine.load({includeOverlay:true,includeRiskPlans:true});const map={finding:'finding',equipment_defect:'eq',pollutant_capa:'poll',clinic_followup:'followup',incident:'incident',incident_capa:'incident',behavior:'beh',ergo:'ergo',risk_plan:'riskplan'};shared.items.forEach(x=>{const s=map[x.source];if(!s)return;const sub=[x.unit,x.effective_owner||x.owner,x.native_status?('وضعیت: '+x.native_status):''].filter(Boolean).join(' · ');add(s,x.title,x.effective_due_date||x.due_date,sub,x.action_uid,x.href)});if(shared.errors.length)miss.push(...shared.errors.map(x=>'موتور مشترک: '+x.source))}),
+  T('اقدامات مستقل (موتور مشترک)',async()=>{const shared=await HSEActionEngine.load({includeOverlay:true,includeRiskPlans:true});const map={finding:'finding',equipment_defect:'eq',pollutant_capa:'poll',clinic_followup:'followup',incident:'incident',incident_capa:'incident',behavior:'beh',ergo:'ergo',risk_plan:'riskplan',committee:'committee',objective:'objective',notice_followup:'ntf'};shared.items.forEach(x=>{const s=map[x.source];if(!s)return;const sub=[x.unit,x.effective_owner||x.owner,x.native_status?('وضعیت: '+({open:'باز',new:'جدید',ongoing:'در جریان',pending:'در انتظار',overdue:'معوق',doing:'در دست اقدام',not_started:'شروع نشده',in_progress:'در دست اقدام',implemented:'اجرا شده',pending_verification:'در انتظار تأیید اثربخشی'}[x.native_status]||x.native_status)):''].filter(Boolean).join(' · ');add(s,x.title,x.effective_due_date||x.due_date,sub,x.action_uid,x.href)});if(shared.errors.length)miss.push(...shared.errors.map(x=>'موتور مشترک: '+x.source))}),
   T('تعهدات',async()=>{(await HSE.getAll('hse_obligations?select=id,title,category,next_due,owner,active')).filter(x=>x.active!==false).forEach(x=>add('obl',x.title,x.next_due,[x.category,x.owner].filter(Boolean).join(' · ')))}),
   T('روش‌های اجرایی',async()=>{(await HSE.getAll('hse_procedures?select=id,title,status,target_date,owner,active')).filter(x=>x.active!==false&&x.status!=='approved').forEach(x=>add('proc',x.title,x.target_date,x.owner))}),
   T('ریسک‌ها',async()=>{(await HSE.getAll('risks?select=id,hazard,unit,status,review_date&status=neq.archived')).filter(x=>x.status!=='draft').forEach(x=>add('risk','بازنگری: '+(x.hazard||''),x.review_date,x.unit))}),
